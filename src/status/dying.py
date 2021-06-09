@@ -66,7 +66,7 @@ def kill_players(var, *, end_game: bool = True) -> bool:
     with var.GRAVEYARD_LOCK: # FIXME
         if not var.GAME_ID or var.GAME_ID > t:
             #  either game ended, or a new game has started
-            return
+            return True
 
         dead = set()
 
@@ -82,7 +82,7 @@ def kill_players(var, *, end_game: bool = True) -> bool:
             dead.add(player)
             # Don't track players that quit before the game started
             if var.PHASE != "join":
-	            var.DEAD.add(player)
+                var.DEAD.add(player)
             # notify listeners that the player died for possibility of chained deaths
             evt = Event("del_player", {},
                         killer_role=killer_role,

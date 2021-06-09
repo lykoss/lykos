@@ -44,7 +44,7 @@ def on_reset(evt, var):
     DISEASED_WOLVES = False
 
 @event_listener("wolf_numkills", priority=10)
-def on_wolf_numkills(evt, var):
+def on_wolf_numkills(evt, var, wolf):
     if wolves_diseased(var):
         evt.data["numkills"] = 0
         evt.data["message"] = "ill_wolves"

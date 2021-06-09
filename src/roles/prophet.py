@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, match_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -27,15 +27,15 @@ def pray(var, wrapper, message):
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    matches = complete_role(var, message, allow_special=False)
-    if not matches:
+    matches = match_role(var, message, allow_special=False)
+    if len(matches) == 0:
         wrapper.pm(messages["no_such_role"].format(message))
         return
     elif len(matches) > 1:
-        wrapper.pm(messages["ambiguous_role"].format(matches))
+        wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
         return
 
-    role = matches[0]
+    role = matches.get().key
     pl = get_players()
     PRAYED.add(wrapper.source)
 
@@ -61,8 +61,8 @@ def pray(var, wrapper, message):
     debuglog("{0} (prophet) PRAY {1} ({2})".format(wrapper.source, role, target))
 
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for pht in get_all_players(("prophet",)):
         pht.send(messages["prophet_notify"])
 

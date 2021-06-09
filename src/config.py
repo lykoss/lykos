@@ -2,7 +2,7 @@ import copy
 from pathlib import Path
 import os
 import sys
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Union
 from ruamel.yaml import YAML
 
 __all__ = ["Main", "Config", "Empty", "merge", "init"]
@@ -45,11 +45,11 @@ def init():
 class Config:
     def __init__(self):
         self._metadata = None # type: Optional[Dict[str, Any]]
-        self._metadata_file = None # type: Optional[str]
+        self._metadata_file = None # type: Optional[Union[str, Path]]
         self._settings = Empty # type: Any
-        self._files = [] # type: List[str]
+        self._files = [] # type: List[Union[str, Path]]
 
-    def load_metadata(self, file: str) -> None:
+    def load_metadata(self, file: Union[str, Path]) -> None:
         """Load metadata into the current Config instance.
 
         :param file: Path to metadata file to load
@@ -63,7 +63,7 @@ class Config:
         # load default settings
         self._settings = merge(self._metadata, Empty, Empty, "<root>")
 
-    def load_config(self, file: str) -> None:
+    def load_config(self, file: Union[str, Path]) -> None:
         """Load configuration file into the current Config instance.
         
         :param file: Path to configuration file to load

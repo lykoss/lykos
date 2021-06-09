@@ -32,6 +32,7 @@ if ver < (3, 7):
 
 try: # need to manually add dependencies here
     import antlr4
+    import requests
     import ruamel.yaml
 except ImportError:
     command = "python3"
@@ -45,7 +46,7 @@ except ImportError:
                      "https://pip.pypa.io/en/stable/installing/",
                      "",
                      "If you need any further help with setting up and/or running the bot,",
-                     "  we will be happy to help you in #lykos on irc.freenode.net",
+                     "  we will be happy to help you in #lykos on irc.libera.chat",
                      "",
                      "- The lykos developers"]), file=sys.stderr)
     sys.exit(1)
@@ -67,7 +68,7 @@ if args.config:
     if not p.is_file():
         print("File specified by --config does not exist or is not a file", file=sys.stderr)
         sys.exit(1)
-    os.environ["BOTCONFIG"] = p.resolve()
+    os.environ["BOTCONFIG"] = str(p.resolve())
 
 from oyoyo.client import IRCClient, TokenBucket
 

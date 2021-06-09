@@ -1,12 +1,13 @@
 # event system
+from __future__ import annotations
+
 from collections import defaultdict
 from types import SimpleNamespace
-from typing import Callable, Optional
+from typing import Callable, Dict, Optional, List
 from src.debug import handle_error
 
 __all__ = ["find_listener", "event_listener", "Event", "EventListener"]
-
-EVENT_CALLBACKS = defaultdict(set)
+EVENT_CALLBACKS: Dict[str, List[EventListener]] = defaultdict(list)
 
 class EventListener:
     def __init__(self, callback: Callable, *, listener_id: Optional[str] = None, priority: float = 5):
@@ -22,10 +23,11 @@ class EventListener:
     def install(self, event: str):
         if self in EVENT_CALLBACKS[event]:
             raise ValueError("Callback with id {} already registered for the {} event".format(self.id, event))
-        EVENT_CALLBACKS[event].add(self)
+        EVENT_CALLBACKS[event].append(self)
 
     def remove(self, event: str):
-        EVENT_CALLBACKS[event].discard(self)
+        if self in EVENT_CALLBACKS[event]:
+            EVENT_CALLBACKS[event].remove(self)
 
     def __eq__(self, other):
         if not isinstance(other, EventListener):

@@ -8,16 +8,22 @@ CREATE TABLE player (
     id INTEGER PRIMARY KEY,
     -- What person this player record belongs to
     person INTEGER REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
-    -- NickServ account name, or NULL if this player is based on a hostmask
-    account TEXT COLLATE NOCASE,
-    -- Hostmask for the player, if not based on an account (NULL otherwise)
-    hostmask TEXT COLLATE NOCASE,
+    -- NickServ account name (as-is)
+    account_display TEXT NOT NULL,
+    -- NickServ account name (lowercase)
+    account_lower_ascii TEXT NOT NULL COLLATE NOCASE,
+    -- NickServ account name (lowercase with RFC1459 case-folding: []\^ => {}|~)
+    account_lower_rfc1459 TEXT NOT NULL COLLATE NOCASE,
+    -- NickServ account name (lowercase with strict RFC1459 case-folding: []\ => {}|)
+    account_lower_rfc1459_strict TEXT NOT NULL COLLATE NOCASE,
     -- If a player entry needs to be retired (for example, an account expired),
     -- setting this to 0 allows for that entry to be re-used without corrupting old stats/logs
     active BOOLEAN NOT NULL DEFAULT 1
 );
 
-CREATE INDEX player_idx ON player (account, hostmask, active);
+CREATE INDEX player_ascii_idx ON player (account_lower_ascii, active);
+CREATE INDEX player_rfc1459_idx ON player (account_lower_rfc1459, active);
+CREATE INDEX player_rfc1459_strict_idx ON player (account_lower_rfc1459_strict, active);
 CREATE INDEX person_idx ON player (person);
 
 -- Person tracking; a person can consist of multiple players (for example, someone may have
@@ -39,8 +45,30 @@ CREATE TABLE person (
     -- each time a game is started, this is decremented by 1, to a minimum of 0
     stasis_amount INTEGER NOT NULL DEFAULT 0,
     -- When the given stasis expires, represented in 'YYYY-MM-DD HH:MM:SS' format
-    stasis_expires DATETIME
+    stasis_expires DATETIME,
+    -- The current amount of achievement points the player has
+    -- May be less than the total if they spent any on various things
+    achievement_current INTEGER NOT NULL DEFAULT 0,
+    -- The total amount of achievement points the player has earned
+    achievement_total INTEGER NOT NULL DEFAULT 0
 );
+
+-- Achievement tracking. Actual achievements and their conditions are defined in the code,
+-- this table serves to track who earned which achievements and when.
+CREATE TABLE achievement (
+    id INTEGER PRIMARY KEY,
+    -- Who earned this achievement
+    player INTEGER NOT NULL REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
+    -- Which achievement was earned
+    achievement TEXT NOT NULL,
+    -- How many points the achievement was worth at the time it was earned
+    points INTEGER NOT NULL,
+    -- When the achievement was earned
+    earned DATETIME NOT NULL
+);
+
+CREATE INDEX achievement_idx ON achievement (player, achievement);
+CREATE INDEX achievement_achievement_idx ON achievement (achievement);
 
 -- Sometimes people are bad, this keeps track of that for the purpose of automatically applying
 -- various sanctions and viewing the past history of someone. Outside of specifically-marked

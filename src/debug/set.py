@@ -1,4 +1,6 @@
-from typing import Iterator, TypeVar, Optional, Set
+from __future__ import annotations
+
+from typing import Generic, Iterator, TypeVar, Optional, Set
 import collections.abc
 from src import config
 from src.debug.history import History
@@ -6,9 +8,8 @@ from src.debug.history import History
 __all__ = ["CheckedSet"]
 
 T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
 
-class CheckedSet(collections.abc.MutableSet):
+class CheckedSet(collections.abc.MutableSet, Generic[T]):
     """ Set container with additional features to aid in debugging.
 
     Common mutation methods are exposed to more easily set breakpoints,
@@ -16,7 +17,7 @@ class CheckedSet(collections.abc.MutableSet):
     collection was modified in the past.
     """
 
-    def __new__(cls, name: str, iterable: Optional[Iterator[T_co]] = None):
+    def __new__(cls, name: str, iterable: Optional[Iterator[T]] = None):
         if not config.Main.get("debug.enabled"):
             if iterable is None:
                 return set()
@@ -25,14 +26,14 @@ class CheckedSet(collections.abc.MutableSet):
 
         return super().__new__(cls)
 
-    def __init__(self, name: str, iterable: Optional[Iterator[T_co]] = None):
+    def __init__(self, name: str, iterable: Optional[Iterator[T]] = None):
         self._history = History(name)
         if iterable is None:
-            self._set = set() # type: Set[T]
+            self._set: Set[T] = set()
         else:
-            self._set = set(iterable) # type: Set[T]
+            self._set = set(iterable)
 
-    def __iter__(self) -> Iterator[T_co]:
+    def __iter__(self) -> Iterator[T]:
         return iter(self._set)
 
     def __len__(self) -> int:

@@ -73,8 +73,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     CAN_ACT.discard(player)
     ACTED.discard(player)
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     CAN_ACT.update(get_all_players(("clone",)) - CLONED.keys())
     for clone in get_all_players(("clone",)):
@@ -84,7 +84,8 @@ def on_transition_night_end(evt, var):
         random.shuffle(pl)
         pl.remove(clone)
         clone.send(messages["clone_notify"])
-        clone.send(messages["players_list"].format(pl))
+        if var.NIGHT_COUNT > 0:
+            clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

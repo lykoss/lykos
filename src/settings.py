@@ -25,7 +25,7 @@ TIME_RATE_LIMIT = 10
 START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
 GOAT_RATE_LIMIT = 300 # (per-user)
-MIN_PLAYERS = 4
+MIN_PLAYERS = 6
 MAX_PLAYERS = 24
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
@@ -74,9 +74,6 @@ ACC_EXPIRY = "30d"
 # All other penalties take precedence over night penalties; only one penalty will be given per game.
 NIGHT_IDLE_PENALTY = 1
 NIGHT_IDLE_EXPIRY = "14d"
-
-# If True, disallows adding stasis via !fstasis (requires warnings instead)
-RESTRICT_FSTASIS = True
 
 # The formatting of this sucks, sorry. This is used to automatically apply sanctions to warning levels
 # When a user crosses from below the min threshold to min or above points, the listed sanctions apply
@@ -219,13 +216,13 @@ DEFAULT_ROLE = "villager"
 HIDDEN_ROLE = "villager"
 
 # Roles listed here cannot be used in !fgame roles=blah.
-DISABLED_ROLES = frozenset()
+DISABLED_ROLES: FrozenSet[str] = frozenset()
 
 # Game modes that cannot be randomly picked or voted for
-DISABLED_GAMEMODES = frozenset()
+DISABLED_GAMEMODES: FrozenSet[str] = frozenset()
 
 # Commands listed here cannot be used by anyone (even admins/owners)
-DISABLED_COMMANDS = frozenset()
+DISABLED_COMMANDS: FrozenSet[str] = frozenset()
 
 GIF_CHANCE = 1/50
 

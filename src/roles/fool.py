@@ -47,8 +47,8 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
     if winner == "fool" and player is VOTED:
         evt.data["individual_win"] = True
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for fool in get_all_players(("fool",)):
         fool.send(messages["fool_notify"])
 

@@ -1,17 +1,28 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
+from __future__ import annotations
+
 import base64
 import threading
 import time
 import functools
+<<<<<<< HEAD
 import logging
 from typing import Optional
 
 import src.settings as var
 from src import config, decorators, wolfgame, channels, users
+=======
+import statistics
+import math
+from typing import List, Optional, Union
+
+import botconfig  # type: ignore
+import src.settings as var
+from src import decorators, wolfgame, channels, users, plog
+>>>>>>> master
 from src.messages import messages
-from src.functions import get_participants, get_all_roles
-from src.utilities import complete_role
+from src.functions import get_participants, get_all_roles, match_role
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
 from src.context import Features
@@ -27,7 +38,10 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if var.USER_DATA_LEVEL == 0 or var.CHANNEL_DATA_LEVEL == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
-    user = users.get(rawnick, allow_none=True)
+    # bot needs to talk to itself during lagchecks
+    from src import lagcheck
+    allow_bot = lagcheck > 0
+    user = users.get(rawnick, allow_none=True, allow_bot=allow_bot)
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 
@@ -88,9 +102,9 @@ def parse_and_dispatch(var,
 
     # check for role prefix
     parts = key.split(sep=":", maxsplit=1)
-    if len(parts) > 1 and len(parts[0]):
+    if len(parts) > 1 and len(parts[0]) and not parts[0].isnumeric():
         key = parts[1]
-        role_prefix = parts[0]
+        role_prefix: Optional[str] = parts[0]
     else:
         key = parts[0]
         role_prefix = None
@@ -108,11 +122,11 @@ def parse_and_dispatch(var,
 
     if role_prefix is not None:
         # match a role prefix to a role. Multi-word roles are supported by stripping the spaces
-        matches = complete_role(var, role_prefix, remove_spaces=True)
+        matches = match_role(var, role_prefix, remove_spaces=True)
         if len(matches) == 1:
-            role_prefix = matches[0]
+            role_prefix = matches.get().key
         elif len(matches) > 1:
-            wrapper.pm(messages["ambiguous_role"].format(matches))
+            wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
             return
         else:
             wrapper.pm(messages["no_such_role"].format(role_prefix))
@@ -120,7 +134,7 @@ def parse_and_dispatch(var,
 
     # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
     # as we don't want to insert bogus command keys into the dict.
-    cmds = []
+    cmds: List[command] = []
     phase = var.PHASE
     if context.source in get_participants():
         roles = get_all_roles(context.source)
@@ -161,7 +175,7 @@ def parse_and_dispatch(var,
         # is executed. In this event, display a helpful error message instructing
         # the user to resolve the ambiguity.
         common_roles = set(roles)
-        info = [0, 0]
+        info: List[Union[str, int]] = [0, 0]
         role_map = messages.get_role_mapping()
         for fn in cmds:
             fn_roles = roles.intersection(fn.roles)
@@ -209,6 +223,107 @@ def latency(var, wrapper, message):
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
+<<<<<<< HEAD
+=======
+def run_lagcheck(cli):
+    from oyoyo.client import TokenBucket
+    cli.tokenbucket = TokenBucket(100, 0.1)
+    plog("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
+    plog("The bot may restart a couple of times during the check.")
+
+    # set up initial variables
+    from src import lagcheck
+    timings = []
+    max_phases = lagcheck
+
+    @command("", pm=True)
+    def on_pm(var, wrapper, message):
+        if wrapper.source is not users.Bot:
+            return
+
+        cur = time.perf_counter()
+        phase, clock = message.split(" ")
+        phase = int(phase)
+        clock = float(clock)
+        if phase > 0:
+            # timing data for current phase
+            timings.append((phase, cur - clock))
+        elif clock < max_phases:
+            # run another batch
+            # note that clock is correct here; end of phase is sent as phase=0 clock=phase#
+            next_phase = int(clock) + 1
+            plog("Testing phase {0}/{1}...".format(next_phase, max_phases))
+            _lagcheck_1(next_phase, max_phases)
+        else:
+            # process data
+            _lagcheck_2(cli, timings, max_phases)
+
+    # we still have startup lag at this point, so delay our check until we receive this message successfully
+    users.Bot.send("0 0")
+
+def _lagcheck_1(phase, max_phases):
+    # Burst some messages and time how long it takes for them to get back to us
+    burst = max(12, 12 - (phase * 2) + max_phases)
+    for i in range(burst):
+        users.Bot.send("{0} {1}".format(phase, time.perf_counter()))
+    # signal that we're done
+    users.Bot.send("0 {0}".format(phase))
+
+def _lagcheck_2(cli, timings, max_phases):
+    # Assume our first message isn't throttled and is an accurate representation of the roundtrip time
+    # for the server. We use this to normalize all the other timings, as since we bursted N messages
+    # at once, message N will have around N*RTT of delay even if there is no throttling going on.
+    if timings:
+        rtt = timings[0][1]
+        fixed = [0] * len(timings)
+    else:
+        rtt = 0
+        fixed = []
+    counter = 0
+    prev_phase = 0
+    threshold = 0
+    for i, (phase, diff) in enumerate(timings):
+        if phase != prev_phase:
+            prev_phase = phase
+            counter = 0
+        counter += 1
+        fixed[i] = diff - (counter * rtt)
+
+        if i < 4: # wait for a handful of data points
+            continue
+        avg = statistics.mean(fixed[0:i])
+        stdev = statistics.pstdev(fixed[0:i], mu=avg)
+        if stdev == 0: # need a positive std dev
+            continue
+        # if our current measurement varies more than 3 standard deviations from the mean,
+        # then we probably started getting fakelag
+        if threshold == 0 and fixed[i] > avg + 3 * stdev:
+            # we've detected that we've hit fakelag; set threshold to i (technically it happens a while
+            # before i, but i is a decent overestimate of when it happens)
+            threshold = i
+
+    plog("Lag check complete! We recommend adding the following settings to your botconfig.py:")
+    delay = max(0.8 * fixed[threshold], 0.1)
+    # establish a reasonable minimum burst amount
+    # we were able to burst 10 + max_phases without getting disconnected so we know for sure it works
+    burst = max(12, 10 + max_phases)
+
+    if threshold == 0:
+        print("IRC_TB_INIT = 30", "IRC_TB_BURST = 30", "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
+    else:
+        print("IRC_TB_INIT = {0}".format(burst), "IRC_TB_BURST = {0}".format(burst), "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
+
+    if burst < 20 and delay > 1.5:
+        # recommend turning off deadchat if we can't push out messages fast enough
+        print("ENABLE_DEADCHAT = False")
+
+    if burst == 12 and delay > 2:
+        # if things are really bad, recommend turning off wolfchat too
+        print("RESTRICT_WOLFCHAT = 0x0b")
+
+    cli.quit()
+
+>>>>>>> master
 def connect_callback(cli):
     regaincount = 0
     releasecount = 0
@@ -216,7 +331,12 @@ def connect_callback(cli):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
+<<<<<<< HEAD
         alog("Received end of MOTD from {0}".format(prefix))
+=======
+        from src import lagcheck
+        plog("Received end of MOTD from {0}".format(prefix))
+>>>>>>> master
 
         # This callback only sets up event listeners
         wolfgame.connect_callback()
@@ -238,6 +358,7 @@ def connect_callback(cli):
         event = Event("irc_connected", {})
         event.dispatch(var, cli)
 
+<<<<<<< HEAD
         main_channel = config.Main.get("transports[0].channels.main")
         if isinstance(main_channel, str):
             main_channel = {"name": main_channel, "prefix": "", "key": ""}
@@ -266,6 +387,28 @@ def connect_callback(cli):
                 var.LOG_PREFIX = chan["prefix"]
 
         users.Bot.change_nick(nick)
+=======
+        # don't join any channels if we're just doing a lag check
+        if not lagcheck:
+            channels.Main = channels.add(botconfig.CHANNEL, cli)
+            channels.Dummy = channels.add("*", cli)
+
+            if botconfig.ALT_CHANNELS:
+                for chan in botconfig.ALT_CHANNELS.split(","):
+                    channels.add(chan, cli)
+
+            if botconfig.DEV_CHANNEL:
+                channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
+
+            if var.LOG_CHANNEL:
+                channels.add(var.LOG_CHANNEL, cli)
+        else:
+            plog("Preparing lag check")
+            # if we ARE doing a lagcheck, we need at least our own host or things break
+            users.Bot.who()
+
+        users.Bot.change_nick(botconfig.NICK)
+>>>>>>> master
 
         if var.SERVER_PING_INTERVAL > 0:
             def ping_server_timer(cli):
@@ -355,10 +498,15 @@ def connect_callback(cli):
             if caps[0] == "*": # Multiline, don't continue yet
                 return
 
+<<<<<<< HEAD
             if config.Main.get("transports[0].authentication.services.use_sasl") and "sasl" not in supported_caps:
                 alog("Server does not support SASL authentication")
+=======
+            if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
+                plog("Server does not support SASL authentication")
+>>>>>>> master
                 cli.quit()
-                raise ValueError("Server does not support SASL authentication")
+                sys.exit(1)
 
             common_caps = request_caps & supported_caps
 
@@ -384,15 +532,15 @@ def connect_callback(cli):
                 if supported_sasl is None or mech in supported_sasl:
                     cli.send("AUTHENTICATE {0}".format(mech))
                 else:
-                    alog("Server does not support the SASL {0} mechanism".format(mech))
+                    plog("Server does not support the SASL {0} mechanism".format(mech))
                     cli.quit()
-                    raise ValueError("Server does not support the SASL {0} mechanism".format(mech))
+                    sys.exit(1)
             else:
                 cli.send("CAP END")
         elif cmd == "NAK":
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
-            alog("Server refused capabilities: {0}".format(" ".join(caps[0])))
+            plog("Server refused capabilities: {0}".format(" ".join(caps[0])))
 
         elif cmd == "NEW":
             # New capability advertised by the server, see if we want to enable it
@@ -447,11 +595,17 @@ def connect_callback(cli):
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet
                 selected_sasl = "PLAIN"
-                alog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
+                plog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
                 cli.send("AUTHENTICATE PLAIN")
             else:
+<<<<<<< HEAD
                 alog("Authentication failed.  Did you fill the account name "
                      "in transport.authentication.services.username if it's different from the bot nick?")
+=======
+                plog("Authentication failed.  Did you fill the account name "
+                     "in botconfig.USERNAME if it's different from the bot nick?")
+>>>>>>> master
                 cli.quit()
+                sys.exit(1)
 
     users.Bot = users.BotUser(cli, config.Main.get("transports[0].user.nick"))

@@ -156,14 +156,16 @@ def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("piper",)))
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = set(get_players()) - CHARMED
     for piper in get_all_players(("piper",)):
         pl = list(ps)
         random.shuffle(pl)
         pl.remove(piper)
-        piper.send(messages["piper_notify"], messages["players_list"].format(pl), sep="\n")
+        piper.send(messages["piper_notify"])
+        if var.NIGHT_COUNT > 0:
+            piper.send(messages["players_list"].format(pl))
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):

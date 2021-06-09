@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import traceback
 from typing import Set, List, Tuple, Dict, Optional
 from src import config

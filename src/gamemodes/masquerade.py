@@ -14,7 +14,7 @@ class MasqueradeMode(GameMode):
             7: ["guardian angel/vigilante"],
             8: ["wolf(2)"],
             9: ["amnesiac"],
-            10: ["seer/drunk", "wild child(2)"],
+            10: ["seer/village drunk", "wild child(2)"],
             11: ["gunner"],
             12: ["werekitten"],
             13: ["guardian angel/vigilante(2)"],
@@ -27,6 +27,6 @@ class MasqueradeMode(GameMode):
         }
         self.ROLE_SETS.update({
             "guardian angel/vigilante": {"guardian angel": 1, "vigilante": 1},
-            "seer/drunk": {"seer": 1, "village drunk": 1},
+            "seer/village drunk": {"seer": 1, "village drunk": 1},
             "shaman/wolf shaman": {"shaman": 1, "wolf shaman": 1}
         })

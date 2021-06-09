@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from typing import Union, List, Optional
 import re
-import logging
 
 from src import config, channels, db, users
 from src.lineparse import LineParser, LineParseError, WantsHelp
-from src.utilities import *
 from src.decorators import command, COMMANDS
 from src.messages import messages
 
@@ -142,6 +142,7 @@ def fstasis(var, wrapper, message):
     """Removes or views stasis penalties."""
 
     data = re.split(" +", message)
+    from src.context import lower as irc_lower
 
     if data[0]:
         m = users.complete_match(data[0])
@@ -166,7 +167,7 @@ def fstasis(var, wrapper, message):
             if amt < 0:
                 wrapper.reply(messages["stasis_non_negative"])
                 return
-            elif amt > cur and var.RESTRICT_FSTASIS:
+            elif amt > cur:
                 wrapper.reply(messages["stasis_cannot_increase"])
                 return
             elif cur == 0:
@@ -209,25 +210,25 @@ def _parse_expires(expires: str, base: Optional[str] = None) -> Optional[datetim
         raise ValueError("amount cannot be negative")
 
     if not base:
-        base = datetime.utcnow()
+        base_dt = datetime.utcnow()
     else:
-        base = datetime.strptime(base, "%Y-%m-%d %H:%M:%S")
+        base_dt = datetime.strptime(base, "%Y-%m-%d %H:%M:%S")
 
     if suffix == messages.raw("day_suffix"):
-        expires = base + timedelta(days=amount)
+        expires_dt = base_dt + timedelta(days=amount)
     elif suffix == messages.raw("hour_suffix"):
-        expires = base + timedelta(hours=amount)
+        expires_dt = base_dt + timedelta(hours=amount)
     elif suffix == messages.raw("minute_suffix"):
-        expires = base + timedelta(minutes=amount)
+        expires_dt = base_dt + timedelta(minutes=amount)
     else:
         raise ValueError("unrecognized time suffix")
 
     round_add = 0
-    if expires.second >= 30:
+    if expires_dt.second >= 30:
         round_add = 1
-    expires -= timedelta(seconds=expires.second, microseconds=expires.microsecond)
-    expires += timedelta(minutes=round_add)
-    return expires
+    expires_dt -= timedelta(seconds=expires_dt.second, microseconds=expires_dt.microsecond)
+    expires_dt += timedelta(minutes=round_add)
+    return expires_dt
 
 def warn_list(var, wrapper, args):
     if args.help:

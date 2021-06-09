@@ -87,8 +87,8 @@ def setup_variables(rolename):
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
-    @event_listener("transition_night_end", listener_id="gunners.<{}>.on_transition_night_end".format(rolename))
-    def on_transition_night_end(evt, var):
+    @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
+    def on_send_role(evt, var):
         for gunner in get_all_players((rolename,)):
             if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
@@ -114,11 +114,11 @@ def setup_variables(rolename):
                             evt.data["killers"][shot].append(victim)
                         elif event.data["hit"]:
                             # shot hit, but didn't kill
-                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_hit"])
+                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_hit"].format(victim))
                             add_absent(var, shot, "wounded")
                         else:
                             # shot was fired and missed
-                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"])
+                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"].format(victim))
 
                 # let wolf steal gun if the gunner has any bullets remaining
                 # this gives the looter the "wolf gunner" secondary role

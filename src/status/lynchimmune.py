@@ -1,12 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Set
+
 from src.containers import DefaultUserDict
 from src.functions import get_players
 from src.messages import messages
 from src.events import Event, event_listener
 from src.users import User
 
+if TYPE_CHECKING:
+    from src.users import User
+
 __all__ = ["add_lynch_immunity", "try_lynch_immunity"]
 
-IMMUNITY = DefaultUserDict(set) # type: DefaultUserDict[User, set]
+IMMUNITY: DefaultUserDict[User, Set[str]] = DefaultUserDict(set)
 
 def add_lynch_immunity(var, user, reason):
     """Make user immune to lynching for one day."""

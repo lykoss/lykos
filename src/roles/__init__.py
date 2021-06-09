@@ -12,5 +12,3 @@ for f in glob.iglob(search):
     if f.startswith("_"):
         continue
     importlib.import_module("." + n, package="src.roles")
-
-# vim: set sw=4 expandtab:

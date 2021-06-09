@@ -69,7 +69,7 @@ class GameMode:
                 raise InvalidModeException(messages["invalid_mode_args"].format(arg))
 
             key, val = change
-            if key in ("role reveal", "reveal roles"):
+            if key == "role reveal":
                 if val not in ("on", "off", "team"):
                     raise InvalidModeException(messages["invalid_reveal"].format(val))
                 self.ROLE_REVEAL = val
@@ -77,7 +77,7 @@ class GameMode:
                     self.STATS_TYPE = "disabled"
                 elif val == "team" and not hasattr(self, "STATS_TYPE"):
                     self.STATS_TYPE = "team"
-            elif key in ("stats type", "stats"):
+            elif key == "stats":
                 if val not in ("default", "accurate", "team", "disabled"):
                     raise InvalidModeException(messages["invalid_stats"].format(val))
                 self.STATS_TYPE = val

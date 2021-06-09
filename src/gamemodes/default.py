@@ -9,8 +9,7 @@ class DefaultMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            4:  ["wolf", "seer"],
-            6:  ["cursed villager"],
+            6:  ["wolf", "seer", "cursed villager"],
             7:  ["cultist", "shaman"],
             8:  ["harlot", "traitor", "-cultist"],
             9:  ["crazed shaman"],

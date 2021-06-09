@@ -60,8 +60,8 @@ def on_new_role(evt, var, user, old_role):
     if old_role == "detective" and evt.data["role"] != "detective":
         INVESTIGATED.discard(user)
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for dttv in var.ROLES["detective"]:
         pl = ps[:]

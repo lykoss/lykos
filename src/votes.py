@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from collections import Counter
 from datetime import datetime, timedelta
-import random
-import copy
 import math
 import re
+from typing import TYPE_CHECKING
 
 from src.containers import UserDict, UserList, UserSet
 from src.decorators import command
@@ -13,11 +14,14 @@ from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_
 from src.events import Event, event_listener
 from src import channels, pregame, users
 
-VOTES = UserDict() # type: UserDict[users.User, UserList[users.User]]
-ABSTAINS = UserSet()
+if TYPE_CHECKING:
+    from src.users import User
+
+VOTES: UserDict[User, UserList] = UserDict()
+ABSTAINS: UserSet = UserSet()
 ABSTAINED = False
 LAST_VOTES = None
-LYNCHED = 0
+LYNCHED: int = 0
 
 @command("lynch", playing=True, pm=True, phases=("day",))
 def lynch(var, wrapper, message):

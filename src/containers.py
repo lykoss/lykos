@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import copy
+from typing import Dict, Generic, List, Set, TypeVar
 
 from src.users import User
 
 __all__ = ["UserList", "UserSet", "UserDict", "DefaultUserDict"]
+
+KT = TypeVar("KT")
+VT = TypeVar("VT")
 
 """ * Important *
 
@@ -60,12 +66,17 @@ class Container:
     def __deepcopy__(self, memo):
         return type(self)(copy.deepcopy(x, memo) for x in self)
 
-    copy = __copy__
+    def copy(self):
+        return self.__copy__()
 
+<<<<<<< HEAD
     def clear(self):
         raise NotImplemented
 
 class UserList(Container, list):
+=======
+class UserList(Container, List[User]):
+>>>>>>> master
     def __init__(self, iterable=()):
         super().__init__()
         try:
@@ -152,7 +163,7 @@ class UserList(Container, list):
         if item not in self:
             item.lists.remove(self)
 
-class UserSet(Container, set):
+class UserSet(Container, Set[User]):
     def __init__(self, iterable=()):
         super().__init__()
         try:
@@ -167,28 +178,28 @@ class UserSet(Container, set):
 
     # Augmented assignment method overrides
 
-    def __iand__(self, other):
+    def __iand__(self, other):  # type: ignore
         if not isinstance(other, set):
             return NotImplemented
 
         self.intersection_update(other)
         return self
 
-    def __ior__(self, other):
+    def __ior__(self, other):  # type: ignore
         if not isinstance(other, set):
             return NotImplemented
 
         self.update(other)
         return self
 
-    def __isub__(self, other):
+    def __isub__(self, other):  # type: ignore
         if not isinstance(other, set):
             return NotImplemented
 
         self.difference_update(other)
         return
 
-    def __ixor__(self, other):
+    def __ixor__(self, other):  # type: ignore
         if not isinstance(other, set):
             return NotImplemented
 
@@ -259,7 +270,7 @@ class UserSet(Container, set):
             if item not in self:
                 self.add(item)
 
-class UserDict(Container, dict):
+class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
     def __init__(_self, _it=(), **kwargs):
         super().__init__()
         if hasattr(_it, "items"):
@@ -379,7 +390,7 @@ class UserDict(Container, dict):
         for key, value in iterable:
             self[key] = value
 
-class DefaultUserDict(UserDict):
+class DefaultUserDict(UserDict[KT, VT], Generic[KT, VT]):
     def __init__(_self, _factory, _it=(), **kwargs):
         _self.factory = _factory
         super().__init__(_it, **kwargs)

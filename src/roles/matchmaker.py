@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -12,6 +15,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Win_Stealer
+
+if TYPE_CHECKING:
+    from src.users import User
 
 MATCHMAKERS = UserSet()
 ACTED = UserSet()
@@ -72,19 +78,15 @@ def choose(var, wrapper, message):
         return
 
     pieces = re.split(" +", message)
-    victim1 = pieces[0]
-    if len(pieces) > 1:
-        victim2 = pieces[1]
-    else:
-        victim2 = None
-
-    target1 = get_target(var, wrapper, victim1, allow_self=True)
-    target2 = get_target(var, wrapper, victim2, allow_self=True)
+    if len(pieces) < 2:
+        return
+    target1 = get_target(var, wrapper, pieces[0], allow_self=True)
+    target2 = get_target(var, wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:
         return
 
     if target1 is target2:
-        wrapper.send(messages["match_different_people"])
+        wrapper.send(messages["choose_different_people"])
         return
 
     MATCHMAKERS.add(wrapper.source)
@@ -107,8 +109,8 @@ def on_transition_day_begin(evt, var):
             _set_lovers(*lovers)
             mm.send(messages["random_matchmaker"])
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for mm in get_all_players(("matchmaker",)):
         if mm in MATCHMAKERS and not var.ALWAYS_PM_ROLE:
@@ -116,7 +118,8 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         mm.send(messages["matchmaker_notify"])
-        mm.send(messages["players_list"].format(pl))
+        if var.NIGHT_COUNT > 0:
+            mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -151,6 +154,11 @@ def on_game_end_messages(evt, var):
 
     if lovers:
         evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
+
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, allroles, winner):
+    if winner == "lovers" and player in get_lovers()[0]:
+        evt.data["team_win"] = True
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):

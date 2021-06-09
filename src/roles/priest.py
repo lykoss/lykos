@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
@@ -13,7 +15,7 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, add_absent
 
-PRIESTS = UserSet() # type: Set[users.User]
+PRIESTS = UserSet()
 
 @command("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(var, wrapper, message):
@@ -69,8 +71,8 @@ def consecrate(var, wrapper, message):
         # game didn't immediately end due to marking as absent, see if we should force through a lynch
         chk_decision(var)
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for priest in get_all_players(("priest",)):
         priest.send(messages["priest_notify"])
 

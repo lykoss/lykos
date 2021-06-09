@@ -11,12 +11,14 @@ from src.roles.helper.wolves import register_wolf, is_known_wolf_ally
 register_wolf("wolf gunner")
 GUNNERS = setup_variables("wolf gunner")
 # unregister the gunner night message and send the number of bullets a different way
-find_listener("transition_night_end", "gunners.<wolf gunner>.on_transition_night_end").remove("transition_night_end")
+find_listener("send_role", "gunners.<wolf gunner>.on_send_role").remove("send_role")
 # wolf gunners don't shoot other wolves at night nor get their gun stolen
 find_listener("transition_day_resolve_end", "gunners.<wolf gunner>.on_transition_day_resolve_end").remove("transition_day_resolve_end")
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("wolf_notify")
+def on_wolf_notify(evt, var, role):
+    if role != "wolf gunner":
+        return
     gunners = get_all_players(("wolf gunner",))
     for gunner in gunners:
         if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:

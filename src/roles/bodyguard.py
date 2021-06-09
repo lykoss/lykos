@@ -1,22 +1,26 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import Set
 
 import src.settings as var
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.cats import Wolf
+from src.users import User
 
-GUARDED = UserDict() # type: UserDict[users.User, users.User]
+GUARDED: UserDict[User, User] = UserDict()
 PASSED = UserSet()
-DYING = set()
+DYING = UserSet()
 
 @command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard",))
 def guard(var, wrapper, message):
@@ -94,19 +98,18 @@ def on_transition_night_begin(evt, var):
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for bg in get_all_players(("bodyguard",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(bg)
         chance = math.floor(var.BODYGUARD_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["bodyguard_death_chance"].format(chance)
 
         bg.send(messages["bodyguard_notify"])
+        if var.NIGHT_COUNT == 0:
+            return
         if chance > 0:
             bg.send(messages["bodyguard_death_chance"].format(chance))
         bg.send(messages["players_list"].format(pl))
@@ -144,6 +147,7 @@ def on_begin_day(evt, var):
 def on_reset(evt, var):
     GUARDED.clear()
     PASSED.clear()
+    DYING.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

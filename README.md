@@ -12,7 +12,7 @@ Werewolf is a popular party game, similar to and inspired by [mafia][mafia]. In 
 
 ### Where can I play this game?
 
-We run an instance of the bot in the [##werewolf channel][game_webchat] on freenode. Off-topic discussion happens in ##werewolf-meta on the same network, and channel operators can be reached in ##werewolf-ops. There are also other networks listed in the [Networks page][wikinet] of our [official wiki][wiki]. Keep in mind that, just because someone appears online, does not mean they are around or available to play.
+We run an instance of the bot in the [#werewolf channel][game_webchat] on Libera. Off-topic discussion happens in #werewolf-meta on the same network, and channel operators can be reached in #werewolf-ops. There are also other networks listed in the [Networks page][wikinet] of our [official wiki][wiki]. Keep in mind that, just because someone appears online, does not mean they are around or available to play.
 
 ## For players
 
@@ -56,7 +56,7 @@ OWNERS_ACCOUNTS: This is the account of the owner of the bot. This also supports
 
 ### I entered everything correctly, but the bot doesn't work in some way. What can I do?
 
-We can help you with these kinds of issues in our [development channel, #lykos][dev_webchat] on freenode. Ask directly in the channel, and wait for someone to answer. Please do not message people directly, as that prevents other people from helping as well. People who are voiced (typically a '+' before their name in the user list, or a blue circle for Hexchat) are developers and are more likely to be able to help.
+We can help you with these kinds of issues in our [development channel, #lykos][dev_webchat] on Libera. Ask directly in the channel, and wait for someone to answer. Please do not message people directly, as that prevents other people from helping as well. People who are voiced (typically a '+' before their name in the user list, or a blue circle for Hexchat) are developers and are more likely to be able to help.
 
 ### The bot works fine, but there's just something I'd like to tweak. Is that possible?
 
@@ -114,11 +114,11 @@ Special thanks to LaneAtomic for their work on the messages system, which made c
 
 [mafia]: https://en.wikipedia.org/wiki/Mafia_(party_game)
 [license]: https://github.com/lykoss/lykos/blob/master/LICENSE
-[game_webchat]: http://webchat.freenode.net/?channels=##werewolf
+[game_webchat]: https://web.libera.chat/?channels=#werewolf
 [wikinet]: https://werewolf.chat/Networks
 [wiki]: https://werewolf.chat/Main_Page
 [pydownload]: https://www.python.org/downloads/
 [git]: https://git-scm.com/downloads
-[dev_webchat]: http://webchat.freenode.net/?channels=#lykos
+[dev_webchat]: https://web.libera.chat/?channels=#lykos
 [new_issue]: https://github.com/lykoss/lykos/issues/new
 [events]: https://werewolf.chat/Events

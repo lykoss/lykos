@@ -37,12 +37,14 @@ from src import wolfgame
 
 try:
     import roles # type: ignore
-    roles.CUSTOM_ROLES_DEFINED
+    # noinspection PyStatementEffect
+    roles.CUSTOM_ROLES_DEFINED # type: ignore
 except (ModuleNotFoundError, AttributeError):
     import src.roles
 
 try:
     import gamemodes # type: ignore
-    gamemodes.CUSTOM_MODES_DEFINED
+    # noinspection PyStatementEffect
+    gamemodes.CUSTOM_MODES_DEFINED # type: ignore
 except (ModuleNotFoundError, AttributeError):
     import src.gamemodes

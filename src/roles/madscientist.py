@@ -80,8 +80,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
     channels.Main.send(messages[to_send].format(player, target1, role1, target2, role2))
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for ms in get_all_players(("mad scientist",)):
         pl = get_players()
         target1, target2 = _get_targets(var, pl, ms)

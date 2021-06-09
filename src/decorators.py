@@ -1,7 +1,7 @@
+from __future__ import annotations
 import functools
 import logging
-from typing import Optional, Iterable, Callable
-
+from typing import Any, Callable, Dict, List, Optional, Iterable
 from collections import defaultdict
 
 import src
@@ -12,14 +12,14 @@ from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.debug import handle_error
 
-COMMANDS = defaultdict(list)
-HOOKS = defaultdict(list)
+COMMANDS: Dict[str, List[command]] = defaultdict(list)
+HOOKS: Dict[str, List[hook]] = defaultdict(list)
 
 class command:
     def __init__(self, command: str, *, flag: Optional[str] = None, owner_only: bool = False,
                  chan: bool = True, pm: bool = False, playing: bool = False, silenced: bool = False,
                  phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None,
-                 allow_alt: Optional[bool] = None):
+                 allow_alt: Optional[bool] = None, register: bool = True):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not config.Main.get("debug.enabled"):
@@ -38,16 +38,18 @@ class command:
         self.phases = phases
         self.roles = roles
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
-        self.func = None
+        self.func: Callable[[Any, MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name = commands[0]
         self.key = "{0}_{1}".format(command, id(self))
         self.alt_allowed = bool(flag or owner_only)
+        self._disabled = False
 
         alias = False
         self.aliases = []
 
         if self.commands.intersection(config.Main.get("gameplay.disable.commands")):
+            self._disabled = True
             return # command is disabled, do not add to COMMANDS
 
         for name in commands:
@@ -55,10 +57,13 @@ class command:
                 if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("mismatched access levels for {0}".format(func.name))
 
-            COMMANDS[name].append(self)
+            if register:
+                COMMANDS[name].append(self)
             if alias:
                 self.aliases.append(name)
             alias = True
+
+        self._registered = register
 
         if playing: # Don't restrict to owners or allow in alt channels
             self.owner_only = False
@@ -70,6 +75,20 @@ class command:
         self.func = func
         self.__doc__ = func.__doc__
         return self
+
+    def register(self):
+        if not self._registered and not self._disabled:
+            COMMANDS[self.name].append(self)
+            for alias in self.aliases:
+                COMMANDS[alias].append(self)
+            self._registered = True
+
+    def remove(self):
+        if self._registered:
+            COMMANDS[self.name].remove(self)
+            for alias in self.aliases:
+                COMMANDS[alias].remove(self)
+            self._registered = False
 
     @handle_error
     def caller(self, var, wrapper: MessageDispatcher, message: str):

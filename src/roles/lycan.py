@@ -13,8 +13,8 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_lycanthropy, add_lycanthropy_scope, remove_lycanthropy
 from src.cats import Wolf
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     lycans = get_all_players(("lycan",))
     if lycans:
         add_lycanthropy_scope(var, {"lycan"})

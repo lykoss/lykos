@@ -13,9 +13,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Hidden
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
-    if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
+@event_listener("send_role")
+def on_send_role(evt, var):
+    if not var.ROLES_SENT or var.ALWAYS_PM_ROLE:
         cultroles = {"cultist"}
         if var.HIDDEN_ROLE == "cultist":
             cultroles |= Hidden

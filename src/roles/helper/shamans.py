@@ -5,8 +5,7 @@ from typing import Dict, List, Set, Any, Tuple, Optional
 from collections import deque
 
 from src import channels, users, status, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target
-from src.utilities import complete_one_match
+from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target, match_totem
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -281,12 +280,14 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
     """Get the totem target."""
     pieces = re.split(" +", message)
     totem = None
+    match = None
 
     if len(pieces) > 1:
         # first piece might be a totem name
-        totem = complete_one_match(pieces[0], totems)
+        match = match_totem(var, pieces[0], scope=totems)
 
-    if totem:
+    if match:
+        totem = match.get().key
         target_str = pieces[1]
     else:
         target_str = pieces[0]
@@ -309,7 +310,7 @@ def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[user
 
     target = try_misdirection(var, wrapper.source, target)
     if try_exchange(var, wrapper.source, target):
-        return
+        return None
 
     targrole = get_main_role(target)
 
@@ -340,19 +341,26 @@ def change_totem(var, player, totem, roles=None):
                 tlist = totem.split(",")
                 for t in tlist:
                     if ":" not in t:
+                        # FIXME: localize
                         raise ValueError("Expected format totem:count,totem:count,...")
                     tval, count = t.split(":")
                     tval = tval.strip()
                     count = int(count.strip())
-                    if tval not in var.CURRENT_GAMEMODE.TOTEM_CHANCES:
+                    match = match_totem(var, tval, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
+                    if not match:
+                        # FIXME: localize
                         raise ValueError("{0} is not a valid totem type.".format(tval))
+                    tval = match.get().key
                     if count < 1:
+                        # FIXME: localize
                         raise ValueError("Totem count for {0} cannot be less than 1.".format(tval))
                     totemdict[tval] = count
             else:
-                if totem not in var.CURRENT_GAMEMODE.TOTEM_CHANCES:
+                match = match_totem(var, totem, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
+                if not match:
+                    # FIXME: localize
                     raise ValueError("{0} is not a valid totem type.".format(totem))
-                totemdict = {totem: 1}
+                totemdict = {match.get().key: 1}
         else:
             totemdict = totem
         _rolestate[role]["TOTEMS"][player] = totemdict

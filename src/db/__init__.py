@@ -6,26 +6,31 @@ import sys
 import time
 from collections import defaultdict
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 
+<<<<<<< HEAD
 from src import users
+=======
+import botconfig  # type: ignore
+import src.settings as var
+>>>>>>> master
 from src.utilities import singular
-from src.messages import messages, get_role_name
-from src.context import lower as irc_lower
+from src.messages import messages, LocalRole
 from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 8
 
 _ts = threading.local()
 
 def init_vars():
+    from src.context import lower
     with var.GRAVEYARD_LOCK:
         conn = _conn()
         c = conn.cursor()
         c.execute("""SELECT
-                       pl.account,
+                       pl.account_display,
                        pe.notice,
                        pe.deadchat,
                        pe.pingif,
@@ -41,35 +46,31 @@ def init_vars():
                        ON at.id = a.template
                      WHERE pl.active = 1""")
 
-        var.PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
         var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
         var.STASISED_ACCS = defaultdict(int)
-        var.PING_IF_PREFS = {}
         var.PING_IF_PREFS_ACCS = {}
-        var.PING_IF_NUMS = defaultdict(set)
         var.PING_IF_NUMS_ACCS = defaultdict(set)
-        var.DEADCHAT_PREFS = set()
         var.DEADCHAT_PREFS_ACCS = set()
         var.FLAGS_ACCS = defaultdict(str)
         var.DENY_ACCS = defaultdict(set)
 
         for acc, notice, dc, pi, stasis, stasisexp, flags in c:
             if acc is not None:
-                acc = irc_lower(acc)
+                lacc = lower(acc)
                 if notice == 1:
-                    var.PREFER_NOTICE_ACCS.add(acc)
+                    var.PREFER_NOTICE_ACCS.add(lacc)
                 if stasis > 0:
-                    var.STASISED_ACCS[acc] = stasis
+                    var.STASISED_ACCS[lacc] = stasis
                 if pi is not None and pi > 0:
-                    var.PING_IF_PREFS_ACCS[acc] = pi
-                    var.PING_IF_NUMS_ACCS[pi].add(acc)
+                    var.PING_IF_PREFS_ACCS[lacc] = pi
+                    var.PING_IF_NUMS_ACCS[pi].add(lacc)
                 if dc == 1:
-                    var.DEADCHAT_PREFS_ACCS.add(acc)
+                    var.DEADCHAT_PREFS_ACCS.add(lacc)
                 if flags:
-                    var.FLAGS_ACCS[acc] = flags
+                    var.FLAGS_ACCS[lacc] = flags
 
         c.execute("""SELECT
-                       pl.account,
+                       pl.account_display,
                        ws.data
                      FROM warning w
                      JOIN warning_sanction ws
@@ -87,8 +88,8 @@ def init_vars():
                        )""")
         for acc, command in c:
             if acc is not None:
-                acc = irc_lower(acc)
-                var.DENY_ACCS[acc].add(command)
+                lacc = lower(acc)
+                var.DENY_ACCS[lacc].add(command)
 
 def decrement_stasis(acc=None):
     peid, plid = _get_ids(acc)
@@ -101,9 +102,9 @@ def decrement_stasis(acc=None):
         params = (peid,)
 
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute(sql, params)
+    c = conn.cursor()
+    c.execute(sql, params)
+    conn.commit()
 
 def set_stasis(newamt, acc=None, relative=False):
     peid, plid = _get_ids(acc, add=True)
@@ -111,43 +112,44 @@ def set_stasis(newamt, acc=None, relative=False):
 
 def _set_stasis(newamt, peid, relative=False):
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("SELECT stasis_amount, stasis_expires FROM person WHERE id = ?", (peid,))
-        oldamt, expiry = c.fetchone()
-        if relative:
-            newamt = oldamt + newamt
-        if newamt < 0:
-            newamt = 0
-        if newamt > oldamt:
-            delta = newamt - oldamt
-            # increasing stasis, so need to update expiry
-            c.execute("""UPDATE person
-                         SET
-                           stasis_amount = ?,
-                           stasis_expires = datetime(CASE WHEN stasis_expires IS NULL
-                                                            OR stasis_expires <= datetime('now')
-                                                          THEN 'now'
-                                                          ELSE stasis_expires END,
-                                                     '+{0} hours')
-                         WHERE id = ?""".format(int(delta)), (newamt, peid))
-        else:
-            # decreasing stasis, don't touch expiry
-            c.execute("""UPDATE person
-                         SET stasis_amount = ?
-                         WHERE id = ?""", (newamt, peid))
+    c = conn.cursor()
+    c.execute("SELECT stasis_amount, stasis_expires FROM person WHERE id = ?", (peid,))
+    oldamt, expiry = c.fetchone()
+    if relative:
+        newamt = oldamt + newamt
+    if newamt < 0:
+        newamt = 0
+    if newamt > oldamt:
+        delta = newamt - oldamt
+        # increasing stasis, so need to update expiry
+        c.execute("""UPDATE person
+                     SET
+                       stasis_amount = ?,
+                       stasis_expires = datetime(CASE WHEN stasis_expires IS NULL
+                                                        OR stasis_expires <= datetime('now')
+                                                      THEN 'now'
+                                                      ELSE stasis_expires END,
+                                                 '+{0} hours')
+                     WHERE id = ?""".format(int(delta)), (newamt, peid))
+    else:
+        # decreasing stasis, don't touch expiry
+        c.execute("""UPDATE person
+                     SET stasis_amount = ?
+                     WHERE id = ?""", (newamt, peid))
+
+    conn.commit()
 
 def expire_stasis():
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("""UPDATE person
-                     SET
-                       stasis_amount = 0,
-                       stasis_expires = NULL
-                     WHERE
-                       stasis_expires IS NOT NULL
-                       AND stasis_expires <= datetime('now')""")
+    c = conn.cursor()
+    c.execute("""UPDATE person
+                 SET
+                   stasis_amount = 0,
+                   stasis_expires = NULL
+                 WHERE
+                   stasis_expires IS NOT NULL
+                   AND stasis_expires <= datetime('now')""")
+    conn.commit()
 
 def get_template(name):
     conn = _conn()
@@ -169,40 +171,41 @@ def get_templates():
 
 def update_template(name, flags):
     conn = _conn()
-    with conn:
-        tid, _ = get_template(name)
-        c = conn.cursor()
-        if tid is None:
-            c.execute("INSERT INTO access_template (name, flags) VALUES (?, ?)", (name, flags))
-        else:
-            c.execute("UPDATE access_template SET flags = ? WHERE id = ?", (flags, tid))
+    tid, _ = get_template(name)
+    c = conn.cursor()
+    if tid is None:
+        c.execute("INSERT INTO access_template (name, flags) VALUES (?, ?)", (name, flags))
+    else:
+        c.execute("UPDATE access_template SET flags = ? WHERE id = ?", (flags, tid))
+    conn.commit()
 
 def delete_template(name):
     conn = _conn()
-    with conn:
-        tid, _ = get_template(name)
-        if tid is not None:
-            c = conn.cursor()
-            c.execute("DELETE FROM access WHERE template = ?", (tid,))
-            c.execute("DELETE FROM access_template WHERE id = ?", (tid,))
+    tid, _ = get_template(name)
+    if tid is not None:
+        c = conn.cursor()
+        c.execute("DELETE FROM access WHERE template = ?", (tid,))
+        c.execute("DELETE FROM access_template WHERE id = ?", (tid,))
+    conn.commit()
 
 def set_access(acc, flags=None, tid=None):
     peid, plid = _get_ids(acc, add=True)
     if peid is None:
         return
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        if flags is None and tid is None:
-            c.execute("DELETE FROM access WHERE person = ?", (peid,))
-        elif tid is not None:
-            c.execute("""INSERT OR REPLACE INTO access
-                         (person, template, flags)
-                         VALUES (?, ?, NULL)""", (peid, tid))
-        else:
-            c.execute("""INSERT OR REPLACE INTO access
-                         (person, template, flags)
-                         VALUES (?, NULL, ?)""", (peid, flags))
+    c = conn.cursor()
+    if flags is None and tid is None:
+        c.execute("DELETE FROM access WHERE person = ?", (peid,))
+    elif tid is not None:
+        c.execute("""INSERT OR REPLACE INTO access
+                     (person, template, flags)
+                     VALUES (?, ?, NULL)""", (peid, tid))
+    else:
+        c.execute("""INSERT OR REPLACE INTO access
+                     (person, template, flags)
+                     VALUES (?, NULL, ?)""", (peid, flags))
+
+    conn.commit()
 
 def toggle_notice(acc):
     _toggle_thing("notice", acc)
@@ -242,21 +245,23 @@ def add_game(mode, size, started, finished, winner, players, options):
     for p in players:
         c = conn.cursor()
         p["personid"], p["playerid"] = _get_ids(p["account"], add=True)
-    with conn:
-        c = conn.cursor()
-        c.execute("""INSERT INTO game (gamemode, options, started, finished, gamesize, winner)
-                     VALUES (?, ?, ?, ?, ?, ?)""", (mode, json.dumps(options), started, finished, size, winner))
-        gameid = c.lastrowid
-        for p in players:
-            c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced)
-                         VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["team_win"], p["individual_win"], p["dced"]))
-            gpid = c.lastrowid
-            for role in p["all_roles"]:
-                c.execute("""INSERT INTO game_player_role (game_player, role, special)
-                             VALUES (?, ?, 0)""", (gpid, role))
-            for sq in p["special"]:
-                c.execute("""INSERT INTO game_player_role (game_player, role, special)
-                             VALUES (?, ?, 1)""", (gpid, sq))
+
+    c = conn.cursor()
+    c.execute("""INSERT INTO game (gamemode, options, started, finished, gamesize, winner)
+                 VALUES (?, ?, ?, ?, ?, ?)""", (mode, json.dumps(options), started, finished, size, winner))
+    gameid = c.lastrowid
+    for p in players:
+        c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced)
+                     VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["team_win"], p["individual_win"], p["dced"]))
+        gpid = c.lastrowid
+        for role in p["all_roles"]:
+            c.execute("""INSERT INTO game_player_role (game_player, role, special)
+                         VALUES (?, ?, 0)""", (gpid, role))
+        for sq in p["special"]:
+            c.execute("""INSERT INTO game_player_role (game_player, role, special)
+                         VALUES (?, ?, 1)""", (gpid, sq))
+
+    conn.commit()
 
 def get_player_stats(acc, role):
     peid, plid = _get_ids(acc)
@@ -330,7 +335,7 @@ def get_game_stats(mode, size):
     conn = _conn()
     c = conn.cursor()
 
-    if mode == "all":
+    if mode == "*":
         c.execute("SELECT COUNT(1) FROM game WHERE gamesize = ?", (size,))
     else:
         c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ? AND gamesize = ?", (mode, size))
@@ -339,7 +344,7 @@ def get_game_stats(mode, size):
     if not total_games:
         return messages["db_gstats_no_game"].format(size)
 
-    if mode == "all":
+    if mode == "*":
         c.execute("""SELECT
                        winner AS team,
                        COUNT(1) AS games,
@@ -375,10 +380,23 @@ def get_game_stats(mode, size):
 
     bits = []
     for row in c:
+<<<<<<< HEAD
         winner = singular(row[0])
         winner = get_role_name(winner, number=None).title()
         if not winner:
             winner = users.Bot.name.title()
+=======
+        if row[0] == "no_team_wins":
+            winner = messages["db_gstats_no_team_wins"]
+        elif not row[0]:
+            winner = messages["db_gstats_nobody"]
+        elif row[0] == "everyone":
+            winner = messages["db_gstats_everyone"]
+        else:
+            # FIXME: kill off singular() and convert the db to just store the role key directly instead of a plural
+            winner = LocalRole(singular(row[0])).singular.title()
+
+>>>>>>> master
         bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
     bits.append(messages["db_gstats_total"].format(total_games))
 
@@ -388,18 +406,18 @@ def get_game_totals(mode):
     conn = _conn()
     c = conn.cursor()
 
-    if mode == "all":
+    if mode == "*":
         c.execute("SELECT COUNT(1) FROM game")
     else:
         c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ?", (mode,))
 
     total_games = c.fetchone()[0]
     if not total_games:
-        if mode == "all":
+        if mode == "*":
             return messages["db_gstats_gm_none_all"]
         return messages["db_gstats_gm_none"].format(mode)
 
-    if mode == "all":
+    if mode == "*":
         c.execute("""SELECT
                        gamesize,
                        COUNT(1) AS games
@@ -418,7 +436,7 @@ def get_game_totals(mode):
     for row in c:
         totals.append(messages["db_gstats_gm_p"].format(row[0], row[1]))
 
-    if mode == "all":
+    if mode == "*":
         return messages["db_gstats_gm_all_total"].format(total_games, totals)
     return messages["db_gstats_gm_specific_total"].format(mode, total_games, totals)
 
@@ -510,6 +528,14 @@ def get_role_totals(mode=None):
         return (messages["db_rstats_total"].format(total_games), totals)
     return (messages["db_rstats_total_mode"].format(mode, total_games), totals)
 
+def set_primary_player(acc):
+    # set acc to be the primary player for the corresponding person
+    peid, plid = _get_ids(acc)
+    conn = _conn()
+    c = conn.cursor()
+    c.execute("UPDATE person SET primary_player = ? WHERE id = ?", (plid, peid))
+    conn.commit()
+
 def get_warning_points(acc):
     peid, plid = _get_ids(acc)
     conn = _conn()
@@ -549,8 +575,8 @@ def list_all_warnings(list_all=False, skip=0, show=0):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               plt.account AS target,
-               COALESCE(pls.account, ?) AS sender,
+               plt.account_display AS target,
+               COALESCE(pls.account_display, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -607,8 +633,8 @@ def list_warnings(acc, expired=False, deleted=False, skip=0, show=0):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               plt.account AS target,
-               COALESCE(pls.account, ?) AS sender,
+               plt.account_display AS target,
+               COALESCE(pls.account_display, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -665,8 +691,8 @@ def get_warning(warn_id, acc=None):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               plt.account AS target,
-               COALESCE(pls.account, ?) AS sender,
+               plt.account_display AS target,
+               COALESCE(pls.account_display, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -676,7 +702,7 @@ def get_warning(warn_id, acc=None):
                warning.deleted,
                warning.reason,
                warning.notes,
-               pld.account AS deleted_by,
+               pld.account_display AS deleted_by,
                warning.deleted_on
              FROM warning
              JOIN person pet
@@ -743,144 +769,149 @@ def add_warning(tacc, sacc, amount, reason, notes, expires):
     teid, tlid = _get_ids(tacc, add=True)
     seid, slid = _get_ids(sacc)
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("""INSERT INTO warning
-                     (
-                     target, sender, amount,
-                     issued, expires,
-                     reason, notes,
-                     acknowledged
-                     )
-                     VALUES
-                     (
-                       ?, ?, ?,
-                       datetime('now'), ?,
-                       ?, ?,
-                       0
-                     )""", (teid, seid, amount, expires, reason, notes))
+    c = conn.cursor()
+    c.execute("""INSERT INTO warning
+                 (
+                 target, sender, amount,
+                 issued, expires,
+                 reason, notes,
+                 acknowledged
+                 )
+                 VALUES
+                 (
+                   ?, ?, ?,
+                   datetime('now'), ?,
+                   ?, ?,
+                   0
+                 )""", (teid, seid, amount, expires, reason, notes))
+
+    conn.commit()
     return c.lastrowid
 
 def add_warning_sanction(warning, sanction, data):
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("""INSERT INTO warning_sanction
-                     (warning, sanction, data)
-                     VALUES
-                     (?, ?, ?)""", (warning, sanction, data))
+    c = conn.cursor()
+    c.execute("""INSERT INTO warning_sanction
+                 (warning, sanction, data)
+                 VALUES
+                 (?, ?, ?)""", (warning, sanction, data))
 
-        if sanction == "tempban":
-            # we want to return a list of all banned accounts/hostmasks
-            idlist = set()
-            acclist = set()
-            hmlist = set()
-            c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
-            peid = c.fetchone()[0]
-            c.execute("SELECT id, account, hostmask FROM player WHERE person = ? AND active = 1", (peid,))
-            if isinstance(data, datetime):
-                sql = "INSERT OR REPLACE INTO bantrack (player, expires) values (?, ?)"
+    conn.commit()
+
+    if sanction == "tempban":
+        # we want to return a list of all banned accounts/hostmasks
+        idlist = set()
+        acclist = set()
+        hmlist = set()
+        c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
+        peid = c.fetchone()[0]
+        c.execute("SELECT id, account, hostmask FROM player WHERE person = ? AND active = 1", (peid,))
+        if isinstance(data, datetime):
+            sql = "INSERT OR REPLACE INTO bantrack (player, expires) values (?, ?)"
+        else:
+            sql = "INSERT OR REPLACE INTO bantrack (player, warning_amount) values (?, ?)"
+        for row in c:
+            idlist.add(row[0])
+            if row[1] is None:
+                hmlist.add(row[2])
             else:
-                sql = "INSERT OR REPLACE INTO bantrack (player, warning_amount) values (?, ?)"
-            for row in c:
-                idlist.add(row[0])
-                if row[1] is None:
-                    hmlist.add(row[2])
-                else:
-                    acclist.add(row[1])
-            for plid in idlist:
-                c.execute(sql, (plid, data))
-            return (acclist, hmlist)
+                acclist.add(row[1])
+        for plid in idlist:
+            c.execute(sql, (plid, data))
+        return (acclist, hmlist)
 
 def del_warning(warning, acc):
     peid, plid = _get_ids(acc)
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("""UPDATE warning
-                     SET
-                       acknowledged = 1,
-                       deleted = 1,
-                       deleted_on = datetime('now'),
-                       deleted_by = ?
-                     WHERE
-                       id = ?
-                       AND deleted = 0""", (peid, warning))
+    c = conn.cursor()
+    c.execute("""UPDATE warning
+                 SET
+                   acknowledged = 1,
+                   deleted = 1,
+                   deleted_on = datetime('now'),
+                   deleted_by = ?
+                 WHERE
+                   id = ?
+                   AND deleted = 0""", (peid, warning))
+
+    conn.commit()
 
 def set_warning(warning, expires, reason, notes):
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("""UPDATE warning
-                     SET reason = ?, notes = ?, expires = ?
-                     WHERE id = ?""", (reason, notes, expires, warning))
+    c = conn.cursor()
+    c.execute("""UPDATE warning
+                 SET reason = ?, notes = ?, expires = ?
+                 WHERE id = ?""", (reason, notes, expires, warning))
+
+    conn.commit()
 
 def acknowledge_warning(warning):
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
+    c = conn.cursor()
+    c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
+    conn.commit()
 
 def expire_tempbans():
     conn = _conn()
-    with conn:
-        idlist = set()
-        acclist = set()
-        c = conn.cursor()
-        c.execute("""SELECT
-                       bt.player,
-                       pl.account
-                     FROM bantrack bt
-                     JOIN player pl
-                       ON pl.id = bt.player
-                     WHERE
-                       (bt.expires IS NOT NULL AND bt.expires < datetime('now'))
-                       OR (
-                         bt.warning_amount IS NOT NULL
-                         AND bt.warning_amount >= (
-                           SELECT COALESCE(SUM(w.amount), 0)
-                           FROM warning w
-                           WHERE
-                             w.target = pl.person
-                             AND w.deleted = 0
-                             AND (
-                               w.expires IS NULL
-                               OR w.expires > datetime('now')
-                             )
+    idlist = set()
+    acclist = set()
+    c = conn.cursor()
+    c.execute("""SELECT
+                   bt.player,
+                   pl.account_display
+                 FROM bantrack bt
+                 JOIN player pl
+                   ON pl.id = bt.player
+                 WHERE
+                   (bt.expires IS NOT NULL AND bt.expires < datetime('now'))
+                   OR (
+                     bt.warning_amount IS NOT NULL
+                     AND bt.warning_amount >= (
+                       SELECT COALESCE(SUM(w.amount), 0)
+                       FROM warning w
+                       WHERE
+                         w.target = pl.person
+                         AND w.deleted = 0
+                         AND (
+                           w.expires IS NULL
+                           OR w.expires > datetime('now')
                          )
-                       )""")
-        for row in c:
-            idlist.add(row[0])
-            if row[1] is not None:
-                acclist.add(row[1])
-        for plid in idlist:
-            c.execute("DELETE FROM bantrack WHERE player = ?", (plid,))
-        return acclist
+                     )
+                   )""")
+    for row in c:
+        idlist.add(row[0])
+        if row[1] is not None:
+            acclist.add(row[1])
+    for plid in idlist:
+        c.execute("DELETE FROM bantrack WHERE player = ?", (plid,))
+    conn.commit()
+    return acclist
 
 def get_pre_restart_state():
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("SELECT players FROM pre_restart_state")
-        players = c.fetchone()
-        if players is None:
-            # missing state row
-            c.execute("INSERT INTO pre_restart_state (players) VALUES (NULL)")
-            players = []
-        else:
-            c.execute("UPDATE pre_restart_state SET players=NULL")
-            players = players[0]
-            if players is not None:
-                players = players.split()
+    c = conn.cursor()
+    c.execute("SELECT players FROM pre_restart_state")
+    players = c.fetchone()
+    if players is None:
+        # missing state row
+        c.execute("INSERT INTO pre_restart_state (players) VALUES (NULL)")
+        players = []
+    else:
+        c.execute("UPDATE pre_restart_state SET players=NULL")
+        players = players[0]
+        if players is not None:
+            players = players.split()
+
+    conn.commit()
     return players
 
 def set_pre_restart_state(players):
     if not players:
         return
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
+    c = conn.cursor()
+    c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
+    conn.commit()
 
 def _upgrade(oldversion):
     # try to make a backup copy of the database
@@ -898,6 +929,7 @@ def _upgrade(oldversion):
     dn = os.path.dirname(__file__)
     conn = _conn()
     try:
+<<<<<<< HEAD
         with conn:
             c = conn.cursor()
             if oldversion < 2:
@@ -925,9 +957,51 @@ def _upgrade(oldversion):
             c.execute("REINDEX")
             c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
             print("Upgrades complete!", file=sys.stderr)
+=======
+        c = conn.cursor()
+        if oldversion < 2:
+            print("Upgrade from version 1 to 2...", file=sys.stderr)
+            # Update FKs to be deferrable, update collations to nocase where it makes sense,
+            # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
+            # player id as a string). When nocasing players, this may cause some records to be merged.
+            with open(os.path.join(dn, "upgrade2.sql"), "rt") as f:
+                c.executescript(f.read())
+        if oldversion < 3:
+            print("Upgrade from version 2 to 3...", file=sys.stderr)
+            with open(os.path.join(dn, "upgrade3.sql"), "rt") as f:
+                c.executescript(f.read())
+        if oldversion < 4:
+            print("Upgrade from version 3 to 4...", file=sys.stderr)
+            # no actual upgrades, just wanted to force an index rebuild
+        if oldversion < 5:
+            print("Upgrade from version 4 to 5...", file=sys.stderr)
+            c.execute("CREATE INDEX game_gamesize_idx ON game (gamesize)")
+            conn.commit()
+        if oldversion < 6:
+            print("Upgrade from version 5 to 6...", file=sys.stderr)
+            # no actual upgrades, need to force an index rebuild due to removing custom collation
+        if oldversion < 7:
+            print("Upgrade from version 6 to 7...", file=sys.stderr)
+            # add source column to player and initialize it to 'irc'
+            # also delete hostmask column
+            with open(os.path.join(dn, "upgrade7.sql"), "rt") as f:
+                c.executescript(f.read())
+        if oldversion < 8:
+            print("Upgrade from version 7 to 8...", file=sys.stderr)
+            # add columns to person to track current and total achievement points
+            # and an achievements table to track exactly which achievements were earned by them
+            with open(os.path.join(dn, "upgrade8.sql"), "rt") as f:
+                c.executescript(f.read())
+
+        print("Rebuilding indexes...", file=sys.stderr)
+        c.execute("REINDEX")
+        c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
+        conn.commit()
+        print("Upgrades complete!", file=sys.stderr)
+>>>>>>> master
     except sqlite3.Error:
         print("An error has occurred while upgrading the database schema.",
-              "Please report this issue to ##werewolf-dev on irc.freenode.net.",
+              "Please report this issue to #lykos on irc.libera.chat.",
               "Include all of the following details in your report:",
               sep="\n", file=sys.stderr)
         if have_backup:
@@ -947,7 +1021,7 @@ def _migrate():
         pass
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn, open(os.path.join(dn, "db.sql"), "rt") as f1, open(os.path.join(dn, "migrate.sql"), "rt") as f2:
+    with open(os.path.join(dn, "db.sql"), "rt") as f1, open(os.path.join(dn, "migrate.sql"), "rt") as f2:
         c = conn.cursor()
         #######################################################
         # Step 1: install the new schema (from db.sql script) #
@@ -964,15 +1038,19 @@ def _migrate():
         ######################################################################
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
 
+        conn.commit()
+
 def _install():
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn, open(os.path.join(dn, "db.sql"), "rt") as f1:
+    with open(os.path.join(dn, "db.sql"), "rt") as f1:
         c = conn.cursor()
         c.executescript(f1.read())
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
+        conn.commit()
 
-def _get_ids(acc, add=False):
+def _get_ids(acc, add=False, casemap="ascii"):
+    from src.context import lower
     conn = _conn()
     c = conn.cursor()
     if acc == "*":
@@ -980,26 +1058,61 @@ def _get_ids(acc, add=False):
     if acc is None:
         return (None, None)
 
-    c.execute("""SELECT pe.id, pl.id
+    ascii_acc = lower(acc, casemapping="ascii")
+    rfc1459_acc = lower(acc, casemapping="rfc1459")
+    strict_acc = lower(acc, casemapping="strict-rfc1459")
+
+    c.execute("""SELECT pe.id, pl.id, pl.account_display
                  FROM player pl
                  JOIN person pe
                    ON pe.id = pl.person
                  WHERE
-                   pl.account = ?
-                   AND pl.hostmask IS NULL
-                   AND pl.active = 1""", (acc,))
+                   pl.account_lower_{0} = ?
+                   AND pl.active = 1""".format(casemap), (acc,))
     row = c.fetchone()
     peid = None
     plid = None
+    if not row:
+        # Maybe have an IRC casefolded version of this account in the db
+        # Check in order of most restrictive to least restrictive
+        # If all three casemappings fail to match, row will still be None
+        if casemap == "ascii":
+            peid, plid = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
+            row = peid, plid, None
+        elif casemap == "rfc1459_strict":
+            peid, plid = _get_ids(rfc1459_acc, add=add, casemap="rfc1459")
+            row = peid, plid, None
+
     if row:
-        peid, plid = row
+        peid, plid, display_acc = row
+        if acc != display_acc:
+            # normalize case in the db to what it should be
+            c.execute("""UPDATE player
+                         SET
+                           account_display=?,
+                           account_lower_ascii=?,
+                           account_lower_rfc1459=?,
+                           account_lower_rfc1459_strict=?
+                         WHERE id=?""",
+                      (acc, ascii_acc, rfc1459_acc, strict_acc, row[1]))
+
+            conn.commit()
+            # fix up our vars
+            init_vars()
     elif add:
-        with conn:
-            c.execute("INSERT INTO player (account, hostmask) VALUES (?, NULL)", (acc,))
-            plid = c.lastrowid
-            c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
-            peid = c.lastrowid
-            c.execute("UPDATE player SET person=? WHERE id=?", (peid, plid))
+        c.execute("""INSERT INTO player
+                     (
+                       account_display,
+                       account_lower_ascii,
+                       account_lower_rfc1459,
+                       account_lower_rfc1459_strict
+                     )
+                     VALUES (?, ?, ?, ?)""", (acc, ascii_acc, rfc1459_acc, strict_acc))
+        plid = c.lastrowid
+        c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
+        peid = c.lastrowid
+        c.execute("UPDATE player SET person=? WHERE id=?", (peid, plid))
+        conn.commit()
     return (peid, plid)
 
 def _get_display_name(peid):
@@ -1007,7 +1120,7 @@ def _get_display_name(peid):
         return None
     conn = _conn()
     c = conn.cursor()
-    c.execute("""SELECT pp.account
+    c.execute("""SELECT pp.account_display
                  FROM person pe
                  JOIN player pp
                    ON pp.id = pe.primary_player
@@ -1033,15 +1146,15 @@ def _total_games(peid):
 
 def _set_thing(thing, val, acc, raw=False):
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        peid, plid = _get_ids(acc, add=True)
-        if raw:
-            params = (peid,)
-        else:
-            params = (val, peid)
-            val = "?"
-        c.execute("""UPDATE person SET {0} = {1} WHERE id = ?""".format(thing, val), params)
+    c = conn.cursor()
+    peid, plid = _get_ids(acc, add=True)
+    if raw:
+        params = (peid,)
+    else:
+        params = (val, peid)
+        val = "?"
+    c.execute("""UPDATE person SET {0} = {1} WHERE id = ?""".format(thing, val), params)
+    conn.commit()
 
 def _toggle_thing(thing, acc):
     _set_thing(thing, "CASE {0} WHEN 1 THEN 0 ELSE 1 END".format(thing), acc, raw=True)
@@ -1050,23 +1163,23 @@ def _conn():
     try:
         return _ts.conn
     except AttributeError:
-        _ts.conn = sqlite3.connect("data.sqlite3", isolation_level=None)
-        with _ts.conn:
-            c = _ts.conn.cursor()
-            c.execute("PRAGMA foreign_keys = ON")
+        _ts.conn = sqlite3.connect("data.sqlite3")
+        c = _ts.conn.cursor()
+        c.execute("PRAGMA foreign_keys = ON")
+        _ts.conn.commit()
         return _ts.conn
 
 need_install = not os.path.isfile("data.sqlite3")
 conn = _conn()
-with conn:
-    c = conn.cursor()
-    c.execute("PRAGMA foreign_keys = ON")
-    if need_install:
-        _install()
-    c.execute("PRAGMA user_version")
-    row = c.fetchone()
-    ver = row[0]
-    c.close()
+c = conn.cursor()
+c.execute("PRAGMA foreign_keys = ON")
+if need_install:
+    _install()
+c.execute("PRAGMA user_version")
+row = c.fetchone()
+ver = row[0]
+c.close()
+conn.commit()
 
 if ver == 0:
     # new schema does not exist yet, migrate from old schema

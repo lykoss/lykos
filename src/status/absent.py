@@ -1,12 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from src.events import event_listener
 from src.containers import UserDict
 from src.functions import get_players
 from src.messages import messages
-from src import users
+
+if TYPE_CHECKING:
+    from src.users import User
 
 __all__ = ["add_absent", "try_absent", "get_absent"]
 
-ABSENT = UserDict() # type: UserDict[users.User, str]
+ABSENT: UserDict[User, str] = UserDict()
 
 def add_absent(var, target, reason):
     if target not in get_players():

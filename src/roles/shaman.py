@@ -75,7 +75,7 @@ def on_transition_day_begin(evt, var):
                     if given:
                         SHAMANS[shaman][totem].append(given[0])
 
-@event_listener("transition_night_end", priority=2.01)
+@event_listener("send_role")
 def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["shaman"] for x in chances.values())
@@ -88,6 +88,9 @@ def on_transition_night_end(evt, var):
     shamans = list(shamans)
     random.shuffle(shamans)
     for shaman in shamans:
+        if var.NIGHT_COUNT == 0:
+            shaman.send(messages["shaman_notify"].format("shaman"))
+            continue
         pl = ps[:]
         random.shuffle(pl)
         for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):

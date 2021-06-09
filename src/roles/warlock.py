@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -13,10 +16,13 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist, register_wolf
 
+if TYPE_CHECKING:
+    from src.users import User
+
 register_wolf("warlock")
 
-CURSED = UserDict() # type: UserDict[users.User, users.User]
-PASSED = UserSet() # type: UserSet[users.Set]
+CURSED: UserDict[User, User] = UserDict()
+PASSED: UserSet = UserSet()
 
 @command("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def curse(var, wrapper, message):

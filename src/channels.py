@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import time
 from enum import Enum
 from typing import Optional
@@ -9,9 +10,9 @@ from src.events import Event, EventListener
 from src import users, config
 from src.debug import CheckedSet, CheckedDict
 
-Main = None # main channel
-Dummy = None # fake channel
-Dev = None # dev channel
+Main: Channel = None # type: ignore[assignment]
+Dummy: Channel = None # type: ignore[assignment]
+Dev: Optional[Channel] = None # dev channel
 
 _channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 
@@ -244,7 +245,9 @@ class Channel(IRCContext):
             elif c not in all_modes:
                 # some broken ircds have modes without telling us about them in ISUPPORT
                 # ignore such modes but emit a warning
-                stream("Broken ircd detected: unrecognized channel mode +{}".format(c), level="warning")
+                transport_name = config.Main.get("transports[0].name")
+                logger = logging.getLogger("transport.{}".format(transport_name))
+                logger.warning("Broken ircd detected: unrecognized channel mode +{0}", c)
                 continue
 
             if prefix == "+":

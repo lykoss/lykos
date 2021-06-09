@@ -31,8 +31,8 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["message"] = messages["monster_wolf_win"].format(lm)
         evt.data["winner"] = "monsters"
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for monster in get_all_players(("monster",)):
         add_protection(var, monster, protector=None, protector_role="monster", scope=Wolf)
         monster.send(messages["monster_notify"])

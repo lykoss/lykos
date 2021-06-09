@@ -19,6 +19,8 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import annotations
+
 import itertools
 import json
 import os
@@ -37,7 +39,6 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import Set, Optional, Callable, Tuple
 
-from src.utilities import *
 from src import db, config, events, dispatcher, channels, users, hooks, handler
 from src.users import User
 
@@ -46,7 +47,7 @@ from src.events import Event, EventListener, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.messages import messages
+from src.messages import messages, LocalMode
 from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
@@ -59,61 +60,61 @@ from src.cats import (
 from src.functions import (
     get_players, get_all_players, get_participants,
     get_main_role, get_all_roles, get_reveal_role,
-    get_target, change_role
+    get_target, change_role, match_role, match_mode
    )
 
 # Game Logic Begins:
 
-var.LAST_STATS = None
-var.LAST_ADMINS = None
-var.LAST_GSTATS = None
-var.LAST_PSTATS = None
-var.LAST_RSTATS = None
-var.LAST_TIME = None
-var.LAST_GOAT = UserDict() # type: UserDict[users.User, datetime]
+var.LAST_STATS = None  # type: ignore
+var.LAST_ADMINS = None  # type: ignore
+var.LAST_GSTATS = None  # type: ignore
+var.LAST_PSTATS = None  # type: ignore
+var.LAST_RSTATS = None  # type: ignore
+var.LAST_TIME = None  # type: ignore
+var.LAST_GOAT = UserDict() # type: ignore # actually UserDict[users.User, datetime]
 
-var.ADMIN_PINGING = False
-var.DCED_LOSERS = UserSet()
-var.ADMIN_TO_PING = None
-var.AFTER_FLASTGAME = None
-var.PINGING_IFS = False
-var.TIMERS = {}
-var.PHASE = "none"
-var.OLD_MODES = defaultdict(set)
+var.ADMIN_PINGING = False  # type: ignore
+var.DCED_LOSERS = UserSet()  # type: ignore
+var.ADMIN_TO_PING = None  # type: ignore
+var.AFTER_FLASTGAME = None  # type: ignore
+var.PINGING_IFS = False  # type: ignore
+var.TIMERS = {}  # type: ignore
+var.PHASE = "none"  # type: ignore
+var.OLD_MODES = defaultdict(set)  # type: ignore
 
-var.ROLES = UserDict() # type: UserDict[str, UserSet]
-var.ORIGINAL_ROLES = UserDict() # type: UserDict[str, UserSet]
-var.MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
-var.ORIGINAL_MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
-var.FINAL_ROLES = UserDict() # type: UserDict[users.User, str]
-var.ALL_PLAYERS = UserList()
-var.FORCE_ROLES = DefaultUserDict(UserSet)
-var.ORIGINAL_ACCS = UserDict() # type: UserDict[users.User, str]
+var.ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
+var.ORIGINAL_ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
+var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
+var.ORIGINAL_MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
+var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
+var.ALL_PLAYERS = UserList() # type: ignore
+var.FORCE_ROLES = DefaultUserDict(UserSet) # type: ignore
+var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
-var.IDLE_WARNED = UserSet()
-var.IDLE_WARNED_PM = UserSet()
-var.NIGHT_IDLED = UserSet()
-var.NIGHT_IDLE_EXEMPT = UserSet()
+var.IDLE_WARNED = UserSet() # type: ignore
+var.IDLE_WARNED_PM = UserSet() # type: ignore
+var.NIGHT_IDLED = UserSet() # type: ignore
+var.NIGHT_IDLE_EXEMPT = UserSet() # type: ignore
 
-var.DEAD = UserSet()
+var.DEAD = UserSet() # type: ignore
 
-var.DEADCHAT_PLAYERS = UserSet()
+var.DEADCHAT_PLAYERS = UserSet() # type: ignore
 
-var.SPECTATING_WOLFCHAT = UserSet()
-var.SPECTATING_DEADCHAT = UserSet()
+var.SPECTATING_WOLFCHAT = UserSet() # type: ignore
+var.SPECTATING_DEADCHAT = UserSet() # type: ignore
 
-var.ORIGINAL_SETTINGS = {}
-var.GAMEMODE_VOTES = UserDict()
+var.ORIGINAL_SETTINGS = {} # type: ignore
+var.GAMEMODE_VOTES = UserDict() # type: ignore
 
-var.LAST_SAID_TIME = UserDict()
+var.LAST_SAID_TIME = UserDict() # type: ignore
 
-var.GAME_START_TIME = datetime.now()  # for idle checker only
-var.CAN_START_TIME = 0
-var.STARTED_DAY_PLAYERS = 0
+var.GAME_START_TIME = datetime.now()  # type: ignore # for idle checker only
+var.CAN_START_TIME = 0 # type: ignore
+var.STARTED_DAY_PLAYERS = 0 # type: ignore
 
-var.DISCONNECTED = UserDict() # type: UserDict[User, Tuple[datetime, str]]
+var.DISCONNECTED = UserDict() # type: ignore # actually UserDict[User, Tuple[datetime, str]]
 
-var.RESTARTING = False
+var.RESTARTING = False # type: ignore
 
 def connect_callback():
     db.init_vars()
@@ -353,7 +354,17 @@ def _restart_program(mode=None):
         assert mode in ("normal", "verbose", "debug")
         os.execl(python, python, sys.argv[0], "--{0}".format(mode))
     else:
-        os.execl(python, python, *sys.argv)
+        import src
+        args = []
+        if src.debug_mode:
+            args.append("--debug")
+        if src.verbose:
+            args.append("--verbose")
+        if src.normal:
+            args.append("--normal")
+        if src.lagcheck:
+            args.append("--lagcheck={0}".format(src.lagcheck))
+        os.execl(python, python, sys.argv[0], *args)
 
 
 @command("frestart", flag="D", pm=True)
@@ -482,7 +493,7 @@ def replace(var, wrapper, message):
     elif target is not wrapper.source:
         target.swap(wrapper.source)
         if var.PHASE in var.GAME_PHASES:
-            return_to_village(var, target, show_message=False)
+            return_to_village(var, wrapper.source, show_message=False)
 
         cmodes = []
 
@@ -1026,11 +1037,7 @@ def stats(var, wrapper, message):
     entries = []
     first_count = 0
 
-    start_roles = set()
-    for r, v in var.ORIGINAL_ROLES.items():
-        if len(v) == 0:
-            continue
-        start_roles.add(r)
+    start_roles = set(var.ORIGINAL_MAIN_ROLES.values())
     for roleset, amount in var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS.items():
         if amount == 0:
             continue
@@ -1198,153 +1205,150 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     if not abort:
         channels.Main.send(gameend_msg)
 
-    roles_msg = []
+        roles_msg = []
 
-    # squirrel away a copy of our original roleset for stats recording, as the following code
-    # modifies var.ORIGINAL_ROLES and var.ORIGINAL_MAIN_ROLES.
-    rolecounts = {role: len(players) for role, players in var.ORIGINAL_ROLES.items()}
+        # squirrel away a copy of our original roleset for stats recording, as the following code
+        # modifies var.ORIGINAL_ROLES and var.ORIGINAL_MAIN_ROLES.
+        rolecounts = {role: len(players) for role, players in var.ORIGINAL_ROLES.items()}
 
-    # save some typing
-    rolemap = var.ORIGINAL_ROLES
-    mainroles = var.ORIGINAL_MAIN_ROLES
-    orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
+        # save some typing
+        rolemap = var.ORIGINAL_ROLES
+        mainroles = var.ORIGINAL_MAIN_ROLES
+        orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
-    for player, role in mainroles.items():
-        evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player, role)})
-        evt.dispatch(var, player, role)
-        if role != evt.data["role"]:
-            rolemap[role].remove(player)
-            rolemap[evt.data["role"]].add(player)
-            mainroles[player] = evt.data["role"]
-            orig_main[player] = role
+        for player, role in mainroles.items():
+            evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player, role)})
+            evt.dispatch(var, player, role)
+            if role != evt.data["role"]:
+                rolemap[role].remove(player)
+                rolemap[evt.data["role"]].add(player)
+                mainroles[player] = evt.data["role"]
+                orig_main[player] = role
 
-    # track if we already printed "was" for a role swap, e.g. The wolves were A (was seer), B (harlot)
-    # so that we can make the message a bit more concise
-    roleswap_key = "endgame_roleswap_long"
+        # track if we already printed "was" for a role swap, e.g. The wolves were A (was seer), B (harlot)
+        # so that we can make the message a bit more concise
+        roleswap_key = "endgame_roleswap_long"
 
-    for role in role_order():
-        numrole = len(rolemap[role])
-        if numrole == 0:
-            continue
-        msg = []
-        for player in rolemap[role]:
-            # check if the player changed roles during game, and if so insert the "was X" message
-            player_msg = []
-            if mainroles[player] == role and player in orig_main:
-                player_msg.append(messages[roleswap_key].format(orig_main[player]))
-                roleswap_key = "endgame_roleswap_short"
-            evt = Event("get_endgame_message", {"message": player_msg})
-            evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
-            key = "endgame_role_player_short"
-            if player_msg:
-                key = "endgame_role_player_long"
-            msg.append(messages[key].format(player, player_msg))
+        for role in role_order():
+            numrole = len(rolemap[role])
+            if numrole == 0:
+                continue
+            msg = []
+            for player in rolemap[role]:
+                # check if the player changed roles during game, and if so insert the "was X" message
+                player_msg = []
+                if mainroles[player] == role and player in orig_main:
+                    player_msg.append(messages[roleswap_key].format(orig_main[player]))
+                    roleswap_key = "endgame_roleswap_short"
+                evt = Event("get_endgame_message", {"message": player_msg})
+                evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
+                key = "endgame_role_player_short"
+                if player_msg:
+                    key = "endgame_role_player_long"
+                msg.append(messages[key].format(player, player_msg))
 
-        roles_msg.append(messages["endgame_role_msg"].format(role, msg))
+            roles_msg.append(messages["endgame_role_msg"].format(role, msg))
 
-    message = ""
-    count = 0
-    if not abort:
         evt = Event("game_end_messages", {"messages": roles_msg})
         evt.dispatch(var)
 
         channels.Main.send(*roles_msg)
 
-    # map player: all roles of that player (for below)
-    allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
+        # map player: all roles of that player (for below)
+        allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
 
-    # "" indicates everyone died or abnormal game stop
-    winners = set()
-    player_list = []
+        # "" indicates everyone died or abnormal game stop
+        winners = set()
+        player_list = []
 
-    if winner != "" or log:
-        if additional_winners is not None:
-            winners.update(additional_winners)
+        if winner != "" or log:
+            if additional_winners is not None:
+                winners.update(additional_winners)
 
-        team_wins = set()
-        for player, role in mainroles.items():
-            if player in var.DCED_LOSERS or winner == "":
-                continue
-            won = False
-            # determine default team win for wolves/village
-            if role in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
-                if winner == "wolves":
-                    won = True
-            elif role in Village or (var.HIDDEN_ROLE == "villager" and role in Hidden):
-                if winner == "villagers":
-                    won = True
-            # Let events modify this as necessary.
-            # Neutral roles will need to listen in on this to determine team wins
-            event = Event("team_win", {"team_win": won})
-            event.dispatch(var, player, role, allroles[player], winner)
-            if event.data["team_win"]:
-                team_wins.add(player)
+            team_wins = set()
+            for player, role in mainroles.items():
+                if player in var.DCED_LOSERS or winner == "":
+                    continue
+                won = False
+                # determine default team win for wolves/village
+                if role in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
+                    if winner == "wolves":
+                        won = True
+                elif role in Village or (var.HIDDEN_ROLE == "villager" and role in Hidden):
+                    if winner == "villagers":
+                        won = True
+                # Let events modify this as necessary.
+                # Neutral roles will need to listen in on this to determine team wins
+                event = Event("team_win", {"team_win": won})
+                event.dispatch(var, player, role, allroles[player], winner)
+                if event.data["team_win"]:
+                    team_wins.add(player)
 
-        # Once *all* team wins are settled, we can determine individual wins and get the final list of winners
-        team_wins = frozenset(team_wins)
-        for player, role in mainroles.items():
-            entry = {"version": 3,
-                     "account": player.account,
-                     "main_role": role,
-                     "all_roles": list(allroles[player]),
-                     "special": [],
-                     "team_win": player in team_wins,
-                     "individual_win": False,
-                     "dced": player in var.DCED_LOSERS
-                     }
-            # player.account could be None if they disconnected during the game. Use original tracked account name
-            if entry["account"] is None and player in var.ORIGINAL_ACCS:
-                entry["account"] = var.ORIGINAL_ACCS[player]
+            # Once *all* team wins are settled, we can determine individual wins and get the final list of winners
+            team_wins = frozenset(team_wins)
+            for player, role in mainroles.items():
+                entry = {"version": 3,
+                         "account": player.account,
+                         "main_role": role,
+                         "all_roles": list(allroles[player]),
+                         "special": [],
+                         "team_win": player in team_wins,
+                         "individual_win": False,
+                         "dced": player in var.DCED_LOSERS
+                         }
+                # player.account could be None if they disconnected during the game. Use original tracked account name
+                if entry["account"] is None and player in var.ORIGINAL_ACCS:
+                    entry["account"] = var.ORIGINAL_ACCS[player]
 
-            survived = player in get_players()
-            if not entry["dced"] and winner != "":
-                # by default, get an individual win if the team won and they survived
-                won = entry["team_win"] and survived
+                survived = player in get_players()
+                if not entry["dced"] and winner != "":
+                    # by default, get an individual win if the team won and they survived
+                    won = entry["team_win"] and survived
 
-                # let events modify this default and also add special tags/pseudo-roles to the stats
-                event = Event("player_win", {"individual_win": won, "special": []},
-                              team_wins=team_wins)
-                event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
-                won = event.data["individual_win"]
-                # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
-                entry["special"] = list(event.data["special"])
+                    # let events modify this default and also add special tags/pseudo-roles to the stats
+                    event = Event("player_win", {"individual_win": won, "special": []},
+                                  team_wins=team_wins)
+                    event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
+                    won = event.data["individual_win"]
+                    # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
+                    entry["special"] = list(event.data["special"])
 
-                # special-case everyone for after the event
-                if winner == "everyone":
-                    won = True
+                    # special-case everyone for after the event
+                    if winner == "everyone":
+                        won = True
 
-                entry["individual_win"] = won
+                    entry["individual_win"] = won
 
-            if entry["team_win"] or entry["individual_win"]:
-                winners.add(player)
+                if entry["team_win"] or entry["individual_win"]:
+                    winners.add(player)
 
-            if not player.is_fake:
-                # don't record fakes to the database
-                player_list.append(entry)
+                if not player.is_fake:
+                    # don't record fakes to the database
+                    player_list.append(entry)
 
-    if log:
-        game_options = {"role reveal": var.ROLE_REVEAL,
-                        "stats": var.STATS_TYPE,
-                        "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
-                        "roles": {}}
-        for role, pl in var.ORIGINAL_ROLES.items():
-            if len(pl) > 0:
-                game_options["roles"][role] = len(pl)
+        if log:
+            game_options = {"role reveal": var.ROLE_REVEAL,
+                            "stats": var.STATS_TYPE,
+                            "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
+                            "roles": {}}
+            for role, pl in var.ORIGINAL_ROLES.items():
+                if len(pl) > 0:
+                    game_options["roles"][role] = len(pl)
 
-        db.add_game(var.CURRENT_GAMEMODE.name,
-                    len(get_players()) + len(var.DEAD),
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-                    winner,
-                    player_list,
-                    game_options)
+            db.add_game(var.CURRENT_GAMEMODE.name,
+                        len(get_players()) + len(var.DEAD),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                        winner,
+                        player_list,
+                        game_options)
 
-        # spit out the list of winners
-        if winners:
-            winners = sorted(winners, key=lambda u: u.nick)
-            channels.Main.send(messages["winners"].format(winners))
-        else:
-            channels.Main.send(messages["no_winners"])
+            # spit out the list of winners
+            if winners:
+                winners = sorted(winners, key=lambda u: u.nick)
+                channels.Main.send(messages["winners"].format(winners))
+            else:
+                channels.Main.send(messages["no_winners"])
 
     # Message players in deadchat letting them know that the game has ended
     if var.DEADCHAT_PLAYERS:
@@ -1481,6 +1485,9 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
         if player in var.GAMEMODE_VOTES:
             del var.GAMEMODE_VOTES[player]
 
+        for role in var.FORCE_ROLES:
+            var.FORCE_ROLES[role].discard(player)
+
         # Died during the joining process as a person
         var.ALL_PLAYERS.remove(player)
     if var.PHASE in var.GAME_PHASES:
@@ -1506,7 +1513,7 @@ def on_kill_players(evt: Event, var, players: Set[User]):
                     cmode.append(("+" + mode, player.nick))
                 del var.OLD_MODES[player]
             lplayer = player.lower()
-            if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayer.host not in var.DEADCHAT_PREFS:
+            if lplayer.account not in var.DEADCHAT_PREFS_ACCS:
                 deadchat.append(player)
 
     # attempt to devoice all dead players
@@ -1953,7 +1960,9 @@ def night_warn(gameid):
     for player, count in idling.items():
         if player.is_fake or count == 0:
             continue
-        player.queue_message(messages["night_idle_notice"])
+        idle_event = Event("night_idled", {})
+        if idle_event.dispatch(var, player):
+            player.queue_message(messages["night_idle_notice"])
     User.send_messages()
 
 
@@ -2149,8 +2158,6 @@ def transition_day(gameid=0):
     for msg in message.values():
         to_send.extend(msg)
 
-    if random.random() < var.GIF_CHANCE:
-        to_send.append(str(messages["gifs"]))
     channels.Main.send(*to_send, sep="\n")
 
     # chilling howl message was played, give roles the opportunity to update !stats
@@ -2417,6 +2424,9 @@ def transition_night():
     if chk_win():
         return
 
+    event_role = Event("send_role", {})
+    event_role.dispatch(var)
+
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)
 
@@ -2467,6 +2477,9 @@ def cgamemode(arg):
 @hook("error")
 def on_error(cli, pfx, msg):
     if var.RESTARTING or msg.lower().endswith("(excess flood)"):
+        import src
+        if src.lagcheck > 0:
+            src.lagcheck = max(1, src.lagcheck - 1)
         _restart_program()
     elif msg.lower().startswith("closing link:"):
         raise SystemExit
@@ -2584,7 +2597,8 @@ def fflags(var, wrapper, message):
             acc = nick
 
     # var.FLAGS_ACC stores lowercased accounts, ensure acc is lowercased as well
-    lacc = irc_lower(acc)
+    from src.context import lower
+    lacc = lower(acc)
 
     if not flags:
         # display access for the given user
@@ -2664,20 +2678,23 @@ def show_rules(var, wrapper, message):
 @command("help", pm=True)
 def get_help(var, wrapper, message):
     """Gets help."""
-    fns = []
-    for name, fn in COMMANDS.items():
-        if name and not fn[0].flag and not fn[0].owner_only and name not in fn[0].aliases and fn[0].chan:
-            fns.append(name)
-    afns = []
+    commands = set()
+    for name, functions in COMMANDS.items():
+        if not name:
+            continue
+        for fn in functions:
+            if not fn.flag and not fn.owner_only and name not in fn.aliases:
+                commands.add(name)
+                break
+    admin_commands = set()
     if wrapper.source.is_admin():
-        for name, fn in COMMANDS.items():
-            if fn[0].flag and name not in fn[0].aliases:
-                afns.append(name)
-    fns.sort() # Output commands in alphabetical order
-    wrapper.pm(messages["commands_list"].format(fns))
-    if afns:
-        afns.sort()
-        wrapper.pm(messages["admin_commands_list"].format(afns))
+        for name, functions in COMMANDS.items():
+            for fn in functions:
+                if fn.flag and name not in fn.aliases:
+                    admin_commands.add(name)
+    wrapper.pm(messages["commands_list"].format(sorted(commands)))
+    if admin_commands:
+        wrapper.pm(messages["admin_commands_list"].format(sorted(admin_commands)))
     wrapper.pm(messages["commands_further_help"])
 
 def get_wiki_page(URI):
@@ -2743,7 +2760,8 @@ def wiki(var, wrapper, message):
 
     wikilink = "https://werewolf.chat/{0}".format(suggestion.replace(" ", "_"))
     wrapper.reply(wikilink)
-    wrapper.pm(page)
+    if "#" not in wikilink:
+        wrapper.pm(page)
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
@@ -2882,7 +2900,7 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        minp = var.GAME_MODES[gamemode.name][1]
+        minp = max(var.GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
         msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
         wrapper.reply(msg, prefix_nick=True)
         return
@@ -2898,23 +2916,23 @@ def list_roles(var, wrapper, message):
     if pieces[0] and not pieces[0].isdigit():
         valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles"}
         mode = pieces.pop(0)
-        if mode not in valid:
-            matches = complete_match(mode, valid)
-            if not matches:
-                wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
-                return
-            if len(matches) > 1:
-                wrapper.reply(messages["ambiguous_mode"].format(mode, matches), prefix_nick=True)
-                return
 
-            mode = matches[0]
+        matches = match_mode(var, mode, scope=valid, remove_spaces=True)
+        if len(matches) == 0:
+            wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
+            return
+        elif len(matches) > 1:
+            wrapper.reply(messages["ambiguous_mode"].format([m.local for m in matches]), prefix_nick=True)
+            return
+
+        mode = matches.get().key
 
         gamemode = var.GAME_MODES[mode][0]()
 
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            minp = var.GAME_MODES[mode][1]
+            minp = max(var.GAME_MODES[mode][1], var.MIN_PLAYERS)
             wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
@@ -2935,7 +2953,7 @@ def list_roles(var, wrapper, message):
                 append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
                 new.append(role + append)
 
-        if new and specific <= var.MAX_PLAYERS:
+        if new and var.MIN_PLAYERS <= specific <= var.MAX_PLAYERS:
             msg.append("[{0}]".format(specific))
             msg.append(", ".join(new))
         else:
@@ -2944,7 +2962,18 @@ def list_roles(var, wrapper, message):
     else:
         final = []
 
+        roles_dict = {}
         for num, role_num in roles:
+            roles_dict[num] = list(role_num)
+
+        roles_dict_final = roles_dict.copy()
+
+        for num, role_num in reversed(list(roles_dict.items())):
+            if num < var.MIN_PLAYERS:
+                roles_dict_final[var.MIN_PLAYERS] = list(role_num) + list(roles_dict_final[var.MIN_PLAYERS])
+                del roles_dict_final[num]
+
+        for num, role_num in roles_dict_final.items():
             snum = "[{0}]".format(num)
             if num <= lpl:
                 snum = "\u0002{0}\u0002".format(snum)
@@ -2952,12 +2981,18 @@ def list_roles(var, wrapper, message):
             new = []
             for role in role_num:
                 if role.startswith("-"):
-                    rolecnt[role[1:]] -= 1
-                    new.append(role)
+                    if role[1:] not in role_num:
+                        rolecnt[role[1:]] -= 1
+                        roles = role[1:].split("/")
+                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
+                        new.append("-{0}".format("/".join(localized_roles)))
                 else:
-                    rolecnt[role] += 1
-                    append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
-                    new.append(role + append)
+                    if f"-{role}" not in role_num:
+                        rolecnt[role] += 1
+                        append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
+                        roles = role.split("/")
+                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
+                        new.append("/".join(localized_roles) + append)
 
             final.append(", ".join(new))
 
@@ -3055,30 +3090,26 @@ def gamestats(var, wrapper, message):
             wrapper.pm(messages["stats_wait_for_game_end"])
             return
 
-    gamemode = "all"
+    gamemode = "*"
     gamesize = None
     msg = message.split()
     # Check for gamemode
     if msg and not msg[0].isdigit():
         gamemode = msg[0]
-        if gamemode != "all" and gamemode not in var.GAME_MODES:
-            matches = complete_match(gamemode, var.GAME_MODES)
-            if len(matches) == 1:
-                gamemode = matches[0]
-            if not matches:
+        if gamemode != "*":
+            matches = match_mode(var, gamemode, remove_spaces=True, allow_extra=True)
+            if matches:
+                gamemode = matches.get().key
+            elif len(matches) == 0:
                 wrapper.pm(messages["invalid_mode"].format(msg[0]))
                 return
-            if len(matches) > 1:
-                wrapper.pm(messages["ambiguous_mode"].format(msg[0], matches))
+            else:
+                wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
                 return
         msg.pop(0)
 
-    # Check for invalid input
     if msg and msg[0].isdigit():
         gamesize = int(msg[0])
-        if gamemode != "all" and not (var.GAME_MODES[gamemode][1] <= gamesize <= var.GAME_MODES[gamemode][2]):
-            wrapper.pm(messages["integer_range"].format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
-            return
 
     # List all games sizes and totals if no size is given
     if not gamesize:
@@ -3136,17 +3167,16 @@ def player_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ")
     else:
         role = " ".join(params[1:])
-        role_map = messages.get_role_mapping(reverse=True)
-        matches = complete_match(role, role_map.keys())
+        matches = match_role(var, role, allow_extra=True)
 
-        if not matches:
+        if len(matches) == 0:
             wrapper.send(messages["no_such_role"].format(role))
             return
-        if len(matches) > 1:
-            wrapper.send(messages["ambiguous_role"].format(matches))
+        elif len(matches) > 1:
+            wrapper.send(messages["ambiguous_role"].format([m.singular for m in matches]))
             return
 
-        role = role_map[matches[0]]
+        role = matches.get().key
         wrapper.send(db.get_player_stats(account, role))
 
 @command("mystats", pm=True)
@@ -3158,7 +3188,6 @@ def my_stats(var, wrapper, message):
 @command("rolestats", pm=True)
 def role_stats(var, wrapper, message):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
-    # NOTE: Need to dynamically translate roles and gamemodes
     if (wrapper.public and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
             var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"])
@@ -3178,41 +3207,41 @@ def role_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ", first=first)
         return
 
-    roles = complete_role(var, message)
-    if params[-1] == "all" and len(roles) != 1:
-        roles = complete_role(var, " ".join(params[:-1]))
-    if len(roles) == 1:
-        wrapper.pm(db.get_role_stats(roles[0]))
+    roles = match_role(var, message, allow_extra=True)
+    if params[-1] == "*" and not roles:
+        role = " ".join(params[:-1])
+        roles = match_role(var, role, allow_extra=True)
+        if not roles:
+            if len(roles) > 0:
+                wrapper.pm(messages["ambiguous_role"].format(roles))
+            else:
+                wrapper.pm(messages["no_such_role"].format(role))
+            return
+
+    if roles:
+        wrapper.pm(db.get_role_stats(roles.get().key))
         return
 
     gamemode = params[-1]
-    if gamemode not in var.GAME_MODES.keys():
-        matches = complete_match(gamemode, var.GAME_MODES.keys())
-        if len(matches) == 1:
-            gamemode = matches[0]
+    roles = match_role(var, " ".join(params[:-1]), allow_extra=True)
+    matches = match_mode(var, gamemode, remove_spaces=True, allow_extra=True)
+    if matches and roles:
+        gamemode = matches.get().key
+    else:
+        if len(roles) > 0:
+            wrapper.pm(messages["ambiguous_role"].format(roles))
+        elif len(matches) > 0:
+            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
         else:
-            if len(roles) > 0:
-                wrapper.pm(messages["ambiguous_role"].format(roles))
-            elif len(matches) > 0:
-                wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
-            else:
-                wrapper.pm(messages["no_such_role"].format(message))
-            return
+            wrapper.pm(messages["no_such_role"].format(message))
+        return
 
     if len(params) == 1:
         first, totals = db.get_role_totals(gamemode)
         wrapper.pm(*totals, sep=", ", first=first)
         return
 
-    role = " ".join(params[:-1])
-    roles = complete_role(var, role)
-    if len(roles) != 1:
-        if len(roles) == 0:
-            wrapper.pm(messages["no_such_role"].format(role))
-        else:
-            wrapper.pm(messages["ambiguous_role"].format(roles))
-        return
-    wrapper.pm(db.get_role_stats(roles[0], gamemode))
+    wrapper.pm(db.get_role_stats(roles.get().key, gamemode))
 
 @command("whoami", pm=True)
 def whoami(var, wrapper, message):
@@ -3221,6 +3250,15 @@ def whoami(var, wrapper, message):
     else:
         wrapper.pm(messages["whoami_loggedout"])
 
+@command("setdisplay", pm=True)
+def setdisplay(var, wrapper, message):
+    if not wrapper.source.account:
+        wrapper.pm(messages["not_logged_in"])
+        return
+
+    db.set_primary_player(wrapper.source.account)
+    wrapper.reply(messages["display_name_set"].format(wrapper.source.account))
+
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):
     if var.FGAMED:
@@ -3228,34 +3266,34 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             wrapper.pm(messages["admin_forced_game"])
         return
 
-    if gamemode not in var.GAME_MODES.keys():
-        matches = complete_match(gamemode, var.GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES)
-        if not matches:
-            if doreply:
-                wrapper.pm(messages["invalid_mode"].format(gamemode))
-            return
-        if len(matches) > 1:
-            if doreply:
-                wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
-            return
-        if len(matches) == 1:
-            gamemode = matches[0]
-
-    if gamemode != "roles" and gamemode not in var.DISABLED_GAMEMODES:
-        if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
-            wrapper.pm(messages["already_voted_game"].format(gamemode))
-        else:
-            var.GAMEMODE_VOTES[wrapper.source] = gamemode
-            wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
-    else:
+    allowed = var.GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES
+    matches = match_mode(var, gamemode, scope=allowed, remove_spaces=True)
+    if len(matches) == 0:
         if doreply:
-            wrapper.pm(messages["vote_game_fail"])
+            wrapper.pm(messages["invalid_mode"].format(gamemode))
+        return
+    elif len(matches) > 1:
+        if doreply:
+            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
+        return
+
+    gamemode = matches.get().key
+    if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
+        wrapper.pm(messages["already_voted_game"].format(gamemode))
+    else:
+        var.GAMEMODE_VOTES[wrapper.source] = gamemode
+        wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
 
 def _get_gamemodes(var):
     gamemodes = []
+    order = {}
     for gm, (cls, min, max, chance) in var.GAME_MODES.items():
         if gm == "roles" or gm in var.DISABLED_GAMEMODES:
             continue
+        order[LocalMode(gm).local] = (min, max)
+
+    for gm in sorted(order.keys()):
+        min, max = order[gm]
         if min <= len(get_players()) <= max:
             gm = messages["bold"].format(gm)
         gamemodes.append(gm)
@@ -3535,13 +3573,16 @@ def fgame(var, wrapper, message):
             var.FGAMED = False
             return
 
-        if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
-            gamemode = gamemode.split()[0]
-            gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
-            if not gamemode:
-                wrapper.pm(messages["invalid_mode"].format(message.split()[0]))
-                return
-            parts[0] = gamemode
+        allowed = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES
+        gamemode = gamemode.split()[0]
+        match = match_mode(var, gamemode, scope=allowed, remove_spaces=True)
+        if len(match) == 0:
+            wrapper.pm(messages["invalid_mode"].format(gamemode))
+            return
+        elif len(match) > 1:
+            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in match]))
+            return
+        parts[0] = match.get().key
 
         if cgamemode("=".join(parts)):
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
@@ -3630,13 +3671,16 @@ def rforce(var, wrapper, message):
         return
 
     target = msg.pop(0).strip().lower()
-    possible = complete_role(var, target)
+    possible = match_role(var, target, allow_special=False, remove_spaces=True)
     if target == "*":
         players = get_players()
-    elif len(possible) == 1:
-        players = get_all_players((possible[0],))
+    elif possible:
+        players = get_all_players((possible.get().key,))
+    elif len(possible) > 1:
+        wrapper.send(messages["ambiguous_role"].format([r.singular for r in possible]))
+        return
     else:
-        wrapper.send("Invalid role")
+        wrapper.send(messages["no_such_role"].format(message))
         return
 
     _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
@@ -3654,11 +3698,11 @@ def frole(var, wrapper, message):
             wrapper.send(messages["frole_incorrect"].format(part))
             return
         umatch = users.complete_match(name.strip(), pl)
-        rmatch = complete_role(var, role.strip())
+        rmatch = match_role(var, role.strip(), allow_special=False)
         role = None
-        if len(rmatch) == 1:
-            role = rmatch[0]
-        if not umatch or role not in role_order() or role == var.DEFAULT_ROLE:
+        if rmatch:
+            role = rmatch.get().key
+        if not umatch or not rmatch or role == var.DEFAULT_ROLE:
             wrapper.send(messages["frole_incorrect"].format(part))
             return
         var.FORCE_ROLES[role].add(umatch.get())

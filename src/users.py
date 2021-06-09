@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import fnmatch
 import time
 import re
-from typing import Callable, Optional, Set
+from typing import Callable, List, Optional, Set
 
 from src.context import IRCContext, Features, lower, equals
 from src import config, db
@@ -12,13 +14,13 @@ from src.match import Match
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
 
-Bot = None # bot instance
+Bot: BotUser = None # type: ignore[assignment]
 
-_users = CheckedSet("users._users") # type: CheckedSet[User]
-_ghosts = CheckedSet("users._ghosts") # type: CheckedSet[User]
-_pending_account_updates = CheckedDict("users._pending_account_updates") # type: CheckedDict[User, CheckedDict[str, Callable]]
+_users: CheckedSet[User] = CheckedSet("users._users")
+_ghosts: CheckedSet[User] = CheckedSet("users._ghosts")
+_pending_account_updates: CheckedDict[User, CheckedDict[str, Callable]] = CheckedDict("users._pending_account_updates")
 
-_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
+_arg_msg = "(user={0:for_tb}, allow_bot={1})"
 
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
@@ -73,10 +75,10 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
 
     if len(potential) > 1:
         raise ValueError("More than one user matches: " +
-              _arg_msg.format(nick, ident, host, account, allow_bot))
+              _arg_msg.format(temp, allow_bot))
 
     if not allow_none:
-        raise KeyError(_arg_msg.format(nick, ident, host, account, allow_bot))
+        raise KeyError(_arg_msg.format(temp, allow_bot))
 
     return None
 
@@ -130,7 +132,7 @@ def complete_match(pattern: str, scope=None):
     """
     if scope is None:
         scope = _users
-    matches = []
+    matches: List[User] = []
     nick_search, _, acct_search = lower(pattern).partition(":")
     if not nick_search and not acct_search:
         return Match([])
@@ -218,6 +220,8 @@ EventListener(_update_account).install("who_end")
 class User(IRCContext):
 
     is_user = True
+
+    account_timestamp: float
 
     def __new__(cls, cli, nick, ident, host, account):
         self = super().__new__(cls)

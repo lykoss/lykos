@@ -1,12 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from src.containers import UserDict
 from src.functions import get_players, get_main_role, change_role
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Wolf
 
+if TYPE_CHECKING:
+    from src.users import User
+
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
-LYCANTHROPES = UserDict()
+LYCANTHROPES: UserDict[User, str] = UserDict()
 SCOPE = set()
 
 def add_lycanthropy(var, target, prefix="lycan"):

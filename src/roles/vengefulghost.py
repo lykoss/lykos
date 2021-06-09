@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_target, get_main_role
+from src.functions import get_players, get_target, get_main_role, get_all_roles
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -69,6 +69,12 @@ def on_consecrate(evt, var, actor, target):
     if target in GHOSTS:
         add_silent(var, target)
 
+@event_listener("gun_shoot")
+def on_gun_shoot(evt, var, user, target, role):
+    if evt.data["hit"] and "vengeful ghost" in get_all_roles(target):
+        # VGs automatically die if hit by a gun to make gunner a bit more dangerous in some modes
+        evt.data["kill"] = True
+        
 # needs to happen after regular team win is determined, but before succubus
 # FIXME: I hate priorities, did I mention that?
 @event_listener("team_win", priority=6)
@@ -174,7 +180,7 @@ def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(KILLS)
     evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
 
-@event_listener("transition_night_end", priority=2)
+@event_listener("send_role")
 def on_transition_night_end(evt, var):
     # alive VGs are messaged as part of villager.py, this handles dead ones
     villagers = get_players(All - Wolfteam)
@@ -190,7 +196,6 @@ def on_transition_night_end(evt, var):
         random.shuffle(pl)
 
         v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl), sep="\n")
-        debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(p.nick for p in pl)))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

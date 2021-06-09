@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from src.containers import UserSet
 from src.events import event_listener
 from src.messages import messages
 
 __all__ = ["add_silent", "is_silent"]
 
-SILENT = UserSet()
+SILENT: UserSet = UserSet()
 
 def add_silent(var, user):
     """Silence the target, preventing them from using actions for a day."""

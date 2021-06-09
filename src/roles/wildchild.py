@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -14,7 +17,10 @@ from src.status import try_misdirection, try_exchange
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
-IDOLS = UserDict()
+if TYPE_CHECKING:
+    from src.users import User
+
+IDOLS: UserDict[User, User] = UserDict()
 CAN_ACT = UserSet()
 ACTED = UserSet()
 
@@ -102,7 +108,7 @@ def on_transition_day_begin(evt, var):
                     idol_role = get_main_role(idol)
                     debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, idol_role))
 
-@event_listener("transition_night_end", priority=2)
+@event_listener("send_role")
 def on_transition_night_end(evt, var):
     CAN_ACT.update(get_all_players(("wild child",)) - IDOLS.keys())
     for child in get_all_players(("wild child",)):
@@ -110,7 +116,9 @@ def on_transition_night_end(evt, var):
             pl = list(get_players())
             pl.remove(child)
             random.shuffle(pl)
-            child.send(messages["wild_child_notify"], messages["players_list"].format(pl), sep="\n")
+            child.send(messages["wild_child_notify"])
+            if var.NIGHT_COUNT > 0:
+                child.send(messages["players_list"].format(pl))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
