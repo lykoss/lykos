@@ -14,7 +14,7 @@ __all__ = ["decrement_stasis", "add_warning", "expire_tempbans"]
 def decrement_stasis(user=None):
     if user is not None:
         # decrement account stasis even if accounts are disabled
-        if user.account in var.STASISED_ACCS:
+        if user.account in db.STASISED:
             db.decrement_stasis(acc=user.account)
     else:
         db.decrement_stasis()
@@ -30,26 +30,28 @@ def expire_tempbans():
     channels.Main.mode(*cmodes)
 
 def _get_auto_sanctions(sanctions, prev, cur):
-    for (mn, mx, sanc) in var.AUTO_SANCTION:
+    for sanc in config.Main.get("warnings.sanctions"):
+        mn = sanc["min"]
+        mx = sanc["max"]
         if (prev < mn and cur >= mn) or (prev >= mn and prev <= mx and cur <= mx):
-            if "stasis" in sanc:
+            if sanc["stasis"] is not None:
                 if "stasis" not in sanctions:
                     sanctions["stasis"] = sanc["stasis"]
                 else:
                     sanctions["stasis"] = max(sanctions["stasis"], sanc["stasis"])
-            if "scalestasis" in sanc:
+            if sanc["scalestasis"] is not None:
                 (a, b, c) = sanc["scalestasis"]
                 amt = (a * cur * cur) + (b * cur) + c
                 if "stasis" not in sanctions:
                     sanctions["stasis"] = amt
                 else:
                     sanctions["stasis"] = max(sanctions["stasis"], amt)
-            if "deny" in sanc:
+            if sanc["deny"] is not None:
                 if "deny" not in sanctions:
                     sanctions["deny"] = set(sanc["deny"])
                 else:
                     sanctions["deny"].update(sanc["deny"])
-            if "tempban" in sanc:
+            if sanc["tempban"] is not None:
                 # tempban's param can either be a fixed expiry time or a number
                 # which indicates the warning point threshold that the ban will be lifted at
                 # if two are set at once, the threshold takes precedence over set times
@@ -600,7 +602,7 @@ _fwarn_add.add_argument(*_whelp, dest="help", action="help")
 _fwarn_add.add_argument(*_waccount, dest="account", action="store_true")
 _fwarn_add.add_argument(*_wban, dest="ban")
 _fwarn_add.add_argument(*_wdeny, dest="deny", action="append")
-_fwarn_add.add_argument(*_wexpires, dest="expires", default=var.DEFAULT_EXPIRY)
+_fwarn_add.add_argument(*_wexpires, dest="expires", default=config.Main.get("warnings.default_expiration"))
 _fwarn_add.add_argument(*_wnotes, dest="notes", nargs="*")
 _fwarn_add.add_argument(*_wstasis, dest="stasis", type=int)
 _fwarn_add.add_argument("nick")

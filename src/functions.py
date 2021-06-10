@@ -6,13 +6,8 @@ import functools
 
 from src.messages import messages, LocalRole, LocalMode, LocalTotem
 from src.events import Event
-<<<<<<< HEAD
-from src.cats import Wolfteam, Neutral, Hidden
-=======
 from src.cats import Wolfteam, Neutral, Hidden, All
 from src.match import Match, match_all
-from src import settings as var
->>>>>>> master
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -168,8 +163,6 @@ def get_reveal_role(user):
         return "neutral player"
     else:
         return "village member"
-<<<<<<< HEAD
-=======
 
 def match_role(var, role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
     """ Match a partial role or alias name into the internal role key.
@@ -274,4 +267,3 @@ def match_totem(var, totem: str, scope: Optional[Iterable[str]] = None) -> Match
             filtered_matches.add(LocalTotem(totem_map[match], match))
 
     return Match(filtered_matches)
->>>>>>> master

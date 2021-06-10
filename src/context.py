@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from collections import defaultdict, OrderedDict
 from operator import attrgetter
-from typing import Dict, Any, List, Set, Optional, Tuple
+from typing import Dict, Any, Set, Optional, Tuple, Union
 import logging
 
 from src.messages.message import Message
@@ -82,7 +82,7 @@ def _send(data, first, sep, client, send_type, name, chan=None):
             extra, line = line[:length], line[length:]
             client.send("{0} {1} {4}:{2}{3}".format(send_type, name, first, extra, chan))
 
-def lower(nick, *, casemapping=None):
+def lower(nick: Union[None, str, IRCContext], *, casemapping: Optional[str] = None):
     if nick is None:
         return None
     if isinstance(nick, IRCContext):
@@ -104,7 +104,7 @@ def lower(nick, *, casemapping=None):
 
     return nick.lower().translate(str.maketrans(mapping))
 
-def equals(nick1, nick2):
+def equals(nick1: Union[None, str, IRCContext], nick2: Union[None, str, IRCContext]):
     return nick1 is not None and nick2 is not None and lower(nick1) == lower(nick2)
 
 def context_types(*types):

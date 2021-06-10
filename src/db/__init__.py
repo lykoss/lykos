@@ -4,92 +4,107 @@ import json
 import shutil
 import sys
 import time
-from collections import defaultdict
 import threading
+from collections import defaultdict
 from datetime import datetime
+from typing import DefaultDict, Set
 
-<<<<<<< HEAD
 from src import users
-=======
-import botconfig  # type: ignore
-import src.settings as var
->>>>>>> master
 from src.utilities import singular
 from src.messages import messages, LocalRole
 from src.cats import role_order
+
+__all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_templates", "update_template",
+           "delete_template", "toggle_deadchat", "toggle_notice", "set_pingif", "set_warning", "set_primary_player",
+           "set_pre_restart_state", "set_access", "get_pre_restart_state", "get_warning", "get_warning_points",
+           "get_game_stats", "get_role_stats", "get_role_totals", "get_game_totals", "get_player_totals",
+           "get_warning_sanctions", "get_player_stats", "add_warning", "add_warning_sanction", "acknowledge_warning",
+           "add_game", "list_all_warnings", "list_warnings", "del_warning", "has_unacknowledged_warnings",
+           "expire_tempbans", "expire_stasis", "PREFER_NOTICE", "STASISED", "PING_IF_PREFS", "PING_IF_NUMS",
+           "DEADCHAT_PREFS", "FLAGS", "DENY"]
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
 SCHEMA_VERSION = 8
 
+# variables accessible outside of the module that hold current db state
+# These track accounts by string account name instead of User instances because the latter can only track online users
+
+PREFER_NOTICE: Set[str] = set()
+STASISED: DefaultDict[str, int] = defaultdict(int)
+PING_IF_PREFS: DefaultDict[str, int] = defaultdict(int)
+PING_IF_NUMS: DefaultDict[int, Set[str]] = defaultdict(set)
+DEADCHAT_PREFS: Set[str] = set()
+FLAGS: DefaultDict[str, str] = defaultdict(str)
+DENY: DefaultDict[str, Set[str]] = defaultdict(set)
+
 _ts = threading.local()
 
 def init_vars():
     from src.context import lower
-    with var.GRAVEYARD_LOCK:
-        conn = _conn()
-        c = conn.cursor()
-        c.execute("""SELECT
-                       pl.account_display,
-                       pe.notice,
-                       pe.deadchat,
-                       pe.pingif,
-                       pe.stasis_amount,
-                       pe.stasis_expires,
-                       COALESCE(at.flags, a.flags)
-                     FROM person pe
-                     JOIN player pl
-                       ON pl.person = pe.id
-                     LEFT JOIN access a
-                       ON a.person = pe.id
-                     LEFT JOIN access_template at
-                       ON at.id = a.template
-                     WHERE pl.active = 1""")
+    conn = _conn()
+    c = conn.cursor()
+    c.execute("""SELECT
+                   pl.account_display,
+                   pe.notice,
+                   pe.deadchat,
+                   pe.pingif,
+                   pe.stasis_amount,
+                   pe.stasis_expires,
+                   COALESCE(at.flags, a.flags)
+                 FROM person pe
+                 JOIN player pl
+                   ON pl.person = pe.id
+                 LEFT JOIN access a
+                   ON a.person = pe.id
+                 LEFT JOIN access_template at
+                   ON at.id = a.template
+                 WHERE pl.active = 1""")
 
-        var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
-        var.STASISED_ACCS = defaultdict(int)
-        var.PING_IF_PREFS_ACCS = {}
-        var.PING_IF_NUMS_ACCS = defaultdict(set)
-        var.DEADCHAT_PREFS_ACCS = set()
-        var.FLAGS_ACCS = defaultdict(str)
-        var.DENY_ACCS = defaultdict(set)
+    PREFER_NOTICE.clear()
+    STASISED.clear()
+    PING_IF_PREFS.clear()
+    PING_IF_NUMS.clear()
+    DEADCHAT_PREFS.clear()
+    FLAGS.clear()
+    DENY.clear()
 
-        for acc, notice, dc, pi, stasis, stasisexp, flags in c:
-            if acc is not None:
-                lacc = lower(acc)
-                if notice == 1:
-                    var.PREFER_NOTICE_ACCS.add(lacc)
-                if stasis > 0:
-                    var.STASISED_ACCS[lacc] = stasis
-                if pi is not None and pi > 0:
-                    var.PING_IF_PREFS_ACCS[lacc] = pi
-                    var.PING_IF_NUMS_ACCS[pi].add(lacc)
-                if dc == 1:
-                    var.DEADCHAT_PREFS_ACCS.add(lacc)
-                if flags:
-                    var.FLAGS_ACCS[lacc] = flags
+    for acc, notice, dc, pi, stasis, stasisexp, flags in c:
+        if acc is not None:
+            lacc = lower(acc)
+            if notice == 1:
+                PREFER_NOTICE.add(lacc)
+            if stasis > 0:
+                STASISED[lacc] = stasis
+            if pi is not None and pi > 0:
+                PING_IF_PREFS[lacc] = pi
+                PING_IF_NUMS[pi].add(lacc)
+            if dc == 1:
+                DEADCHAT_PREFS.add(lacc)
+            if flags:
+                FLAGS[lacc] = flags
 
-        c.execute("""SELECT
-                       pl.account_display,
-                       ws.data
-                     FROM warning w
-                     JOIN warning_sanction ws
-                       ON ws.warning = w.id
-                     JOIN person pe
-                       ON pe.id = w.target
-                     JOIN player pl
-                       ON pl.person = pe.id
-                     WHERE
-                       ws.sanction = 'deny command'
-                       AND w.deleted = 0
-                       AND (
-                         w.expires IS NULL
-                         OR w.expires > datetime('now')
-                       )""")
-        for acc, command in c:
-            if acc is not None:
-                lacc = lower(acc)
-                var.DENY_ACCS[lacc].add(command)
+    c.execute("""SELECT
+                   pl.account_display,
+                   ws.data
+                 FROM warning w
+                 JOIN warning_sanction ws
+                   ON ws.warning = w.id
+                 JOIN person pe
+                   ON pe.id = w.target
+                 JOIN player pl
+                   ON pl.person = pe.id
+                 WHERE
+                   ws.sanction = 'deny command'
+                   AND w.deleted = 0
+                   AND (
+                     w.expires IS NULL
+                     OR w.expires > datetime('now')
+                   )""")
+    for acc, command in c:
+        if acc is not None:
+            lacc = lower(acc)
+            DENY[lacc].add(command)
 
 def decrement_stasis(acc=None):
     peid, plid = _get_ids(acc)
@@ -380,12 +395,6 @@ def get_game_stats(mode, size):
 
     bits = []
     for row in c:
-<<<<<<< HEAD
-        winner = singular(row[0])
-        winner = get_role_name(winner, number=None).title()
-        if not winner:
-            winner = users.Bot.name.title()
-=======
         if row[0] == "no_team_wins":
             winner = messages["db_gstats_no_team_wins"]
         elif not row[0]:
@@ -396,7 +405,6 @@ def get_game_stats(mode, size):
             # FIXME: kill off singular() and convert the db to just store the role key directly instead of a plural
             winner = LocalRole(singular(row[0])).singular.title()
 
->>>>>>> master
         bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
     bits.append(messages["db_gstats_total"].format(total_games))
 
@@ -929,35 +937,6 @@ def _upgrade(oldversion):
     dn = os.path.dirname(__file__)
     conn = _conn()
     try:
-<<<<<<< HEAD
-        with conn:
-            c = conn.cursor()
-            if oldversion < 2:
-                print("Upgrade from version 1 to 2...", file=sys.stderr)
-                # Update FKs to be deferrable, update collations to nocase where it makes sense,
-                # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
-                # player id as a string). When nocasing players, this may cause some records to be merged.
-                with open(os.path.join(dn, "upgrade2.sql"), "rt") as f:
-                    c.executescript(f.read())
-            if oldversion < 3:
-                print("Upgrade from version 2 to 3...", file=sys.stderr)
-                with open(os.path.join(dn, "upgrade3.sql"), "rt") as f:
-                    c.executescript(f.read())
-            if oldversion < 4:
-                print("Upgrade from version 3 to 4...", file=sys.stderr)
-                # no actual upgrades, just wanted to force an index rebuild
-            if oldversion < 5:
-                print("Upgrade from version 4 to 5...", file=sys.stderr)
-                c.execute("CREATE INDEX game_gamesize_idx ON game (gamesize)")
-            if oldversion < 6:
-                print("Upgrade from version 5 to 6...", file=sys.stderr)
-                # no actual upgrades, need to force an index rebuild due to removing custom collation
-
-            print("Rebuilding indexes...", file=sys.stderr)
-            c.execute("REINDEX")
-            c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
-            print("Upgrades complete!", file=sys.stderr)
-=======
         c = conn.cursor()
         if oldversion < 2:
             print("Upgrade from version 1 to 2...", file=sys.stderr)
@@ -998,7 +977,7 @@ def _upgrade(oldversion):
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
         conn.commit()
         print("Upgrades complete!", file=sys.stderr)
->>>>>>> master
+
     except sqlite3.Error:
         print("An error has occurred while upgrading the database schema.",
               "Please report this issue to #lykos on irc.libera.chat.",
@@ -1169,26 +1148,28 @@ def _conn():
         _ts.conn.commit()
         return _ts.conn
 
-need_install = not os.path.isfile("data.sqlite3")
-conn = _conn()
-c = conn.cursor()
-c.execute("PRAGMA foreign_keys = ON")
-if need_install:
-    _install()
-c.execute("PRAGMA user_version")
-row = c.fetchone()
-ver = row[0]
-c.close()
-conn.commit()
+def _init():
+    need_install = not os.path.isfile("data.sqlite3")
+    conn = _conn()
+    c = conn.cursor()
+    c.execute("PRAGMA foreign_keys = ON")
+    if need_install:
+        _install()
+    c.execute("PRAGMA user_version")
+    row = c.fetchone()
+    ver = row[0]
+    c.close()
+    conn.commit()
 
-if ver == 0:
-    # new schema does not exist yet, migrate from old schema
-    # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
-    # will continue to exist to allow queries against it, however given how horribly
-    # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
-    # statistics over to the new schema which has the capability of actually being accurate.
-    _migrate()
-elif ver < SCHEMA_VERSION:
-    _upgrade(ver)
+    if ver == 0:
+        # new schema does not exist yet, migrate from old schema
+        # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
+        # will continue to exist to allow queries against it, however given how horribly
+        # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
+        # statistics over to the new schema which has the capability of actually being accurate.
+        _migrate()
+    elif ver < SCHEMA_VERSION:
+        _upgrade(ver)
 
-del need_install, conn, c, ver
+# run db initialization once module is loaded
+_init()

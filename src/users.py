@@ -3,9 +3,9 @@ from __future__ import annotations
 import fnmatch
 import time
 import re
-from typing import Callable, List, Optional, Set
+from typing import Callable, List, Optional, Iterable
 
-from src.context import IRCContext, Features, lower, equals
+from src.context import IRCContext, Features, lower
 from src import config, db
 from src.events import EventListener
 from src.debug import CheckedDict, CheckedSet, handle_error
@@ -118,7 +118,7 @@ def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
 
-def complete_match(pattern: str, scope=None):
+def complete_match(pattern: str, scope: Optional[Iterable[User]] = None):
     """ Find a user or users who match the given pattern.
 
     :param pattern: Pattern to match on. The format is "[nick][:account]",
@@ -446,7 +446,7 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        flags = var.FLAGS_ACCS[self.account]
+        flags = db.FLAGS[self.account]
 
         if "F" not in flags:
             try:
@@ -481,43 +481,38 @@ class User(IRCContext):
                 fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
 
     def prefers_notice(self):
-        return self.lower().account in var.PREFER_NOTICE_ACCS
+        return self.lower().account in db.PREFER_NOTICE
 
     def get_pingif_count(self):
-        temp = self.lower()
-        if temp.account in var.PING_IF_PREFS_ACCS:
-            return var.PING_IF_PREFS_ACCS[temp.account]
-        return 0
+        return db.PING_IF_PREFS.get(self.lower().account, 0)
 
     def set_pingif_count(self, value, old=None):
         temp = self.lower()
 
         if not value:
-            if temp.account in var.PING_IF_PREFS_ACCS:
-                del var.PING_IF_PREFS_ACCS[temp.account]
+            if temp.account in db.PING_IF_PREFS:
+                del db.PING_IF_PREFS[temp.account]
                 db.set_pingif(0, temp.account)
                 if old is not None:
-                    with var.WARNING_LOCK:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+                    if old in db.PING_IF_NUMS:
+                        db.PING_IF_NUMS[old].discard(temp.account)
         else:
             if temp.account is not None:
-                var.PING_IF_PREFS_ACCS[temp.account] = value
+                db.PING_IF_PREFS[temp.account] = value
                 db.set_pingif(value, temp.account)
-                with var.WARNING_LOCK:
-                    if value not in var.PING_IF_NUMS_ACCS:
-                        var.PING_IF_NUMS_ACCS[value] = set()
-                    var.PING_IF_NUMS_ACCS[value].add(temp.account)
-                    if old is not None:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+                if value not in db.PING_IF_NUMS:
+                    db.PING_IF_NUMS[value] = set()
+                db.PING_IF_NUMS[value].add(temp.account)
+                if old is not None:
+                    if old in db.PING_IF_NUMS:
+                        db.PING_IF_NUMS[old].discard(temp.account)
 
     def wants_deadchat(self):
-        return self.lower().account not in var.DEADCHAT_PREFS_ACCS
+        return self.lower().account not in db.DEADCHAT_PREFS
 
     def stasis_count(self):
         """Return the number of games the user is in stasis for."""
-        return var.STASISED_ACCS.get(self.lower().account, 0)
+        return db.STASISED.get(self.lower().account, 0)
 
     def update_account_data(self, command: str, callback: Callable):
         """Refresh stale account data on networks that don't support certain features.

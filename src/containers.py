@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Dict, Generic, List, Set, TypeVar
+from abc import ABC, abstractmethod
+from typing import Dict, Generic, Iterable, List, Set, TypeVar
 
 from src.users import User
 
@@ -37,8 +38,12 @@ files to get an idea of how those containers should be used.
 
 """
 
-class Container:
+class Container(ABC, Iterable):
     """Base container class for all containers."""
+
+    @abstractmethod
+    def __init__(self, iterable: Iterable = ()):
+        pass
 
     def __enter__(self):
         return self
@@ -69,14 +74,11 @@ class Container:
     def copy(self):
         return self.__copy__()
 
-<<<<<<< HEAD
+    @abstractmethod
     def clear(self):
-        raise NotImplemented
+        pass
 
-class UserList(Container, list):
-=======
 class UserList(Container, List[User]):
->>>>>>> master
     def __init__(self, iterable=()):
         super().__init__()
         try:
@@ -131,8 +133,6 @@ class UserList(Container, List[User]):
         for item in self:
             if self in item.lists:
                 item.lists.remove(self)
-
-        super().clear()
 
     def extend(self, iterable):
         for item in iterable:
@@ -197,7 +197,6 @@ class UserSet(Container, Set[User]):
             return NotImplemented
 
         self.difference_update(other)
-        return
 
     def __ixor__(self, other):  # type: ignore
         if not isinstance(other, set):

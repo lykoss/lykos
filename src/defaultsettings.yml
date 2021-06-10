@@ -1146,6 +1146,10 @@ warnings: &warnings
     Sanctions can be manually applied to warnings as well.
   _type: dict
   _default:
+    default_expiration:
+      _desc: The default expiration time for manually-issued warnings.
+      _type: str
+      _default: 30d
     sanctions:
       _desc: |
         The automatic sanction track. Defining your own track will overwrite the default one.

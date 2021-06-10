@@ -1,26 +1,14 @@
-# The bot commands implemented in here are present no matter which module is loaded
-
 from __future__ import annotations
 
 import base64
 import threading
 import time
 import functools
-<<<<<<< HEAD
 import logging
-from typing import Optional
-
-import src.settings as var
-from src import config, decorators, wolfgame, channels, users
-=======
 import statistics
-import math
 from typing import List, Optional, Union
 
-import botconfig  # type: ignore
-import src.settings as var
-from src import decorators, wolfgame, channels, users, plog
->>>>>>> master
+from src import channels, config, context, decorators, users
 from src.messages import messages
 from src.functions import get_participants, get_all_roles, match_role
 from src.dispatcher import MessageDispatcher
@@ -35,7 +23,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         return
 
     _ignore_locals_ = False
-    if var.USER_DATA_LEVEL == 0 or var.CHANNEL_DATA_LEVEL == 0:
+    if config.Main.get("telemetry.errors.user_data_level") == 0 or config.Main.get("telemetry.errors.channel_data_level") == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
     # bot needs to talk to itself during lagchecks
@@ -45,7 +33,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 
-    if users.equals(chan, users.Bot.nick): # PM
+    if context.equals(chan, users.Bot.nick): # PM
         target = users.Bot
     else:
         target = channels.get(ch, allow_none=True)
@@ -223,13 +211,12 @@ def latency(var, wrapper, message):
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
-<<<<<<< HEAD
-=======
 def run_lagcheck(cli):
     from oyoyo.client import TokenBucket
     cli.tokenbucket = TokenBucket(100, 0.1)
-    plog("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
-    plog("The bot may restart a couple of times during the check.")
+    logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
+    logger.info("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
+    logger.info("The bot may restart a couple of times during the check.")
 
     # set up initial variables
     from src import lagcheck
@@ -252,7 +239,7 @@ def run_lagcheck(cli):
             # run another batch
             # note that clock is correct here; end of phase is sent as phase=0 clock=phase#
             next_phase = int(clock) + 1
-            plog("Testing phase {0}/{1}...".format(next_phase, max_phases))
+            logger.info("Testing phase {0}/{1}...".format(next_phase, max_phases))
             _lagcheck_1(next_phase, max_phases)
         else:
             # process data
@@ -302,7 +289,8 @@ def _lagcheck_2(cli, timings, max_phases):
             # before i, but i is a decent overestimate of when it happens)
             threshold = i
 
-    plog("Lag check complete! We recommend adding the following settings to your botconfig.py:")
+    logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
+    logger.info("Lag check complete! We recommend adding the following settings to your botconfig.py:")
     delay = max(0.8 * fixed[threshold], 0.1)
     # establish a reasonable minimum burst amount
     # we were able to burst 10 + max_phases without getting disconnected so we know for sure it works
@@ -323,7 +311,6 @@ def _lagcheck_2(cli, timings, max_phases):
 
     cli.quit()
 
->>>>>>> master
 def connect_callback(cli):
     regaincount = 0
     releasecount = 0
@@ -331,12 +318,9 @@ def connect_callback(cli):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
-<<<<<<< HEAD
-        alog("Received end of MOTD from {0}".format(prefix))
-=======
         from src import lagcheck
-        plog("Received end of MOTD from {0}".format(prefix))
->>>>>>> master
+        logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
+        logger.info("Received end of MOTD from {0}".format(prefix))
 
         # This callback only sets up event listeners
         wolfgame.connect_callback()
@@ -358,57 +342,40 @@ def connect_callback(cli):
         event = Event("irc_connected", {})
         event.dispatch(var, cli)
 
-<<<<<<< HEAD
-        main_channel = config.Main.get("transports[0].channels.main")
-        if isinstance(main_channel, str):
-            main_channel = {"name": main_channel, "prefix": "", "key": ""}
-        channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
-        channels.Dummy = channels.add("*", cli)
-
-        alt_channels = config.Main.get("transports[0].channels.alternate")
-        transport_name = config.Main.get("transports[0].name")
-        debug_chan = None
-        log_chan = None
-        for log in config.Main.get("logging.logs"):
-            if log["transport"] != transport_name:
-                continue
-            if log["group"] == "debug":
-                debug_chan = log["destination"]
-            elif log["group"] == "warnings":
-                log_chan = log["destination"]
-        for chan in alt_channels:
-            if isinstance(chan, str):
-                chan = {"name": chan, "prefix": "", "key": ""}
-            c = channels.add(chan["name"], cli, key=chan["key"])
-            if chan == debug_chan:
-                channels.Dev = c
-                var.DEV_PREFIX = chan["prefix"]
-            if chan == log_chan:
-                var.LOG_PREFIX = chan["prefix"]
-
-        users.Bot.change_nick(nick)
-=======
         # don't join any channels if we're just doing a lag check
         if not lagcheck:
-            channels.Main = channels.add(botconfig.CHANNEL, cli)
+            main_channel = config.Main.get("transports[0].channels.main")
+            if isinstance(main_channel, str):
+                main_channel = {"name": main_channel, "prefix": "", "key": ""}
+            channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
             channels.Dummy = channels.add("*", cli)
 
-            if botconfig.ALT_CHANNELS:
-                for chan in botconfig.ALT_CHANNELS.split(","):
-                    channels.add(chan, cli)
-
-            if botconfig.DEV_CHANNEL:
-                channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
-
-            if var.LOG_CHANNEL:
-                channels.add(var.LOG_CHANNEL, cli)
+            alt_channels = config.Main.get("transports[0].channels.alternate")
+            transport_name = config.Main.get("transports[0].name")
+            debug_chan = None
+            log_chan = None
+            for log in config.Main.get("logging.logs"):
+                if log["transport"] != transport_name:
+                    continue
+                if log["group"] == "debug":
+                    debug_chan = log["destination"]
+                elif log["group"] == "warnings":
+                    log_chan = log["destination"]
+            for chan in alt_channels:
+                if isinstance(chan, str):
+                    chan = {"name": chan, "prefix": "", "key": ""}
+                c = channels.add(chan["name"], cli, key=chan["key"])
+                if chan == debug_chan:
+                    channels.Dev = c
+                    var.DEV_PREFIX = chan["prefix"]
+                if chan == log_chan:
+                    var.LOG_PREFIX = chan["prefix"]
         else:
             plog("Preparing lag check")
             # if we ARE doing a lagcheck, we need at least our own host or things break
             users.Bot.who()
 
-        users.Bot.change_nick(botconfig.NICK)
->>>>>>> master
+        users.Bot.change_nick(nick)
 
         if var.SERVER_PING_INTERVAL > 0:
             def ping_server_timer(cli):
@@ -498,13 +465,8 @@ def connect_callback(cli):
             if caps[0] == "*": # Multiline, don't continue yet
                 return
 
-<<<<<<< HEAD
             if config.Main.get("transports[0].authentication.services.use_sasl") and "sasl" not in supported_caps:
                 alog("Server does not support SASL authentication")
-=======
-            if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
-                plog("Server does not support SASL authentication")
->>>>>>> master
                 cli.quit()
                 sys.exit(1)
 
@@ -598,13 +560,8 @@ def connect_callback(cli):
                 plog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
                 cli.send("AUTHENTICATE PLAIN")
             else:
-<<<<<<< HEAD
                 alog("Authentication failed.  Did you fill the account name "
                      "in transport.authentication.services.username if it's different from the bot nick?")
-=======
-                plog("Authentication failed.  Did you fill the account name "
-                     "in botconfig.USERNAME if it's different from the bot nick?")
->>>>>>> master
                 cli.quit()
                 sys.exit(1)
 
