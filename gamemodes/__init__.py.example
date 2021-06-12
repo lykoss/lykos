@@ -17,8 +17,9 @@ for f in glob.iglob(search):
         continue
     importlib.import_module("." + n, package="gamemodes")
 
-# Important: if this isn't defined, built-in gamemodes will
-# be imported. Normally this isn't an issue, but if you
-# are attempting to suppress the import of built-in modes
-# then that might be an issue for you.
-CUSTOM_MODES_DEFINED = True
+# Important: if this isn't defined or is False,
+# built-in gamemodes will be imported.
+# Normally this isn't an issue, but if you are
+# attempting to suppress the import of built-in modes
+# then change this to True
+CUSTOM_MODES_DEFINED = False

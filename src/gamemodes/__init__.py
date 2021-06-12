@@ -7,7 +7,7 @@ from src.messages import messages
 from src.events import Event, EventListener
 from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
-__all__ = ["InvalidModeException", "game_mode", "GameMode"]
+__all__ = ["InvalidModeException", "game_mode", "import_builtin_modes" "GameMode"]
 
 class InvalidModeException(Exception):
     pass
@@ -18,6 +18,17 @@ def game_mode(name, minp, maxp, likelihood=0):
         var.GAME_MODES[name] = (c, minp, maxp, likelihood)
         return c
     return decor
+
+def import_builtin_modes():
+    path = os.path.dirname(os.path.abspath(__file__))
+    search = os.path.join(path, "*.py")
+
+    for f in glob.iglob(search):
+        f = os.path.basename(f)
+        n, _ = os.path.splitext(f)
+        if f.startswith("_"):
+            continue
+        importlib.import_module("." + n, package="src.gamemodes")
 
 class GameMode:
     def __init__(self, arg=""):
@@ -142,13 +153,3 @@ class GameMode:
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
-
-path = os.path.dirname(os.path.abspath(__file__))
-search = os.path.join(path, "*.py")
-
-for f in glob.iglob(search):
-    f = os.path.basename(f)
-    n, _ = os.path.splitext(f)
-    if f.startswith("_"):
-        continue
-    importlib.import_module("." + n, package="src.gamemodes")
