@@ -3,7 +3,6 @@ import re
 import random
 
 import src.settings as var
-from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
@@ -11,6 +10,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event
+from src.cats import Safe
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
@@ -39,17 +39,18 @@ def investigate(var, wrapper, message):
 
     INVESTIGATED.add(wrapper.source)
     wrapper.send(messages["investigate_success"].format(target, targrole))
-    debuglog("{0} (detective) ID: {1} ({2})".format(wrapper.source, target, targrole))
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
-        # The detective's identity is compromised!
-        wolves = get_all_players(get_wolfchat_roles(var))
-        if wolves:
-            for wolf in wolves:
-                wolf.queue_message(messages["detective_reveal"].format(wrapper.source))
-            wolf.send_messages()
-
-        debuglog("{0} (detective) PAPER DROP".format(wrapper.source))
+        # The detective's identity is compromised! Let the opposing team know
+        if get_main_role(wrapper.source) in Wolfteam:
+            to_notify = get_players(Safe)
+        else:
+            to_notify = get_players(get_wolfchat_roles(var))
+            
+        if to_notify:
+            for player in to_notify:
+                player.queue_message(messages["detective_reveal"].format(wrapper.source))
+            player.send_messages()
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
