@@ -584,7 +584,9 @@ class IRCFeatures:
         self[key] = value
 
     def unset(self, key: str):
-        del self._features[key]
+        # we may get CAP DEL more than once for the same feature
+        if key in self._features:
+            del self._features[key]
 
 class IRCTargMaxFeature:
     def __init__(self, features: IRCFeatures, value: Optional[str] = None):

@@ -635,7 +635,7 @@ def on_nick_change(cli, old_rawnick, nick):
 
     """
 
-    user = users.get(old_rawnick, allow_bot=True)
+    user = users.get(old_rawnick, allow_bot=True, update=True)
     old_nick = user.nick
     user.nick = nick
     new_user = users.get(nick, user.ident, user.host, user.account, allow_bot=True)
@@ -658,7 +658,7 @@ def on_account_change(cli, rawnick, account):
 
     """
 
-    user = users.get(rawnick)
+    user = users.get(rawnick, update=True)
     old_account = user.account
     user.account = account
     new_user = users.get(user.nick, user.ident, user.host, account, allow_bot=True)
@@ -694,7 +694,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
 
     ch = channels.add(chan, cli)
 
-    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True)
+    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True, update=True)
     if user is None:
         user = users.add(cli, nick=rawnick, account=account)
     if account:
@@ -732,7 +732,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users.get(rawnick, allow_bot=True)
+    user = users.get(rawnick, allow_bot=True, update=True)
     Event("chan_part", {}).dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
@@ -757,7 +757,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     """
 
     ch = channels.add(chan, cli)
-    actor = users.get(rawnick, allow_none=True)
+    actor = users.get(rawnick, allow_none=True, update=True)
     user = users.get(target, allow_bot=True)
     Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
@@ -792,7 +792,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users.get(rawnick, allow_bot=True)
+    user = users.get(rawnick, allow_bot=True, update=True)
     user.disconnected = True
     Event("server_quit", {}).dispatch(user, reason)
 
@@ -817,7 +817,7 @@ def on_chghost(cli, rawnick, ident, host):
 
     """
 
-    user = users.get(rawnick, allow_bot=True)
+    user = users.get(rawnick, allow_bot=True, update=True)
     old_ident = user.ident
     old_host = user.host
     # we avoid multiple swaps if we change the rawnick instead of ident and host separately
