@@ -5,7 +5,7 @@ import threading
 import time
 import functools
 import logging
-import statistics
+import sys
 from typing import List, Optional, Union
 
 from src import channels, config, context, decorators, users
@@ -26,10 +26,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if config.Main.get("telemetry.errors.user_data_level") == 0 or config.Main.get("telemetry.errors.channel_data_level") == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
-    # bot needs to talk to itself during lagchecks
-    from src import lagcheck
-    allow_bot = lagcheck > 0
-    user = users.get(rawnick, allow_none=True, allow_bot=allow_bot)
+    user = users.get(rawnick, allow_none=True)
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 
@@ -211,118 +208,18 @@ def latency(var, wrapper, message):
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
-def run_lagcheck(cli):
-    from oyoyo.client import TokenBucket
-    cli.tokenbucket = TokenBucket(100, 0.1)
-    logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
-    logger.info("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
-    logger.info("The bot may restart a couple of times during the check.")
-
-    # set up initial variables
-    from src import lagcheck
-    timings = []
-    max_phases = lagcheck
-
-    @command("", pm=True)
-    def on_pm(var, wrapper, message):
-        if wrapper.source is not users.Bot:
-            return
-
-        cur = time.perf_counter()
-        phase, clock = message.split(" ")
-        phase = int(phase)
-        clock = float(clock)
-        if phase > 0:
-            # timing data for current phase
-            timings.append((phase, cur - clock))
-        elif clock < max_phases:
-            # run another batch
-            # note that clock is correct here; end of phase is sent as phase=0 clock=phase#
-            next_phase = int(clock) + 1
-            logger.info("Testing phase {0}/{1}...".format(next_phase, max_phases))
-            _lagcheck_1(next_phase, max_phases)
-        else:
-            # process data
-            _lagcheck_2(cli, timings, max_phases)
-
-    # we still have startup lag at this point, so delay our check until we receive this message successfully
-    users.Bot.send("0 0")
-
-def _lagcheck_1(phase, max_phases):
-    # Burst some messages and time how long it takes for them to get back to us
-    burst = max(12, 12 - (phase * 2) + max_phases)
-    for i in range(burst):
-        users.Bot.send("{0} {1}".format(phase, time.perf_counter()))
-    # signal that we're done
-    users.Bot.send("0 {0}".format(phase))
-
-def _lagcheck_2(cli, timings, max_phases):
-    # Assume our first message isn't throttled and is an accurate representation of the roundtrip time
-    # for the server. We use this to normalize all the other timings, as since we bursted N messages
-    # at once, message N will have around N*RTT of delay even if there is no throttling going on.
-    if timings:
-        rtt = timings[0][1]
-        fixed = [0] * len(timings)
-    else:
-        rtt = 0
-        fixed = []
-    counter = 0
-    prev_phase = 0
-    threshold = 0
-    for i, (phase, diff) in enumerate(timings):
-        if phase != prev_phase:
-            prev_phase = phase
-            counter = 0
-        counter += 1
-        fixed[i] = diff - (counter * rtt)
-
-        if i < 4: # wait for a handful of data points
-            continue
-        avg = statistics.mean(fixed[0:i])
-        stdev = statistics.pstdev(fixed[0:i], mu=avg)
-        if stdev == 0: # need a positive std dev
-            continue
-        # if our current measurement varies more than 3 standard deviations from the mean,
-        # then we probably started getting fakelag
-        if threshold == 0 and fixed[i] > avg + 3 * stdev:
-            # we've detected that we've hit fakelag; set threshold to i (technically it happens a while
-            # before i, but i is a decent overestimate of when it happens)
-            threshold = i
-
-    logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
-    logger.info("Lag check complete! We recommend adding the following settings to your botconfig.py:")
-    delay = max(0.8 * fixed[threshold], 0.1)
-    # establish a reasonable minimum burst amount
-    # we were able to burst 10 + max_phases without getting disconnected so we know for sure it works
-    burst = max(12, 10 + max_phases)
-
-    if threshold == 0:
-        print("IRC_TB_INIT = 30", "IRC_TB_BURST = 30", "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
-    else:
-        print("IRC_TB_INIT = {0}".format(burst), "IRC_TB_BURST = {0}".format(burst), "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
-
-    if burst < 20 and delay > 1.5:
-        # recommend turning off deadchat if we can't push out messages fast enough
-        print("ENABLE_DEADCHAT = False")
-
-    if burst == 12 and delay > 2:
-        # if things are really bad, recommend turning off wolfchat too
-        print("RESTRICT_WOLFCHAT = 0x0b")
-
-    cli.quit()
-
 def connect_callback(cli):
     regaincount = 0
     releasecount = 0
+    logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
 
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
-        from src import lagcheck
-        logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
         logger.info("Received end of MOTD from {0}".format(prefix))
 
         # This callback only sets up event listeners
+        from src import wolfgame
         wolfgame.connect_callback()
 
         # just in case we haven't managed to successfully auth yet
@@ -342,38 +239,32 @@ def connect_callback(cli):
         event = Event("irc_connected", {})
         event.dispatch(var, cli)
 
-        # don't join any channels if we're just doing a lag check
-        if not lagcheck:
-            main_channel = config.Main.get("transports[0].channels.main")
-            if isinstance(main_channel, str):
-                main_channel = {"name": main_channel, "prefix": "", "key": ""}
-            channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
-            channels.Dummy = channels.add("*", cli)
+        main_channel = config.Main.get("transports[0].channels.main")
+        if isinstance(main_channel, str):
+            main_channel = {"name": main_channel, "prefix": "", "key": ""}
+        channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
+        channels.Dummy = channels.add("*", cli)
 
-            alt_channels = config.Main.get("transports[0].channels.alternate")
-            transport_name = config.Main.get("transports[0].name")
-            debug_chan = None
-            log_chan = None
-            for log in config.Main.get("logging.logs"):
-                if log["transport"] != transport_name:
-                    continue
-                if log["group"] == "debug":
-                    debug_chan = log["destination"]
-                elif log["group"] == "warnings":
-                    log_chan = log["destination"]
-            for chan in alt_channels:
-                if isinstance(chan, str):
-                    chan = {"name": chan, "prefix": "", "key": ""}
-                c = channels.add(chan["name"], cli, key=chan["key"])
-                if chan == debug_chan:
-                    channels.Dev = c
-                    var.DEV_PREFIX = chan["prefix"]
-                if chan == log_chan:
-                    var.LOG_PREFIX = chan["prefix"]
-        else:
-            plog("Preparing lag check")
-            # if we ARE doing a lagcheck, we need at least our own host or things break
-            users.Bot.who()
+        alt_channels = config.Main.get("transports[0].channels.alternate")
+        transport_name = config.Main.get("transports[0].name")
+        debug_chan = None
+        log_chan = None
+        for log in config.Main.get("logging.logs"):
+            if log["transport"] != transport_name:
+                continue
+            if log["group"] == "debug":
+                debug_chan = log["destination"]
+            elif log["group"] == "warnings":
+                log_chan = log["destination"]
+        for chan in alt_channels:
+            if isinstance(chan, str):
+                chan = {"name": chan, "prefix": "", "key": ""}
+            c = channels.add(chan["name"], cli, key=chan["key"])
+            if chan == debug_chan:
+                channels.Dev = c
+                var.DEV_PREFIX = chan["prefix"]
+            if chan == log_chan:
+                var.LOG_PREFIX = chan["prefix"]
 
         users.Bot.change_nick(nick)
 
@@ -466,7 +357,7 @@ def connect_callback(cli):
                 return
 
             if config.Main.get("transports[0].authentication.services.use_sasl") and "sasl" not in supported_caps:
-                alog("Server does not support SASL authentication")
+                logger.error("Server does not support SASL authentication")
                 cli.quit()
                 sys.exit(1)
 
@@ -494,7 +385,7 @@ def connect_callback(cli):
                 if supported_sasl is None or mech in supported_sasl:
                     cli.send("AUTHENTICATE {0}".format(mech))
                 else:
-                    plog("Server does not support the SASL {0} mechanism".format(mech))
+                    logger.error("Server does not support the SASL {0} mechanism".format(mech))
                     cli.quit()
                     sys.exit(1)
             else:
@@ -502,7 +393,7 @@ def connect_callback(cli):
         elif cmd == "NAK":
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
-            plog("Server refused capabilities: {0}".format(" ".join(caps[0])))
+            logger.warning("Server refused capabilities: {0}".format(" ".join(caps[0])))
 
         elif cmd == "NEW":
             # New capability advertised by the server, see if we want to enable it
@@ -557,11 +448,11 @@ def connect_callback(cli):
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet
                 selected_sasl = "PLAIN"
-                plog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
+                logger.warning("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
                 cli.send("AUTHENTICATE PLAIN")
             else:
-                alog("Authentication failed.  Did you fill the account name "
-                     "in transport.authentication.services.username if it's different from the bot nick?")
+                logger.error("Authentication failed.  Did you fill the account name "
+                             "in transport.authentication.services.username if it's different from the bot nick?")
                 cli.quit()
                 sys.exit(1)
 

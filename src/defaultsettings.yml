@@ -35,11 +35,10 @@ transports.irc: &transports.irc
       _type: enum
       _default: generic
       _values:
+        - hybrid
         - inspircd
-        - ircd-hybrid
-        - ircd-seven
-        - ircu
         - generic
+        - solanum
         - unrealircd
     user:
       _desc: Configures the bot user for this connection.

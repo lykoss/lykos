@@ -1,7 +1,6 @@
 from typing import Union
 
-from src import channels, users
-
+from src import channels, config, users
 from src.functions import get_players
 
 class MessageDispatcher:
@@ -41,7 +40,7 @@ class MessageDispatcher:
             self.source.send(*messages, **kwargs)
         elif (self.target is channels.Main and
                 ((self.source not in get_players() and var.PHASE in var.GAME_PHASES) or
-                (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))):
+                (config.Main.get("gameplay.nightchat") and var.PHASE == "night"))):
             # TODO: ideally the above check would be handled in game logic somehow
             # (perhaps via an event) rather than adding game logic to the transport layer
             kwargs.setdefault("notice", True)

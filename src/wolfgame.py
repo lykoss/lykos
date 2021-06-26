@@ -349,21 +349,16 @@ def _restart_program(mode=None):
 
     python = sys.executable
 
+    # FIXME: should maintain the same --config option
     if mode is not None:
         print(mode)
-        assert mode in ("normal", "verbose", "debug")
+        assert mode in ("debug",)
         os.execl(python, python, sys.argv[0], "--{0}".format(mode))
     else:
         import src
         args = []
-        if src.debug_mode:
+        if config.Main.get("debug.enabled"):
             args.append("--debug")
-        if src.verbose:
-            args.append("--verbose")
-        if src.normal:
-            args.append("--normal")
-        if src.lagcheck:
-            args.append("--lagcheck={0}".format(src.lagcheck))
         os.execl(python, python, sys.argv[0], *args)
 
 
