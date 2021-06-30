@@ -5,7 +5,7 @@ import time
 import re
 from typing import Callable, List, Optional, Set
 
-from src.context import IRCContext, Features, lower, equals
+from src.context import IRCContext, Features, NotLoggedIn, lower, equals
 from src import settings as var
 from src import db
 from src.events import EventListener
@@ -99,7 +99,7 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
 
     return None
 
-def add(cli, *, nick, ident=None, host=None, account=None):
+def add(cli, *, nick, ident=None, host=None, account=NotLoggedIn):
     """Create a new user, add it to the user list and return it.
 
     This function takes up to 4 keyword-only arguments (and one positional
@@ -279,7 +279,7 @@ class User(IRCContext):
             Bot.ident = ident
             self = Bot
 
-        elif nick is not None and ident is not None and host is not None:
+        elif nick is not None and ident is not None and host is not None and account is not None:
             users = set(_users)
             users.add(Bot)
             if self in users:
@@ -452,7 +452,7 @@ class User(IRCContext):
 
         accounts = set(botconfig.OWNERS_ACCOUNTS)
 
-        if self.account is not None and self.account in accounts:
+        if self.account and self.account in accounts:
             return True
 
         return False
@@ -466,7 +466,7 @@ class User(IRCContext):
         if "F" not in flags:
             try:
                 accounts = set(botconfig.ADMINS_ACCOUNTS)
-                if self.account is not None and self.account in accounts:
+                if self.account and self.account in accounts:
                     return True
             except AttributeError:
                 pass
@@ -514,7 +514,7 @@ class User(IRCContext):
                         if old in var.PING_IF_NUMS_ACCS:
                             var.PING_IF_NUMS_ACCS[old].discard(temp.account)
         else:
-            if temp.account is not None:
+            if temp.account:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
                 db.set_pingif(value, temp.account)
                 with var.WARNING_LOCK:
@@ -550,12 +550,12 @@ class User(IRCContext):
             callback(self)
             return
 
-        if self.account is not None and Features.get("account-notify", False):
+        if self.account and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
             callback(self)
             return
 
-        if self.account is not None and self.account_timestamp > time.time() - 900:
+        if self.account and self.account_timestamp > time.time() - 900:
             # account data is less than 15 minutes old, use existing data instead of refreshing
             callback(self)
             return
@@ -611,7 +611,7 @@ class User(IRCContext):
     @account.setter
     def account(self, value):
         if value in ("0", "*"):
-            value = None
+            value = NotLoggedIn
         new = User(self.client, self.nick, self.ident, self.host, value)
         new.account_timestamp = time.time()
         self.swap(new, same_user=True)
@@ -725,7 +725,7 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
     @account.setter
     def account(self, value):
         if value in ("0", "*"):
-            value = None
+            value = NotLoggedIn
         new = BotUser(self.client, self.nick, self.ident, self.host, value)
         self.swap(new, same_user=True)
 

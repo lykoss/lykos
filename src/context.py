@@ -9,6 +9,18 @@ import src.settings as var # FIXME
 from src.messages.message import Message
 from src.logger import debuglog
 
+class _NotLoggedIn:
+    def __copy__(self):
+        return self
+    def __deepcopy__(self, memo):
+        return self
+    def __bool__(self):
+        return False
+    def __repr__(self):
+        return "NotLoggedIn"
+
+NotLoggedIn = _NotLoggedIn()
+
 def _who(cli, target, data=b""):
     """Handle WHO requests."""
 
@@ -83,8 +95,8 @@ def _send(data, first, sep, client, send_type, name, chan=None):
             client.send("{0} {1} {4}:{2}{3}".format(send_type, name, first, extra, chan))
 
 def lower(nick, *, casemapping=None):
-    if nick is None:
-        return None
+    if nick is None or nick is NotLoggedIn:
+        return nick
     if isinstance(nick, IRCContext):
         return nick.lower()
     if casemapping is None:

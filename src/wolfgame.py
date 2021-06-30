@@ -495,7 +495,7 @@ def mark_prefer_notice(var, wrapper, message):
 
     account = temp.account
 
-    if account is None:
+    if not account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -517,7 +517,7 @@ def replace(var, wrapper, message):
         wrapper.pm(messages["you_already_playing"])
         return
 
-    if wrapper.source.account is None:
+    if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -565,7 +565,7 @@ def replace(var, wrapper, message):
 def altpinger(var, wrapper, message):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
 
-    if wrapper.source.account is None:
+    if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -732,7 +732,7 @@ def deadchat_pref(var, wrapper, message):
 
     temp = wrapper.source.lower()
 
-    if wrapper.source.account is None:
+    if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -789,7 +789,7 @@ def join_player(var,
     if wrapper.target is not channels.Main:
         return
 
-    if not wrapper.source.is_fake and wrapper.source.account is None:
+    if not wrapper.source.is_fake and not wrapper.source.account:
         if forced:
             who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
         else:
@@ -2641,6 +2641,9 @@ def fflags(var, wrapper, message):
         m = users.complete_match(nick)
         if m:
             acc = m.get().account
+            if not acc:
+                wrapper.reply(messages["account_not_logged_in"].format(m))
+                return
         else:
             acc = nick
 
@@ -3201,7 +3204,7 @@ def player_stats(var, wrapper, message):
         user = wrapper.source
         account = user.account
 
-    if account is None:
+    if not account:
         key = "account_not_logged_in"
         if user is wrapper.source:
             key = "not_logged_in"

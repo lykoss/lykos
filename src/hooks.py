@@ -9,7 +9,7 @@ further in the relevant hook functions.
 from typing import Dict, Any
 
 from src.decorators import event_listener, hook
-from src.context import Features
+from src.context import Features, NotLoggedIn
 from src.events import Event
 from src.logger import plog
 
@@ -102,7 +102,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     """
 
     if account == "0":
-        account = None
+        account = NotLoggedIn
 
     is_away = ("G" in status)
 
@@ -117,8 +117,8 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
         user = users.add(cli, nick=nick, ident=ident, host=host, account=account)
 
     new_user = user
-    if {user.account, account} != {None} and not context.equals(user.account, account):
-        # first check tests if both are None, and skips over this if so
+    if {user.account, account} != {NotLoggedIn} and not context.equals(user.account, account):
+        # first check tests if both are NotLoggedIn, and skips over this if so
         old_account = user.account
         user.account = account
         new_user = users.get(nick, ident, host, account, allow_bot=True)
@@ -284,8 +284,8 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
     values = _whois_pending.pop(nick)
     # check for account change
     new_user = user = values["user"]
-    if {user.account, values["account"]} != {None} and not context.equals(user.account, values["account"]):
-        # first check tests if both are None, and skips over this if so
+    if {user.account, values["account"]} != {NotLoggedIn} and not context.equals(user.account, values["account"]):
+        # first check tests if both are NotLoggedIn, and skips over this if so
         old_account = user.account
         user.account = values["account"]
         new_user = users.get(user.nick, user.ident, user.host, values["account"], allow_bot=True)
@@ -687,7 +687,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     """
 
     if account == "*":
-        account = None
+        account = NotLoggedIn
 
     if realname == "":
         realname = None
