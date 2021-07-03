@@ -2951,15 +2951,15 @@ def list_roles(var, wrapper, message):
     pieces = re.split(" +", message.strip())
     gamemode = var.CURRENT_GAMEMODE
 
-    if gamemode is None:
-        wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
-        return
-
-    if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        minp = max(var.GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
-        msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
-        wrapper.reply(msg, prefix_nick=True)
-        return
+    if not pieces[0] or pieces[0].isdigit():
+        if gamemode is None:
+            wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
+            return
+        if not hasattr(gamemode, "ROLE_GUIDE"):
+            minp = max(var.GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
+            msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
+            wrapper.reply(msg, prefix_nick=True)
+            return
 
     msg = []
 
