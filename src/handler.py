@@ -52,7 +52,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         return  # not allowed in settings
 
     for fn in decorators.COMMANDS[""]:
-        fn.caller(target.game_state, wrapper, msg)
+        fn.caller(wrapper, msg)
 
     parts = msg.split(sep=" ", maxsplit=1)
     key = parts[0].lower()
@@ -65,15 +65,13 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         return  # channel message but no prefix; ignore
     parse_and_dispatch(target.game_state, wrapper, key, message)
 
-def parse_and_dispatch(var,
-                     wrapper: MessageDispatcher,
-                     key: str,
-                     message: str,
-                     role: Optional[str] = None,
-                     force: Optional[User] = None) -> None:
+def parse_and_dispatch(wrapper: MessageDispatcher,
+                       key: str,
+                       message: str,
+                       role: Optional[str] = None,
+                       force: Optional[User] = None) -> None:
     """ Parses a command key and dispatches it should it match a valid command.
 
-    :param var: Game state
     :param wrapper: Information about who is executing command and where command is being executed
     :param key: Command name. May be prefixed with command character and role name.
     :param message: Parameters to the command.
@@ -111,7 +109,7 @@ def parse_and_dispatch(var,
 
     if role_prefix is not None:
         # match a role prefix to a role. Multi-word roles are supported by stripping the spaces
-        matches = match_role(var, role_prefix, remove_spaces=True)
+        matches = match_role(context.game_state, role_prefix, remove_spaces=True)
         if len(matches) == 1:
             role_prefix = matches.get().key
         elif len(matches) > 1:
@@ -124,7 +122,7 @@ def parse_and_dispatch(var,
     # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
     # as we don't want to insert bogus command keys into the dict.
     cmds: List[command] = []
-    phase = var.PHASE
+    phase = context.game_state.PHASE
     if context.source in get_participants():
         roles = get_all_roles(context.source)
         common_roles = set(roles)  # roles shared by every eligible role command
@@ -191,8 +189,8 @@ def parse_and_dispatch(var,
                 context.target = channels.Main
             else:
                 context.target = users.Bot
-        if phase == var.PHASE:  # don't call any more commands if one we just called executed a phase transition
-            fn.caller(var, context, message)
+        if phase == context.game_state.PHASE:  # don't call any more commands if one we just called executed a phase transition
+            fn.caller(context, message)
 
 
 def unhandled(cli, prefix, cmd, *args):
@@ -203,7 +201,7 @@ def ping_server(cli):
     cli.send("PING :{0}".format(time.time()))
 
 @command("latency", pm=True)
-def latency(var, wrapper, message):
+def latency(wrapper, message):
     ping_server(wrapper.client)
 
     @hook("pong", hookid=300)
@@ -280,11 +278,11 @@ def connect_callback(cli: IRCClient):
 
         users.Bot.change_nick(nick)
 
-        if var.SERVER_PING_INTERVAL > 0:
-            def ping_server_timer(cli):
+        if config.Main.get("transports[0].server_ping"):
+            def ping_server_timer(cli: IRCClient):
                 ping_server(cli)
 
-                t = threading.Timer(var.SERVER_PING_INTERVAL, ping_server_timer, args=(cli,))
+                t = threading.Timer(config.Main.get("transports[0].server_ping"), ping_server_timer, args=(cli,))
                 t.daemon = True
                 t.start()
 

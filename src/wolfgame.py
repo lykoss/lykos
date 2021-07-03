@@ -271,15 +271,15 @@ def reset():
     evt.dispatch(var)
 
 @command("sync", flag="m", pm=True)
-def fsync(var, wrapper, message):
+def fsync(wrapper: MessageDispatcher, message: str):
     """Makes the bot apply the currently appropriate channel modes."""
-    sync_modes(var)
+    sync_modes()
 
 @event_listener("sync_modes")
 def on_sync_modes(evt): # FIXME: This uses var
-    sync_modes(var)
+    sync_modes()
 
-def sync_modes(var):
+def sync_modes():
     voices = [None]
     mode = hooks.Features["PREFIX"]["+"]
     pl = get_players()
@@ -301,7 +301,7 @@ def sync_modes(var):
     channels.Main.mode(*voices)
 
 @command("refreshdb", flag="m", pm=True)
-def refreshdb(var, wrapper, message):
+def refreshdb(wrapper: MessageDispatcher, message: str):
     """Updates our tracking vars to the current db state."""
     db.expire_stasis()
     db.init_vars()
@@ -309,8 +309,10 @@ def refreshdb(var, wrapper, message):
     wrapper.reply("Done.")
 
 @command("fdie", flag="F", pm=True)
-def forced_exit(var, wrapper, message):
+def forced_exit(wrapper: MessageDispatcher, message: str):
     """Forces the bot to close."""
+
+    var = wrapper.game_state
 
     args = message.split()
 
@@ -361,8 +363,10 @@ def _restart_program(mode=None):
 
 
 @command("frestart", flag="D", pm=True)
-def restart_program(var, wrapper, message):
+def restart_program(wrapper: MessageDispatcher, message: str):
     """Restarts the bot."""
+
+    var = wrapper.game_state
 
     args = message.split()
 
@@ -424,12 +428,12 @@ def restart_program(var, wrapper, message):
     var.RESTARTING = True
 
 @command("ping", pm=True)
-def pinger(var, wrapper, message):
+def pinger(wrapper: MessageDispatcher, message: str):
     """Check if you or the bot is still connected."""
     wrapper.reply(messages["ping"].format(nick=wrapper.source, bot_nick=users.Bot))
 
 @command("notice", pm=True)
-def mark_prefer_notice(var, wrapper, message):
+def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
     """Makes the bot NOTICE you for every interaction."""
 
     if wrapper.private and message:
@@ -446,6 +450,7 @@ def mark_prefer_notice(var, wrapper, message):
         return
 
     notice = wrapper.source.prefers_notice()
+    # FIXME: Should not use var here
     action, toggle = (var.PREFER_NOTICE_ACCS.discard, "off") if notice else (var.PREFER_NOTICE_ACCS.add, "on")
 
     action(account)
@@ -453,13 +458,15 @@ def mark_prefer_notice(var, wrapper, message):
     wrapper.pm(messages["notice_" + toggle])
 
 @command("swap", pm=True, phases=("join", "day", "night"))
-def replace(var, wrapper, message):
+def replace(wrapper: MessageDispatcher, message: str):
     """Swap out a player logged in to your account."""
     if wrapper.source not in channels.Main.users:
         wrapper.pm(messages["invalid_channel"].format(channels.Main))
         return
 
-    if wrapper.source in get_players():
+    var = wrapper.game_state
+
+    if wrapper.source in get_players(var):
         wrapper.pm(messages["you_already_playing"])
         return
 
@@ -467,7 +474,7 @@ def replace(var, wrapper, message):
         wrapper.pm(messages["not_logged_in"])
         return
 
-    pl = get_participants()
+    pl = get_participants(var)
     target = None
 
     for user in var.ALL_PLAYERS:
@@ -505,11 +512,10 @@ def replace(var, wrapper, message):
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         if var.PHASE in var.GAME_PHASES:
-            myrole.func(var, wrapper, "")
-
+            myrole.func(wrapper, "")
 
 @command("pingif", pm=True)
-def altpinger(var, wrapper, message):
+def altpinger(wrapper: MessageDispatcher, message: str):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
 
     if wrapper.source.account is None:
@@ -563,7 +569,7 @@ def join_timer_handler(var):
     with var.WARNING_LOCK:
         var.PINGING_IFS = True
         to_ping = []
-        pl = get_players()
+        pl = get_players(var)
 
         chk_acc = set()
 
@@ -624,7 +630,7 @@ def join_deadchat(var, *all_users):
         return
 
     to_join = []
-    pl = get_participants()
+    pl = get_participants(var)
 
     for user in all_users:
         if user.stasis_count() or user in pl or user in var.DEADCHAT_PLAYERS or user not in channels.Main.users:
@@ -672,8 +678,11 @@ def leave_deadchat(var, user, *, force=None):
         user.send_messages()
 
 @command("deadchat", pm=True)
-def deadchat_pref(var, wrapper, message):
+def deadchat_pref(wrapper: MessageDispatcher, message: str):
     """Toggles auto joining deadchat on death."""
+
+    var = wrapper.game_state
+
     if not var.ENABLE_DEADCHAT:
         return
 
@@ -693,15 +702,16 @@ def deadchat_pref(var, wrapper, message):
     db.toggle_deadchat(temp.account)
 
 @command("join", pm=True, allow_alt=False)
-def join(var, wrapper, message):
+def join(wrapper: MessageDispatcher, message: str):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     # keep this and the event in fjoin() in sync
+    var = wrapper.game_state
     evt = Event("join", {
         "join_player": join_player,
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
-    if not evt.dispatch(var, wrapper, message, forced=False):
+    if not evt.dispatch(var, wrapper, message, forced=False): # FIXME: Remove var from this
         return
     if var.PHASE in ("none", "join"):
         if wrapper.private:
@@ -710,21 +720,20 @@ def join(var, wrapper, message):
         def _cb():
             if message:
                 evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
-        evt.data["join_player"](var, wrapper, callback=_cb)
+        evt.data["join_player"](var, wrapper, callback=_cb) # FIXME: remove var
 
     else: # join deadchat
         if wrapper.private and wrapper.source is not wrapper.target:
             evt.data["join_deadchat"](var, wrapper.source)
 
-def join_player(var,
-                wrapper: MessageDispatcher,
+def join_player(var, wrapper: MessageDispatcher, # FIXME: remove var
                 who: Optional[User] = None,
                 forced: bool = False,
                 *,
                 callback: Optional[Callable] = None) -> None:
     """Join a player to the game.
 
-    :param var: Game state
+    :param var: Deprecated
     :param wrapper: Player being joined
     :param who: User who executed the join or fjoin command
     :param forced: True if this was a forced join
@@ -736,6 +745,8 @@ def join_player(var,
     if wrapper.target is not channels.Main:
         return
 
+    var = wrapper.game_state
+
     if not wrapper.source.is_fake and wrapper.source.account is None:
         if forced:
             who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
@@ -743,11 +754,12 @@ def join_player(var,
             wrapper.source.send(messages["not_logged_in"], notice=True)
         return
 
-    if _join_player(var, wrapper, who, forced) and callback:
+    if _join_player(var, wrapper, who, forced) and callback: # FIXME: remove var
         callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
-def _join_player(var, wrapper, who=None, forced=False):
-    pl = get_players()
+def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIXME: remove var
+    var = wrapper.game_state
+    pl = get_players(var)
 
     stasis = wrapper.source.stasis_count()
 
@@ -868,8 +880,8 @@ def _join_player(var, wrapper, who=None, forced=False):
     return True
 
 @handle_error
-def kill_join(var, wrapper):
-    pl = [x.nick for x in get_players()]
+def kill_join(var, wrapper: MessageDispatcher): # FIXME: Remove var
+    pl = [x.nick for x in get_players(var)]
     pl.sort(key=lambda x: x.lower())
     reset_modes_timers(var)
     reset()
@@ -884,14 +896,14 @@ def kill_join(var, wrapper):
         var.AFTER_FLASTGAME = None
 
 @command("fjoin", flag="A")
-def fjoin(var, wrapper: MessageDispatcher, message: str):
+def fjoin(wrapper: MessageDispatcher, message: str):
     """Force someone to join a game.
 
-    :param var: Game state
     :param wrapper: Dispatcher
     :param message: Command text. If empty, we join ourselves
     """
     # keep this and the event in def join() in sync
+    var = wrapper.game_state
     evt = Event("join", {
         "join_player": join_player,
         "join_deadchat": join_deadchat,
@@ -947,15 +959,17 @@ def fjoin(var, wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players())))
 
 @command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
-def fleave(var, wrapper, message):
+def fleave(wrapper: MessageDispatcher, message: str):
     """Force someone to leave the game."""
+
+    var = wrapper.game_state
 
     for person in re.split(" +", message):
         person = person.strip()
         if not person:
             continue
 
-        target = users.complete_match(person, get_players())
+        target = users.complete_match(person, get_players(var))
         dead_target = None
         if var.PHASE in var.GAME_PHASES:
             dead_target = users.complete_match(person, var.DEADCHAT_PLAYERS)
@@ -1006,9 +1020,10 @@ def parted_modes(evt, chan, user, reason): # FIXME: This uses var
     channels.Main.old_modes.pop(user, None)
 
 @command("stats", pm=True, phases=("join", "day", "night"))
-def stats(var, wrapper, message):
+def stats(wrapper: MessageDispatcher, message: str):
     """Displays the player statistics."""
-    pl = get_players()
+    var = wrapper.game_state
+    pl = get_players(var)
 
     if wrapper.public and (wrapper.source in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
@@ -1163,17 +1178,17 @@ def hurry_up(gameid, change, *, admin_forced=False):
     chk_decision(var, timeout=True, admin_forced=admin_forced)
 
 @command("fnight", flag="N")
-def fnight(var, wrapper, message):
+def fnight(wrapper: MessageDispatcher, message: str):
     """Force the day to end and night to begin."""
-    if var.PHASE != "day":
+    if wrapper.game_state.PHASE != "day":
         wrapper.pm(messages["not_daytime"])
     else:
         hurry_up(0, True, admin_forced=True)
 
 @command("fday", flag="N")
-def fday(var, wrapper, message):
+def fday(wrapper: MessageDispatcher, message: str):
     """Force the night to end and the next day to begin."""
-    if var.PHASE != "night":
+    if wrapper.game_state.PHASE != "night":
         wrapper.pm(messages["not_nighttime"])
     else:
         transition_day()
@@ -1657,9 +1672,11 @@ def reaper(cli, gameid):
             kill_players(var)
 
 @command("")  # update last said
-def update_last_said(var, wrapper, message):
+def update_last_said(wrapper: MessageDispatcher, message: str):
     if wrapper.target is not channels.Main:
         return
+
+    var = wrapper.game_state
 
     if var.PHASE not in ("join", "none"):
         var.LAST_SAID_TIME[wrapper.source] = datetime.now()
@@ -1673,8 +1690,10 @@ def on_join(evt, chan, user): # FIXME: This uses var
     user.update_account_data("<chan_join>", lambda new_user: return_to_village(var, new_user, show_message=True))
 
 @command("goat")
-def goat(var, wrapper, message):
+def goat(wrapper: MessageDispatcher, message: str):
     """Use a goat to interact with anyone in the channel during the day."""
+
+    var = wrapper.game_state
 
     if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
         wrapper.pm(messages["command_ratelimited"])
@@ -1692,7 +1711,7 @@ def goat(var, wrapper, message):
     wrapper.send(messages["goat_success"].format(wrapper.source, victim.get()))
 
 @command("fgoat", flag="j")
-def fgoat(var, wrapper, message):
+def fgoat(wrapper: MessageDispatcher, message: str):
     """Forces a goat to interact with anyone or anything, without limitations."""
 
     nick = message.split(' ')[0].strip()
@@ -1856,13 +1875,14 @@ def leave(var, what, user, why=None):
         var.DISCONNECTED[user] = (datetime.now(), what)
 
 @command("leave", pm=True, phases=("join", "day", "night"))
-def leave_game(var, wrapper, message):
+def leave_game(wrapper: MessageDispatcher, message: str):
     """Quits the game."""
+    var = wrapper.game_state
     if wrapper.target is channels.Main:
-        if wrapper.source not in get_players():
+        if wrapper.source not in get_players(var):
             return
         if var.PHASE == "join":
-            lpl = len(get_players()) - 1
+            lpl = len(get_players(var)) - 1
             if lpl == 0:
                 population = " " + messages["no_players_remaining"]
             else:
@@ -1874,7 +1894,7 @@ def leave_game(var, wrapper, message):
                 return
             population = ""
     elif wrapper.private:
-        if var.PHASE in var.GAME_PHASES and wrapper.source not in get_players() and wrapper.source in var.DEADCHAT_PLAYERS:
+        if var.PHASE in var.GAME_PHASES and wrapper.source not in get_players(var) and wrapper.source in var.DEADCHAT_PLAYERS:
             leave_deadchat(var, wrapper.source)
         return
     else:
@@ -2278,8 +2298,9 @@ def getfeatures(cli, nick, *rest):
                 var.CASEMAPPING = "rfc1459"
 
 @command("", chan=False, pm=True)
-def relay(var, wrapper, message):
+def relay(wrapper: MessageDispatcher, message: str):
     """Wolfchat and Deadchat"""
+    var = wrapper.game_state
     if message.startswith("\u0001PING"):
         wrapper.pm(message, notice=True)
         return
@@ -2296,7 +2317,7 @@ def relay(var, wrapper, message):
     if var.PHASE not in var.GAME_PHASES:
         return
 
-    pl = get_players()
+    pl = get_players(var)
 
     if wrapper.source in pl and wrapper.source in var.IDLE_WARNED_PM:
         wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
@@ -2306,10 +2327,10 @@ def relay(var, wrapper, message):
 
     if "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_talking_roles
-        badguys = get_players(get_talking_roles(var))
+        badguys = get_players(var, get_talking_roles(var))
     else:
-        badguys = get_players(Wolfchat)
-    wolves = get_players(Wolf)
+        badguys = get_players(var, Wolfchat)
+    wolves = get_players(var, Wolf)
 
     if wrapper.source not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
         to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
@@ -2467,8 +2488,9 @@ def on_error(cli, pfx, msg):
         raise SystemExit
 
 @command("ftemplate", flag="F", pm=True)
-def ftemplate(var, wrapper, message):
+def ftemplate(wrapper: MessageDispatcher, message: str):
     params = re.split(" +", message)
+    var = wrapper.game_state
 
     if params[0] == "":
         # display a list of all templates
@@ -2532,9 +2554,11 @@ def ftemplate(var, wrapper, message):
         db.init_vars()
 
 @command("fflags", flag="F", pm=True)
-def fflags(var, wrapper, message):
+def fflags(wrapper: MessageDispatcher, message: str):
     params = re.split(" +", message)
     params = [p for p in params if p]
+
+    var = wrapper.game_state
 
     _fa = messages.raw("_commands", "warn opt account")
     _fh = messages.raw("_commands", "warn opt help")
@@ -2635,21 +2659,24 @@ def fflags(var, wrapper, message):
         db.init_vars()
 
 @command("fstop", flag="S", phases=("join", "day", "night"))
-def reset_game(var, wrapper, message):
+def reset_game(wrapper: MessageDispatcher, message: str):
     """Forces the game to stop."""
     wrapper.send(messages["fstop_success"].format(wrapper.source))
+    var = wrapper.game_state
     if var.PHASE != "join":
         stop_game(var, log=False)
     else:
-        pl = [p for p in get_players() if not p.is_fake]
+        pl = [p for p in get_players(var) if not p.is_fake]
         reset_modes_timers(var)
         reset()
         if pl:
             wrapper.send(messages["fstop_ping"].format(pl))
 
 @command("rules", pm=True)
-def show_rules(var, wrapper, message):
+def show_rules(wrapper: MessageDispatcher, message: str):
     """Displays the rules."""
+
+    var = wrapper.game_state
 
     if hasattr(var, "RULES"):
         rules = var.RULES
@@ -2658,7 +2685,7 @@ def show_rules(var, wrapper, message):
         wrapper.reply(messages["no_channel_rules"].format(channels.Main))
 
 @command("help", pm=True)
-def get_help(var, wrapper, message):
+def get_help(wrapper: MessageDispatcher, message: str):
     """Gets help."""
     commands = set()
     for name, functions in COMMANDS.items():
@@ -2692,7 +2719,7 @@ def get_wiki_page(URI):
     return True, parsed
 
 @command("wiki", pm=True)
-def wiki(var, wrapper, message):
+def wiki(wrapper: MessageDispatcher, message: str):
     """Prints information from the wiki."""
 
     # no arguments, just print a link to the wiki
@@ -2756,10 +2783,12 @@ def on_invite(cli, raw_nick, something, chan):
         debuglog(user.nick, "INVITE", chan, display=True)
 
 @command("admins", pm=True)
-def show_admins(var, wrapper, message):
+def show_admins(wrapper: MessageDispatcher, message: str):
     """Pings the admins that are available."""
 
     admins = []
+
+    var = wrapper.game_state
 
     if wrapper.public and var.LAST_ADMINS and var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now():
         wrapper.pm(messages["command_ratelimited"])
@@ -2799,7 +2828,7 @@ def show_admins(var, wrapper, message):
     channels.Main.who()
 
 @command("coin", pm=True)
-def coin(var, wrapper, message):
+def coin(wrapper: MessageDispatcher, message: str):
     """It's a bad idea to base any decisions on this command."""
 
     wrapper.send(messages["coin_toss"].format(wrapper.source))
@@ -2814,7 +2843,7 @@ def coin(var, wrapper, message):
     wrapper.send(coin.format())
 
 @command("pony", pm=True)
-def pony(var, wrapper, message):
+def pony(wrapper: MessageDispatcher, message: str):
     """Toss a magical pony into the air and see what happens!"""
 
     wrapper.send(messages["pony_toss"].format(wrapper.source))
@@ -2831,13 +2860,15 @@ def pony(var, wrapper, message):
     wrapper.send(pony.format(nick=wrapper.source))
 
 @command("cat", pm=True)
-def cat(var, wrapper, message):
+def cat(wrapper: MessageDispatcher, message: str):
     """Toss a cat into the air and see what happens!"""
     wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"].format(), sep="\n")
 
 @command("time", pm=True, phases=("join", "day", "night"))
-def timeleft(var, wrapper, message):
+def timeleft(wrapper: MessageDispatcher, message: str):
     """Returns the time left until the next day/night transition."""
+
+    var = wrapper.game_state
 
     if (wrapper.public and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
@@ -2872,8 +2903,10 @@ def timeleft(var, wrapper, message):
     wrapper.reply(msg)
 
 @command("roles", pm=True)
-def list_roles(var, wrapper, message):
+def list_roles(wrapper: MessageDispatcher, message: str):
     """Display which roles are in play for a specific gamemode."""
+
+    var = wrapper.game_state
 
     lpl = len(var.ALL_PLAYERS)
     specific = 0
@@ -2986,10 +3019,12 @@ def list_roles(var, wrapper, message):
     wrapper.send(*msg)
 
 @command("myrole", pm=True, phases=("day", "night"))
-def myrole(var, wrapper, message):
-    """Reminds you of your current role."""
+def myrole(wrapper: MessageDispatcher, message: str):
+    """Remind you of your current role."""
 
-    ps = get_participants()
+    var = wrapper.game_state
+
+    ps = get_participants(var)
     if wrapper.source not in ps:
         return
 
@@ -3008,11 +3043,13 @@ def myrole(var, wrapper, message):
         wrapper.pm(msg)
 
 @command("faftergame", flag="D", pm=True)
-def aftergame(var, wrapper, message):
+def aftergame(wrapper: MessageDispatcher, message: str):
     """Schedule a command to be run after the current game."""
     if not message.strip():
         wrapper.pm(messages["incorrect_syntax"])
         return
+
+    var = wrapper.game_state
 
     args = re.split(" +", message)
     before, prefix, after = args.pop(0).lower().partition(var.CMD_CHAR)
@@ -3028,7 +3065,7 @@ def aftergame(var, wrapper, message):
             for fn in COMMANDS[cmd]:
                 fn.aftergame = True
                 context = MessageDispatcher(wrapper.source, channels.Main if fn.chan else users.Bot)
-                fn.caller(var, context, " ".join(args))
+                fn.caller(context, " ".join(args))
                 fn.aftergame = False
     else:
         wrapper.pm(messages["command_not_found"])
@@ -3041,25 +3078,27 @@ def aftergame(var, wrapper, message):
     channels.Main.send(messages["command_scheduled"].format(" ".join([cmd] + args), wrapper.source))
     var.AFTER_FLASTGAME = do_action
 
-def _command_disabled(var, wrapper, message):
+def _command_disabled(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["command_disabled_admin"])
 
 @command("flastgame", flag="D", pm=True)
-def flastgame(var, wrapper, message):
+def flastgame(wrapper: MessageDispatcher, message: str):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     for cmdcls in (COMMANDS["join"] + COMMANDS["start"]):
         cmdcls.func = _command_disabled
 
     channels.Main.send(messages["disable_new_games"].format(wrapper.source))
-    var.ADMIN_TO_PING = wrapper.source
+    wrapper.game_state.ADMIN_TO_PING = wrapper.source
 
     if message.strip():
-        aftergame.func(var, wrapper, message)
+        aftergame.func(wrapper, message)
 
 @command("gamestats", pm=True)
-def gamestats(var, wrapper, message):
+def gamestats(wrapper: MessageDispatcher, message: str):
     """Get the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
     # NOTE: Need to dynamically translate roles and gamemodes
+
+    var = wrapper.game_state
 
     if wrapper.public:
         if (var.GSTATS_RATE_LIMIT and var.LAST_GSTATS and
@@ -3101,9 +3140,10 @@ def gamestats(var, wrapper, message):
         wrapper.send(db.get_game_stats(gamemode, gamesize))
 
 @command("playerstats", pm=True)
-def player_stats(var, wrapper, message):
+def player_stats(wrapper: MessageDispatcher, message: str):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     # NOTE: Need to dynamically translate gamemodes
+    var = wrapper.game_state
     if (wrapper.public and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
             var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
             datetime.now()):
@@ -3162,14 +3202,15 @@ def player_stats(var, wrapper, message):
         wrapper.send(db.get_player_stats(account, role))
 
 @command("mystats", pm=True)
-def my_stats(var, wrapper, message):
+def my_stats(wrapper: MessageDispatcher, message: str):
     """Get your own stats."""
     message = message.split()
-    player_stats.func(var, wrapper, " ".join([wrapper.source.nick] + message))
+    player_stats.func(wrapper, " ".join([wrapper.source.nick] + message))
 
 @command("rolestats", pm=True)
-def role_stats(var, wrapper, message):
+def role_stats(wrapper: MessageDispatcher, message: str):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
+    var = wrapper.game_state
     if (wrapper.public and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
             var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"])
@@ -3226,14 +3267,14 @@ def role_stats(var, wrapper, message):
     wrapper.pm(db.get_role_stats(roles.get().key, gamemode))
 
 @command("whoami", pm=True)
-def whoami(var, wrapper, message):
+def whoami(wrapper: MessageDispatcher, message: str):
     if wrapper.source.account:
         wrapper.pm(messages["whoami_loggedin"].format(wrapper.source.account))
     else:
         wrapper.pm(messages["whoami_loggedout"])
 
 @command("setdisplay", pm=True)
-def setdisplay(var, wrapper, message):
+def setdisplay(wrapper: MessageDispatcher, message: str):
     if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
@@ -3242,7 +3283,7 @@ def setdisplay(var, wrapper, message):
     wrapper.reply(messages["display_name_set"].format(wrapper.source.account))
 
 # Called from !game and !join, used to vote for a game mode
-def vote_gamemode(var, wrapper, gamemode, doreply):
+def vote_gamemode(var, wrapper, gamemode, doreply): # FIXME: remove var
     if var.FGAMED:
         if doreply:
             wrapper.pm(messages["admin_forced_game"])
@@ -3283,17 +3324,18 @@ def _get_gamemodes(var):
     return gamemodes
 
 @command("game", playing=True, phases=("join",))
-def game(var, wrapper, message):
+def game(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode to be picked."""
+    var = wrapper.game_state
     if message:
         vote_gamemode(var, wrapper, message.lower().split()[0], doreply=True)
     else:
         wrapper.pm(messages["no_mode_specified"].format(_get_gamemodes(var)))
 
 @command("games", pm=True)
-def show_modes(var, wrapper, message):
+def show_modes(wrapper: MessageDispatcher, message: str):
     """Show the available game modes."""
-    wrapper.pm(messages["available_modes"].format(_get_gamemodes(var)))
+    wrapper.pm(messages["available_modes"].format(_get_gamemodes(wrapper.game_state)))
 
 def game_help(args=""): # FIXME: Needs DI for var
     return messages["available_mode_setters_help"].format(_get_gamemodes(var))
@@ -3346,13 +3388,15 @@ def _git_pull(wrapper):
     return ret == 0
 
 @command("fpull", flag="D", pm=True)
-def fpull(var, wrapper, message):
+def fpull(wrapper: MessageDispatcher, message: str):
     """Pulls from the repository to update the bot."""
     _git_pull(wrapper)
 
 @command("update", flag="D", pm=True)
-def update(var, wrapper, message):
-    """Pulls from the repository and restarts the bot to update it."""
+def update(wrapper: MessageDispatcher, message: str):
+    """Pull from the repository and restart the bot to update it."""
+
+    var = wrapper.game_state
 
     force = (message.strip() == "-force")
 
@@ -3372,7 +3416,7 @@ def update(var, wrapper, message):
         restart_program.func(var, wrapper, "Updating bot")
 
 @command("fsend", owner_only=True, pm=True)
-def fsend(var, wrapper, message):
+def fsend(wrapper: MessageDispatcher, message: str):
     """Send raw IRC commands to the server."""
     wrapper.source.client.send(message)
 
@@ -3407,12 +3451,12 @@ def _say(wrapper, rest, cmd, action=False):
     targ.send(message, privmsg=True)
 
 @command("fsay", flag="s", pm=True)
-def fsay(var, wrapper, message):
+def fsay(wrapper: MessageDispatcher, message: str):
     """Talk through the bot as a normal message."""
     _say(wrapper, message, "fsay")
 
 @command("fdo", flag="s", pm=True)
-def fdo(var, wrapper, message):
+def fdo(wrapper: MessageDispatcher, message: str):
     """Act through the bot as an action."""
     _say(wrapper, message, "fdo", action=True)
 
@@ -3424,7 +3468,7 @@ def can_run_restricted_cmd(user):
     if config.Main.get("debug.enabled"):
         return True
 
-    pl = get_participants()
+    pl = get_participants(var)
 
     if user in pl:
         return False
@@ -3434,10 +3478,12 @@ def can_run_restricted_cmd(user):
 
     return True
 
-def spectate_chat(var, wrapper, message, *, is_fspectate):
+def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: bool):
     if not can_run_restricted_cmd(wrapper.source):
         wrapper.pm(messages["fspectate_restricted"])
         return
+
+    var = wrapper.game_state
 
     params = message.split(" ")
     on = "on"
@@ -3486,22 +3532,24 @@ def spectate_chat(var, wrapper, message, *, is_fspectate):
         wrapper.pm("People in {0}: {1}".format(what, ", ".join([player.nick for player in players])))
 
 @command("spectate", flag="p", pm=True, phases=("day", "night"))
-def spectate(var, wrapper, message):
+def spectate(wrapper: MessageDispatcher, message: str):
     """Spectate wolfchat or deadchat."""
-    spectate_chat(var, wrapper, message, is_fspectate=False)
+    spectate_chat(wrapper, message, is_fspectate=False)
 
 @command("fspectate", flag="F", pm=True, phases=("day", "night"))
-def fspectate(var, wrapper, message):
+def fspectate(wrapper: MessageDispatcher, message: str):
     """Spectate wolfchat or deadchat."""
-    spectate_chat(var, wrapper, message, is_fspectate=True)
+    spectate_chat(wrapper, message, is_fspectate=True)
 
 @command("revealroles", flag="a", pm=True, phases=("day", "night"))
-def revealroles(var, wrapper, message):
+def revealroles(wrapper: MessageDispatcher, message: str):
     """Reveal role information."""
 
     if not can_run_restricted_cmd(wrapper.source):
         wrapper.pm(messages["temp_invalid_perms"])
         return
+
+    var = wrapper.game_state
 
     output = []
     for role in role_order():
@@ -3536,8 +3584,9 @@ def revealroles(var, wrapper, message):
         wrapper.pm(*output, sep=" | ")
 
 @command("fgame", flag="g", phases=("join",))
-def fgame(var, wrapper, message):
+def fgame(wrapper: MessageDispatcher, message: str):
     """Force a certain game mode to be picked. Disable voting for game modes upon use."""
+    var = wrapper.game_state
 
     if message:
         gamemode = message.strip().lower()
@@ -3588,7 +3637,7 @@ fgame.__doc__ = fgame_help
 # eval/exec/freceive are owner-only but also marked with "d" flag
 # to disable them outside of debug mode
 @command("eval", owner_only=True, flag="d", pm=True)
-def pyeval(var, wrapper, message):
+def pyeval(wrapper: MessageDispatcher, message: str):
     """Evaluate a Python expression."""
     try:
         wrapper.send(str(eval(message))[:500])
@@ -3596,7 +3645,7 @@ def pyeval(var, wrapper, message):
         wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
 @command("exec", owner_only=True, flag="d", pm=True)
-def py(var, wrapper, message):
+def py(wrapper: MessageDispatcher, message: str):
     """Execute arbitrary Python code."""
     try:
         exec(message)
@@ -3604,7 +3653,7 @@ def py(var, wrapper, message):
         wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
 @command("freceive", owner_only=True, flag="d", pm=True)
-def freceive(var, wrapper: MessageDispatcher, message: str):
+def freceive(wrapper: MessageDispatcher, message: str):
     from oyoyo.parse import parse_raw_irc_command
     try:
         line = message.encode("utf-8")
@@ -3619,13 +3668,13 @@ def freceive(var, wrapper: MessageDispatcher, message: str):
     except Exception as e:
         wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-def _force_command(var, wrapper, name, players, message):
+def _force_command(wrapper: MessageDispatcher, name: str, players, message):
     for user in players:
-        handler.parse_and_dispatch(var, wrapper, name, message, force=user)
+        handler.parse_and_dispatch(wrapper, name, message, force=user)
     wrapper.send(messages["operation_successful"])
 
 @command("force", flag="d")
-def force(var, wrapper, message):
+def force(wrapper: MessageDispatcher, message: str):
     """Force a certain player to use a specific command."""
     msg = re.split(" +", message)
     if len(msg) < 2:
@@ -3633,31 +3682,33 @@ def force(var, wrapper, message):
         return
 
     target = msg.pop(0).strip()
-    match = users.complete_match(target, get_participants())
+    match = users.complete_match(target, get_participants(wrapper.game_state))
     if target == "*":
-        players = get_players()
+        players = get_players(wrapper.game_state)
     elif not match:
         wrapper.send(messages["invalid_target"])
         return
     else:
         players = [match.get()]
 
-    _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
+    _force_command(wrapper, msg.pop(0), players, " ".join(msg))
 
 @command("rforce", flag="d")
-def rforce(var, wrapper, message):
+def rforce(wrapper: MessageDispatcher, message: str):
     """Force all players of a given role to perform a certain action."""
     msg = re.split(" +", message)
     if len(msg) < 2:
         wrapper.send(messages["incorrect_syntax"])
         return
 
+    var = wrapper.game_state
+
     target = msg.pop(0).strip().lower()
     possible = match_role(var, target, allow_special=False, remove_spaces=True)
     if target == "*":
-        players = get_players()
+        players = get_players(var)
     elif possible:
-        players = get_all_players((possible.get().key,))
+        players = get_all_players(var, (possible.get().key,))
     elif len(possible) > 1:
         wrapper.send(messages["ambiguous_role"].format([r.singular for r in possible]))
         return
@@ -3665,12 +3716,13 @@ def rforce(var, wrapper, message):
         wrapper.send(messages["no_such_role"].format(message))
         return
 
-    _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
+    _force_command(wrapper, msg.pop(0), players, " ".join(msg))
 
 @command("frole", flag="d", phases=("join",))
-def frole(var, wrapper, message):
+def frole(wrapper: MessageDispatcher, message: str):
     """Force a player into a certain role."""
-    pl = get_players()
+    var = wrapper.game_state
+    pl = get_players(var)
 
     parts = message.lower().split(",")
     for part in parts:
@@ -3692,15 +3744,17 @@ def frole(var, wrapper, message):
     wrapper.send(messages["operation_successful"])
 
 @command("ftotem", flag="d", phases=("night",))
-def ftotem(var, wrapper, message):
+def ftotem(wrapper: MessageDispatcher, message: str):
     """Force a shaman to have a particular totem."""
     msg = re.split(" +", message)
     if len(msg) < 2:
         wrapper.send(messages["incorrect_syntax"])
         return
 
+    var = wrapper.game_state
+
     target = msg.pop(0).strip()
-    match = users.complete_match(target, get_players())
+    match = users.complete_match(target, get_players(var))
     if not match:
         wrapper.send(messages["invalid_target"])
         return

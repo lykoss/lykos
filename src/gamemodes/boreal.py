@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import random
 import re
 from collections import defaultdict
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, TYPE_CHECKING
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.roles.helper.wolves import send_wolfchat_message
 from src.messages import messages
@@ -12,6 +14,9 @@ from src.status import add_dying
 from src.cats import Wolfteam
 from src.decorators import command
 from src import channels, users
+
+if TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
 
 @game_mode("boreal", minp=6, maxp=24, likelihood=5)
 class BorealMode(GameMode):
@@ -240,10 +245,12 @@ class BorealMode(GameMode):
     def on_begin_night(self, evt, var):
         evt.data["messages"].append(messages["boreal_night_reminder"].format(self.village_hunger, self.village_starve))
 
-    def feed(self, var, wrapper, message):
+    def feed(self, wrapper: MessageDispatcher, message: str):
         """Give your totem to the tribe members."""
         from src.roles.shaman import TOTEMS as s_totems, SHAMANS as s_shamans
         from src.roles.wolfshaman import TOTEMS as ws_totems, SHAMANS as ws_shamans
+
+        var = wrapper.game_state
 
         pieces = re.split(" +", message)
         valid = {"sustenance", "hunger"}

@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
+import typing
 from collections import defaultdict
 
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
@@ -14,17 +16,21 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.cats import Wolf
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 GUARDED = UserDict() # type: UserDict[users.User, users.User]
 LASTGUARDED = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet()
 
 @command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
-def guard(var, wrapper, message):
+def guard(wrapper: MessageDispatcher, message: str):
     """Guard a player, preventing them from being killed that night."""
     if wrapper.source in GUARDED:
         wrapper.pm(messages["already_protecting"])
         return
 
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], allow_self=var.GUARDIAN_ANGEL_CAN_GUARD_SELF, not_self_message="cannot_guard_self")
     if not target:
         return
@@ -50,7 +56,7 @@ def guard(var, wrapper, message):
     debuglog("{0} (guardian angel) GUARD: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("guardian angel",))
-def pass_cmd(var, wrapper, message):
+def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
     if wrapper.source in GUARDED:
         wrapper.pm(messages["already_protecting"])

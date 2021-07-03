@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
 
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, match_role
@@ -12,11 +14,15 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
+if TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 TURNCOATS = UserDict() # type: UserDict[users.User, Tuple[str, int]]
 PASSED = UserSet()
 
 @command("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
-def change_sides(var, wrapper, message, sendmsg=True):
+def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is sendmsg useful at all?
+    var = wrapper.game_state
     if TURNCOATS[wrapper.source][1] == var.NIGHT_COUNT - 1:
         wrapper.pm(messages["turncoat_already_turned"])
         return
@@ -35,8 +41,9 @@ def change_sides(var, wrapper, message, sendmsg=True):
     debuglog("{0} (turncoat) SIDE {1}".format(wrapper.source, team))
 
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
-def pass_cmd(var, wrapper, message):
+def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
+    var = wrapper.game_state
     if TURNCOATS[wrapper.source][1] == var.NIGHT_COUNT:
         # theoretically passing would revert them to how they were before, but
         # we aren't tracking that, so just tell them to change it back themselves.

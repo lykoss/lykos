@@ -23,6 +23,7 @@ from src import config, channels
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
 
 WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
@@ -35,10 +36,12 @@ RESTART_TRIES: int = 0
 MAX_RETRIES = 3 # constant: not a setting
 
 @command("wait", playing=True, phases=("join",))
-def wait(var, wrapper, message):
+def wait(wrapper: MessageDispatcher, message: str):
     """Increase the wait time until !start can be used."""
     if wrapper.target is not channels.Main:
         return
+
+    var = wrapper.game_state
 
     pl = get_players()
 
@@ -65,9 +68,11 @@ def wait(var, wrapper, message):
         wrapper.send(messages["wait_time_increase"].format(wrapper.source, var.EXTRA_WAIT))
 
 @command("fwait", flag="w", phases=("join",))
-def fwait(var, wrapper, message):
+def fwait(wrapper: MessageDispatcher, message: str):
     """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
     pl = get_players()
+
+    var = wrapper.game_state
 
     msg = re.split(" +", message.strip(), 1)[0]
 
@@ -90,22 +95,23 @@ def fwait(var, wrapper, message):
         wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra)))
 
 @command("start", phases=("none", "join"))
-def start_cmd(var, wrapper, message):
+def start_cmd(wrapper: MessageDispatcher, message: str):
     """Start a game of Werewolf."""
     if wrapper.target is channels.Main:
-        start(var, wrapper)
+        start(wrapper)
 
 @command("fstart", flag="S", phases=("join",))
-def fstart(var, wrapper, message):
+def fstart(wrapper: MessageDispatcher, message: str):
     """Force the game to start immediately."""
     channels.Main.send(messages["fstart_success"].format(wrapper.source))
     wrapper.target = channels.Main
-    start(var, wrapper, forced=True)
+    start(wrapper, forced=True)
 
 @command("retract", phases=("day", "join"))
-def retract(var, wrapper, message):
+def retract(wrapper: MessageDispatcher, message: str):
     """Take back your vote during the day (for whom to lynch)."""
-    if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED:
+    var = wrapper.game_state
+    if wrapper.source not in get_players(var) or wrapper.source in var.DISCONNECTED:
         return
 
     with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
@@ -132,8 +138,10 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                 del var.TIMERS["start_votes"]
 
 
-def start(var, wrapper, *, forced=False, restart=""):
+def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""):
     from src.wolfgame import stop_game, chk_win_conditions, cgamemode
+
+    var = wrapper.game_state
 
     if (not forced and LAST_START and wrapper.source in LAST_START and
             LAST_START[wrapper.source][0] + timedelta(seconds=var.START_RATE_LIMIT) >
@@ -152,8 +160,8 @@ def start(var, wrapper, *, forced=False, restart=""):
     if not restart:
         LAST_START[wrapper.source] = [datetime.now(), 1]
 
-    villagers = get_players()
-    vils = set(get_players())
+    villagers = get_players(var)
+    vils = set(get_players(var))
 
     if not restart:
         if var.PHASE == "none":
@@ -536,7 +544,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         reapertimer.daemon = True
         reapertimer.start()
 
-def _command_disabled(var, wrapper, message):
+def _command_disabled(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["command_disabled_admin"])
 
 @handle_error

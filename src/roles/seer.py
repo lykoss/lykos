@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
+import typing
 
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import command, event_listener
@@ -14,16 +16,21 @@ from src.cats import Cursed, Safe, Innocent, Neutral, Win_Stealer, Team_Switcher
 
 from src.roles.helper.seers import setup_variables
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 SEEN = setup_variables("seer")
 
 @command("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer",))
-def see(var, wrapper, message):
+def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal powers to determine the role or alignment of a player."""
     if wrapper.source in SEEN:
         wrapper.send(messages["seer_fail"])
         return
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
+    var = wrapper.game_state
+
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if target is None:
         return
 

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 from collections import defaultdict, deque
 
 from src.utilities import *
@@ -15,11 +18,16 @@ from src.status import try_misdirection, try_exchange, is_silent
 
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("shaman", knows_totem=True)
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
-def shaman_totem(var, wrapper, message):
+def shaman_totem(wrapper: MessageDispatcher, message: str):
     """Give a totem to a player."""
+
+    var = wrapper.game_state
 
     totem_types = list(TOTEMS[wrapper.source].keys())
     totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)

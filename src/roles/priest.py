@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -15,14 +16,19 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, add_absent
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 PRIESTS = UserSet()
 
 @command("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def bless(var, wrapper, message):
+def bless(wrapper: MessageDispatcher, message: str):
     """Bless a player, preventing them from being killed for the remainder of the game."""
     if wrapper.source in PRIESTS:
         wrapper.pm(messages["already_blessed"])
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
     if not target:
@@ -39,13 +45,15 @@ def bless(var, wrapper, message):
     debuglog("{0} (priest) BLESS: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def consecrate(var, wrapper, message):
+def consecrate(wrapper: MessageDispatcher, message: str):
     """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
     alive = get_players()
     targ = re.split(" +", message)[0]
     if not targ:
         wrapper.pm(messages["not_enough_parameters"])
         return
+
+    var = wrapper.game_state
 
     dead = set(var.ALL_PLAYERS) - set(alive)
     target = users.complete_match(targ, dead)

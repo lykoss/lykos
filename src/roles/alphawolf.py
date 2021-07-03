@@ -16,6 +16,7 @@ from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, r
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
 
 register_wolf("alpha wolf")
 
@@ -24,7 +25,7 @@ ALPHAS = UserSet()
 BITTEN: UserDict[User, User] = UserDict()
 
 @command("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
-def observe(var, wrapper, message):
+def observe(wrapper: MessageDispatcher, message: str):
     """Turn a player into a wolf!"""
     if not ENABLED:
         wrapper.pm(messages["alpha_no_bite"])
@@ -32,6 +33,7 @@ def observe(var, wrapper, message):
     if wrapper.source in ALPHAS:
         wrapper.pm(messages["alpha_already_bit"])
         return
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0])
     if not target:
         return
@@ -50,12 +52,12 @@ def observe(var, wrapper, message):
     debuglog("{0} (alpha wolf) BITE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("alpha wolf",))
-def retract(var, wrapper, message):
+def retract(wrapper: MessageDispatcher, message: str):
     """Retract your bite."""
     if wrapper.source in BITTEN:
         del BITTEN[wrapper.source]
         wrapper.pm(messages["no_bite"])
-        send_wolfchat_message(var, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
+        send_wolfchat_message(wrapper.game_state, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
         debuglog("{0} (alpha wolf) RETRACT BITE".format(wrapper.source))
 
 @event_listener("del_player")

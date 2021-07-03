@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import random
+import typing
 from collections import defaultdict
 
 from src.utilities import *
@@ -11,6 +14,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_silent, is_silent
 from src.cats import All, Wolfteam
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 GHOSTS = UserDict() # type: UserDict[users.User, str]
 
@@ -18,10 +24,12 @@ GHOSTS = UserDict() # type: UserDict[users.User, str]
 drivenoff = UserDict() # type: UserDict[users.User, str]
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
-def vg_kill(var, wrapper, message):
+def vg_kill(wrapper: MessageDispatcher, message: str):
     """Take revenge on someone each night after you die."""
     if GHOSTS[wrapper.source][0] == "!":
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0])
     if not target:
@@ -49,7 +57,7 @@ def vg_kill(var, wrapper, message):
     debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", chan=False, pm=True, playing=False, phases=("night",))
-def vg_retract(var, wrapper, message):
+def vg_retract(wrapper: MessageDispatcher, message: str):
     """Removes a vengeful ghost's kill selection."""
     if wrapper.source not in GHOSTS:
         return

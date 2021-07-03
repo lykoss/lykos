@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -14,13 +17,17 @@ from src.status import try_misdirection, try_exchange
 from src.cats import Spy
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 register_wolf("sorcerer")
 
 OBSERVED = UserSet()
 
 @command("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("sorcerer",))
-def observe(var, wrapper, message):
+def observe(wrapper: MessageDispatcher, message: str):
     """Observe a player to obtain various information."""
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
     if not target:
         return

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import typing
 from enum import Enum
 from typing import Optional
 from collections import defaultdict
@@ -10,6 +11,9 @@ from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
 from src import users, config
 from src.debug import CheckedSet, CheckedDict
+
+if typing.TYPE_CHECKING:
+    from src.gamestate import GameState
 
 Main: Channel = None # type: ignore[assignment]
 Dummy: Channel = None # type: ignore[assignment]
@@ -89,7 +93,7 @@ class Channel(IRCContext):
         self.old_modes = defaultdict(set)
         self.timestamp = None
         self.state = _States.NotJoined
-        self.game_state = None
+        self.game_state = None # type: Optional[GameState]
         self._pending = []
 
     def __del__(self):

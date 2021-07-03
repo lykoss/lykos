@@ -18,6 +18,7 @@ from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
 
 register_wolf("warlock")
 
@@ -25,7 +26,8 @@ CURSED: UserDict[User, User] = UserDict()
 PASSED: UserSet = UserSet()
 
 @command("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
-def curse(var, wrapper, message):
+def curse(wrapper: MessageDispatcher, message: str):
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0])
     if not target:
         return
@@ -56,24 +58,24 @@ def curse(var, wrapper, message):
     debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
-def pass_cmd(var, wrapper, message):
+def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
     del CURSED[:wrapper.source:]
     PASSED.add(wrapper.source)
 
     wrapper.pm(messages["warlock_pass"])
-    send_wolfchat_message(var, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
+    send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
 
     debuglog("{0} (warlock) PASS".format(wrapper.source))
 
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
-def retract(var, wrapper, message):
+def retract(wrapper: MessageDispatcher, message: str):
     """Retract your curse or pass."""
     del CURSED[:wrapper.source:]
     PASSED.discard(wrapper.source)
 
     wrapper.pm(messages["warlock_retract"])
-    send_wolfchat_message(var, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
+    send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
 
     debuglog("{0} (warlock) RETRACT".format(wrapper.source))
 

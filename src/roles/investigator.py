@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -14,10 +17,13 @@ from src.status import try_misdirection, try_exchange
 from src.events import Event
 from src.cats import Neutral, Wolfteam
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 INVESTIGATED = UserSet()
 
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
-def investigate(var, wrapper, message):
+def investigate(wrapper: MessageDispatcher, message: str):
     """Investigate two players to determine their relationship to each other."""
     if wrapper.source in INVESTIGATED:
         wrapper.pm(messages["already_investigated"])
@@ -26,6 +32,7 @@ def investigate(var, wrapper, message):
     if len(pieces) == 1:
         wrapper.pm(messages["investigator_help"])
         return
+    var = wrapper.game_state
     target1 = pieces[0]
     target2 = pieces[1]
     target1 = get_target(var, wrapper, target1, not_self_message="no_investigate_self")

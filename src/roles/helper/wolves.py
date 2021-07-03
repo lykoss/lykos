@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import event_listener, command
@@ -13,6 +15,9 @@ from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
 from src import debuglog, users
+
+if TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
 
 KILLS = UserDict() # type: UserDict[users.User, UserList]
 
@@ -33,8 +38,9 @@ def register_wolf(rolename):
         wevt.dispatch(var, rolename)
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=Wolf)
-def wolf_kill(var, wrapper, message):
+def wolf_kill(wrapper: MessageDispatcher, message: str):
     """Kill one or more players as a wolf."""
+    var = wrapper.game_state
     # verify this user can actually kill
     if not get_all_roles(wrapper.source) & Wolf & Killer:
         return
@@ -88,8 +94,9 @@ def wolf_kill(var, wrapper, message):
     send_wolfchat_message(var, wrapper.source, msg, Wolf, role="wolf", command="kill")
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=Wolf)
-def wolf_retract(var, wrapper, message):
+def wolf_retract(wrapper: MessageDispatcher, message: str):
     """Removes a wolf's kill selection."""
+    var = wrapper.game_state
     if not get_all_roles(wrapper.source) & Wolf & Killer:
         return
 

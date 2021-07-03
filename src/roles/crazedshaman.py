@@ -19,8 +19,10 @@ from src.roles.helper.shamans import setup_variables, get_totem_target, give_tot
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("crazed shaman", knows_totem=False)
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
-def crazed_shaman_totem(var, wrapper, message):
+def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
     """Give a random totem to a player."""
+
+    var = wrapper.game_state
 
     totem_types = list(TOTEMS[wrapper.source].keys())
     totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, []) # don't pass totem_types so they can't autocomplete what random totems they have

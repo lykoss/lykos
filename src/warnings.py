@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Union, List, Optional
+from typing import Union, List, Optional, TYPE_CHECKING
 import re
 
 from src import config, channels, db, users
 from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.decorators import command, COMMANDS
 from src.messages import messages
+
+if TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
 
 __all__ = ["decrement_stasis", "add_warning", "expire_tempbans"]
 
@@ -130,7 +133,7 @@ def add_warning(target: Union[str, users.User], amount: int, actor: users.User, 
     return sid
 
 @command("stasis", chan=True, pm=True)
-def stasis(var, wrapper, message):
+def stasis(wrapper: MessageDispatcher, message: str):
     st = wrapper.source.stasis_count()
     if st:
         msg = messages["your_current_stasis"].format(st)
@@ -140,9 +143,10 @@ def stasis(var, wrapper, message):
     wrapper.reply(msg, prefix_nick=True)
 
 @command("fstasis", flag="A", chan=True, pm=True)
-def fstasis(var, wrapper, message):
+def fstasis(wrapper: MessageDispatcher, message: str):
     """Removes or views stasis penalties."""
 
+    var = wrapper.game_state
     data = re.split(" +", message)
     from src.context import lower as irc_lower
 
@@ -232,7 +236,7 @@ def _parse_expires(expires: str, base: Optional[str] = None) -> Optional[datetim
     expires_dt += timedelta(minutes=round_add)
     return expires_dt
 
-def warn_list(var, wrapper, args):
+def warn_list(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["warn_list_syntax"])
         return
@@ -258,7 +262,7 @@ def warn_list(var, wrapper, args):
     if not warnings:
         wrapper.pm(messages["fwarn_list_empty"])
 
-def warn_view(var, wrapper, args):
+def warn_view(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["warn_view_syntax"])
         return
@@ -286,7 +290,7 @@ def warn_view(var, wrapper, args):
     if sanctions:
         wrapper.pm(messages["warn_view_sanctions"].format(sanctions))
 
-def warn_ack(var, wrapper, args):
+def warn_ack(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["warn_ack_syntax"])
         return
@@ -320,7 +324,7 @@ def warn_help(var, wrapper, args):
     else:
         wrapper.reply(messages["warn_usage"])
 
-def fwarn_add(var, wrapper, args):
+def fwarn_add(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["fwarn_add_syntax"])
         return
@@ -386,7 +390,7 @@ def fwarn_add(var, wrapper, args):
 
     wrapper.reply(messages["fwarn_added"].format(warn_id))
     # Log to ops/log channel (even if the warning was placed in that channel)
-    if var.LOG_CHANNEL:
+    if var.LOG_CHANNEL: # FIXME: Need to convert this into a proper config fetch
         log_reason = reason
         if notes is not None:
             log_reason += " | " + notes
@@ -397,7 +401,7 @@ def fwarn_add(var, wrapper, args):
         log_msg = messages["fwarn_log_add"].format(warn_id, target, wrapper.source, log_reason, args.points, log_exp)
         channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
 
-def fwarn_del(var, wrapper, args):
+def fwarn_del(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["fwarn_del_syntax"])
         return
@@ -416,7 +420,7 @@ def fwarn_del(var, wrapper, args):
         msg = messages["fwarn_log_del"].format(**warning)
         channels.get(var.LOG_CHANNEL).send(msg, prefix=var.LOG_PREFIX)
 
-def fwarn_help(var, wrapper, args):
+def fwarn_help(wrapper: MessageDispatcher, args):
     if args.command in _fa:
         wrapper.reply(messages["fwarn_add_syntax"])
     elif args.command in _fd:
@@ -430,7 +434,7 @@ def fwarn_help(var, wrapper, args):
     else:
         wrapper.reply(messages["fwarn_usage"])
 
-def fwarn_list(var, wrapper, args):
+def fwarn_list(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["fwarn_list_syntax"])
         return
@@ -469,7 +473,7 @@ def fwarn_list(var, wrapper, args):
     if not warnings:
         wrapper.pm(messages["fwarn_list_empty"])
 
-def fwarn_set(var, wrapper, args):
+def fwarn_set(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["fwarn_set_syntax"])
         return
@@ -528,7 +532,7 @@ def fwarn_set(var, wrapper, args):
             log_msg = messages["fwarn_log_set"].format(**warning)
             channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
 
-def fwarn_view(var, wrapper, args):
+def fwarn_view(wrapper: MessageDispatcher, args):
     if args.help:
         wrapper.reply(messages["fwarn_view_syntax"])
         return
@@ -646,7 +650,7 @@ _fwarn_help.add_argument("command", nargs="?", default="help")
 _fwarn_help.set_defaults(func=fwarn_help)
 
 @command("warn", pm=True)
-def warn(var, wrapper, message):
+def warn(wrapper: MessageDispatcher, message: str):
     """View and acknowledge your warnings."""
     # !warn list [-all] [page] - lists all active warnings, or all warnings if all passed
     # !warn view <id> - views details on warning id
@@ -659,7 +663,7 @@ def warn(var, wrapper, message):
     params = [p for p in params if p]
     try:
         args = warn_parser.parse_args(params)
-        args.func(var, wrapper, args)
+        args.func(wrapper, args)
     except LineParseError as e:
         if config.Main.get("debug.enabled"):
             # this isn't translated so debug mode only for now?
@@ -670,7 +674,7 @@ def warn(var, wrapper, message):
             wrapper.reply(messages["warn_usage"])
 
 @command("fwarn", flag="F", pm=True)
-def fwarn(var, wrapper, message):
+def fwarn(wrapper: MessageDispatcher, message: str):
     """Issues a warning to someone or views warnings."""
     # !fwarn list [-all] [-account] [nick] [page]
     # -all => Shows all warnings, if omitted only shows active (non-expired and non-deleted) ones.
@@ -697,10 +701,10 @@ def fwarn(var, wrapper, message):
     params = [p for p in params if p]
     try:
         args = fwarn_parser.parse_args(params)
-        args.func(var, wrapper, args)
+        args.func(wrapper, args)
     except WantsHelp as e:
         args = e.namespace
-        args.func(var, wrapper, args)
+        args.func(wrapper, args)
     except LineParseError as e:
         if config.Main.get("debug.enabled"):
             # this isn't translated so debug mode only for now?

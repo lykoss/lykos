@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -13,6 +16,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 ENTRANCED = UserSet()
 VISITED = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet()
@@ -20,7 +26,7 @@ FORCE_PASSED = UserSet()
 ALL_SUCC_IDLE = True
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
-def hvisit(var, wrapper, message):
+def hvisit(wrapper: MessageDispatcher, message: str):
     """Entrance a player, converting them to your team."""
     if VISITED.get(wrapper.source):
         wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))
@@ -29,6 +35,8 @@ def hvisit(var, wrapper, message):
     if wrapper.source in FORCE_PASSED:
         wrapper.send(messages["already_being_visited"])
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="succubus_not_self")
     if not target:
@@ -59,7 +67,7 @@ def hvisit(var, wrapper, message):
     debuglog("{0} (succubus) VISIT: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
-def pass_cmd(var, wrapper, message):
+def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Do not entrance someone tonight."""
     if VISITED.get(wrapper.source):
         wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))

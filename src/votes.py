@@ -16,6 +16,8 @@ from src import channels, pregame, users
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 VOTES: UserDict[User, UserList] = UserDict()
 ABSTAINS: UserSet = UserSet()
@@ -24,18 +26,20 @@ LAST_VOTES = None
 LYNCHED: int = 0
 
 @command("lynch", playing=True, pm=True, phases=("day",))
-def lynch(var, wrapper, message):
+def lynch(wrapper: MessageDispatcher, message: str):
     """Use this to vote for a candidate to be lynched."""
     if not message:
-        show_votes.func(var, wrapper, message)
+        show_votes.func(wrapper, message)
         return
     if wrapper.private:
         return
     msg = re.split(" +", message)[0].strip()
 
+    var = wrapper.game_state
+
     can_vote_bot = var.CURRENT_GAMEMODE.can_vote_bot(var)
 
-    voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=can_vote_bot, not_self_message="no_self_lynch")
+    voted = get_target(wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=can_vote_bot, not_self_message="no_self_lynch")
     if not voted:
         return
 
@@ -65,8 +69,9 @@ def lynch(var, wrapper, message):
     chk_decision(var)
 
 @command("abstain", playing=True, phases=("day",))
-def no_lynch(var, wrapper, message):
+def no_lynch(wrapper: MessageDispatcher, message: str):
     """Allow you to abstain from voting for the day."""
+    var = wrapper.game_state
     if not var.ABSTAIN_ENABLED:
         wrapper.pm(messages["command_disabled"])
         return
@@ -89,9 +94,10 @@ def no_lynch(var, wrapper, message):
     chk_decision(var)
 
 @command("retract", phases=("day", "join"))
-def retract(var, wrapper, message):
+def retract(wrapper: MessageDispatcher, message: str):
     """Takes back your vote during the day (for whom to lynch)."""
-    if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED or var.PHASE != "day":
+    var = wrapper.game_state
+    if wrapper.source not in get_players(var) or wrapper.source in var.DISCONNECTED or var.PHASE != "day":
         return
 
     global LAST_VOTES
@@ -114,9 +120,10 @@ def retract(var, wrapper, message):
         wrapper.pm(messages["pending_vote"])
 
 @command("votes", pm=True, phases=("join", "day", "night"))
-def show_votes(var, wrapper, message):
+def show_votes(wrapper: MessageDispatcher, message: str):
     """Show the current votes."""
-    pl = get_players()
+    var = wrapper.game_state
+    pl = get_players(var)
     if var.PHASE == "join":
         # get gamemode votes in a dict of {mode: number of votes}
         gm_votes = list(Counter(var.GAMEMODE_VOTES.values()).items())
@@ -190,18 +197,18 @@ def show_votes(var, wrapper, message):
     wrapper.reply(to_send, prefix_nick=True)
 
 @command("vote", pm=True, phases=("join", "day"))
-def vote(var, wrapper, message):
+def vote(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if message:
-        if var.PHASE == "join" and wrapper.public:
+        if wrapper.game_state.PHASE == "join" and wrapper.public:
             from src.wolfgame import game
-            return game.caller(var, wrapper, message)
-        return lynch.caller(var, wrapper, message)
-    return show_votes.caller(var, wrapper, message)
+            return game.caller(wrapper, message)
+        return lynch.caller(wrapper, message)
+    return show_votes.caller(wrapper, message)
 
 # Specify timeout=True to force a lynch and end of day even if there is no majority
 # admin_forced=True will make it not count towards village's abstain limit if nobody is voted
-def chk_decision(var, *, timeout=False, admin_forced=False):
+def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     with var.GRAVEYARD_LOCK:
         players = set(get_players()) - get_absent(var)
         avail = len(players)

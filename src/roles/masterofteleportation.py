@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import random
 import re
+import typing
+
 from src.utilities import singular
 from src.decorators import command, event_listener
 from src.functions import get_target, get_players, get_all_players
@@ -7,13 +11,17 @@ from src.messages import messages
 from src.containers import UserSet
 from src.cats import Win_Stealer
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 ACTED = UserSet()
 
 @command("choose", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("master of teleportation",))
-def choose(var, wrapper, message):
+def choose(wrapper: MessageDispatcher, message: str):
     pieces = re.split(" +", message)
     if len(pieces) < 2:
         return
+    var = wrapper.game_state
     target1 = get_target(var, wrapper, pieces[0], allow_self=True)
     target2 = get_target(var, wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:

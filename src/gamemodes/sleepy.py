@@ -170,7 +170,7 @@ class SleepyMode(GameMode):
                 self.prev_direction[target] = self.start_direction[target]
                 self.nightmare_step(target)
 
-    def move(self, direction, var, wrapper, message):
+    def move(self, direction, wrapper, message):
         opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
         target = wrapper.source
         if self.prev_direction[target] == opposite[direction]:

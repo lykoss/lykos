@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -12,12 +15,15 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 TOBECHARMED = UserDict() # type: UserDict[users.User, UserSet]
 CHARMED = UserSet()
 PASSED = UserSet()
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
-def charm(var, wrapper, message):
+def charm(wrapper: MessageDispatcher, message: str):
     """Charm a player or two, slowly leading to your win!"""
     pieces = re.split(" +", message)
     target1 = pieces[0]
@@ -25,6 +31,8 @@ def charm(var, wrapper, message):
         target2 = pieces[1]
     else:
         target2 = None
+
+    var = wrapper.game_state
 
     target1 = get_target(var, wrapper, target1)
     if not target1:
@@ -78,7 +86,7 @@ def charm(var, wrapper, message):
         wrapper.send(messages["charm_success"].format(orig1))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
-def pass_cmd(var, wrapper, message):
+def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Do not charm anyone tonight."""
     del TOBECHARMED[:wrapper.source:]
     PASSED.add(wrapper.source)
@@ -87,7 +95,7 @@ def pass_cmd(var, wrapper, message):
     debuglog("{0} (piper) PASS".format(wrapper.source))
 
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
-def retract(var, wrapper, message):
+def retract(wrapper: MessageDispatcher, message: str):
     """Remove your decision to charm people."""
     if wrapper.source in TOBECHARMED or wrapper.source in PASSED:
         del TOBECHARMED[:wrapper.source:]

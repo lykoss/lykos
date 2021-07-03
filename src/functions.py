@@ -3,11 +3,16 @@ from __future__ import annotations
 from typing import Optional, Set, Iterable
 from collections import Counter
 import functools
+import typing
 
 from src.messages import messages, LocalRole, LocalMode, LocalTotem
 from src.events import Event
 from src.cats import Wolfteam, Neutral, Hidden, All
 from src.match import Match, match_all
+
+if typing.TYPE_CHECKING:
+    from src.gamestate import GameState
+    from src.dispatcher import MessageDispatcher
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -16,7 +21,7 @@ __all__ = [
     "match_role", "match_mode", "match_totem"
     ]
 
-def get_players(roles=None, *, mainroles=None):
+def get_players(var: GameState, roles=None, *, mainroles=None): # FIXME: Fix call sites
     from src.status import is_dying
     if mainroles is None:
         mainroles = var.MAIN_ROLES
@@ -33,7 +38,7 @@ def get_players(roles=None, *, mainroles=None):
         return list(pl)
     return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(var, p)]
 
-def get_all_players(roles=None, *, rolemap=None):
+def get_all_players(var: GameState, roles=None, *, rolemap=None): # FIXME: Fix call sites
     from src.status import is_dying
     if rolemap is None:
         rolemap = var.ROLES
@@ -49,16 +54,15 @@ def get_all_players(roles=None, *, rolemap=None):
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants():
+def get_participants(var: GameState): # FIXME: Fix call sites
     """List all players who are still able to participate in the game."""
-    evt = Event("get_participants", {"players": get_players()})
+    evt = Event("get_participants", {"players": get_players(var)})
     evt.dispatch(var)
     return evt.data["players"]
 
-def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_self_message=None):
+def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = False, allow_bot: bool = False, not_self_message: str = "no_target_self"): # FIXME: Fix call sites
     """Autocomplete a target for an in-game command.
 
-    :param var: Game state
     :param MessageDispatcher wrapper: Message context
     :param str message: Text to complete against
     :param bool allow_self: Whether or not to allow the current player as the target
@@ -72,7 +76,7 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
         wrapper.pm(messages["not_enough_parameters"])
         return
 
-    players = get_players()
+    players = get_players(wrapper.game_state)
     if not allow_self and wrapper.source in players:
         players.remove(wrapper.source)
 
@@ -82,7 +86,7 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
     match = users.complete_match(message, players)
     if not match:
         if not len(match) and users.lower(wrapper.source.nick).startswith(users.lower(message)):
-            wrapper.pm(messages[not_self_message or "no_target_self"])
+            wrapper.pm(messages[not_self_message])
             return
         if not len(match):
             wrapper.pm(messages["not_playing"].format(message))
@@ -104,7 +108,7 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
 
     return match.get()
 
-def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="new_role"):
+def change_role(var: GameState, player, oldrole, newrole, *, inherit_from=None, message="new_role"):
     # in_wolfchat is filled as part of priority 4
     # if you wish to modify evt.data["role"], do so in priority 3 or sooner
     evt = Event("new_role",
@@ -133,12 +137,12 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
 
     return newrole
 
-def get_main_role(user):
+def get_main_role(var: GameState, user): # FIXME: Fix call sites
     role = var.MAIN_ROLES.get(user)
     if role is not None:
         return role
     # not found in player list, see if they're a special participant
-    if user in get_participants():
+    if user in get_participants(var):
         evt = Event("get_participant_role", {"role": None})
         evt.dispatch(var, user)
         role = evt.data["role"]
@@ -146,11 +150,11 @@ def get_main_role(user):
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
 
-def get_all_roles(user):
+def get_all_roles(var: GameState, user):
     return {role for role, users in var.ROLES.items() if user in users}
 
-def get_reveal_role(user):
-    evt = Event("get_reveal_role", {"role": get_main_role(user)})
+def get_reveal_role(var: GameState, user) -> str: # FIXME: Fix call sites
+    evt = Event("get_reveal_role", {"role": get_main_role(var, user)})
     evt.dispatch(var, user)
     role = evt.data["role"]
 
@@ -164,7 +168,7 @@ def get_reveal_role(user):
     else:
         return "village member"
 
-def match_role(var, role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
+def match_role(var: GameState, role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
     """ Match a partial role or alias name into the internal role key.
 
     :param var: Game state
@@ -208,7 +212,7 @@ def match_role(var, role: str, remove_spaces: bool = False, allow_extra: bool = 
 
     return Match(filtered_matches)
 
-def match_mode(var, mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
+def match_mode(var: GameState, mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
     """ Match a partial game mode into the internal game mode key.
 
     :param var: Game state
@@ -243,7 +247,7 @@ def match_mode(var, mode: str, remove_spaces: bool = False, allow_extra: bool = 
 
     return Match(filtered_matches)
 
-def match_totem(var, totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]:
+def match_totem(var: GameState, totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]:
     """ Match a partial totem into the internal totem key.
 
     :param var: Game state

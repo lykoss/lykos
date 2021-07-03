@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -14,17 +17,22 @@ from src.status import try_misdirection, try_exchange, add_silent
 
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 register_wolf("hag")
 
 HEXED = UserDict() # type: UserDict[users.User, users.User]
 LASTHEXED = UserDict() # type: UserDict[users.User, users.User]
 
 @command("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
-def hex_cmd(var, wrapper, message):
+def hex_cmd(wrapper: MessageDispatcher, message: str):
     """Hex someone, preventing them from acting the next day and night."""
     if wrapper.source in HEXED:
         wrapper.pm(messages["already_hexed"])
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0])
     if not target:

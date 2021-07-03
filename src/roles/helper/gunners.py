@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import random
 import re
 import math
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 
 from src import users
 from src.decorators import command, event_listener
@@ -12,6 +14,9 @@ from src.status import try_misdirection, try_exchange, add_dying, kill_players, 
 from src.events import Event
 from src.cats import Wolf, Killer
 
+if TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 _rolestate = {} # type: Dict[str, Dict[str, Any]]
 
 def setup_variables(rolename):
@@ -21,11 +26,13 @@ def setup_variables(rolename):
     }
 
     @command("shoot", playing=True, silenced=True, phases=("day",), roles=(rolename,))
-    def shoot(var, wrapper, message):
+    def shoot(wrapper: MessageDispatcher, message: str):
         """Use this to fire off a bullet at someone in the day if you have bullets."""
         if not GUNNERS[wrapper.source]:
             wrapper.pm(messages["no_bullets"])
             return
+
+        var = wrapper.game_state
 
         target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
         if not target:

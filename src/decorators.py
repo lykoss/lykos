@@ -38,7 +38,7 @@ class command:
         self.phases = phases
         self.roles = roles
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
-        self.func: Callable[[Any, MessageDispatcher, str], None] = None # type: ignore[assignment]
+        self.func: Callable[[MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name = commands[0]
         self.key = "{0}_{1}".format(command, id(self))
@@ -91,7 +91,7 @@ class command:
             self._registered = False
 
     @handle_error
-    def caller(self, var, wrapper: MessageDispatcher, message: str):
+    def caller(self, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
         if (not self.pm and wrapper.private) or (not self.chan and wrapper.public):
             return # channel or PM command that we don't allow
@@ -101,24 +101,25 @@ class command:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            self.func(var, wrapper, message)
+            self.func(wrapper, message)
             return
 
         if self.phases and var.PHASE not in self.phases:
             return
 
-        wrapper.source.update_account_data(self.key, functools.partial(self._thunk, var, wrapper, message))
+        wrapper.source.update_account_data(self.key, functools.partial(self._thunk, wrapper, message))
 
     @handle_error
-    def _thunk(self, var, wrapper: MessageDispatcher, message: str, user: User):
+    def _thunk(self, wrapper: MessageDispatcher, message: str, user: User):
         _ignore_locals_ = True
         wrapper.source = user
-        self._caller(var, wrapper, message)
+        self._caller(wrapper, message)
 
     @handle_error
-    def _caller(self, var, wrapper: MessageDispatcher, message: str):
+    def _caller(self, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
-        if self.playing and (wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED):
+        var = wrapper.game_state # FIXME
+        if self.playing and (wrapper.source not in get_players(wrapper.game_state) or wrapper.source in var.DISCONNECTED):
             return
 
         logger = logging.getLogger("command.{}".format(self.key))
@@ -135,7 +136,7 @@ class command:
             return
 
         if self.playing or self.roles or self.users:
-            self.func(var, wrapper, message) # don't check restrictions for game commands
+            self.func(wrapper, message) # don't check restrictions for game commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
@@ -145,7 +146,7 @@ class command:
         if self.owner_only:
             if wrapper.source.is_owner():
                 logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
-                self.func(var, wrapper, message)
+                self.func(wrapper, message)
                 return
 
             wrapper.pm(messages["not_owner"])
@@ -157,7 +158,7 @@ class command:
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
             logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
-            return self.func(var, wrapper, message)
+            return self.func(wrapper, message)
 
         denied_commands = var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
 
@@ -168,13 +169,13 @@ class command:
         if self.flag:
             if self.flag in flags:
                 logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
-                self.func(var, wrapper, message)
+                self.func(wrapper, message)
                 return
 
             wrapper.pm(messages["not_an_admin"])
             return
 
-        self.func(var, wrapper, message)
+        self.func(wrapper, message)
 
 class hook:
     def __init__(self, name, hookid=-1):

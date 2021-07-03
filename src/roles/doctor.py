@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -12,15 +15,20 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, remove_lycanthropy, remove_disease
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 IMMUNIZED = UserSet()
 DOCTORS = UserDict() # type: UserDict[users.User, int]
 
 @command("immunize", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
-def immunize(var, wrapper, message):
+def immunize(wrapper: MessageDispatcher, message: str):
     """Immunize a player, preventing them from turning into a wolf."""
     if not DOCTORS[wrapper.source]:
         wrapper.pm(messages["doctor_fail"])
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0], allow_self=True)
     if not target:

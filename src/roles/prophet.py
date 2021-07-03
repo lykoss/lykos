@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -12,11 +15,13 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 PRAYED = UserSet()
 
-
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
-def pray(var, wrapper, message):
+def pray(wrapper: MessageDispatcher, message: str):
     """Receive divine visions of who has a role."""
     if wrapper.source in PRAYED:
         wrapper.pm(messages["already_prayed"])
@@ -25,6 +30,8 @@ def pray(var, wrapper, message):
     if not message:
         wrapper.pm(messages["not_enough_parameters"])
         return
+
+    var = wrapper.game_state
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
     matches = match_role(var, message, allow_special=False)

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import random
+import typing
 from collections import defaultdict
 
 from src.utilities import *
@@ -10,16 +13,20 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 HUNTERS = UserSet()
 PASSED = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
-def hunter_kill(var, wrapper, message):
+def hunter_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone once per game."""
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])
         return
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
@@ -38,7 +45,7 @@ def hunter_kill(var, wrapper, message):
     debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
-def hunter_retract(var, wrapper, message):
+def hunter_retract(wrapper: MessageDispatcher, message: str):
     """Removes a hunter's kill selection."""
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
         return
@@ -51,7 +58,7 @@ def hunter_retract(var, wrapper, message):
     debuglog("{0} (hunter) RETRACT".format(wrapper.source))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
-def hunter_pass(var, wrapper, message):
+def hunter_pass(wrapper: MessageDispatcher, message: str):
     """Do not use hunter's once-per-game kill tonight."""
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])

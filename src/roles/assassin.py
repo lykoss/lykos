@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
+import typing
 from collections import defaultdict, deque
 
 from src.utilities import *
@@ -13,15 +16,20 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_silent
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 TARGETED = UserDict() # type: UserDict[users.User, users.User]
 PREV_ACTED = UserSet()
 
 @command("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
-def target(var, wrapper, message):
+def target(wrapper: MessageDispatcher, message: str):
     """Pick a player as your target, killing them if you die."""
     if wrapper.source in PREV_ACTED:
         wrapper.send(messages["assassin_already_targeted"])
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0])
     if not target:

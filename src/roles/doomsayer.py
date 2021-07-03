@@ -16,6 +16,7 @@ from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolf
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
 
 register_wolf("doomsayer")
 
@@ -28,11 +29,12 @@ LYCANS: UserDict[User, User] = UserDict()
 _mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
 
 @command("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("doomsayer",))
-def see(var, wrapper, message):
+def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal senses to determine a player's doom."""
     if wrapper.source in SEEN:
         wrapper.send(messages["seer_fail"])
         return
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if not target:
         return

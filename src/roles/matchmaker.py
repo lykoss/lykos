@@ -18,6 +18,7 @@ from src.cats import Win_Stealer
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
 
 MATCHMAKERS = UserSet()
 ACTED = UserSet()
@@ -71,7 +72,7 @@ def get_lovers():
     return lovers
 
 @command("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose(var, wrapper, message):
+def choose(wrapper: MessageDispatcher, message: str):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if wrapper.source in MATCHMAKERS:
         wrapper.send(messages["already_matched"])
@@ -80,6 +81,7 @@ def choose(var, wrapper, message):
     pieces = re.split(" +", message)
     if len(pieces) < 2:
         return
+    var = wrapper.game_state
     target1 = get_target(var, wrapper, pieces[0], allow_self=True)
     target2 = get_target(var, wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:

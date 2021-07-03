@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import random
+import typing
 from collections import defaultdict
 
 from src.utilities import *
@@ -11,12 +14,16 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Wolf, Win_Stealer
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
-def vigilante_kill(var, wrapper, message):
+def vigilante_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
@@ -33,7 +40,7 @@ def vigilante_kill(var, wrapper, message):
     debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
-def vigilante_retract(var, wrapper, message):
+def vigilante_retract(wrapper: MessageDispatcher, message: str):
     """Removes a vigilante's kill selection."""
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
         return
@@ -45,7 +52,7 @@ def vigilante_retract(var, wrapper, message):
     debuglog("{0} (vigilante) RETRACT".format(wrapper.source))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
-def vigilante_pass(var, wrapper, message):
+def vigilante_pass(wrapper: MessageDispatcher, message: str):
     """Do not kill anyone tonight as a vigilante."""
     del KILLS[:wrapper.source:]
     PASSED.add(wrapper.source)

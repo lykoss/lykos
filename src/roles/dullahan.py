@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import math
 import re
 import random
+import typing
 from collections import defaultdict, deque
 
 from src.utilities import *
@@ -12,16 +15,20 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 TARGETS = UserDict() # type: UserDict[users.User, UserSet]
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
-def dullahan_kill(var, wrapper, message):
+def dullahan_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone at night as a dullahan until everyone on your list is dead."""
     if not TARGETS[wrapper.source] & set(get_players()):
         wrapper.pm(messages["dullahan_targets_dead"])
         return
 
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
@@ -38,7 +45,7 @@ def dullahan_kill(var, wrapper, message):
     debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
-def dullahan_retract(var, wrapper, message):
+def dullahan_retract(wrapper: MessageDispatcher, message: str):
     """Removes a dullahan's kill selection."""
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]

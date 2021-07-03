@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import math
 import re
 import random
+import typing
 
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
@@ -14,14 +16,19 @@ from src.events import Event
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 INVESTIGATED = UserSet()
 
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",))
-def investigate(var, wrapper, message):
+def investigate(wrapper: MessageDispatcher, message: str):
     """Investigate a player to determine their exact role."""
     if wrapper.source in INVESTIGATED:
         wrapper.send(messages["already_investigated"])
         return
+
+    var = wrapper.game_state
 
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
     if target is None:

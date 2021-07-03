@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
@@ -14,17 +17,22 @@ from src.status import try_misdirection, try_exchange
 from src.cats import Win_Stealer
 from src.events import EventListener
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 CLONED = UserDict() # type: UserDict[users.User, users.User]
 CAN_ACT = UserSet()
 ACTED = UserSet()
 CLONE_ENABLED = False # becomes True if at least one person died and there are clones
 
 @command("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",))
-def clone(var, wrapper, message):
+def clone(wrapper: MessageDispatcher, message: str):
     """Clone another player. You will turn into their role if they die."""
     if wrapper.source in CLONED:
         wrapper.pm(messages["already_cloned"])
         return
+
+    var = wrapper.game_state
 
     params = re.split(" +", message)
     target = get_target(var, wrapper, params[0])

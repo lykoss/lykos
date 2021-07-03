@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import random
+import typing
 
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
@@ -11,16 +14,20 @@ from src.status import try_misdirection, try_exchange
 from src.cats import Nocturnal
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+
 register_wolf("werecrow")
 
 OBSERVED = UserDict() # type: UserDict[users.User, users.User]
 
 @command("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow",))
-def observe(var, wrapper, message):
+def observe(wrapper: MessageDispatcher, message: str):
     """Observe a player to see whether they are able to act at night."""
     if wrapper.source in OBSERVED:
         wrapper.pm(messages["werecrow_already_observing"].format(OBSERVED[wrapper.source]))
         return
+    var = wrapper.game_state
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="werecrow_no_observe_self")
     if not target:
         return

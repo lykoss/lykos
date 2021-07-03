@@ -19,19 +19,20 @@ from src.roles.helper.wolves import get_wolfchat_roles
 
 if TYPE_CHECKING:
     from src.users import User
+    from src.dispatcher import MessageDispatcher
 
 IDOLS: UserDict[User, User] = UserDict()
 CAN_ACT = UserSet()
 ACTED = UserSet()
 
 @command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
-def choose_idol(var, wrapper, message):
+def choose_idol(wrapper: MessageDispatcher, message: str):
     """Pick your idol, if they die, you'll become a wolf!"""
     if wrapper.source in IDOLS:
         wrapper.pm(messages["wild_child_already_picked"])
         return
 
-    idol = get_target(var, wrapper, re.split(" +", message)[0])
+    idol = get_target(wrapper, re.split(" +", message)[0])
     if not idol:
         return
 

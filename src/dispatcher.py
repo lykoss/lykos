@@ -1,12 +1,15 @@
+from lykos.src import gamestate
 from typing import Union
 
 from src import channels, config, users
 from src.functions import get_players
+from src.gamestate import GameState
 
 class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
 
     def __init__(self, source: users.User, target: Union[channels.Channel, users.BotUser]):
+        self.game_state = target.game_state
         self.source = source
         self.target = target
         self.client = source.client
@@ -38,9 +41,9 @@ class MessageDispatcher:
             first = "{0}: ".format(self.source)
         if self.private:
             self.source.send(*messages, **kwargs)
-        elif (self.target is channels.Main and
-                ((self.source not in get_players() and var.PHASE in var.GAME_PHASES) or
-                (config.Main.get("gameplay.nightchat") and var.PHASE == "night"))):
+        elif (self.target is channels.Main and self.game_state is not None and 
+                (self.source not in get_players(self.game_state) or
+                (config.Main.get("gameplay.nightchat") and self.game_state.PHASE == "night"))):
             # TODO: ideally the above check would be handled in game logic somehow
             # (perhaps via an event) rather than adding game logic to the transport layer
             kwargs.setdefault("notice", True)
