@@ -10,7 +10,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event
-from src.cats import Safe
+from src.cats import Safe, Wolfteam
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
