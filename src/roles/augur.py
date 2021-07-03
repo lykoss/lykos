@@ -30,7 +30,7 @@ def see(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if target is None:
         return
 
@@ -38,7 +38,7 @@ def see(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
     trole = targrole # keep a copy for logging
 
     evt = Event("investigate", {"role": targrole})

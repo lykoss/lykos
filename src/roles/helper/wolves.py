@@ -63,7 +63,7 @@ def wolf_kill(wrapper: MessageDispatcher, message: str):
         return
 
     for targ in pieces[:num_kills]:
-        target = get_target(var, wrapper, targ, not_self_message="no_suicide")
+        target = get_target(wrapper, targ, not_self_message="no_suicide")
         if target is None:
             return
 

@@ -31,7 +31,7 @@ def guard(wrapper: MessageDispatcher, message: str):
         return
 
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0], allow_self=var.GUARDIAN_ANGEL_CAN_GUARD_SELF, not_self_message="cannot_guard_self")
+    target = get_target(wrapper, re.split(" +", message)[0], allow_self=var.GUARDIAN_ANGEL_CAN_GUARD_SELF, not_self_message="cannot_guard_self")
     if not target:
         return
 

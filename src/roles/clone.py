@@ -35,7 +35,7 @@ def clone(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     params = re.split(" +", message)
-    target = get_target(var, wrapper, params[0])
+    target = get_target(wrapper, params[0])
     if target is None:
         return
 

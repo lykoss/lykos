@@ -37,7 +37,7 @@ def hvisit(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="harlot_not_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="harlot_not_self")
     if not target:
         return
 

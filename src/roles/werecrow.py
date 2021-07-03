@@ -28,7 +28,7 @@ def observe(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["werecrow_already_observing"].format(OBSERVED[wrapper.source]))
         return
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="werecrow_no_observe_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="werecrow_no_observe_self")
     if not target:
         return
     if is_known_wolf_ally(var, wrapper.source, target):
@@ -43,7 +43,7 @@ def observe(wrapper: MessageDispatcher, message: str):
     OBSERVED[wrapper.source] = target
     wrapper.pm(messages["werecrow_observe_success"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["wolfchat_observe"].format(wrapper.source, target), {"werecrow"}, role="werecrow", command="observe")
-    debuglog("{0} (werecrow) OBSERVE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (werecrow) OBSERVE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):

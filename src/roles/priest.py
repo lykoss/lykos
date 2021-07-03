@@ -30,7 +30,7 @@ def bless(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
     if not target:
         return
 

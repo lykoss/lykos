@@ -35,7 +35,7 @@ def see(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["seer_fail"])
         return
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if not target:
         return
 

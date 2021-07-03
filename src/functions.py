@@ -60,7 +60,7 @@ def get_participants(var: GameState):
     evt.dispatch(var)
     return evt.data["players"]
 
-def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = False, allow_bot: bool = False, not_self_message: str = "no_target_self"): # FIXME: Fix call sites
+def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = False, allow_bot: bool = False, not_self_message: str = "no_target_self"):
     """Autocomplete a target for an in-game command.
 
     :param MessageDispatcher wrapper: Message context

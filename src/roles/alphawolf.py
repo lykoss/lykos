@@ -34,7 +34,7 @@ def observe(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["alpha_already_bit"])
         return
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0])
+    target = get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
     if is_known_wolf_ally(var, wrapper.source, target):

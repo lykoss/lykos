@@ -34,12 +34,12 @@ def charm(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target1 = get_target(var, wrapper, target1)
+    target1 = get_target(wrapper, target1)
     if not target1:
         return
 
     if target2 is not None:
-        target2 = get_target(var, wrapper, target2)
+        target2 = get_target(wrapper, target2)
         if not target2:
             return
 

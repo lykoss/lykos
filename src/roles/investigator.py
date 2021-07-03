@@ -35,8 +35,8 @@ def investigate(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
     target1 = pieces[0]
     target2 = pieces[1]
-    target1 = get_target(var, wrapper, target1, not_self_message="no_investigate_self")
-    target2 = get_target(var, wrapper, target2, not_self_message="no_investigate_self")
+    target1 = get_target(wrapper, target1, not_self_message="no_investigate_self")
+    target2 = get_target(wrapper, target2, not_self_message="no_investigate_self")
     if not target1 or not target2:
         return
     elif target1 is target2:
@@ -49,8 +49,8 @@ def investigate(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
         return
 
-    t1role = get_main_role(target1)
-    t2role = get_main_role(target2)
+    t1role = get_main_role(var, target1)
+    t2role = get_main_role(var, target2)
 
     evt = Event("investigate", {"role": t1role})
     evt.dispatch(var, wrapper.source, target1)

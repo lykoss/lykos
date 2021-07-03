@@ -29,7 +29,7 @@ def dullahan_kill(wrapper: MessageDispatcher, message: str):
         return
 
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
 

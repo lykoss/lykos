@@ -292,7 +292,7 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
     else:
         target_str = pieces[0]
 
-    target = get_target(var, wrapper, target_str, allow_self=True)
+    target = get_target(wrapper, target_str, allow_self=True)
     if not target:
         return None, None
 
@@ -306,7 +306,7 @@ def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[user
     """Give a totem to a player."""
 
     orig_target = target
-    orig_role = get_main_role(orig_target)
+    orig_role = get_main_role(var, orig_target)
 
     target = try_misdirection(var, wrapper.source, target)
     if try_exchange(var, wrapper.source, target):

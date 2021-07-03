@@ -24,7 +24,7 @@ PASSED = UserSet()
 def vigilante_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
 

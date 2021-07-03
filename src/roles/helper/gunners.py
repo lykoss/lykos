@@ -34,7 +34,7 @@ def setup_variables(rolename):
 
         var = wrapper.game_state
 
-        target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
+        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
         if not target:
             return
 

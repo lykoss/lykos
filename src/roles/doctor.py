@@ -30,7 +30,7 @@ def immunize(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], allow_self=True)
+    target = get_target(wrapper, re.split(" +", message)[0], allow_self=True)
     if not target:
         return
 

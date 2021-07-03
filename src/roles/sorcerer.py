@@ -28,7 +28,7 @@ OBSERVED = UserSet()
 def observe(wrapper: MessageDispatcher, message: str):
     """Observe a player to obtain various information."""
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
     if not target:
         return
 
@@ -45,7 +45,7 @@ def observe(wrapper: MessageDispatcher, message: str):
         return
 
     OBSERVED.add(wrapper.source)
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
     if targrole == "amnesiac":
         from src.roles.amnesiac import ROLES as amn_roles
         targrole = amn_roles[target]

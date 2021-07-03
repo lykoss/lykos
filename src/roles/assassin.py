@@ -31,7 +31,7 @@ def target(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(var, wrapper, re.split(" +", message)[0])
+    target = get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 
