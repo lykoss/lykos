@@ -48,7 +48,7 @@ def pray(wrapper: MessageDispatcher, message: str):
 
     # this sees through amnesiac, so the amnesiac's final role counts as their role
     from src.roles.amnesiac import ROLES as amn_roles
-    people = set(get_all_players((role,))) | {p for p, r in amn_roles.items() if p in pl and r == role}
+    people = set(get_all_players(var, (role,))) | {p for p, r in amn_roles.items() if p in pl and r == role}
     if len(people) == 0:
         # role is not in this game, this still counts as a successful activation of the power!
         wrapper.pm(messages["vision_none"].format(role))
@@ -70,12 +70,12 @@ def pray(wrapper: MessageDispatcher, message: str):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for pht in get_all_players(("prophet",)):
+    for pht in get_all_players(var, ("prophet",)):
         pht.send(messages["prophet_notify"])
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["nightroles"].extend(get_all_players(("prophet",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("prophet",)))
     evt.data["acted"].extend(PRAYED)
 
 @event_listener("begin_day")

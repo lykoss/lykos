@@ -39,11 +39,11 @@ def choose_idol(wrapper: MessageDispatcher, message: str):
     IDOLS[wrapper.source] = idol
     ACTED.add(wrapper.source)
     wrapper.send(messages["wild_child_success"].format(idol))
-    debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(wrapper.source, idol, get_main_role(idol)))
+    debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(wrapper.source, idol, get_main_role(wrapper.game_state, idol)))
 
 @event_listener("see")
 def on_see(evt, var, seer, target):
-    if target in get_all_players(("wild child",)):
+    if target in get_all_players(var, ("wild child",)):
         evt.data["role"] = "wild child"
 
 @event_listener("new_role")
@@ -84,7 +84,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if not death_triggers:
         return
 
-    for child in get_all_players(("wild child",)):
+    for child in get_all_players(var, ("wild child",)):
         if IDOLS.get(child) is player:
             # Change their main role to wolf
             change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
@@ -131,7 +131,7 @@ def on_revealroles_role(evt, var, user, role):
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
-    if evt.data["role"] == "wolf" and user in get_all_players(("wild child",)):
+    if evt.data["role"] == "wolf" and user in get_all_players(var, ("wild child",)):
         evt.data["role"] = "wild child"
 
 @event_listener("update_stats")

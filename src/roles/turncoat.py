@@ -61,7 +61,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for turncoat in get_all_players(("turncoat",)):
+    for turncoat in get_all_players(var, ("turncoat",)):
         # they start out as unsided, but can change n1
         if turncoat not in TURNCOATS:
             TURNCOATS[turncoat] = ("none", -1)

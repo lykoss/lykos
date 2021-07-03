@@ -209,7 +209,7 @@ def setup_variables(rolename, *, knows_totem):
             given = len(list(itertools.chain.from_iterable(SHAMANS[shaman].values())))
             if given == totemcount:
                 evt.data["acted"].append(shaman)
-        evt.data["nightroles"].extend(get_all_players((rolename,)))
+        evt.data["nightroles"].extend(get_all_players(var, (rolename,)))
 
     @event_listener("get_role_metadata", listener_id="shamans.<{}>.get_role_metadata".format(rolename))
     def on_get_role_metadata(evt, var, kind):
@@ -248,7 +248,7 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
-        if var.NIGHT_COUNT == 0 or not get_all_players((rolename,)):
+        if var.NIGHT_COUNT == 0 or not get_all_players(var, (rolename,)):
             return
         if var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)
@@ -514,7 +514,7 @@ def on_begin_day(evt, var):
     for player in NARCOLEPSY:
         status.add_absent(var, player, "totem")
     for player in IMPATIENCE:
-        status.add_force_vote(var, player, get_all_players() - {player})
+        status.add_force_vote(var, player, get_all_players(var) - {player})
     for player in PACIFISM:
         status.add_force_abstain(var, player)
     for player in INFLUENCE:

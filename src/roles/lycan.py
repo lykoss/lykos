@@ -15,7 +15,7 @@ from src.cats import Wolf
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    lycans = get_all_players(("lycan",))
+    lycans = get_all_players(var, ("lycan",))
     if lycans:
         add_lycanthropy_scope(var, {"lycan"})
     for lycan in lycans:
@@ -25,7 +25,7 @@ def on_send_role(evt, var):
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, var, doctor, target):
-    if target in get_all_players(("lycan",)):
+    if target in get_all_players(var, ("lycan",)):
         evt.data["message"] = "lycan_cured"
 
 @event_listener("new_role")

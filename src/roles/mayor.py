@@ -16,7 +16,7 @@ REVEALED_MAYORS = UserSet()
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
-    for user in get_all_players(("mayor",)):
+    for user in get_all_players(var, ("mayor",)):
         if user not in REVEALED_MAYORS:
             add_lynch_immunity(var, user, "mayor")
 

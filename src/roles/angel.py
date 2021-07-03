@@ -92,7 +92,7 @@ def on_chk_nightdone(evt, var):
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
-    for gangel in get_all_players(("guardian angel",)):
+    for gangel in get_all_players(var, ("guardian angel",)):
         if GUARDED.get(gangel) in get_players(var, Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
@@ -111,7 +111,7 @@ def on_transition_night_begin(evt, var):
 @event_listener("send_role")
 def on_send_role(evt, var):
     ps = get_players(var)
-    for gangel in get_all_players(("guardian angel",)):
+    for gangel in get_all_players(var, ("guardian angel",)):
         pl = ps[:]
         random.shuffle(pl)
         if gangel in LASTGUARDED:

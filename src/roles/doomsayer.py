@@ -79,7 +79,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(SEEN)
-    evt.data["nightroles"].extend(get_all_players(("doomsayer",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("doomsayer",)))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -96,7 +96,7 @@ def on_transition_day(evt, var):
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
-    if var.NIGHT_COUNT > 1 and get_all_players(("doomsayer",)):
+    if var.NIGHT_COUNT > 1 and get_all_players(var, ("doomsayer",)):
         status.add_lycanthropy_scope(var, All) # any role can transform if ds is in play
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)

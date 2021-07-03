@@ -24,7 +24,7 @@ KILLS = UserDict() # type: UserDict[users.User, UserList]
 def register_wolf(rolename):
     @event_listener("send_role", listener_id="wolves.<{}>.on_send_role".format(rolename))
     def on_transition_night_end(evt, var):
-        wolves = get_all_players((rolename,))
+        wolves = get_all_players(var, (rolename,))
         for wolf in wolves:
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
             wolf.send(messages[msg])
@@ -118,7 +118,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 def on_transition_day(evt, var):
     # figure out wolf target
     found = defaultdict(int)
-    wolves = get_all_players(Wolf)
+    wolves = get_all_players(var, Wolf)
     total_kills = 0
     for wolf, victims in KILLS.items():
         nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
@@ -225,7 +225,7 @@ def on_new_role(evt, var, player, old_role):
 
 @event_listener("chk_nightdone", priority=3)
 def on_chk_nightdone(evt, var):
-    wolves = [x for x in get_all_players(Wolf & Killer) if not is_silent(var, x)]
+    wolves = [x for x in get_all_players(var, Wolf & Killer) if not is_silent(var, x)]
     total_kills = 0
     independent = set()
     for wolf in wolves:
@@ -298,7 +298,7 @@ def on_gun_shoot(evt, var, user, target, role):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
-        wolves = [x for x in get_all_players(Wolf & Killer) if not is_silent(var, x)]
+        wolves = [x for x in get_all_players(var, Wolf & Killer) if not is_silent(var, x)]
         total_kills = 0
         for wolf in wolves:
             nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})

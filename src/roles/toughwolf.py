@@ -16,7 +16,7 @@ def on_reset(evt, var):
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
-    for player in get_all_players(("tough wolf",)):
+    for player in get_all_players(var, ("tough wolf",)):
         if player not in ACTIVATED:
             add_lynch_immunity(var, player, "tough_wolf")
 

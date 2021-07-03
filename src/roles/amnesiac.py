@@ -24,7 +24,7 @@ def _get_blacklist(var):
 def on_transition_night_begin(evt, var):
     global STATS_FLAG
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
-        amnesiacs = get_all_players(("amnesiac",))
+        amnesiacs = get_all_players(var, ("amnesiac",))
         if amnesiacs and not var.HIDDEN_AMNESIAC:
             STATS_FLAG = True
 

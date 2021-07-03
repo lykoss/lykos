@@ -134,7 +134,7 @@ def on_transition_day_begin(evt, var):
     tocharm = set(itertools.chain.from_iterable(TOBECHARMED.values()))
     # remove pipers from set; they can never be charmed
     # but might end up in there due to misdirection/luck totems
-    tocharm.difference_update(get_all_players(("piper",)))
+    tocharm.difference_update(get_all_players(var, ("piper",)))
 
     # Send out PMs to players who have been charmed
     for target in tocharm:

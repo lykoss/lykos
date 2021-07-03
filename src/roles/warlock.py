@@ -28,11 +28,11 @@ PASSED: UserSet = UserSet()
 @command("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def curse(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
-    target = get_target(var, wrapper, re.split(" +", message)[0])
+    target = get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 
-    if target in get_all_players(("cursed villager",)):
+    if target in get_all_players(var, ("cursed villager",)):
         wrapper.pm(messages["target_already_cursed"].format(target))
         return
 
@@ -83,7 +83,7 @@ def retract(wrapper: MessageDispatcher, message: str):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(CURSED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_all_players(("warlock",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("warlock",)))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):

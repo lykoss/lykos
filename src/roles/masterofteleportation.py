@@ -40,7 +40,7 @@ def choose(wrapper: MessageDispatcher, message: str):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for player in get_all_players(("master of teleportation",)):
+    for player in get_all_players(var, ("master of teleportation",)):
         player.send(messages["master_of_teleportation_notify"])
         if var.NIGHT_COUNT > 0:
             player.send(messages["players_list"].format(get_players(var)))

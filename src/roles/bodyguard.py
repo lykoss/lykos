@@ -86,7 +86,7 @@ def on_transition_day_resolve_end(evt, var, victims):
     for bodyguard in DYING:
         evt.data["message"][bodyguard].clear()
     DYING.clear()
-    for bodyguard in get_all_players(("bodyguard",)):
+    for bodyguard in get_all_players(var, ("bodyguard",)):
         if GUARDED.get(bodyguard) in get_players(var, Wolf) and bodyguard not in evt.data["dead"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
@@ -105,7 +105,7 @@ def on_transition_night_begin(evt, var):
 @event_listener("send_role")
 def on_send_role(evt, var):
     ps = get_players(var)
-    for bg in get_all_players(("bodyguard",)):
+    for bg in get_all_players(var, ("bodyguard",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(bg)

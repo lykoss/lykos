@@ -103,7 +103,7 @@ def on_reset(evt, var):
 def on_chk_nightdone(evt, var):
     if not ENABLED:
         return
-    can_act = get_all_players(("alpha wolf",)) - ALPHAS
+    can_act = get_all_players(var, ("alpha wolf",)) - ALPHAS
     evt.data["acted"].extend(BITTEN)
     evt.data["nightroles"].extend(can_act)
 
@@ -119,7 +119,7 @@ def on_new_role(evt, var, player, oldrole):
 def on_wolf_notify(evt, var, role):
     if not ENABLED or role != "alpha wolf":
         return
-    can_bite = get_all_players(("alpha wolf",)) - ALPHAS
+    can_bite = get_all_players(var, ("alpha wolf",)) - ALPHAS
     if can_bite:
         for alpha in can_bite:
             alpha.queue_message(messages["wolf_bite"])
@@ -130,7 +130,7 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills" and ENABLED:
         # biting someone has a chance of killing them instead of turning
         # and it can be guarded against, so it's close enough to a kill by that measure
-        can_bite = get_all_players(("alpha wolf",)) - ALPHAS
+        can_bite = get_all_players(var, ("alpha wolf",)) - ALPHAS
         evt.data["alpha wolf"] = len(can_bite)
     elif kind == "role_categories":
         evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective"}

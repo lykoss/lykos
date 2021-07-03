@@ -19,7 +19,7 @@ register_wolf("fallen angel")
 
 @event_listener("try_protection")
 def on_try_protection(evt, var, target, attacker, attacker_role, reason):
-    if attacker_role == "wolf" and get_all_players(("fallen angel",)):
+    if attacker_role == "wolf" and get_all_players(var, ("fallen angel",)):
         status.remove_all_protections(var, target, attacker=None, attacker_role="fallen angel", reason="fallen_angel")
         evt.prevent_default = True
 

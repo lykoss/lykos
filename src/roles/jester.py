@@ -16,7 +16,7 @@ JESTERS = UserSet()
 
 @event_listener("lynch")
 def on_lynch(evt, var, votee, voters):
-    if votee in get_all_players(("jester",)):
+    if votee in get_all_players(var, ("jester",)):
         JESTERS.add(votee)
 
 @event_listener("player_win")
@@ -26,7 +26,7 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for jester in get_all_players(("jester",)):
+    for jester in get_all_players(var, ("jester",)):
         jester.send(messages["jester_notify"])
 
 @event_listener("reset")

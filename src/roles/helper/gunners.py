@@ -96,7 +96,7 @@ def setup_variables(rolename):
 
     @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
     def on_send_role(evt, var):
-        for gunner in get_all_players((rolename,)):
+        for gunner in get_all_players(var, (rolename,)):
             if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 

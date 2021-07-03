@@ -66,7 +66,7 @@ def on_reset(evt, var):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(OBSERVED)
-    evt.data["nightroles"].extend(get_all_players(("werecrow",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("werecrow",)))
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, oldrole):

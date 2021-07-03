@@ -18,7 +18,7 @@ VOTED = None # type: Optional[users.User]
 @event_listener("lynch")
 def on_lynch(evt, var, votee, voters):
     global VOTED
-    if votee in get_all_players(("fool",)):
+    if votee in get_all_players(var, ("fool",)):
         # ends game immediately, with fool as only winner
         # hardcode "fool" as the role since game is ending due to them being lynched,
         # so we want to show "fool" even if it's a template
@@ -49,7 +49,7 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for fool in get_all_players(("fool",)):
+    for fool in get_all_players(var, ("fool",)):
         fool.send(messages["fool_notify"])
 
 @event_listener("reset")

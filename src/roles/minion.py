@@ -11,13 +11,13 @@ RECEIVED_INFO = UserSet()
 KNOWS_MINIONS = UserSet()
 
 def wolf_list(var):
-    wolves = [wolf.nick for wolf in get_all_players(Wolf)]
+    wolves = [wolf.nick for wolf in get_all_players(var, Wolf)]
     random.shuffle(wolves)
     return messages["wolves_list"].format(", ".join(wolves))
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for minion in get_all_players(("minion",)):
+    for minion in get_all_players(var, ("minion",)):
         if minion in RECEIVED_INFO and not var.ALWAYS_PM_ROLE:
             continue
         minion.send(messages["minion_notify"])
@@ -26,10 +26,10 @@ def on_send_role(evt, var):
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
-    minions = len(get_all_players(("minion",)))
+    minions = len(get_all_players(var, ("minion",)))
     if minions == 0:
         return
-    wolves = get_all_players(Wolf) - KNOWS_MINIONS
+    wolves = get_all_players(var, Wolf) - KNOWS_MINIONS
     for wolf in wolves:
         wolf.send(messages["has_minions"].format(minions))
         KNOWS_MINIONS.add(wolf)
@@ -42,7 +42,7 @@ def on_new_role(evt, var, player, old_role):
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
-    if user in get_all_players(("minion",)):
+    if user in get_all_players(var, ("minion",)):
         wolves = []
         for wolfrole in Wolf:
             for player in var.ORIGINAL_ROLES[wolfrole]:

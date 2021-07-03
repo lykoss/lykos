@@ -55,7 +55,7 @@ def hex_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["hex_success"].format(target))
 
     send_wolfchat_message(var, wrapper.source, messages["hex_success_wolfchat"].format(wrapper.source, target), {"hag"}, role="hag", command="hex")
-    debuglog("{0} (hag) HEX: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (hag) HEX: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
@@ -64,7 +64,7 @@ def on_del_player(evt, var, player, allroles, death_triggers):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(HEXED)
-    evt.data["nightroles"].extend(get_all_players(("hag",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("hag",)))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

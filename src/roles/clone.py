@@ -56,7 +56,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if var.PHASE not in var.GAME_PHASES:
         return
 
-    clones = get_all_players(("clone",))
+    clones = get_all_players(var, ("clone",))
     mainrole = evt.params.main_role
     for clone in clones:
         if clone in CLONED:
@@ -84,8 +84,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 @event_listener("send_role")
 def on_send_role(evt, var):
     ps = get_players(var)
-    CAN_ACT.update(get_all_players(("clone",)) - CLONED.keys())
-    for clone in get_all_players(("clone",)):
+    CAN_ACT.update(get_all_players(var, ("clone",)) - CLONED.keys())
+    for clone in get_all_players(var, ("clone",)):
         if clone in CLONED and not var.ALWAYS_PM_ROLE:
             continue
         pl = ps[:]

@@ -47,6 +47,7 @@ def bless(wrapper: MessageDispatcher, message: str):
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def consecrate(wrapper: MessageDispatcher, message: str):
     """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
+    var = wrapper.game_state
     alive = get_players(var)
     targ = re.split(" +", message)[0]
     if not targ:
@@ -81,7 +82,7 @@ def consecrate(wrapper: MessageDispatcher, message: str):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for priest in get_all_players(("priest",)):
+    for priest in get_all_players(var, ("priest",)):
         priest.send(messages["priest_notify"])
 
 @event_listener("reset")

@@ -52,7 +52,7 @@ def register_mystic(rolename, *, send_role, types):
 
     @event_listener("myrole", listener_id="mystics.<{}>.on_myrole".format(rolename))
     def on_myrole(evt, var, user):
-        if user in get_all_players((rolename,)):
+        if user in get_all_players(var, (rolename,)):
             values = LAST_COUNT[user]
             key = "mystic_info_{0}".format(var.PHASE)
             msg = messages[key].format(values[0][0], [messages["mystic_join"].format(c, t) for c, t in values])

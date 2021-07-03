@@ -14,7 +14,7 @@ from src.status import try_misdirection, try_exchange
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for demoniac in get_all_players(("demoniac",)):
+    for demoniac in get_all_players(var, ("demoniac",)):
         demoniac.send(messages["demoniac_notify"])
 
 # monster is at priority 4, and we want demoniac to take precedence

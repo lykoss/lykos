@@ -49,14 +49,14 @@ def hvisit(wrapper: MessageDispatcher, message: str):
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
 
-    if target not in get_all_players(("succubus",)):
+    if target not in get_all_players(var, ("succubus",)):
         ENTRANCED.add(target)
         wrapper.send(messages["succubus_target_success"].format(target))
     else:
         wrapper.send(messages["harlot_success"].format(target))
 
     if wrapper.source is not target:
-        if target not in get_all_players(("succubus",)):
+        if target not in get_all_players(var,("succubus",)):
             target.send(messages["notify_succubus_target"].format(wrapper.source))
         else:
             target.send(messages["harlot_success"].format(wrapper.source))
@@ -79,7 +79,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
 
 @event_listener("visit")
 def on_visit(evt, var, visitor_role, visitor, visited):
-    if visited in get_all_players(("succubus",)):
+    if visited in get_all_players(var, ("succubus",)):
         # if we're being visited by anyone and we haven't visited yet, we have to stay home with them
         if visited not in VISITED:
             FORCE_PASSED.add(visited)
@@ -150,14 +150,14 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     # death_triggers is False for an idle-out, so we use that to determine which it is
     if death_triggers:
         ALL_SUCC_IDLE = False
-    if ALL_SUCC_IDLE and not get_all_players(("succubus",)):
+    if ALL_SUCC_IDLE and not get_all_players(var, ("succubus",)):
         while ENTRANCED:
             e = ENTRANCED.pop()
             e.send(messages["entranced_revert_win"])
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
-    if victim in get_all_players(("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
+    if victim in get_all_players(var, ("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
         evt.data["message"][victim].append(messages["target_not_home"])
         evt.data["novictmsg"] = False
         evt.stop_processing = True
@@ -201,7 +201,7 @@ def on_send_role(evt, var):
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target, role):
-    if target in get_all_players(("succubus",)):
+    if target in get_all_players(var, ("succubus",)):
         evt.data["kill"] = False
 
 @event_listener("begin_day")

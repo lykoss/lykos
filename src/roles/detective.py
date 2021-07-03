@@ -30,7 +30,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
     if target is None:
         return
 
@@ -38,7 +38,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
 
     evt = Event("investigate", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
@@ -50,7 +50,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised!
-        wolves = get_all_players(get_wolfchat_roles(var))
+        wolves = get_all_players(var, get_wolfchat_roles(var))
         if wolves:
             for wolf in wolves:
                 wolf.queue_message(messages["detective_reveal"].format(wrapper.source))

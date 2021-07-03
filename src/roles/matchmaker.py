@@ -179,7 +179,7 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    mms = (get_all_players(("matchmaker",)) - MATCHMAKERS) | ACTED
+    mms = (get_all_players(var, ("matchmaker",)) - MATCHMAKERS) | ACTED
     evt.data["acted"].extend(ACTED)
     evt.data["nightroles"].extend(mms)
 

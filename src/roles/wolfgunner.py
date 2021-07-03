@@ -19,7 +19,7 @@ find_listener("transition_day_resolve_end", "gunners.<wolf gunner>.on_transition
 def on_wolf_notify(evt, var, role):
     if role != "wolf gunner":
         return
-    gunners = get_all_players(("wolf gunner",))
+    gunners = get_all_players(var, ("wolf gunner",))
     for gunner in gunners:
         if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
             gunner.send(messages["gunner_bullets"].format(GUNNERS[gunner]))

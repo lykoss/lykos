@@ -44,18 +44,18 @@ def target(wrapper: MessageDispatcher, message: str):
 
     wrapper.send(messages["assassin_target_success"].format(orig))
 
-    debuglog("{0} (assassin) TARGET: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (assassin) TARGET: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["nightroles"].extend(get_all_players(("assassin",)) - PREV_ACTED)
+    evt.data["nightroles"].extend(get_all_players(var, ("assassin",)) - PREV_ACTED)
     evt.data["acted"].extend(TARGETED.keys() - PREV_ACTED)
 
 @event_listener("transition_day", priority=7)
 def on_transition_day(evt, var):
     # Select a random target for assassin that isn't already going to die if they didn't target
     pl = get_players(var)
-    for ass in get_all_players(("assassin",)):
+    for ass in get_all_players(var, ("assassin",)):
         if ass not in TARGETED and not is_silent(var, ass):
             ps = pl[:]
             ps.remove(ass)
@@ -70,7 +70,7 @@ def on_transition_day(evt, var):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for ass in get_all_players(("assassin",)):
+    for ass in get_all_players(var, ("assassin",)):
         if ass in TARGETED:
             continue # someone already targeted
 
@@ -115,7 +115,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
-    if user in get_all_players(("assassin",)):
+    if user in get_all_players(var, ("assassin",)):
         if user in TARGETED:
             evt.data["messages"].append(messages["assassin_targeting"].format(TARGETED[user]))
         else:

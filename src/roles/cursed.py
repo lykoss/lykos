@@ -24,8 +24,8 @@ def on_get_role_metadata(evt, var, kind):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    cursed = get_all_players(("cursed villager",))
-    wolves = get_all_players(Wolfchat)
+    cursed = get_all_players(var, ("cursed villager",))
+    wolves = get_all_players(var, Wolfchat)
     for player in cursed:
         if get_main_role(player) == "cursed villager" or player in wolves:
             player.send(messages["cursed_notify"])

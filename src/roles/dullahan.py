@@ -138,7 +138,7 @@ def on_chk_nightdone(evt, var):
 
 @event_listener("send_role")
 def on_transition_night_end(evt, var):
-    for dullahan in get_all_players(("dullahan",)):
+    for dullahan in get_all_players(var, ("dullahan",)):
         targets = list(TARGETS[dullahan])
         for target in targets[:]:
             if target in var.DEAD:
@@ -154,7 +154,7 @@ def on_transition_night_end(evt, var):
 @event_listener("visit")
 def on_visit(evt, var, visitor_role, visitor, visited):
     if visitor_role == "succubus":
-        succubi = get_all_players(("succubus",))
+        succubi = get_all_players(var, ("succubus",))
         if visited in TARGETS and TARGETS[visited].intersection(succubi):
             TARGETS[visited].difference_update(succubi)
             visited.send(messages["dullahan_no_kill_succubus"])

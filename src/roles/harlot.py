@@ -71,7 +71,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
 
 @event_listener("visit")
 def on_visit(evt, var, visitor_role, visitor, visited):
-    if visited in get_all_players(("harlot",)):
+    if visited in get_all_players(var, ("harlot",)):
         # if we're being visited by anyone and we haven't visited yet, we have to stay home with them
         if visited not in VISITED:
             FORCE_PASSED.add(visited)
@@ -102,7 +102,7 @@ def on_transition_day_resolve_end(evt, var, victims):
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end3(evt, var, victims):
-    for harlot in get_all_players(("harlot",)):
+    for harlot in get_all_players(var, ("harlot",)):
         if VISITED.get(harlot) in get_players(var, Wolf) and harlot not in evt.data["dead"]:
             evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
             evt.data["dead"].append(harlot)
