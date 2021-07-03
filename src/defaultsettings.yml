@@ -640,6 +640,14 @@ gameplay: &gameplay
         - str
         - "null"
       _default: null
+    auto_mode_toggle:
+      _desc: |
+        The channel modes which will be automatically toggled for the duration of the game.
+        This is traditionally used to remove op status from players during the game.
+      _type: list
+      _default: []
+      _items:
+        _type: str
     nightchat:
       _desc: |
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel

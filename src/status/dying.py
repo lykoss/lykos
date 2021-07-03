@@ -102,7 +102,7 @@ def kill_players(var, *, end_game: bool = True) -> bool:
             for v in evt.data["new"]:
                 if min(v.values()) >= 0:
                     newstats.add(frozenset(v.items()))
-        var.ROLE_STATS = frozenset(newstats)
+        var.ROLE_STATS = newstats
 
         # notify listeners that all deaths have resolved
         # FIXME: end_game is a temporary hack until we move state transitions into the event loop

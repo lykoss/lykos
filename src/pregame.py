@@ -396,7 +396,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         for v in event.data["new"]:
             if min(v.values()) >= 0:
                 possible_rolesets_set.add(frozenset(v.items()))
-    var.ROLE_STATS = possible_rolesets_set
+    var.ROLE_STATS = frozenset(possible_rolesets_set)
 
     # Now for the secondary roles
     for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
