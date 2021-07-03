@@ -253,7 +253,8 @@ def connect_callback():
     accumulator.send(None)
 
 def reset_settings():
-    var.CURRENT_GAMEMODE.teardown()
+    if var.CURRENT_GAMEMODE:
+        var.CURRENT_GAMEMODE.teardown()
     var.CURRENT_GAMEMODE = None
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
