@@ -37,7 +37,7 @@ import urllib.request
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import FrozenSet, Set, Optional, Callable, Tuple
+from typing import Set, Optional, Callable, Tuple
 
 from src import db, config, events, dispatcher, channels, users, hooks, handler
 from src.users import User
@@ -80,6 +80,7 @@ var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
 var.TIMERS = {}  # type: ignore
 var.PHASE = "none"  # type: ignore
+var.OLD_MODES = defaultdict(set)  # type: ignore
 
 var.ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
 var.ORIGINAL_ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
@@ -223,10 +224,10 @@ def reset_modes_timers(var):
     for plr in get_players():
         if not plr.is_fake:
             cmodes.append(("-v", plr.nick))
-    for user, modes in channels.Main.old_modes.items():
+    for user, modes in var.OLD_MODES.items():
         for mode in modes:
             cmodes.append(("+" + mode, user))
-    channels.Main.old_modes.clear()
+    var.OLD_MODES.clear()
     if var.QUIET_DEAD_PLAYERS:
         for deadguy in var.DEAD:
             if not deadguy.is_fake:
@@ -244,6 +245,7 @@ def reset():
     var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
     var.GAMEMODE_VOTES.clear()
+    var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
 
     reset_settings()
 
@@ -493,12 +495,11 @@ def replace(var, wrapper, message):
         if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
             cmodes += [("-v", target), ("+v", wrapper.source)]
 
-        toggle_modes = config.Main.get("gameplay.auto_mode_toggle", ())
-        for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]: # user.channels is a set of current modes
+        for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
             cmodes.append(("-" + mode, wrapper.source))
-            channels.Main.old_modes[wrapper.source].add(mode)
+            var.OLD_MODES[wrapper.source].add(mode)
 
-        for mode in channels.Main.old_modes[target]:
+        for mode in var.OLD_MODES[target]:
             cmodes.append(("+" + mode, target))
 
         channels.Main.mode(*cmodes)
@@ -773,10 +774,9 @@ def _join_player(var, wrapper, who=None, forced=False):
         cmodes.append(("+v", wrapper.source))
     if var.PHASE == "none":
         if not wrapper.source.is_fake:
-            toggle_modes = config.Main.get("gameplay.auto_mode_toggle", ())
-            for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
+            for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
-                channels.Main.old_modes[wrapper.source].add(mode)
+                var.OLD_MODES[wrapper.source].add(mode)
         var.ROLES["person"].add(wrapper.source)
         var.MAIN_ROLES[wrapper.source] = "person"
         var.ALL_PLAYERS.append(wrapper.source)
@@ -822,10 +822,9 @@ def _join_player(var, wrapper, who=None, forced=False):
 
         var.ALL_PLAYERS.append(wrapper.source)
         if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
-            toggle_modes = config.Main.get("gameplay.auto_mode_toggle", ())
-            for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
+            for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
-                channels.Main.old_modes[wrapper.source].add(mode)
+                var.OLD_MODES[wrapper.source].add(mode)
             wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
 
         var.ROLES["person"].add(wrapper.source)
@@ -997,13 +996,13 @@ def fleave(var, wrapper, message):
 def kicked_modes(evt, chan, actor, target, reason): # FIXME: This uses var
     if target is users.Bot and chan is channels.Main:
         chan.join()
-    channels.Main.old_modes.pop(target, None)
+    var.OLD_MODES.pop(target, None)
 
 @event_listener("chan_part")
 def parted_modes(evt, chan, user, reason): # FIXME: This uses var
     if user is users.Bot and chan is channels.Main:
         chan.join()
-    channels.Main.old_modes.pop(user, None)
+    var.OLD_MODES.pop(user, None)
 
 @command("stats", pm=True, phases=("join", "day", "night"))
 def stats(var, wrapper, message):
@@ -1475,7 +1474,7 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
             if p in d and d[p] >= 1:
                 d[p] -= 1
                 newstats.add(frozenset(d.items()))
-    var.ROLE_STATS = newstats
+    var.ROLE_STATS = frozenset(newstats)
 
     if var.PHASE == "join":
         if player in var.GAMEMODE_VOTES:
@@ -1505,9 +1504,9 @@ def on_kill_players(evt: Event, var, players: Set[User]):
                 # Died during the game, so quiet!
                 cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX + player.nick + "!*@*"))
             if var.PHASE == "join":
-                for mode in channels.Main.old_modes[player]:
+                for mode in var.OLD_MODES[player]:
                     cmode.append(("+" + mode, player.nick))
-                del channels.Main.old_modes[player]
+                del var.OLD_MODES[player]
             lplayer = player.lower()
             if lplayer.account not in var.DEADCHAT_PREFS_ACCS:
                 deadchat.append(player)
@@ -2000,7 +1999,7 @@ def on_night_idled(evt, var, player):
         evt.prevent_default = True
 
 @handle_error
-def transition_day(var, gameid=0): # FIXME: Fix call sites
+def transition_day(gameid=0):
     if gameid:
         if gameid != var.NIGHT_ID:
             return
@@ -2168,7 +2167,7 @@ def transition_day(var, gameid=0): # FIXME: Fix call sites
             for v in event.data["new"]:
                 if min(v.values()) >= 0:
                     newstats.add(frozenset(v.items()))
-        var.ROLE_STATS = newstats
+        var.ROLE_STATS = frozenset(newstats)
 
     killer_role = {}
     for deadperson in dead:
@@ -2258,12 +2257,12 @@ def getfeatures(cli, nick, *rest):
             var.MODES_PREFIXES = {}
             for combo in allp:
                 var.MODES_PREFIXES[combo[1]] = combo[0] # For some reason this needs to be backwards
-            toggle_modes = config.Main.get("gameplay.auto_mode_toggle", None)
-            if toggle_modes: # this is ugly, but I'm too lazy to fix it. it works, so that's fine
-                tocheck = set(toggle_modes)
+            var.AUTO_TOGGLE_MODES = set(var.AUTO_TOGGLE_MODES)
+            if var.AUTO_TOGGLE_MODES: # this is ugly, but I'm too lazy to fix it. it works, so that's fine
+                tocheck = set(var.AUTO_TOGGLE_MODES)
                 for mode in tocheck:
                     if not mode in var.MODES_PREFIXES.keys() and not mode in var.MODES_PREFIXES.values():
-                        var.AUTO_TOGGLE_MODES.remove(mode) # FIXME: this should be config.Main.get("gameplay.auto_mode_toggle", ()) but idk how
+                        var.AUTO_TOGGLE_MODES.remove(mode)
                         continue
                     if not mode in var.MODES_PREFIXES.values():
                         for chp in var.MODES_PREFIXES.keys():

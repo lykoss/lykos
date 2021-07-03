@@ -239,7 +239,7 @@ class SleepyMode(GameMode):
                         d[old] -= 1
                         d[new] += 1
                         newstats.add(frozenset(d.items()))
-                var.ROLE_STATS = newstats
+                var.ROLE_STATS = frozenset(newstats)
 
     def on_revealroles(self, evt, var):
         if self.having_nightmare:

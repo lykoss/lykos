@@ -104,7 +104,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
                     d["wolf"] = d.get("wolf", 0) + d["traitor"]
                     d["traitor"] = 0
                     newstats.add(frozenset(d.items()))
-            var.ROLE_STATS = newstats
+            var.ROLE_STATS = frozenset(newstats)
 
         evt.prevent_default = True
         evt.stop_processing = True
