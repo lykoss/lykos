@@ -127,12 +127,12 @@ def connect_callback():
             signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         if signum in (signal.SIGINT, signal.SIGTERM):
-            forced_exit.func(var, wrapper, "")
+            forced_exit.func(wrapper, "")
         elif signum == SIGUSR1:
-            restart_program.func(var, wrapper, "")
+            restart_program.func(wrapper, "")
         elif signum == SIGUSR2:
             plog("Scheduling aftergame restart")
-            aftergame.func(var, wrapper, "frestart")
+            aftergame.func(wrapper, "frestart")
 
     signal.signal(signal.SIGINT, sighandler)
     signal.signal(signal.SIGTERM, sighandler)
@@ -3413,7 +3413,7 @@ def update(wrapper: MessageDispatcher, message: str):
 
     ret = _git_pull(wrapper)
     if ret:
-        restart_program.func(var, wrapper, "Updating bot")
+        restart_program.func(wrapper, "Updating bot")
 
 @command("fsend", owner_only=True, pm=True)
 def fsend(wrapper: MessageDispatcher, message: str):
