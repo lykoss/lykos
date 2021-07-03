@@ -18,6 +18,14 @@ transports.irc.channel: &transports.irc.channel
       _desc: Channel key, if the channel is password protected (channel mode +k).
       _type: str
       _default: ""
+    auto_mode_toggle:
+      _desc: |
+        The channel modes which will be automatically toggled for the duration of the game.
+        This is traditionally used to remove op status from players during the game.
+      _type: list
+      _default: []
+      _items:
+        _type: str
 
 transports.irc: &transports.irc
   _name: transports.irc
@@ -640,14 +648,6 @@ gameplay: &gameplay
         - str
         - "null"
       _default: null
-    auto_mode_toggle:
-      _desc: |
-        The channel modes which will be automatically toggled for the duration of the game.
-        This is traditionally used to remove op status from players during the game.
-      _type: list
-      _default: []
-      _items:
-        _type: str
     nightchat:
       _desc: |
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel

@@ -493,7 +493,7 @@ def replace(var, wrapper, message):
         if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
             cmodes += [("-v", target), ("+v", wrapper.source)]
 
-        toggle_modes = config.Main.get("gameplay.auto_mode_toggle", ())
+        toggle_modes = config.Main.get("transports.irc.channel.auto_mode_toggle", ())
         for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]: # user.channels is a set of current modes
             cmodes.append(("-" + mode, wrapper.source))
             channels.Main.old_modes[wrapper.source].add(mode)
@@ -773,7 +773,7 @@ def _join_player(var, wrapper, who=None, forced=False):
         cmodes.append(("+v", wrapper.source))
     if var.PHASE == "none":
         if not wrapper.source.is_fake:
-            toggle_modes = config.Main.get("gameplay.auto_mode_toggle", ())
+            toggle_modes = config.Main.get("transports.irc.channel.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
@@ -822,7 +822,7 @@ def _join_player(var, wrapper, who=None, forced=False):
 
         var.ALL_PLAYERS.append(wrapper.source)
         if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
-            toggle_modes = config.Main.get("gameplay.auto_mode_toggle", ())
+            toggle_modes = config.Main.get("transports.irc.channel.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
@@ -2258,21 +2258,7 @@ def getfeatures(cli, nick, *rest):
             var.MODES_PREFIXES = {}
             for combo in allp:
                 var.MODES_PREFIXES[combo[1]] = combo[0] # For some reason this needs to be backwards
-            toggle_modes = config.Main.get("gameplay.auto_mode_toggle", None)
-            if toggle_modes: # this is ugly, but I'm too lazy to fix it. it works, so that's fine
-                tocheck = set(toggle_modes)
-                for mode in tocheck:
-                    if not mode in var.MODES_PREFIXES.keys() and not mode in var.MODES_PREFIXES.values():
-                        var.AUTO_TOGGLE_MODES.remove(mode) # FIXME: this should be config.Main.get("gameplay.auto_mode_toggle", ()) but idk how
-                        continue
-                    if not mode in var.MODES_PREFIXES.values():
-                        for chp in var.MODES_PREFIXES.keys():
-                            if chp == mode:
-                                var.AUTO_TOGGLE_MODES.remove(chp)
-                                var.AUTO_TOGGLE_MODES.add(var.MODES_PREFIXES[mode])
 
-                if "v" in var.AUTO_TOGGLE_MODES:
-                    var.AUTO_TOGGLE_MODES.remove("v")
         if r.startswith("CHANMODES="):
             chans = r[10:].split(",")
             var.LISTMODES, var.MODES_ALLSET, var.MODES_ONLYSET, var.MODES_NOSET = chans
