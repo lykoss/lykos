@@ -5,6 +5,7 @@ import threading
 import time
 import functools
 import logging
+import typing
 import sys
 from typing import List, Optional, Union
 
@@ -16,6 +17,9 @@ from src.decorators import handle_error, command, hook
 from src.context import Features
 from src.users import User
 from src.events import Event, EventListener
+
+if typing.TYPE_CHECKING:
+    from oyoyo.client import IRCClient
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
@@ -48,7 +52,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         return  # not allowed in settings
 
     for fn in decorators.COMMANDS[""]:
-        fn.caller(var, wrapper, msg)
+        fn.caller(target.game_state, wrapper, msg)
 
     parts = msg.split(sep=" ", maxsplit=1)
     key = parts[0].lower()
@@ -59,7 +63,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     if wrapper.public and not key.startswith(config.Main.get("transports[0].user.command_prefix")):
         return  # channel message but no prefix; ignore
-    parse_and_dispatch(var, wrapper, key, message)
+    parse_and_dispatch(target.game_state, wrapper, key, message)
 
 def parse_and_dispatch(var,
                      wrapper: MessageDispatcher,
@@ -208,14 +212,14 @@ def latency(var, wrapper, message):
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
-def connect_callback(cli):
+def connect_callback(cli: IRCClient):
     regaincount = 0
     releasecount = 0
     logger = logging.getLogger("transport.{}".format(config.Main.get("transports[0].name")))
 
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
-    def prepare_stuff(cli, prefix, *args):
+    def prepare_stuff(cli: IRCClient, prefix: str, *args: str):
         logger.info("Received end of MOTD from {0}".format(prefix))
 
         # This callback only sets up event listeners
@@ -229,15 +233,23 @@ def connect_callback(cli):
             username = nick
         password = config.Main.get("transports[0].authentication.services.password")
         use_sasl = config.Main.get("transports[0].authentication.services.use_sasl")
+        services = config.Main.get("transports[0].authentication.services.module")
+        nickserv = None
+        cmd = None
+        if services in ("atheme", "anope", "generic"):
+            nickserv = "NickServ"
+            cmd = "IDENTIFY {account} {password}"
+        elif services == "undernet":
+            nickserv = "x@channels.undernet.org"
+            cmd = "LOGIN {account} {password}"
+        elif services != "none":
+            raise config.InvalidConfigValue(f"service module unrecognized: {services}")
         if password and not use_sasl:
-            cli.ns_identify(username,
-                            password,
-                            nickserv=var.NICKSERV,
-                            command=var.NICKSERV_IDENTIFY_COMMAND)
+            cli.ns_identify(username, password, nickserv, cmd)
 
         # give bot operators an opportunity to do some custom stuff here if they wish
         event = Event("irc_connected", {})
-        event.dispatch(var, cli)
+        event.dispatch(cli)
 
         main_channel = config.Main.get("transports[0].channels.main")
         if isinstance(main_channel, str):

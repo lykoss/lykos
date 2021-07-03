@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from enum import Enum
 from typing import Optional
+from collections import defaultdict
 import logging
 
 from src.context import IRCContext, Features, lower
@@ -85,8 +86,10 @@ class Channel(IRCContext):
         super().__init__(name, client)
         self.users = CheckedSet("channels.Channel.users")
         self.modes = {}
+        self.old_modes = defaultdict(set)
         self.timestamp = None
         self.state = _States.NotJoined
+        self.game_state = None
         self._pending = []
 
     def __del__(self):
@@ -257,8 +260,8 @@ class Channel(IRCContext):
                     user = users.get(targets[i], allow_bot=True)
                     self.modes[c].add(user)
                     user.channels[self].add(c)
-                    if user in var.OLD_MODES:
-                        var.OLD_MODES[user].discard(c)
+                    if user in self.old_modes:
+                        self.old_modes[user].discard(c)
                     i += 1
 
                 elif c in list_modes: # stuff like bans, quiets, and ban and invite exempts
@@ -312,7 +315,7 @@ class Channel(IRCContext):
         del user.channels[self]
         if not user.channels: # Only fire if the user left all channels
             event = Event("cleanup_user", {})
-            event.dispatch(var, user)
+            event.dispatch(self.game_state, user)
 
     def clear(self):
         for user in self.users:

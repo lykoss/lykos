@@ -17,6 +17,9 @@ class EmptyType:
 
 Empty = EmptyType()
 
+class InvalidConfigValue(ValueError):
+    pass
+
 def init():
     bp = Path(__file__).parent
     Main.load_metadata(bp / "defaultsettings.yml")

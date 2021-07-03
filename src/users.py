@@ -415,7 +415,9 @@ class User(IRCContext):
                         channel.modes[mode].add(self)
             if not isinstance(new, BotUser):
                 _users.add(new)
-            elif self is Bot:
+            else:
+                new.game_state = self.game_state
+            if self is Bot:
                 Bot = new
 
         # It is the containers' responsibility to properly remove themselves from the users
@@ -663,6 +665,7 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
     def __new__(cls, cli, nick, ident=None, host=None, account=None):
         self = super().__new__(cls, cli, nick, ident, host, account)
         self.modes = set()
+        self.game_state = None
         return self
 
     def change_nick(self, nick=None):
