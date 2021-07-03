@@ -662,11 +662,9 @@ class FakeUser(User):
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
-    def __new__(cls, cli, nick, ident=None, host=None, account=None):
-        self = super().__new__(cls, cli, nick, ident, host, account)
+    def __init__(self, *rest):
         self.modes = set()
         self.game_state = None
-        return self
 
     def change_nick(self, nick=None):
         if nick is None:

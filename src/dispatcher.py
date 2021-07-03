@@ -1,9 +1,7 @@
-from lykos.src import gamestate
 from typing import Union
 
 from src import channels, config, users
 from src.functions import get_players
-from src.gamestate import GameState
 
 class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
