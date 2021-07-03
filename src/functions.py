@@ -38,7 +38,7 @@ def get_players(var: GameState, roles=None, *, mainroles=None):
         return list(pl)
     return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(var, p)]
 
-def get_all_players(var: GameState, roles=None, *, rolemap=None): # FIXME: Fix call sites
+def get_all_players(var: GameState, roles=None, *, rolemap=None):
     from src.status import is_dying
     if rolemap is None:
         rolemap = var.ROLES
@@ -54,7 +54,7 @@ def get_all_players(var: GameState, roles=None, *, rolemap=None): # FIXME: Fix c
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants(var: GameState): # FIXME: Fix call sites
+def get_participants(var: GameState):
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players(var)})
     evt.dispatch(var)

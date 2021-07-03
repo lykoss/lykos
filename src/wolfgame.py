@@ -1767,7 +1767,7 @@ def account_change(evt, user, old_account): # FIXME: This uses var
     if user not in channels.Main.users:
         return # We only care about game-related changes in this function
 
-    pl = get_participants()
+    pl = get_participants(var)
     if user in pl and user.account not in var.ORIGINAL_ACCS.values() and user not in var.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.PHASE != "join":
@@ -1781,7 +1781,7 @@ def nick_change(evt, user, old_nick): # FIXME: This function needs some way to h
     if user not in channels.Main.users:
         return
 
-    pl = get_participants()
+    pl = get_participants(var)
     if user.account in var.ORIGINAL_ACCS.values() and user not in pl:
         for other in pl:
             if users.equals(user.account, other.account):
