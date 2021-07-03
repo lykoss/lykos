@@ -19,8 +19,8 @@ def try_exchange(var, actor, target):
 
     EXCHANGE.remove(target)
 
-    role = get_main_role(actor)
-    target_role = get_main_role(target)
+    role = get_main_role(var, actor)
+    target_role = get_main_role(var, target)
 
     actor_role = change_role(var, actor, role, target_role, inherit_from=target)
     target_role = change_role(var, target, target_role, role, inherit_from=actor)

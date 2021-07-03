@@ -55,7 +55,7 @@ def curse(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["curse_success"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, orig), {"warlock"}, role="warlock", command="curse")
 
-    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
@@ -105,7 +105,7 @@ def on_begin_day(evt, var):
     pl = get_players(var)
     wroles = get_wolfchat_roles(var)
     for warlock, target in CURSED.items():
-        if target in pl and get_main_role(target) not in wroles:
+        if target in pl and get_main_role(var, target) not in wroles:
             var.ROLES["cursed villager"].add(target)
 
     CURSED.clear()

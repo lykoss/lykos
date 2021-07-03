@@ -37,7 +37,7 @@ def vigilante_kill(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     wrapper.send(messages["player_kill"].format(orig))
-    debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
 def vigilante_retract(wrapper: MessageDispatcher, message: str):
@@ -77,7 +77,7 @@ def on_transition_day(evt, var):
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[vigilante]
 
-        if get_main_role(target) not in Wolf | Win_Stealer:
+        if get_main_role(var, target) not in Wolf | Win_Stealer:
             add_dying(var, vigilante, "vigilante", "night_kill")
 
 @event_listener("new_role")

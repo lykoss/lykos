@@ -312,7 +312,7 @@ def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[user
     if try_exchange(var, wrapper.source, target):
         return None
 
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
 
     # keys: shaman_success_night_known, shaman_success_random_known, shaman_success_night_unknown, shaman_success_random_unknown
     wrapper.send(messages[key].format(orig_target, totem))
@@ -327,7 +327,7 @@ def change_totem(var, player, totem, roles=None):
     Otherwise, changes the totem for all shaman roles the player has.
     If the player previously gave out totems, they are retracted.
     """
-    player_roles = get_all_roles(player)
+    player_roles = get_all_roles(var, player)
     shaman_roles = set(player_roles & _rolestate.keys())
     if roles is not None:
         shaman_roles.intersection_update(roles)
@@ -376,7 +376,7 @@ def on_see(evt, var, seer, target):
 @event_listener("lynch_immunity")
 def on_lynch_immunity(evt, var, user, reason):
     if reason == "totem":
-        role = get_main_role(user)
+        role = get_main_role(var, user)
         rev_evt = Event("role_revealed", {})
         rev_evt.dispatch(var, user, role)
 
@@ -397,7 +397,7 @@ def on_lynch(evt, var, votee, voters):
             to_send = "totem_desperation_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
                 to_send = "totem_desperation"
-            channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(target)))
+            channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(var, target)))
             status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
             # no kill_players() call here; let our caller do that for us
 
@@ -473,7 +473,7 @@ def on_transition_day_resolve6(evt, var, victims):
             if loser in evt.data["dead"] or victim is loser:
                 loser = None
             if loser is not None:
-                protected = try_protection(var, loser, victim, get_main_role(victim), "retribution_totem")
+                protected = try_protection(var, loser, victim, get_main_role(var, victim), "retribution_totem")
                 if protected is not None:
                     channels.Main.send(*protected)
                     return
@@ -482,7 +482,7 @@ def on_transition_day_resolve6(evt, var, victims):
                 to_send = "totem_death_no_reveal"
                 if var.ROLE_REVEAL in ("on", "team"):
                     to_send = "totem_death"
-                evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(loser)))
+                evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(var, loser)))
 
 @event_listener("transition_day_end", priority=1)
 def on_transition_day_end(evt, var):

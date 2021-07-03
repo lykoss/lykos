@@ -137,7 +137,7 @@ def change_role(var: GameState, player, oldrole, newrole, *, inherit_from=None, 
 
     return newrole
 
-def get_main_role(var: GameState, user): # FIXME: Fix call sites
+def get_main_role(var: GameState, user):
     role = var.MAIN_ROLES.get(user)
     if role is not None:
         return role
@@ -153,7 +153,7 @@ def get_main_role(var: GameState, user): # FIXME: Fix call sites
 def get_all_roles(var: GameState, user):
     return {role for role, users in var.ROLES.items() if user in users}
 
-def get_reveal_role(var: GameState, user) -> str: # FIXME: Fix call sites
+def get_reveal_role(var: GameState, user) -> str:
     evt = Event("get_reveal_role", {"role": get_main_role(var, user)})
     evt.dispatch(var, user)
     role = evt.data["role"]

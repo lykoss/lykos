@@ -43,7 +43,7 @@ def clone(wrapper: MessageDispatcher, message: str):
     ACTED.add(wrapper.source)
     wrapper.pm(messages["clone_target_success"].format(target))
 
-    debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
@@ -73,7 +73,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                     else:
                         CLONED[clone] = CLONED[player]
                         clone.send(messages["clone_success"].format(CLONED[clone]))
-                        debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, CLONED[clone], get_main_role(CLONED[clone])))
+                        debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, CLONED[clone], get_main_role(var, CLONED[clone])))
 
                 debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
 

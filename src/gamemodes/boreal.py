@@ -149,7 +149,7 @@ class BorealMode(GameMode):
         num_wolf_shamans = len(get_players(var, ("wolf shaman",)))
         ps = get_players(var)
         for p in ps:
-            if get_main_role(p) in Wolfteam:
+            if get_main_role(var, p) in Wolfteam:
                 continue # wolf shamans can't starve
 
             if self.totem_tracking[p] > 0:
@@ -168,7 +168,7 @@ class BorealMode(GameMode):
                 # if there are less VGs than alive wolf shamans, they become a wendigo as well
                 if num_wendigos < num_wolf_shamans:
                     num_wendigos += 1
-                    change_role(var, p, get_main_role(p), "vengeful ghost", message=None)
+                    change_role(var, p, get_main_role(var, p), "vengeful ghost", message=None)
                 add_dying(var, p, killer_role="villager", reason="boreal_starvation")
             elif self.hunger_levels[p] >= 3:
                 # if they are at 3 or 4, alert them that they are hungry
@@ -189,13 +189,13 @@ class BorealMode(GameMode):
             evt.data["message"]["*"].append(messages["boreal_day_count"].format(remain))
 
     def on_lynch(self, evt, var, votee, voters):
-        if get_main_role(votee) not in Wolfteam:
+        if get_main_role(var, votee) not in Wolfteam:
             # if there are less VGs than alive wolf shamans, they become a wendigo as well
             from src.roles import vengefulghost
             num_wendigos = len(vengefulghost.GHOSTS)
             num_wolf_shamans = len(get_players(var, ("wolf shaman",)))
             if num_wendigos < num_wolf_shamans:
-                change_role(var, votee, get_main_role(votee), "vengeful ghost", message=None)
+                change_role(var, votee, get_main_role(var, votee), "vengeful ghost", message=None)
 
     def on_del_player(self, evt, var, player, all_roles, death_triggers):
         for a, b in list(self.hunger_levels.items()):

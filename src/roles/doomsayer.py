@@ -51,7 +51,7 @@ def see(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
 
     mode, mapping = random.choice(_mappings)
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))

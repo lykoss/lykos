@@ -42,7 +42,7 @@ def bless(wrapper: MessageDispatcher, message: str):
     var.ROLES["blessed villager"].add(target)
     wrapper.pm(messages["blessed_success"].format(target))
     target.send(messages["blessed_notify_target"])
-    debuglog("{0} (priest) BLESS: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (priest) BLESS: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def consecrate(wrapper: MessageDispatcher, message: str):

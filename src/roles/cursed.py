@@ -27,5 +27,5 @@ def on_send_role(evt, var):
     cursed = get_all_players(var, ("cursed villager",))
     wolves = get_all_players(var, Wolfchat)
     for player in cursed:
-        if get_main_role(player) == "cursed villager" or player in wolves:
+        if get_main_role(var, player) == "cursed villager" or player in wolves:
             player.send(messages["cursed_notify"])

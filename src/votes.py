@@ -294,7 +294,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                         to_send = "lynch_no_reveal"
                         if var.ROLE_REVEAL in ("on", "team"):
                             to_send = "lynch_reveal"
-                        lmsg = messages[to_send].format(votee, get_reveal_role(votee))
+                        lmsg = messages[to_send].format(votee, get_reveal_role(var, votee))
                         channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "lynch")
 

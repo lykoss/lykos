@@ -54,7 +54,7 @@ def vg_kill(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("retract", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(wrapper: MessageDispatcher, message: str):
@@ -79,7 +79,7 @@ def on_consecrate(evt, var, actor, target):
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target, role):
-    if evt.data["hit"] and "vengeful ghost" in get_all_roles(target):
+    if evt.data["hit"] and "vengeful ghost" in get_all_roles(var, target):
         # VGs automatically die if hit by a gun to make gunner a bit more dangerous in some modes
         evt.data["kill"] = True
         

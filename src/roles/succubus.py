@@ -64,7 +64,7 @@ def hvisit(wrapper: MessageDispatcher, message: str):
         revt = Event("visit", {})
         revt.dispatch(var, "succubus", wrapper.source, target)
 
-    debuglog("{0} (succubus) VISIT: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (succubus) VISIT: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
@@ -169,7 +169,7 @@ def on_transition_day_resolve_end(evt, var, victims):
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for succubus in VISITED:
                 if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
-                    role = get_reveal_role(succubus)
+                    role = get_reveal_role(var, succubus)
                     to_send = "visited_victim_noreveal"
                     if var.ROLE_REVEAL in ("on", "team"):
                         to_send = "visited_victim"

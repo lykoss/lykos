@@ -6,7 +6,7 @@ register_wolf("werekitten")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target, role):
-    if "werekitten" in get_all_roles(target):
+    if "werekitten" in get_all_roles(var, target):
         evt.data["hit"] = False
         evt.data["kill"] = False
 

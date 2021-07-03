@@ -42,7 +42,7 @@ def hunter_kill(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
 def hunter_retract(wrapper: MessageDispatcher, message: str):

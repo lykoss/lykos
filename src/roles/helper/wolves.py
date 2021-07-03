@@ -42,7 +42,7 @@ def wolf_kill(wrapper: MessageDispatcher, message: str):
     """Kill one or more players as a wolf."""
     var = wrapper.game_state
     # verify this user can actually kill
-    if not get_all_roles(wrapper.source) & Wolf & Killer:
+    if not get_all_roles(var, wrapper.source) & Wolf & Killer:
         return
 
     pieces = re.split(" +", message)
@@ -97,7 +97,7 @@ def wolf_kill(wrapper: MessageDispatcher, message: str):
 def wolf_retract(wrapper: MessageDispatcher, message: str):
     """Removes a wolf's kill selection."""
     var = wrapper.game_state
-    if not get_all_roles(wrapper.source) & Wolf & Killer:
+    if not get_all_roles(var, wrapper.source) & Wolf & Killer:
         return
 
     if wrapper.source in KILLS:
@@ -290,7 +290,7 @@ def on_reset(evt, var):
 
 @event_listener("gun_shoot", priority=3)
 def on_gun_shoot(evt, var, user, target, role):
-    if evt.data["hit"] and get_main_role(target) in Wolf:
+    if evt.data["hit"] and get_main_role(var, target) in Wolf:
         # wolves (as a main role) always die when shot
         # don't auto-kill wolves if they're only secondary roles
         evt.data["kill"] = True
@@ -320,7 +320,7 @@ def wolf_can_kill(var, wolf):
     num_kills = nevt.data["numkills"]
     if num_kills == 0:
         return False
-    wolfroles = get_all_roles(wolf)
+    wolfroles = get_all_roles(var, wolf)
     return bool(Wolf & Killer & wolfroles)
 
 def get_wolfchat_roles(var):
@@ -342,8 +342,8 @@ def get_talking_roles(var):
     return roles
 
 def is_known_wolf_ally(var, actor, target):
-    actor_role = get_main_role(actor)
-    target_role = get_main_role(target)
+    actor_role = get_main_role(var, actor)
+    target_role = get_main_role(var, target)
     wolves = get_wolfchat_roles(var)
     return actor_role in wolves and target_role in wolves
 

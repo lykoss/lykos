@@ -49,7 +49,7 @@ def observe(wrapper: MessageDispatcher, message: str):
 def on_transition_day_begin(evt, var):
     for crow, target in OBSERVED.items():
         # if any of target's roles (primary or secondary) are Nocturnal, we see them as awake
-        roles = get_all_roles(target)
+        roles = get_all_roles(var, target)
         if roles & Nocturnal:
             crow.send(messages["werecrow_success"].format(target))
         else:

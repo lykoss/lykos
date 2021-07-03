@@ -48,10 +48,10 @@ def on_see(evt, var, seer, target):
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
-    if evt.data["role"] == "wolf" and old_role == "wild child" and evt.params.inherit_from and "wild child" in get_all_roles(evt.params.inherit_from):
+    if evt.data["role"] == "wolf" and old_role == "wild child" and evt.params.inherit_from and "wild child" in get_all_roles(var, evt.params.inherit_from):
         evt.data["role"] = "wild child"
 
-    if evt.params.inherit_from in IDOLS and "wild child" not in get_all_roles(user):
+    if evt.params.inherit_from in IDOLS and "wild child" not in get_all_roles(var, user):
         IDOLS[user] = IDOLS.pop(evt.params.inherit_from)
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
@@ -87,7 +87,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     for child in get_all_players(var, ("wild child",)):
         if IDOLS.get(child) is player:
             # Change their main role to wolf
-            change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
+            change_role(var, child, get_main_role(var, child), "wolf", message="wild_child_idol_died")
             var.ROLES["wild child"].add(child)
 
 @event_listener("chk_nightdone")
@@ -106,7 +106,7 @@ def on_transition_day_begin(evt, var):
                     idol = random.choice(players)
                     IDOLS[child] = idol
                     child.send(messages["wild_child_random_idol"].format(idol))
-                    idol_role = get_main_role(idol)
+                    idol_role = get_main_role(var, idol)
                     debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, idol_role))
 
 @event_listener("send_role")

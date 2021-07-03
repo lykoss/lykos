@@ -78,11 +78,11 @@ def charm(wrapper: MessageDispatcher, message: str):
 
     if orig2:
         debuglog("{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(wrapper.source,
-                                                                 target1, get_main_role(target1),
-                                                                 target2, get_main_role(target2)))
+                                                                 target1, get_main_role(var, target1),
+                                                                 target2, get_main_role(var, target2)))
         wrapper.send(messages["charm_multiple_success"].format(orig1, orig2))
     else:
-        debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(target1)))
+        debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(var, target1)))
         wrapper.send(messages["charm_success"].format(orig1))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))

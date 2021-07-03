@@ -57,17 +57,17 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     kill1 = prots1 is None and add_dying(var, target1, killer_role="mad scientist", reason="mad_scientist")
     kill2 = prots2 is None and target1 is not target2 and add_dying(var, target2, killer_role="mad scientist", reason="mad_scientist")
 
-    role1 = kill1 and get_reveal_role(target1)
-    role2 = kill2 and get_reveal_role(target2)
+    role1 = kill1 and get_reveal_role(var, target1)
+    role2 = kill2 and get_reveal_role(var, target2)
     if kill1 and kill2:
         to_send = "mad_scientist_kill"
-        debuglog(player.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(target1), target2, get_main_role(target2)))
+        debuglog(player.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(var, target1), target2, get_main_role(var, target2)))
     elif kill1:
         to_send = "mad_scientist_kill_single"
-        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(target1)))
+        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(var, target1)))
     elif kill2:
         to_send = "mad_scientist_kill_single"
-        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(target2)))
+        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(var, target2)))
         # swap the targets around to show the proper target
         target1, target2 = target2, target1
         role1, role2 = role2, role1

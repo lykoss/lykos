@@ -980,10 +980,10 @@ def fleave(wrapper: MessageDispatcher, message: str):
                 return
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
-            if get_main_role(target) != "person" and var.ROLE_REVEAL in ("on", "team"):
-                msg.append(messages["fquit_goodbye"].format(get_reveal_role(target)))
+            if get_main_role(var, target) != "person" and var.ROLE_REVEAL in ("on", "team"):
+                msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
             if var.PHASE == "join":
-                player_count = len(get_players()) - 1
+                player_count = len(get_players(var)) - 1
                 to_say = "new_player_count"
                 if not player_count:
                     to_say = "no_players_remaining"
@@ -1615,7 +1615,7 @@ def reaper(cli, gameid):
                         var.IDLE_WARNED_PM.discard(user)
                 for user in to_kill:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        channels.Main.send(messages["idle_death"].format(user, get_reveal_role(user)))
+                        channels.Main.send(messages["idle_death"].format(user, get_reveal_role(var, user)))
                     else:
                         channels.Main.send(messages["idle_death_no_reveal"].format(user))
                     if var.PHASE in var.GAME_PHASES:
@@ -1634,8 +1634,8 @@ def reaper(cli, gameid):
                 if msg_targets:
                     p.send_messages()
             for dcedplayer, (timeofdc, what) in list(var.DISCONNECTED.items()):
-                mainrole = get_main_role(dcedplayer)
-                revealrole = get_reveal_role(dcedplayer)
+                mainrole = get_main_role(var, dcedplayer)
+                revealrole = get_reveal_role(var, dcedplayer)
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
@@ -1841,7 +1841,7 @@ def leave(var, what, user, why=None):
             population = " " + messages["new_player_count"].format(lpl)
 
     reveal = ""
-    if get_main_role(user) == "person" or var.ROLE_REVEAL not in ("on", "team"):
+    if get_main_role(var, user) == "person" or var.ROLE_REVEAL not in ("on", "team"):
         reveal = "_no_reveal"
 
     grace_times = {"part": var.PART_GRACE_TIME, "quit": var.QUIT_GRACE_TIME, "account": var.ACC_GRACE_TIME, "leave": 0}
@@ -1863,7 +1863,7 @@ def leave(var, what, user, why=None):
         population = ""
         killplayer = False
 
-    channels.Main.send(msg.format(user, get_reveal_role(user)) + population)
+    channels.Main.send(msg.format(user, get_reveal_role(var, user)) + population)
     var.SPECTATING_WOLFCHAT.discard(user)
     var.SPECTATING_DEADCHAT.discard(user)
     leave_deadchat(var, user)
@@ -1900,8 +1900,8 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     else:
         return
 
-    if get_main_role(wrapper.source) != "person" and var.ROLE_REVEAL in ("on", "team"):
-        role = get_reveal_role(wrapper.source)
+    if get_main_role(var, wrapper.source) != "person" and var.ROLE_REVEAL in ("on", "team"):
+        role = get_reveal_role(var, wrapper.source)
         channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
         channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
@@ -2135,7 +2135,7 @@ def transition_day(var, gameid=0): # FIXME: Fix call sites
                     role = "wolf"
                 else:
                     attacker = killer
-                    role = get_main_role(killer)
+                    role = get_main_role(var, killer)
                 protected = try_protection(var, victim, attacker, role, reason="night_death")
                 if protected is not None:
                     revt.data["message"][victim].extend(protected)
@@ -2148,7 +2148,7 @@ def transition_day(var, gameid=0): # FIXME: Fix call sites
             to_send = "death_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
                 to_send = "death"
-            revt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(victim)))
+            revt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(var, victim)))
             revt.data["dead"].append(victim)
 
     # Priorities:
@@ -2200,10 +2200,10 @@ def transition_day(var, gameid=0): # FIXME: Fix call sites
             if killer == "@wolves":
                 killer_role[deadperson] = "wolf"
             else:
-                killer_role[deadperson] = get_main_role(killer)
+                killer_role[deadperson] = get_main_role(var, killer)
         else:
             # no killers, so assume suicide
-            killer_role[deadperson] = get_main_role(deadperson)
+            killer_role[deadperson] = get_main_role(var, deadperson)
 
         add_dying(var, deadperson, killer_role[deadperson], "night_kill")
 
@@ -3028,7 +3028,7 @@ def myrole(wrapper: MessageDispatcher, message: str):
     if wrapper.source not in ps:
         return
 
-    role = get_main_role(wrapper.source)
+    role = get_main_role(var, wrapper.source)
     if role in Hidden:
         role = var.HIDDEN_ROLE
 

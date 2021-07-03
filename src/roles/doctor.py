@@ -50,7 +50,7 @@ def immunize(wrapper: MessageDispatcher, message: str):
     remove_lycanthropy(var, target)
     remove_disease(var, target)
 
-    debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("add_lycanthropy")
 def on_add_lycanthropy(evt, var, target):

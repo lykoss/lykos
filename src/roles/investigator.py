@@ -87,7 +87,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
 
     INVESTIGATED.add(wrapper.source)
     debuglog("{0} (investigator) ID: {1} ({2}) and {3} ({4}) as {5}".format(
-        wrapper.source, target1, get_main_role(target1), target2, get_main_role(target2),
+        wrapper.source, target1, get_main_role(var, target1), target2, get_main_role(var, target2),
         "same" if evt.data["same"] else "different"))
 
 @event_listener("del_player")

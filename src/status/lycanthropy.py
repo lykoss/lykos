@@ -74,7 +74,7 @@ def on_transition_day_resolve_end(evt, var, victims):
     evt2.dispatch(var, "lycanthropy_role")
     for victim in victims:
         if victim in LYCANTHROPES and evt.data["killers"][victim] == ["@wolves"] and victim in evt.data["dead"]:
-            vrole = get_main_role(victim)
+            vrole = get_main_role(var, victim)
             if vrole not in Wolf:
                 new_role = "wolf"
                 prefix = LYCANTHROPES[victim]

@@ -72,9 +72,9 @@ def kill_players(var, *, end_game: bool = True) -> bool:
 
         while DYING:
             player, (killer_role, reason, death_triggers) = DYING.popitem()
-            main_role = get_main_role(player)
-            reveal_role = get_reveal_role(player)
-            all_roles = get_all_roles(player)
+            main_role = get_main_role(var, player)
+            reveal_role = get_reveal_role(var, player)
+            all_roles = get_all_roles(var, player)
             # kill them off
             del var.MAIN_ROLES[player]
             for role in all_roles:
@@ -121,4 +121,4 @@ def kill_off_dying_players(evt, var, victims):
             to_send = "death_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
                 to_send = "death"
-            evt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(victim)))
+            evt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(var, victim)))

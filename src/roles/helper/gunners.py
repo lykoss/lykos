@@ -52,8 +52,8 @@ def setup_variables(rolename):
         shoot_evt = Event("gun_shoot", {"hit": rand <= gun_evt.data["hit"], "kill": random.random() <= gun_evt.data["headshot"]})
         shoot_evt.dispatch(var, wrapper.source, target, rolename)
 
-        realrole = get_main_role(target)
-        targrole = get_reveal_role(target)
+        realrole = get_main_role(var, target)
+        targrole = get_reveal_role(var, target)
 
         if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
@@ -62,7 +62,7 @@ def setup_variables(rolename):
                 if var.ROLE_REVEAL == "on":
                     to_send = "gunner_victim_wolf_death"
                 wrapper.send(messages[to_send].format(target, targrole))
-                add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
+                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
                 if kill_players(var):
                     return
             elif shoot_evt.data["kill"]:
@@ -72,7 +72,7 @@ def setup_variables(rolename):
                 wrapper.send(messages[to_send].format(target))
                 if var.ROLE_REVEAL in ("on", "team"):
                     wrapper.send(messages["gunner_victim_role"].format(targrole))
-                add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
+                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
                 if kill_players(var):
                     return
             else:
@@ -90,7 +90,7 @@ def setup_variables(rolename):
             to_send = "gunner_suicide_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
                 to_send = "gunner_suicide"
-            wrapper.send(messages[to_send].format(wrapper.source, get_reveal_role(wrapper.source)))
+            wrapper.send(messages[to_send].format(wrapper.source, get_reveal_role(var, wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
@@ -116,7 +116,7 @@ def setup_variables(rolename):
                             to_send = "gunner_killed_wolf_overnight_no_reveal"
                             if var.ROLE_REVEAL in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
-                            evt.data["message"][victim].append(messages[to_send].format(victim, shot, get_reveal_role(shot)))
+                            evt.data["message"][victim].append(messages[to_send].format(victim, shot, get_reveal_role(var, shot)))
                             evt.data["dead"].append(shot)
                             evt.data["killers"][shot].append(victim)
                         elif event.data["hit"]:

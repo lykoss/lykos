@@ -45,7 +45,7 @@ def hvisit(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    vrole = get_main_role(target)
+    vrole = get_main_role(var, target)
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
@@ -92,7 +92,7 @@ def on_transition_day_resolve_end(evt, var, victims):
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for hlt in VISITED:
                 if VISITED[hlt] is victim and hlt not in evt.data["dead"]:
-                    role = get_reveal_role(hlt)
+                    role = get_reveal_role(var, hlt)
                     to_send = "visited_victim_noreveal"
                     if var.ROLE_REVEAL in ("on", "team"):
                         to_send = "visited_victim"

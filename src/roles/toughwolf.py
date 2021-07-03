@@ -29,7 +29,7 @@ def on_lynch_immunity(evt, var, player, reason):
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target, role):
-    if "tough wolf" in get_all_roles(target):
+    if "tough wolf" in get_all_roles(var, target):
         evt.data["kill"] = False
 
 @event_listener("get_role_metadata")

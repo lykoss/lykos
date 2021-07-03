@@ -42,7 +42,7 @@ def dullahan_kill(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
 def dullahan_retract(wrapper: MessageDispatcher, message: str):
@@ -79,11 +79,11 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                     return
 
                 if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(target)
+                    role = get_reveal_role(var, target)
                     channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
                     channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
-                debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
+                debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(player, target, get_main_role(var, target)))
                 add_dying(var, target, "dullahan", "dullahan_die")
 
 @event_listener("transition_day", priority=2)

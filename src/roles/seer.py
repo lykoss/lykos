@@ -38,7 +38,7 @@ def see(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
     trole = targrole # keep a copy for logging
 
     if targrole in Cursed:
