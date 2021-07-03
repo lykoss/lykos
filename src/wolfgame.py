@@ -209,7 +209,7 @@ def connect_callback():
                 channels.Main.send(*players, first="PING! ")
                 channels.Main.send(messages["game_restart_cancel"])
 
-            var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
+            var.CURRENT_GAMEMODE = None
             reset()
 
             who_end_listener.remove("who_end")
@@ -254,7 +254,7 @@ def connect_callback():
 
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
-    var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
+    var.CURRENT_GAMEMODE = None
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     var.ORIGINAL_SETTINGS.clear()
@@ -2949,6 +2949,10 @@ def list_roles(var, wrapper, message):
 
     pieces = re.split(" +", message.strip())
     gamemode = var.CURRENT_GAMEMODE
+
+    if gamemode is None:
+        wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
+        return
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
         minp = max(var.GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)

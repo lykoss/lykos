@@ -303,23 +303,6 @@ def start(var, wrapper, *, forced=False, restart=""):
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
 
-    if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
-        need_reset = True
-        wvs = sum(addroles[r] for r in Wolfchat)
-        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.CURRENT_GAMEMODE.SECONDARY_ROLES)):
-            wrapper.send(messages["too_few_players_custom"])
-        elif not wvs:
-            wrapper.send(messages["need_one_wolf"])
-        elif wvs > (len(villagers) / 2):
-            wrapper.send(messages["too_many_wolves"])
-        else:
-            need_reset = False
-
-        if need_reset:
-            wrapper.send(messages["default_reset"])
-            stop_game(var, abort=True, log=False)
-            return
-
     if var.ADMIN_TO_PING is not None and not restart:
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
@@ -473,10 +456,10 @@ def start(var, wrapper, *, forced=False, restart=""):
             evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
             evt.dispatch(var, player, None)
 
+    start_event = Event("start_game", {"custom_game_callback": None})  # defined here to make the linter happy
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
-        event = Event("start_game", {})
-        event.dispatch(var, gamemode, var.CURRENT_GAMEMODE)
+        start_event.dispatch(var, gamemode, var.CURRENT_GAMEMODE)
 
         # Alert the players to option changes they may not be aware of
         # All keys begin with gso_* (game start options)
@@ -513,7 +496,9 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     if restart:
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
-    if not var.START_WITH_DAY:
+    elif start_event.data["custom_game_callback"]:
+        start_event.data["custom_game_callback"](var)
+    elif not var.START_WITH_DAY:
         from src.wolfgame import transition_night
         var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night()

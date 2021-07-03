@@ -4,9 +4,6 @@ import os.path
 import glob
 import importlib
 
-# get built-in modes
-import src.gamemodes
-
 path = os.path.dirname(os.path.abspath(__file__))
 search = os.path.join(path, "*.py")
 

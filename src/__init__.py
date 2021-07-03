@@ -91,17 +91,17 @@ from src import handler
 # Do the same with roles
 
 try:
-    import roles # type: ignore
-    if not roles.CUSTOM_ROLES_DEFINED:
+    import roles as custom_roles # type: ignore
+    if not custom_roles.CUSTOM_ROLES_DEFINED:
         raise AttributeError()
 except (ModuleNotFoundError, AttributeError):
-    import src.roles
-    src.roles.import_builtin_roles()
+    from src import roles
+    roles.import_builtin_roles()
 
 try:
-    import gamemodes # type: ignore
-    if not gamemodes.CUSTOM_MODES_DEFINED:
+    import gamemodes as custom_gamemodes # type: ignore
+    if not custom_gamemodes.CUSTOM_MODES_DEFINED:
         raise AttributeError()
 except (ModuleNotFoundError, AttributeError):
-    import src.gamemodes
-    src.gamemodes.import_builtin_modes()
+    from src import gamemodes
+    gamemodes.import_builtin_modes()
