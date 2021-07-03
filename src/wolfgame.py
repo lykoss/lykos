@@ -493,7 +493,7 @@ def replace(var, wrapper, message):
         if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
             cmodes += [("-v", target), ("+v", wrapper.source)]
 
-        toggle_modes = config.Main.get("transports.irc.channel.auto_mode_toggle", ())
+        toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
         for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]: # user.channels is a set of current modes
             cmodes.append(("-" + mode, wrapper.source))
             channels.Main.old_modes[wrapper.source].add(mode)
@@ -773,7 +773,7 @@ def _join_player(var, wrapper, who=None, forced=False):
         cmodes.append(("+v", wrapper.source))
     if var.PHASE == "none":
         if not wrapper.source.is_fake:
-            toggle_modes = config.Main.get("transports.irc.channel.auto_mode_toggle", ())
+            toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
@@ -822,7 +822,7 @@ def _join_player(var, wrapper, who=None, forced=False):
 
         var.ALL_PLAYERS.append(wrapper.source)
         if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
-            toggle_modes = config.Main.get("transports.irc.channel.auto_mode_toggle", ())
+            toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
