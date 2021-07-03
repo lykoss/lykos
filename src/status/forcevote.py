@@ -31,14 +31,14 @@ def _add_count(var, votee: User, amount: int) -> None:
 
 def add_force_vote(var, votee: User, targets: Iterable[User]) -> None:
     """Force votee to vote for the specified targets."""
-    if votee not in get_players():
+    if votee not in get_players(var):
         return
     _add_count(var, votee, 1)
     FORCED_TARGETS.setdefault(votee, UserSet()).update(targets)
 
 def add_force_abstain(var, votee: User) -> None:
     """Force votee to abstain."""
-    if votee not in get_players():
+    if votee not in get_players(var):
         return
     _add_count(var, votee, -1)
 
@@ -82,7 +82,7 @@ def on_del_player(evt, var, player, allroles, death_triggers):
 @event_listener("revealroles")
 def on_revealroles(evt, var):
     if FORCED_COUNTS:
-        num_players = len(get_players())
+        num_players = len(get_players(var))
         vlist = []
         alist = []
         for p, n in FORCED_COUNTS.items():

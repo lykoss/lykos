@@ -82,7 +82,7 @@ def on_chk_nightdone(evt, var):
     # add in turncoats who should be able to act or who passed
     # but if they can act they're in TURNCOATS where the second tuple item is the current night
     # (if said tuple item is the previous night, then they are not allowed to act tonight)
-    pl = get_players()
+    pl = get_players(var)
     evt.data["acted"].extend(PASSED)
     for turncoat, (team, night) in TURNCOATS.items():
         if turncoat not in pl:

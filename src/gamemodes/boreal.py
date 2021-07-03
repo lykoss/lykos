@@ -119,8 +119,8 @@ class BorealMode(GameMode):
                 evt.data["totems"] = {"retribution": 1}
 
     def on_transition_night_begin(self, evt, var):
-        num_s = len(get_players(("shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
-        num_ws = len(get_players(("wolf shaman",)))
+        num_s = len(get_players(var, ("shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
+        num_ws = len(get_players(var, ("wolf shaman",)))
         # as wolf shamans die, we want to pass some extras onto the remaining ones; each ws caps at 2 totems though
         self.ws_extra_totem = int(num_s * self.ws_num_totem_percent) - num_ws
 
@@ -132,8 +132,8 @@ class BorealMode(GameMode):
             self.phase = 2
         # determine how many tribe members need to be fed. It's a percentage of remaining shamans
         # Each alive WS reduces the percentage needed; the number is rounded off (.5 rounding to even)
-        percent = self.village_hunger_percent_base - self.village_hunger_percent_adj * len(get_players(("wolf shaman",)))
-        self.village_hunger = round(len(get_players(("shaman",))) * percent)
+        percent = self.village_hunger_percent_base - self.village_hunger_percent_adj * len(get_players(var, ("wolf shaman",)))
+        self.village_hunger = round(len(get_players(var, ("shaman",))) * percent)
 
     def on_wolf_numkills(self, evt, var, wolf):
         evt.data["numkills"] = 0
@@ -146,8 +146,8 @@ class BorealMode(GameMode):
     def on_transition_day_begin(self, evt, var):
         from src.roles import vengefulghost
         num_wendigos = len(vengefulghost.GHOSTS)
-        num_wolf_shamans = len(get_players(("wolf shaman",)))
-        ps = get_players()
+        num_wolf_shamans = len(get_players(var, ("wolf shaman",)))
+        ps = get_players(var)
         for p in ps:
             if get_main_role(p) in Wolfteam:
                 continue # wolf shamans can't starve
@@ -193,7 +193,7 @@ class BorealMode(GameMode):
             # if there are less VGs than alive wolf shamans, they become a wendigo as well
             from src.roles import vengefulghost
             num_wendigos = len(vengefulghost.GHOSTS)
-            num_wolf_shamans = len(get_players(("wolf shaman",)))
+            num_wolf_shamans = len(get_players(var, ("wolf shaman",)))
             if num_wendigos < num_wolf_shamans:
                 change_role(var, votee, get_main_role(votee), "vengeful ghost", message=None)
 

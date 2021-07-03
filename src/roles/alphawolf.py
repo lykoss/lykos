@@ -85,7 +85,7 @@ def on_transition_day(evt, var):
 def on_begin_day(evt, var):
     # Refund failed bites
     for alpha, target in BITTEN.items():
-        if alpha in get_players() and target not in get_players(Wolf):
+        if alpha in get_players(var) and target not in get_players(var, Wolf):
             alpha.send(messages["alpha_bite_failure"].format(target))
         else:
             alpha.send(messages["alpha_bite_success"].format(target))

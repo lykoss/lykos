@@ -48,7 +48,7 @@ class GuardianMode(GameMode):
         }
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-        lguardians = len(get_players(["guardian angel", "bodyguard"], mainroles=mainroles))
+        lguardians = len(get_players(var, ["guardian angel", "bodyguard"], mainroles=mainroles))
 
         if lpl < 1:
             # handled by default win cond checking

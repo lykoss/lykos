@@ -101,13 +101,13 @@ def on_new_role(evt, var, user, old_role):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(KILLS)
     evt.data["acted"].extend(PASSED)
-    hunter_users = get_all_players(("hunter",))
+    hunter_users = get_all_players(var, ("hunter",))
     evt.data["nightroles"].extend([p for p in hunter_users if p not in HUNTERS or p in KILLS])
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
-    for hunter in get_all_players(("hunter",)):
+    ps = get_players(var)
+    for hunter in get_all_players(var, ("hunter",)):
         if hunter in HUNTERS:
             continue # already killed
         pl = ps[:]

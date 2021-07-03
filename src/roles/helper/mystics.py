@@ -25,12 +25,12 @@ def register_mystic(rolename, *, send_role, types):
 
         for t in types:
             cat = cats.get(t)
-            players = get_players(cat)
+            players = get_players(var, cat)
             values.append((len(players), t))
 
         msg = messages["mystic_info_initial"].format(values[0][0], [messages["mystic_join"].format(c, t) for c, t in values])
 
-        for mystic in get_all_players((rolename,)):
+        for mystic in get_all_players(var, (rolename,)):
             LAST_COUNT[mystic] = values
             if send_role:
                 to_send = "{0}_notify".format(role)

@@ -17,7 +17,7 @@ IMMUNITY: DefaultUserDict[User, Set[str]] = DefaultUserDict(set)
 
 def add_lynch_immunity(var, user, reason):
     """Make user immune to lynching for one day."""
-    if user not in get_players():
+    if user not in get_players(var):
         return
     IMMUNITY[user].add(reason)
 

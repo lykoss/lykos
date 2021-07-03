@@ -21,7 +21,7 @@ __all__ = [
     "match_role", "match_mode", "match_totem"
     ]
 
-def get_players(var: GameState, roles=None, *, mainroles=None): # FIXME: Fix call sites
+def get_players(var: GameState, roles=None, *, mainroles=None):
     from src.status import is_dying
     if mainroles is None:
         mainroles = var.MAIN_ROLES

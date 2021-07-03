@@ -47,7 +47,7 @@ def bless(wrapper: MessageDispatcher, message: str):
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def consecrate(wrapper: MessageDispatcher, message: str):
     """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
-    alive = get_players()
+    alive = get_players(var)
     targ = re.split(" +", message)[0]
     if not targ:
         wrapper.pm(messages["not_enough_parameters"])

@@ -88,12 +88,12 @@ def on_new_role(evt, var, player, old_role):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(GUARDED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_players(("guardian angel",)))
+    evt.data["nightroles"].extend(get_players(var, ("guardian angel",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
     for gangel in get_all_players(("guardian angel",)):
-        if GUARDED.get(gangel) in get_players(Wolf) and gangel not in evt.data["dead"]:
+        if GUARDED.get(gangel) in get_players(var, Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 to_send = "guardian_angel_protected_wolf_no_reveal"
@@ -110,7 +110,7 @@ def on_transition_night_begin(evt, var):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
+    ps = get_players(var)
     for gangel in get_all_players(("guardian angel",)):
         pl = ps[:]
         random.shuffle(pl)

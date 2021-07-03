@@ -19,7 +19,7 @@ def on_send_role(evt, var):
         cultroles = {"cultist"}
         if var.HIDDEN_ROLE == "cultist":
             cultroles |= Hidden
-        cultists = get_players(cultroles)
+        cultists = get_players(var, cultroles)
         if cultists:
             for cultist in cultists:
                 cultist.queue_message(messages["cultist_notify"])

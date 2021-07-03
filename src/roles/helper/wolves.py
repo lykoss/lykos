@@ -155,7 +155,7 @@ def on_transition_day(evt, var):
             del found[target]
 
 def _reorganize_killers(killers):
-    wolfteam = get_players(Wolfteam)
+    wolfteam = get_players(var, Wolfteam)
     for victim, attackers in list(killers.items()):
         k2 = []
         kappend = []
@@ -183,7 +183,7 @@ def on_transition_day6(evt, var):
 @event_listener("retribution_kill")
 def on_retribution_kill(evt, var, victim, orig_target):
     if evt.data["target"] == "@wolves": # kill a random wolf
-        evt.data["target"] = random.choice(get_players(Wolf & Killer))
+        evt.data["target"] = random.choice(get_players(var, Wolf & Killer))
 
 @event_listener("new_role", priority=4)
 def on_new_role(evt, var, player, old_role):
@@ -205,7 +205,7 @@ def on_new_role(evt, var, player, old_role):
     if old_role not in wcroles and evt.data["role"] in wcroles:
         # a new wofl has joined the party, give them tummy rubs and the wolf list
         # and let the other wolves know to break out the confetti and villager steaks
-        wofls = get_players(wcroles)
+        wofls = get_players(var, wcroles)
         evt.data["in_wolfchat"] = True
         if wofls:
             for wofl in wofls:
@@ -276,7 +276,7 @@ def on_transition_night_end(evt, var, role):
     if role not in talkroles or wccond == 0:
         return
 
-    wolves = get_players((role,))
+    wolves = get_players(var, (role,))
     for wolf in wolves:
         wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
 
@@ -365,7 +365,7 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
         if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
             wcroles = roles
 
-    wcwolves = get_players(wcroles)
+    wcwolves = get_players(var, wcroles)
     wcwolves.remove(user)
 
     player = None
@@ -386,7 +386,7 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
     :returns: List of localized message strings to pass into either players_list or players_list_count
     """
 
-    pl = list(get_players())
+    pl = list(get_players(var))
     if remove_player:
         pl.remove(player)
     if shuffle:
@@ -400,18 +400,18 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
             badguys = Wolf | {"traitor"}
 
     role = None
-    if player in get_players():
-        role = get_main_role(player)
+    if player in get_players(var):
+        role = get_main_role(var, player)
 
     if role in badguys | {"warlock"}:
         entries = []
         if "cursed villager" in All:
-            cursed = get_all_players(("cursed villager",))
+            cursed = get_all_players(var, ("cursed villager",))
         else:
             cursed = set()
         if role in badguys:
             for p in pl:
-                prole = get_main_role(p)
+                prole = get_main_role(var, p)
                 if prole in badguys:
                     if p in cursed:
                         entries.append(messages["players_list_entry"].format(

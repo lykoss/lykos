@@ -43,12 +43,12 @@ def on_send_role(evt, var):
     for player in get_all_players(("master of teleportation",)):
         player.send(messages["master_of_teleportation_notify"])
         if var.NIGHT_COUNT > 0:
-            player.send(messages["players_list"].format(get_players()))
+            player.send(messages["players_list"].format(get_players(var)))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(ACTED)
-    evt.data["nightroles"].extend(get_all_players(("master of teleportation",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("master of teleportation",)))
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):

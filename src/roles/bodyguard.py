@@ -79,7 +79,7 @@ def on_new_role(evt, var, player, old_role):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(GUARDED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_players(("bodyguard",)))
+    evt.data["nightroles"].extend(get_players(var, ("bodyguard",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
@@ -87,7 +87,7 @@ def on_transition_day_resolve_end(evt, var, victims):
         evt.data["message"][bodyguard].clear()
     DYING.clear()
     for bodyguard in get_all_players(("bodyguard",)):
-        if GUARDED.get(bodyguard) in get_players(Wolf) and bodyguard not in evt.data["dead"]:
+        if GUARDED.get(bodyguard) in get_players(var, Wolf) and bodyguard not in evt.data["dead"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
                 if var.ROLE_REVEAL == "on":
@@ -104,7 +104,7 @@ def on_transition_night_begin(evt, var):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
+    ps = get_players(var)
     for bg in get_all_players(("bodyguard",)):
         pl = ps[:]
         random.shuffle(pl)

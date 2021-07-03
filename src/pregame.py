@@ -43,7 +43,7 @@ def wait(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    pl = get_players()
+    pl = get_players(var)
 
     with WAIT_LOCK:
         global WAIT_TOKENS, WAIT_LAST
@@ -70,7 +70,7 @@ def wait(wrapper: MessageDispatcher, message: str):
 @command("fwait", flag="w", phases=("join",))
 def fwait(wrapper: MessageDispatcher, message: str):
     """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
-    pl = get_players()
+    pl = get_players(var)
 
     var = wrapper.game_state
 
@@ -409,7 +409,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     # Now for the secondary roles
     for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
         count = addroles[role]
-        possible = get_players(dfn)
+        possible = get_players(var, dfn)
         if role in var.FORCE_ROLES:
             force_roles = list(var.FORCE_ROLES[role])
             random.shuffle(force_roles)

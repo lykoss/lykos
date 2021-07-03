@@ -83,7 +83,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
+    ps = get_players(var)
     CAN_ACT.update(get_all_players(("clone",)) - CLONED.keys())
     for clone in get_all_players(("clone",)):
         if clone in CLONED and not var.ALWAYS_PM_ROLE:
@@ -103,8 +103,8 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
     # Select a random target for clone if they didn't choose someone
-    pl = get_players()
-    for clone in get_all_players(("clone",)):
+    pl = get_players(var)
+    for clone in get_all_players(var, ("clone",)):
         if clone not in CLONED:
             ps = pl[:]
             ps.remove(clone)

@@ -25,8 +25,8 @@ class EvilVillageMode(GameMode):
         }
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-        lsafes = len(get_players(Village, mainroles=mainroles))
-        lcultists = len(get_players(["cultist"], mainroles=mainroles))
+        lsafes = len(get_players(var, Village, mainroles=mainroles))
+        lcultists = len(get_players(var, ["cultist"], mainroles=mainroles))
         evt.stop_processing = True
 
         if evt.data["winner"] == "fool":

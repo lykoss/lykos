@@ -34,7 +34,7 @@ class MaelstromMode(GameMode):
         # don't do this n1
         if var.NIGHT_COUNT == 1:
             return
-        villagers = get_players()
+        villagers = get_players(var)
         lpl = len(villagers)
         addroles = self._role_attribution(var, villagers, False)
 

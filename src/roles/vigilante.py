@@ -90,12 +90,12 @@ def on_new_role(evt, var, user, old_role):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(KILLS)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_all_players(("vigilante",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("vigilante",)))
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
-    for vigilante in get_all_players(("vigilante",)):
+    ps = get_players(var)
+    for vigilante in get_all_players(var, ("vigilante",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(vigilante)

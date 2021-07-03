@@ -45,7 +45,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if not death_triggers or "mad scientist" not in all_roles:
         return
 
-    target1, target2 = _get_targets(var, get_players(), player)
+    target1, target2 = _get_targets(var, get_players(var), player)
 
     prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
     prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
@@ -82,8 +82,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for ms in get_all_players(("mad scientist",)):
-        pl = get_players()
+    for ms in get_all_players(var, ("mad scientist",)):
+        pl = get_players(var)
         target1, target2 = _get_targets(var, pl, ms)
 
         ms.send(messages["mad_scientist_notify"].format(target1, target2))
@@ -91,14 +91,14 @@ def on_send_role(evt, var):
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     if user in var.ROLES["mad scientist"]:
-        pl = get_players()
+        pl = get_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
 def on_revealroles(evt, var,  user, role):
     if role == "mad scientist":
-        pl = get_players()
+        pl = get_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
 

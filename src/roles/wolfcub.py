@@ -37,7 +37,7 @@ def on_wolf_notify(evt, var, role):
     if not ANGRY_WOLVES or role not in Wolf & Killer:
         return
 
-    wolves = get_players((role,))
+    wolves = get_players(var, (role,))
     if not wolves:
         return
 

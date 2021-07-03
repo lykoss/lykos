@@ -181,14 +181,14 @@ def on_transition_day_resolve_end(evt, var, victims):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(VISITED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_all_players(("succubus",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("succubus",)))
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    succubi = get_all_players(("succubus",))
+    succubi = get_all_players(var, ("succubus",))
     role_map = messages.get_role_mapping()
     for succubus in succubi:
-        pl = get_players()
+        pl = get_players(var)
         random.shuffle(pl)
         pl.remove(succubus)
         succ = []

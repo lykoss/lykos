@@ -17,7 +17,7 @@ PROTECTIONS: UserDict[User, UserDict[Optional[User], List[Tuple[Category, str]]]
 
 def add_protection(var, target, protector, protector_role, scope=All):
     """Add a protection to the target affecting the relevant scope."""
-    if target not in get_players():
+    if target not in get_players(var):
         return
 
     if target not in PROTECTIONS:

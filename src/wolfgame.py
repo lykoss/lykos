@@ -220,7 +220,7 @@ def reset_modes_timers(var):
 
     # Reset modes
     cmodes = []
-    for plr in get_players():
+    for plr in get_players(var):
         if not plr.is_fake:
             cmodes.append(("-v", plr.nick))
     for user, modes in channels.Main.old_modes.items():
@@ -282,7 +282,7 @@ def on_sync_modes(evt): # FIXME: This uses var
 def sync_modes():
     voices = [None]
     mode = hooks.Features["PREFIX"]["+"]
-    pl = get_players()
+    pl = get_players(var)
 
     for user in channels.Main.users:
         if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
@@ -385,7 +385,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
             return
 
     reset_modes_timers(var)
-    db.set_pre_restart_state(p.nick for p in get_players())
+    db.set_pre_restart_state(p.nick for p in get_players(var))
     reset()
 
     msg = "{0} restart from {1}".format(
@@ -948,7 +948,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
         elif "-" in tojoin and debug_mode:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
-                if int(last)+1 - int(first) > var.MAX_PLAYERS - len(get_players()):
+                if int(last)+1 - int(first) > var.MAX_PLAYERS - len(get_players(var)):
                     wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
                     break
                 success = True
@@ -956,7 +956,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
                     user = users.add(wrapper.client, nick=str(i))
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
     if success:
-        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players())))
+        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(var))))
 
 @command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(wrapper: MessageDispatcher, message: str):
@@ -1347,7 +1347,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                     game_options["roles"][role] = len(pl)
 
             db.add_game(var.CURRENT_GAMEMODE.name,
-                        len(get_players()) + len(var.DEAD),
+                        len(get_players(var)) + len(var.DEAD),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                         winner,
@@ -1389,7 +1389,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
 def chk_win(*, end_game=True, winner=None):
     """ Returns True if someone won """
-    lpl = len(get_players())
+    lpl = len(get_players(var))
 
     if var.PHASE == "join":
         if lpl == 0:
@@ -1416,15 +1416,15 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with var.GRAVEYARD_LOCK:
         if var.PHASE == "day":
-            pl = set(get_players()) - get_absent(var)
+            pl = set(get_players(var)) - get_absent(var)
             lpl = len(pl)
         else:
-            pl = set(get_players(mainroles=mainroles))
+            pl = set(get_players(var, mainroles=mainroles))
             lpl = len(pl)
 
-        wolves = set(get_players(Wolf_Objective, mainroles=mainroles))
+        wolves = set(get_players(var, Wolf_Objective, mainroles=mainroles))
         lwolves = len(wolves & pl)
-        lrealwolves = len(get_players(Village_Objective, mainroles=mainroles))
+        lrealwolves = len(get_players(var, Village_Objective, mainroles=mainroles))
 
         message = ""
         if lpl < 1:
@@ -1590,7 +1590,7 @@ def reaper(cli, gameid):
                 to_warn    = set() # type: Set[users.User]
                 to_warn_pm = set() # type: Set[users.User]
                 to_kill    = set() # type: Set[users.User]
-                for user in get_players():
+                for user in get_players(var):
                     if user.is_fake:
                         continue
                     lst = var.LAST_SAID_TIME.get(user, var.GAME_START_TIME)
@@ -1624,7 +1624,7 @@ def reaper(cli, gameid):
                         var.NIGHT_IDLED.discard(user) # don't double-dip if they idled out night as well
                         add_warning(user, var.IDLE_PENALTY, users.Bot, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     add_dying(var, user, "bot", "idle", death_triggers=False)
-                pl = get_players()
+                pl = get_players(var)
                 x = [a for a in to_warn if a in pl]
                 if x:
                     channels.Main.send(messages["channel_idle_warning"].format(x))
@@ -1811,7 +1811,7 @@ def leave(var, what, user, why=None):
     if var.PHASE == "none":
         return
 
-    ps = get_players()
+    ps = get_players(var)
     # Only mark living players as disconnected, unless they were kicked
     if (user in ps or what == "kick") and var.PHASE in var.GAME_PHASES:
         var.DCED_LOSERS.add(user)
@@ -1917,9 +1917,9 @@ def leave_game(wrapper: MessageDispatcher, message: str):
 def begin_day():
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.STARTED_DAY_PLAYERS = len(get_players())
+    var.STARTED_DAY_PLAYERS = len(get_players(var))
     var.LAST_GOAT.clear()
-    msg = messages["villagers_lynch"].format(len(get_players()) // 2 + 1)
+    msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
 
     var.DAY_ID = time.time()
@@ -1947,7 +1947,7 @@ def begin_day():
 
     if var.DEVOICE_DURING_NIGHT:
         modes = []
-        for player in get_players():
+        for player in get_players(var):
             if not player.is_fake:
                 modes.append(("+v", player.nick))
         channels.Main.mode(*modes)
@@ -2392,7 +2392,7 @@ def transition_night():
 
     if var.DEVOICE_DURING_NIGHT:
         modes = []
-        for player in get_players():
+        for player in get_players(var):
             if not player.is_fake:
                 modes.append(("-v", player))
         channels.Main.mode(*modes)
@@ -3317,7 +3317,7 @@ def _get_gamemodes(var):
 
     for gm in sorted(order.keys()):
         min, max = order[gm]
-        if min <= len(get_players()) <= max:
+        if min <= len(get_players(var)) <= max:
             gm = messages["bold"].format(gm)
         gamemodes.append(gm)
 
@@ -3509,7 +3509,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
         if what == "wolfchat":
             already_spectating = wrapper.source in var.SPECTATING_WOLFCHAT
             var.SPECTATING_WOLFCHAT.add(wrapper.source)
-            players = list(get_players(Wolfchat))
+            players = list(get_players(var, Wolfchat))
             if "src.roles.helper.wolves" in sys.modules:
                 from src.roles.helper.wolves import is_known_wolf_ally
                 players = [p for p in players if is_known_wolf_ally(var, p, p)]

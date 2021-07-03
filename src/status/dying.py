@@ -34,7 +34,7 @@ def add_dying(var, player: User, killer_role: str, reason: str, *, death_trigger
             #  either game ended, or a new game has started
             return False
 
-        if player in DYING or player not in get_players():
+        if player in DYING or player not in get_players(var):
             return False
 
         DYING[player] = (killer_role, reason, death_triggers)

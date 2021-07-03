@@ -64,8 +64,8 @@ def on_add_disease(evt, var, target):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
-    for doctor in get_all_players(("doctor",)):
+    ps = get_players(var)
+    for doctor in get_all_players(var, ("doctor",)):
         if DOCTORS[doctor]: # has immunizations remaining
             pl = ps[:]
             random.shuffle(pl)
@@ -80,7 +80,7 @@ def on_revealroles(evt, var):
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if evt.data["role"] == "doctor" and old_role != "doctor":
-        DOCTORS[user] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players()))
+        DOCTORS[user] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players(var)))
     if evt.data["role"] != "doctor" and old_role == "doctor":
         del DOCTORS[user]
 

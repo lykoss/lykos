@@ -43,7 +43,7 @@ def pray(wrapper: MessageDispatcher, message: str):
         return
 
     role = matches.get().key
-    pl = get_players()
+    pl = get_players(var)
     PRAYED.add(wrapper.source)
 
     # this sees through amnesiac, so the amnesiac's final role counts as their role

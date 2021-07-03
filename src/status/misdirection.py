@@ -14,7 +14,7 @@ TARGET_SCOPE = set()
 
 def _get_target(target):
     """Internal helper for try_misdirection. Return one target over."""
-    pl = get_players()
+    pl = get_players(var)
     index = pl.index(target)
     if random.randint(0, 1):
         index -= 2
@@ -26,7 +26,7 @@ def add_misdirection(var, user, *, as_actor=False, as_target=False):
     # misdirection as_actor should work on dead players as well; don't do an alive check here
     if as_actor:
         AS_ACTOR.add(user)
-    if as_target and user in get_players():
+    if as_target and user in get_players(var):
         AS_TARGET.add(user)
 
 def try_misdirection(var, actor, target):

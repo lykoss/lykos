@@ -60,8 +60,8 @@ def shaman_totem(wrapper: MessageDispatcher, message: str):
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
-    pl = get_players()
-    for shaman in get_all_players(("shaman",)):
+    pl = get_players(var)
+    for shaman in get_all_players(var, ("shaman",)):
         if is_silent(var, shaman):
             continue
 
@@ -87,8 +87,8 @@ def on_transition_day_begin(evt, var):
 def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["shaman"] for x in chances.values())
-    ps = get_players()
-    shamans = get_all_players(("shaman",))
+    ps = get_players(var)
+    shamans = get_all_players(var, ("shaman",))
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]

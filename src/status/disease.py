@@ -9,7 +9,7 @@ DISEASED_WOLVES = False
 
 def add_disease(var, target):
     """Effect the target with disease. Fire the add_disease event."""
-    if target in DISEASED or target not in get_players():
+    if target in DISEASED or target not in get_players(var):
         return
 
     if Event("add_disease", {}).dispatch(var, target):

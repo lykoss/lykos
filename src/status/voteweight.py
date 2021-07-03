@@ -10,7 +10,7 @@ WEIGHT = UserDict() # type: UserDict[users.User, int]
 
 def add_vote_weight(var, target : users.User, amount : int = 1) -> None:
     """Make the target's votes as having more weight."""
-    if target not in get_players():
+    if target not in get_players(var):
         return
 
     WEIGHT[target] = WEIGHT.get(target, 1) + amount

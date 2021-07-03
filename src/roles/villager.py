@@ -13,7 +13,7 @@ def on_send_role(evt, var):
         villroles = {"villager"}
         if var.HIDDEN_ROLE == "villager":
             villroles |= Hidden
-        villagers = get_players(villroles)
+        villagers = get_players(var, villroles)
         if villagers:
             for villager in villagers:
                 villager.queue_message(messages["villager_notify"])

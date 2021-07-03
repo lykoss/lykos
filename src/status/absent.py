@@ -15,7 +15,7 @@ __all__ = ["add_absent", "try_absent", "get_absent"]
 ABSENT: UserDict[User, str] = UserDict()
 
 def add_absent(var, target, reason):
-    if target not in get_players():
+    if target not in get_players(var):
         return
 
     ABSENT[target] = reason

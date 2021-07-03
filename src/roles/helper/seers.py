@@ -25,12 +25,12 @@ def setup_variables(rolename):
     @event_listener("chk_nightdone", listener_id="<{}>.on_chk_nightdone".format(rolename))
     def on_chk_nightdone(evt, var):
         evt.data["acted"].extend(SEEN)
-        evt.data["nightroles"].extend(get_all_players((rolename,)))
+        evt.data["nightroles"].extend(get_all_players(var, (rolename,)))
 
     @event_listener("send_role", priority=2, listener_id="<{}>.on_send_role".format(rolename))
     def on_transition_night_end(evt, var):
-        for seer in get_all_players((rolename,)):
-            pl = get_players()
+        for seer in get_all_players(var, (rolename,)):
+            pl = get_players(var)
             random.shuffle(pl)
             pl.remove(seer)  # remove self from list
 

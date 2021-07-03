@@ -40,7 +40,7 @@ def _set_lovers(target1, target2):
 
 def get_lovers():
     lovers = []
-    pl = get_players()
+    pl = get_players(var)
     for lover in LOVERS:
         done = None
         for i, lset in enumerate(lovers):
@@ -103,8 +103,8 @@ def choose(wrapper: MessageDispatcher, message: str):
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
     ACTED.clear()
-    pl = get_players()
-    for mm in get_all_players(("matchmaker",)):
+    pl = get_players(var)
+    for mm in get_all_players(var, ("matchmaker",)):
         if mm not in MATCHMAKERS:
             lovers = random.sample(pl, 2)
             MATCHMAKERS.add(mm)
@@ -113,8 +113,8 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
-    for mm in get_all_players(("matchmaker",)):
+    ps = get_players(var)
+    for mm in get_all_players(var, ("matchmaker",)):
         if mm in MATCHMAKERS and not var.ALWAYS_PM_ROLE:
             continue
         pl = ps[:]
@@ -130,7 +130,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if death_triggers and player in LOVERS:
         lovers = set(LOVERS[player])
         for lover in lovers:
-            if lover not in get_players():
+            if lover not in get_players(var):
                 continue # already died somehow
             to_send = "lover_suicide_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
@@ -166,7 +166,7 @@ def on_team_win(evt, var, player, main_role, allroles, winner):
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     if player in LOVERS:
         evt.data["special"].append("lover")
-    pl = get_players()
+    pl = get_players(var)
     if player in LOVERS and survived and LOVERS[player].intersection(pl):
         for lover in LOVERS[player]:
             if lover not in pl:
@@ -194,13 +194,13 @@ def on_get_team_affiliation(evt, var, target1, target2):
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     # Remind lovers of each other
-    if user in get_players() and user in LOVERS:
+    if user in get_players(var) and user in LOVERS:
         evt.data["messages"].append(messages["matched_info"].format(LOVERS[user]))
 
 @event_listener("revealroles")
 def on_revealroles(evt, var):
     # print out lovers
-    pl = get_players()
+    pl = get_players(var)
     done = {}
     lovers = []
     for lover1, lset in LOVERS.items():

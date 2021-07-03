@@ -106,7 +106,7 @@ def setup_variables(rolename):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
                 if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
                     # pick a random wolf to be shot
-                    wolves = [wolf for wolf in get_players(Wolf & Killer) if wolf not in evt.data["dead"]]
+                    wolves = [wolf for wolf in get_players(var, Wolf & Killer) if wolf not in evt.data["dead"]]
                     if wolves:
                         shot = random.choice(wolves)
                         event = Event("gun_shoot", {"hit": True, "kill": True})
@@ -131,7 +131,7 @@ def setup_variables(rolename):
                 # this gives the looter the "wolf gunner" secondary role
                 # if the wolf gunner role isn't loaded, guns cannot be stolen regardless of var.WOLF_STEALS_GUN
                 if var.WOLF_STEALS_GUN and GUNNERS[victim] and "wolf gunner" in _rolestate:
-                    possible = get_players(Wolf & Killer)
+                    possible = get_players(var, Wolf & Killer)
                     random.shuffle(possible)
                     for looter in possible:
                         if looter not in evt.data["dead"]:
@@ -165,7 +165,7 @@ def setup_variables(rolename):
                 del GUNNERS[user]
 
         elif evt.data["role"] == rolename:
-            bullets = math.ceil(var.SHOTS_MULTIPLIER[rolename] * len(get_players()))
+            bullets = math.ceil(var.SHOTS_MULTIPLIER[rolename] * len(get_players(var)))
             event = Event("gun_bullets", {"bullets": bullets})
             event.dispatch(var, user, rolename)
             GUNNERS[user] = event.data["bullets"]

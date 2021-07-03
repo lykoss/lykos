@@ -8,7 +8,7 @@ __all__ = ["add_exchange", "try_exchange"]
 EXCHANGE = UserSet()
 
 def add_exchange(var, user):
-    if user not in get_players():
+    if user not in get_players(var):
         return
     EXCHANGE.add(user)
 

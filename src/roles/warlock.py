@@ -102,7 +102,7 @@ def on_new_role(evt, var, user, old_role):
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
-    pl = get_players()
+    pl = get_players(var)
     wroles = get_wolfchat_roles(var)
     for warlock, target in CURSED.items():
         if target in pl and get_main_role(target) not in wroles:

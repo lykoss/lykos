@@ -54,7 +54,7 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_day", priority=7)
 def on_transition_day(evt, var):
     # Select a random target for assassin that isn't already going to die if they didn't target
-    pl = get_players()
+    pl = get_players(var)
     for ass in get_all_players(("assassin",)):
         if ass not in TARGETED and not is_silent(var, ass):
             ps = pl[:]
@@ -74,7 +74,7 @@ def on_send_role(evt, var):
         if ass in TARGETED:
             continue # someone already targeted
 
-        pl = get_players()
+        pl = get_players(var)
         random.shuffle(pl)
         pl.remove(ass)
 
@@ -101,7 +101,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         target = TARGETED[player]
         del TARGETED[player]
         PREV_ACTED.discard(player)
-        if target in get_players():
+        if target in get_players(var):
             protected = try_protection(var, target, player, "assassin", "assassin_fail")
             if protected is not None:
                 channels.Main.send(*protected)

@@ -101,7 +101,7 @@ def on_new_role(evt, var, user, old_role):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = get_players()
+    ps = get_players(var)
     for inv in var.ROLES["investigator"]:
         pl = ps[:]
         random.shuffle(pl)

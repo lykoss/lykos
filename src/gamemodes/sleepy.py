@@ -82,7 +82,7 @@ class SleepyMode(GameMode):
         evt.data["targets"].update(var.ROLES["priest"])
 
     def setup_nightmares(self, evt, var):
-        pl = get_players()
+        pl = get_players(var)
         for i in range(self.NIGHTMARE_MAX):
             if not pl:
                 break
@@ -98,7 +98,7 @@ class SleepyMode(GameMode):
     def do_nightmare(self, var, target, night):
         if var.PHASE != "night" or var.NIGHT_COUNT != night:
             return
-        if target not in get_players():
+        if target not in get_players(var):
             return
         self.having_nightmare.append(target)
         target.send(messages["sleepy_nightmare_begin"])
@@ -212,7 +212,7 @@ class SleepyMode(GameMode):
             evt.prevent_default = True
 
     def nightmare_kill(self, evt, var):
-        pl = get_players()
+        pl = get_players(var)
         for player in self.having_nightmare:
             if player not in pl:
                 continue
@@ -226,7 +226,7 @@ class SleepyMode(GameMode):
 
             mapping = {"seer": "doomsayer", "harlot": "succubus", "cultist": "demoniac"}
             for old, new in mapping.items():
-                turn = [p for p in get_players((old,)) if random.random() < self.TURN_CHANCE]
+                turn = [p for p in get_players(var, (old,)) if random.random() < self.TURN_CHANCE]
                 for t in turn:
                     # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn
                     change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))

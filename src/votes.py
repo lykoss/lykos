@@ -210,7 +210,7 @@ def vote(wrapper: MessageDispatcher, message: str):
 # admin_forced=True will make it not count towards village's abstain limit if nobody is voted
 def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     with var.GRAVEYARD_LOCK:
-        players = set(get_players()) - get_absent(var)
+        players = set(get_players(var)) - get_absent(var)
         avail = len(players)
         needed = avail // 2 + 1
 
@@ -252,7 +252,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                 if len(voting) == 1:
                     to_vote.append(voting[0])
                 elif voting and kill_ties:
-                    if set(voting) == set(get_players()): # killing everyone off? have you considered not doing that
+                    if set(voting) == set(get_players(var)): # killing everyone off? have you considered not doing that
                         abstaining = True
                     else:
                         to_vote.extend(voting)

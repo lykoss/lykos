@@ -24,7 +24,7 @@ TARGETS = UserDict() # type: UserDict[users.User, UserSet]
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
 def dullahan_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone at night as a dullahan until everyone on your list is dead."""
-    if not TARGETS[wrapper.source] & set(get_players()):
+    if not TARGETS[wrapper.source] & set(get_players(var)):
         wrapper.pm(messages["dullahan_targets_dead"])
         return
 
@@ -56,7 +56,7 @@ def dullahan_retract(wrapper: MessageDispatcher, message: str):
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     if main_role != "dullahan":
         return
-    alive = set(get_players())
+    alive = set(get_players(var))
     if not TARGETS[player] & alive:
         evt.data["individual_win"] = True
 
@@ -69,7 +69,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         elif h is player:
             del KILLS[h]
     if death_triggers and "dullahan" in all_roles:
-        pl = get_players()
+        pl = get_players(var)
         with TARGETS[player].intersection(pl) as targets:
             if targets:
                 target = random.choice(list(targets))
@@ -100,7 +100,7 @@ def on_new_role(evt, var, player, old_role):
         del TARGETS[player]
 
     if player not in TARGETS and evt.data["role"] == "dullahan":
-        ps = get_players()
+        ps = get_players(var)
         max_targets = math.ceil(8.1 * math.log(len(ps), 10) - 5)
         TARGETS[player] = UserSet()
 
@@ -130,7 +130,7 @@ def on_swap_role_state(evt, var, actor, target, role):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    spl = set(get_players())
+    spl = set(get_players(var))
     evt.data["acted"].extend(KILLS)
     for dullahan, targets in TARGETS.items():
         if targets & spl and dullahan in spl:

@@ -103,7 +103,7 @@ def on_transition_day_resolve_end(evt, var, victims):
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end3(evt, var, victims):
     for harlot in get_all_players(("harlot",)):
-        if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"]:
+        if VISITED.get(harlot) in get_players(var, Wolf) and harlot not in evt.data["dead"]:
             evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
             evt.data["dead"].append(harlot)
             evt.data["killers"][harlot].append("@wolves")
@@ -112,7 +112,7 @@ def on_transition_day_resolve_end3(evt, var, victims):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(VISITED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_all_players(("harlot",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("harlot",)))
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
@@ -124,8 +124,8 @@ def on_new_role(evt, var, player, old_role):
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    for harlot in get_all_players(("harlot",)):
-        pl = get_players()
+    for harlot in get_all_players(var, ("harlot",)):
+        pl = get_players(var)
         random.shuffle(pl)
         pl.remove(harlot)
         harlot.send(messages["harlot_notify"])

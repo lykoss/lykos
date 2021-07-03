@@ -113,7 +113,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if lp == 0: # no alive pipers, short-circuit this check
         return
 
-    uncharmed = set(get_players(mainroles=mainroles)) - CHARMED - pipers
+    uncharmed = set(get_players(var, mainroles=mainroles)) - CHARMED - pipers
 
     if var.PHASE == "day" and not uncharmed:
         evt.data["winner"] = "pipers"
@@ -162,12 +162,12 @@ def on_transition_day_begin(evt, var):
 def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(TOBECHARMED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_all_players(("piper",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("piper",)))
 
 @event_listener("send_role")
 def on_send_role(evt, var):
-    ps = set(get_players()) - CHARMED
-    for piper in get_all_players(("piper",)):
+    ps = set(get_players(var)) - CHARMED
+    for piper in get_all_players(var, ("piper",)):
         pl = list(ps)
         random.shuffle(pl)
         pl.remove(piper)
