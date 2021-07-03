@@ -2,10 +2,11 @@ from __future__ import annotations
 import typing
 
 from src.containers import UserSet, UserDict, UserList
+from src.cats import All
 
 if typing.TYPE_CHECKING:
     from src.users import User
-    from typing import FrozenSet, Tuple
+    from typing import FrozenSet, Set, Tuple
 
 __all__ = ["GameState"]
 
@@ -15,7 +16,23 @@ class PregameState:
 
 class GameState:
     def __init__(self):
-        self._rolestats = set()
+        self.setup_completed = False
+        self._roles:     UserDict[str, UserSet]          = UserDict()
+        self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
+
+    def setup(self):
+        if self.setup_completed:
+            raise RuntimeError("GameState.setup() called while already setup")
+        for role in All:
+            self._roles[role] = UserSet()
+        self.setup_completed = True
+
+    def teardown(self):
+        self._roles.clear()
+
+    @property
+    def ROLES(self):
+        return self._roles
 
     def get_role_stats(self) -> FrozenSet[FrozenSet[Tuple[str, int]]]:
         return frozenset(self._rolestats)

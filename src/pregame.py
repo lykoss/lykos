@@ -218,7 +218,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
             if voted:
-                cgamemode(random.choice(voted))
+                cgamemode(var, random.choice(voted))
             else:
                 possiblegamemodes = []
                 numvotes = 0
@@ -237,10 +237,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                         if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
                             possiblegamemodes += [gamemode] * var.GAME_MODES[gamemode][3]
                     gamemode = random.choice(possiblegamemodes)
-                cgamemode(gamemode)
+                cgamemode(var, gamemode)
 
     else:
-        cgamemode(restart)
+        cgamemode(var, restart)
         var.GAME_ID = time.time() # restart reaper timer
 
     event = Event("role_attribution", {"addroles": Counter()})
@@ -331,7 +331,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
-    var.ROLES.clear()
     var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
@@ -343,8 +342,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
-    for role in All:
-        var.ROLES[role] = UserSet()
+    var.setup()
     var.ROLES[var.DEFAULT_ROLE] = UserSet()
 
     # handle forced main roles

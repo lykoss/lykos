@@ -2450,7 +2450,7 @@ def transition_night():
     # If there are no nightroles that can act, immediately turn it to daytime
     chk_nightdone()
 
-def cgamemode(arg):
+def cgamemode(var, arg):
     if var.ORIGINAL_SETTINGS:  # needs reset
         reset_settings()
 
@@ -3615,7 +3615,7 @@ def fgame(wrapper: MessageDispatcher, message: str):
             return
         parts[0] = match.get().key
 
-        if cgamemode("=".join(parts)):
+        if cgamemode(var, "=".join(parts)):
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
             var.FGAMED = True
     else:
