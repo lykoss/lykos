@@ -55,6 +55,7 @@ def on_reset(evt, var):
     pass
 
 # Gets metadata about this role; kind will be a str with one of the following values:
+# The 'var' parameter will be None for 'special_keys' and 'role_categories', a GameState otherwise
 # night_kills: Add metadata about any deaths this role can cause at night which use the standard
 #              death message (i.e. do not have a custom death message). Set the data as follows:
 #              evt.data["rolename"] = N (where N is the max # of deaths that this role can cause)

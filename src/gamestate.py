@@ -14,8 +14,12 @@ class PregameState:
     def __init__(self):
         pass
 
+    @property
+    def in_game(self):
+        return False
+
 class GameState:
-    def __init__(self):
+    def __init__(self, pregame_state: PregameState):
         self.setup_completed = False
         self._roles:     UserDict[str, UserSet]          = UserDict()
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
@@ -29,6 +33,10 @@ class GameState:
 
     def teardown(self):
         self._roles.clear()
+
+    @property
+    def in_game(self):
+        return self.setup_completed
 
     @property
     def ROLES(self):

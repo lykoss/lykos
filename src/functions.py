@@ -168,10 +168,9 @@ def get_reveal_role(var: GameState, user) -> str:
     else:
         return "village member"
 
-def match_role(var: GameState, role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
+def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]: # FIXME: Fix call sites
     """ Match a partial role or alias name into the internal role key.
 
-    :param var: Game state
     :param role: Partial role to match on
     :param remove_spaces: Whether or not to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
@@ -192,7 +191,7 @@ def match_role(var: GameState, role: str, remove_spaces: bool = False, allow_ext
     special_keys: Set[str] = set()
     if scope is None and allow_special:
         evt = Event("get_role_metadata", {})
-        evt.dispatch(var, "special_keys")
+        evt.dispatch(None, "special_keys")
         special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
 
     matches = match_all(role, role_map.keys())
@@ -212,10 +211,9 @@ def match_role(var: GameState, role: str, remove_spaces: bool = False, allow_ext
 
     return Match(filtered_matches)
 
-def match_mode(var: GameState, mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
+def match_mode(mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]: # FIXME: Fix call sites
     """ Match a partial game mode into the internal game mode key.
 
-    :param var: Game state
     :param mode: Partial game mode to match on
     :param remove_spaces: Whether or not to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
@@ -239,7 +237,8 @@ def match_mode(var: GameState, mode: str, remove_spaces: bool = False, allow_ext
     elif allow_extra:
         allowed = set(mode_map.values())
     else:
-        allowed = set(var.GAME_MODES)
+        from src.gamemodes import GAME_MODES
+        allowed = set(GAME_MODES)
 
     for match in matches:
         if mode_map[match] in allowed:
@@ -247,10 +246,9 @@ def match_mode(var: GameState, mode: str, remove_spaces: bool = False, allow_ext
 
     return Match(filtered_matches)
 
-def match_totem(var: GameState, totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]:
+def match_totem( totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]: # FIXME: Fix call sites
     """ Match a partial totem into the internal totem key.
 
-    :param var: Game state
     :param totem: Partial totem to match on
     :param scope: Limit matched modes to these explicitly passed-in totems (iterable of internal totem names).
     :return: Match object with all matches (see src.match.match_all)
