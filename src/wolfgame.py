@@ -201,7 +201,7 @@ def connect_callback():
     accumulator = accumulate_cmodes(3)
     accumulator.send(None)
 
-def reset_settings():
+def reset_settings(): # burn the cities. salt the earth so that nothing may ever grow away
     var.CURRENT_GAMEMODE.teardown()
     var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
@@ -2448,17 +2448,18 @@ def transition_night():
     chk_nightdone()
 
 def cgamemode(var, arg):
+    from src.gamemodes import GAME_MODES
     if var.ORIGINAL_SETTINGS:  # needs reset
         reset_settings()
 
     modeargs = arg.split("=", 1)
 
     modeargs = [a.strip() for a in modeargs]
-    if modeargs[0] in var.GAME_MODES.keys():
+    if modeargs[0] in GAME_MODES.keys():
         from src.gamemodes import InvalidModeException
         md = modeargs.pop(0)
         try:
-            gm = var.GAME_MODES[md][0](*modeargs)
+            gm = GAME_MODES[md][0](*modeargs)
             gm.startup()
             for attr in dir(gm):
                 val = getattr(gm, attr)
@@ -2902,6 +2903,7 @@ def timeleft(wrapper: MessageDispatcher, message: str):
 @command("roles", pm=True)
 def list_roles(wrapper: MessageDispatcher, message: str):
     """Display which roles are in play for a specific gamemode."""
+    from src.gamemodes import GAME_MODES
 
     var = wrapper.game_state
 
@@ -2912,7 +2914,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        minp = max(var.GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
+        minp = max(GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
         msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
         wrapper.reply(msg, prefix_nick=True)
         return
@@ -2926,10 +2928,10 @@ def list_roles(wrapper: MessageDispatcher, message: str):
             pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
-        valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles"}
+        valid = GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles"}
         mode = pieces.pop(0)
 
-        matches = match_mode(var, mode, scope=valid, remove_spaces=True)
+        matches = match_mode(mode, scope=valid, remove_spaces=True)
         if len(matches) == 0:
             wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
             return
@@ -2939,12 +2941,12 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
         mode = matches.get().key
 
-        gamemode = var.GAME_MODES[mode][0]()
+        gamemode = GAME_MODES[mode][0]()
 
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            minp = max(var.GAME_MODES[mode][1], var.MIN_PLAYERS)
+            minp = max(GAME_MODES[mode][1], var.MIN_PLAYERS)
             wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
@@ -3108,13 +3110,14 @@ def setdisplay(wrapper: MessageDispatcher, message: str):
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply): # FIXME: remove var
+    from src.gamemodes import GAME_MODES
     if var.FGAMED:
         if doreply:
             wrapper.pm(messages["admin_forced_game"])
         return
 
-    allowed = var.GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES
-    matches = match_mode(var, gamemode, scope=allowed, remove_spaces=True)
+    allowed = GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES
+    matches = match_mode(gamemode, scope=allowed, remove_spaces=True)
     if len(matches) == 0:
         if doreply:
             wrapper.pm(messages["invalid_mode"].format(gamemode))
@@ -3132,9 +3135,10 @@ def vote_gamemode(var, wrapper, gamemode, doreply): # FIXME: remove var
         wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
 
 def _get_gamemodes(var):
+    from src.gamemodes import GAME_MODES
     gamemodes = []
     order = {}
-    for gm, (cls, min, max, chance) in var.GAME_MODES.items():
+    for gm, (cls, min, max, chance) in GAME_MODES.items():
         if gm == "roles" or gm in var.DISABLED_GAMEMODES:
             continue
         order[LocalMode(gm).local] = (min, max)
@@ -3410,6 +3414,7 @@ def revealroles(wrapper: MessageDispatcher, message: str):
 @command("fgame", flag="g", phases=("join",))
 def fgame(wrapper: MessageDispatcher, message: str):
     """Force a certain game mode to be picked. Disable voting for game modes upon use."""
+    from src.gamemodes import GAME_MODES
     var = wrapper.game_state
 
     if message:
@@ -3428,9 +3433,9 @@ def fgame(wrapper: MessageDispatcher, message: str):
             var.FGAMED = False
             return
 
-        allowed = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES
+        allowed = GAME_MODES.keys() - var.DISABLED_GAMEMODES
         gamemode = gamemode.split()[0]
-        match = match_mode(var, gamemode, scope=allowed, remove_spaces=True)
+        match = match_mode(gamemode, scope=allowed, remove_spaces=True)
         if len(match) == 0:
             wrapper.pm(messages["invalid_mode"].format(gamemode))
             return
@@ -3447,11 +3452,12 @@ def fgame(wrapper: MessageDispatcher, message: str):
 
 def fgame_help(args=""):
     args = args.strip()
+    from src.gamemodes import GAME_MODES
 
     if not args:
-        return messages["available_mode_setters"].format(var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
-    elif args in var.GAME_MODES.keys() and args not in var.DISABLED_GAMEMODES:
-        return var.GAME_MODES[args][0].__doc__ or messages["setter_no_doc"].format(args)
+        return messages["available_mode_setters"].format(GAME_MODES.keys() - var.DISABLED_GAMEMODES)
+    elif args in GAME_MODES.keys() and args not in var.DISABLED_GAMEMODES:
+        return GAME_MODES[args][0].__doc__ or messages["setter_no_doc"].format(args)
     else:
         return messages["setter_not_found"].format(args)
 
@@ -3528,7 +3534,7 @@ def rforce(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     target = msg.pop(0).strip().lower()
-    possible = match_role(var, target, allow_special=False, remove_spaces=True)
+    possible = match_role(target, allow_special=False, remove_spaces=True)
     if target == "*":
         players = get_players(var)
     elif possible:
@@ -3556,7 +3562,7 @@ def frole(wrapper: MessageDispatcher, message: str):
             wrapper.send(messages["frole_incorrect"].format(part))
             return
         umatch = users.complete_match(name.strip(), pl)
-        rmatch = match_role(var, role.strip(), allow_special=False)
+        rmatch = match_role(role.strip(), allow_special=False)
         role = None
         if rmatch:
             role = rmatch.get().key

@@ -131,14 +131,15 @@ def show_votes(wrapper: MessageDispatcher, message: str):
 
         votelist = []
         majority = False
+        from src.gamemodes import GAME_MODES
         for gamemode, num_votes in gm_votes:
             # We bold the game mode if:
             # - The number of players is within the bounds of the game mode
             # - This game mode has a majority of votes
             # - It can be randomly picked
             # - No other game mode has a majority
-            if (var.GAME_MODES[gamemode][1] <= len(pl) <= var.GAME_MODES[gamemode][2] and
-                (not majority or num_votes >= len(pl) / 2) and (var.GAME_MODES[gamemode][3] > 0 or num_votes >= len(pl) / 2)):
+            if (GAME_MODES[gamemode][1] <= len(pl) <= GAME_MODES[gamemode][2] and
+                (not majority or num_votes >= len(pl) / 2) and (GAME_MODES[gamemode][3] > 0 or num_votes >= len(pl) / 2)):
                 gamemode = messages["bold"].format(gamemode)
                 if num_votes >= len(pl) / 2:
                     majority = True

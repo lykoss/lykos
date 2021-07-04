@@ -28,7 +28,7 @@ def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is s
         return
 
     team = re.split(" +", message)[0]
-    team = match_role(var, team, scope=("villager", "wolf"))
+    team = match_role(team, scope=("villager", "wolf"))
     if not team:
         wrapper.pm(messages["turncoat_error"])
         return

@@ -109,7 +109,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
 
     if role_prefix is not None:
         # match a role prefix to a role. Multi-word roles are supported by stripping the spaces
-        matches = match_role(context.game_state, role_prefix, remove_spaces=True)
+        matches = match_role(role_prefix, remove_spaces=True)
         if len(matches) == 1:
             role_prefix = matches.get().key
         elif len(matches) > 1:

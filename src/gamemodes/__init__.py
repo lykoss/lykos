@@ -1,23 +1,18 @@
+from __future__ import annotations
+
 # Imports all gamemode definitions
 import os.path
 import glob
 import importlib
-import src.settings as var
+from typing import Dict, Tuple
 from src.messages import messages
 from src.events import Event, EventListener
 from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
-__all__ = ["InvalidModeException", "game_mode", "GameMode"]
+__all__ = ["InvalidModeException", "game_mode", "GameMode", "GAME_MODES"]
 
 class InvalidModeException(Exception):
     pass
-
-def game_mode(name, minp, maxp, likelihood=0):
-    def decor(c):
-        c.name = name
-        var.GAME_MODES[name] = (c, minp, maxp, likelihood)
-        return c
-    return decor
 
 class GameMode:
     def __init__(self, arg=""):
@@ -142,6 +137,15 @@ class GameMode:
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
+
+GAME_MODES: Dict[str, Tuple[GameMode, int, int, int]] = {}
+
+def game_mode(name: str, minp: int, maxp: int, likelihood: int = 0):
+    def decor(c: GameMode):
+        c.name = name
+        GAME_MODES[name] = (c, minp, maxp, likelihood)
+        return c
+    return decor
 
 path = os.path.dirname(os.path.abspath(__file__))
 search = os.path.join(path, "*.py")

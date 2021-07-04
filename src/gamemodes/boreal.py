@@ -260,7 +260,7 @@ class BorealMode(GameMode):
                 continue
 
             totem_types = set(TOTEMS[wrapper.source].keys()) & valid
-            given = match_totem(var, pieces[0], scope=totem_types)
+            given = match_totem(pieces[0], scope=totem_types)
             if not given and TOTEMS[wrapper.source].get("sustenance", 0) + TOTEMS[wrapper.source].get("hunger", 0) > 1:
                 wrapper.send(messages["boreal_ambiguous_feed"])
                 return

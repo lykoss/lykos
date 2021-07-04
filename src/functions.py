@@ -168,7 +168,7 @@ def get_reveal_role(var: GameState, user) -> str:
     else:
         return "village member"
 
-def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]: # FIXME: Fix call sites
+def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
     """ Match a partial role or alias name into the internal role key.
 
     :param role: Partial role to match on
@@ -211,7 +211,7 @@ def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False
 
     return Match(filtered_matches)
 
-def match_mode(mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]: # FIXME: Fix call sites
+def match_mode(mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
     """ Match a partial game mode into the internal game mode key.
 
     :param mode: Partial game mode to match on
@@ -246,7 +246,7 @@ def match_mode(mode: str, remove_spaces: bool = False, allow_extra: bool = False
 
     return Match(filtered_matches)
 
-def match_totem( totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]: # FIXME: Fix call sites
+def match_totem(totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]:
     """ Match a partial totem into the internal totem key.
 
     :param totem: Partial totem to match on

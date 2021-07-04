@@ -212,9 +212,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                     return
 
         if not var.FGAMED:
+            from src.gamemodes import GAME_MODES
             votes = {} #key = gamemode, not hostmask
             for gamemode in var.GAMEMODE_VOTES.values():
-                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
+                if len(villagers) >= GAME_MODES[gamemode][1] and len(villagers) <= GAME_MODES[gamemode][2]:
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
             if voted:
@@ -223,7 +224,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 possiblegamemodes = []
                 numvotes = 0
                 for gamemode, num in votes.items():
-                    if len(villagers) < var.GAME_MODES[gamemode][1] or len(villagers) > var.GAME_MODES[gamemode][2] or var.GAME_MODES[gamemode][3] == 0:
+                    if len(villagers) < GAME_MODES[gamemode][1] or len(villagers) > GAME_MODES[gamemode][2] or GAME_MODES[gamemode][3] == 0:
                         continue
                     possiblegamemodes += [gamemode] * num
                     numvotes += num
@@ -233,9 +234,9 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 gamemode = random.choice(possiblegamemodes)
                 if gamemode is None:
                     possiblegamemodes = []
-                    for gamemode in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
-                        if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
-                            possiblegamemodes += [gamemode] * var.GAME_MODES[gamemode][3]
+                    for gamemode in GAME_MODES.keys() - var.DISABLED_GAMEMODES:
+                        if len(villagers) >= GAME_MODES[gamemode][1] and len(villagers) <= GAME_MODES[gamemode][2] and GAME_MODES[gamemode][3] > 0:
+                            possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
                     gamemode = random.choice(possiblegamemodes)
                 cgamemode(var, gamemode)
 

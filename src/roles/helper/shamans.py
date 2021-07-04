@@ -284,7 +284,7 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
 
     if len(pieces) > 1:
         # first piece might be a totem name
-        match = match_totem(var, pieces[0], scope=totems)
+        match = match_totem(pieces[0], scope=totems)
 
     if match:
         totem = match.get().key
@@ -346,7 +346,7 @@ def change_totem(var, player, totem, roles=None):
                     tval, count = t.split(":")
                     tval = tval.strip()
                     count = int(count.strip())
-                    match = match_totem(var, tval, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
+                    match = match_totem(tval, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
                     if not match:
                         # FIXME: localize
                         raise ValueError("{0} is not a valid totem type.".format(tval))
@@ -356,7 +356,7 @@ def change_totem(var, player, totem, roles=None):
                         raise ValueError("Totem count for {0} cannot be less than 1.".format(tval))
                     totemdict[tval] = count
             else:
-                match = match_totem(var, totem, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
+                match = match_totem(totem, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
                 if not match:
                     # FIXME: localize
                     raise ValueError("{0} is not a valid totem type.".format(totem))
