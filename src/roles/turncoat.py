@@ -7,7 +7,7 @@ import math
 from collections import defaultdict
 from typing import Tuple, TYPE_CHECKING
 
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, match_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -38,7 +38,6 @@ def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is s
     wrapper.pm(messages["turncoat_success"].format(team))
     TURNCOATS[wrapper.source] = (team, var.NIGHT_COUNT)
     PASSED.discard(wrapper.source)
-    debuglog("{0} (turncoat) SIDE {1}".format(wrapper.source, team))
 
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
@@ -56,8 +55,6 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
         # let them still use !pass though to make them feel better or something
         return
     PASSED.add(wrapper.source)
-
-    debuglog("{0} (turncoat) PASS".format(wrapper.source))
 
 @event_listener("send_role")
 def on_send_role(evt, var):

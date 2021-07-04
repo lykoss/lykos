@@ -1452,7 +1452,6 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
             return False
 
         if end_game:
-            debuglog("WIN:", winner)
             channels.Main.send(message)
             stop_game(var, winner, additional_winners=event.data["additional_winners"])
         return True
@@ -2435,7 +2434,6 @@ def transition_night():
     if var.NIGHT_COUNT > 1:
         dmsg.append(messages["first_night_begin"])
     channels.Main.send(*dmsg, sep=" ")
-    debuglog("BEGIN NIGHT")
 
     # it's now officially nighttime
     var.GAMEPHASE = "night"
@@ -2778,7 +2776,6 @@ def on_invite(cli, raw_nick, something, chan):
     user = users.get(raw_nick, allow_none=True)
     if user and user.is_admin():
         cli.join(chan) # Allows the bot to be present in any channel
-        debuglog(user.nick, "INVITE", chan, display=True)
 
 @command("admins", pm=True)
 def show_admins(wrapper: MessageDispatcher, message: str):

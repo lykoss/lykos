@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -77,12 +77,8 @@ def charm(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     if orig2:
-        debuglog("{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(wrapper.source,
-                                                                 target1, get_main_role(var, target1),
-                                                                 target2, get_main_role(var, target2)))
         wrapper.send(messages["charm_multiple_success"].format(orig1, orig2))
     else:
-        debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(var, target1)))
         wrapper.send(messages["charm_success"].format(orig1))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
@@ -92,7 +88,6 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     PASSED.add(wrapper.source)
 
     wrapper.send(messages["piper_pass"])
-    debuglog("{0} (piper) PASS".format(wrapper.source))
 
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(wrapper: MessageDispatcher, message: str):
@@ -102,7 +97,6 @@ def retract(wrapper: MessageDispatcher, message: str):
         PASSED.discard(wrapper.source)
 
         wrapper.send(messages["piper_retract"])
-        debuglog("{0} (piper) RETRACT".format(wrapper.source))
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):

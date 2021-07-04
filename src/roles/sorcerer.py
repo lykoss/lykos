@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -56,8 +56,6 @@ def observe(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages[key].format(target, targrole))
     send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")
-
-    debuglog("{0} (sorcerer) OBSERVE: {1} ({2})".format(wrapper.source, target, targrole))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

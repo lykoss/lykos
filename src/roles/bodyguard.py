@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import Set, TYPE_CHECKING
 
 from src.utilities import *
-from src import channels, debuglog, errlog, plog
+from src import channels, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -47,8 +47,6 @@ def guard(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["protecting_target"].format(target))
     target.send(messages["target_protected"])
 
-    debuglog("{0} (bodyguard) GUARD: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
-
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
@@ -57,7 +55,6 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
         return
     PASSED.add(wrapper.source)
     wrapper.pm(messages["guardian_no_protect"])
-    debuglog("{0} (bodyguard) PASS".format(wrapper.source))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

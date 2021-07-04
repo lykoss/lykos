@@ -8,7 +8,7 @@ import typing
 from collections import defaultdict, deque
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -43,8 +43,6 @@ def target(wrapper: MessageDispatcher, message: str):
     TARGETED[wrapper.source] = target
 
     wrapper.send(messages["assassin_target_success"].format(orig))
-
-    debuglog("{0} (assassin) TARGET: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -110,7 +108,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             if var.ROLE_REVEAL in ("on", "team"):
                 to_send = "assassin_success"
             channels.Main.send(messages[to_send].format(player, target, get_reveal_role(var, target)))
-            debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, var, target)))
             add_dying(var, target, killer_role=evt.params.main_role, reason="assassin")
 
 @event_listener("myrole")

@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src.functions import get_players
-from src import debuglog, errlog, plog, users, channels
+from src import errlog, plog, users, channels
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages

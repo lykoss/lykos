@@ -4,7 +4,7 @@ import re
 from typing import Dict, List, Set, Any, Tuple, Optional
 from collections import deque
 
-from src import channels, users, status, debuglog, errlog, plog
+from src import channels, users, status, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target, match_totem
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -316,8 +316,6 @@ def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[user
 
     # keys: shaman_success_night_known, shaman_success_random_known, shaman_success_night_unknown, shaman_success_random_unknown
     wrapper.send(messages[key].format(orig_target, totem))
-    debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5}): {6}".format(wrapper.source, role, target, targrole, orig_target, orig_role, totem))
-
     return target, orig_target
 
 def change_totem(var, player, totem, roles=None):

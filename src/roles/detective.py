@@ -6,7 +6,7 @@ import random
 import typing
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -46,7 +46,6 @@ def investigate(wrapper: MessageDispatcher, message: str):
 
     INVESTIGATED.add(wrapper.source)
     wrapper.send(messages["investigate_success"].format(target, targrole))
-    debuglog("{0} (detective) ID: {1} ({2})".format(wrapper.source, target, targrole))
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised!
@@ -55,8 +54,6 @@ def investigate(wrapper: MessageDispatcher, message: str):
             for wolf in wolves:
                 wolf.queue_message(messages["detective_reveal"].format(wrapper.source))
             wolf.send_messages()
-
-        debuglog("{0} (detective) PAPER DROP".format(wrapper.source))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

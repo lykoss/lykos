@@ -2,7 +2,7 @@ import re
 import random
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict

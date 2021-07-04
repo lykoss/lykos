@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_all_roles, get_target, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -39,7 +39,6 @@ def choose_idol(wrapper: MessageDispatcher, message: str):
     IDOLS[wrapper.source] = idol
     ACTED.add(wrapper.source)
     wrapper.send(messages["wild_child_success"].format(idol))
-    debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(wrapper.source, idol, get_main_role(wrapper.game_state, idol)))
 
 @event_listener("see")
 def on_see(evt, var, seer, target):
@@ -107,7 +106,6 @@ def on_transition_day_begin(evt, var):
                     IDOLS[child] = idol
                     child.send(messages["wild_child_random_idol"].format(idol))
                     idol_role = get_main_role(var, idol)
-                    debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, idol_role))
 
 @event_listener("send_role")
 def on_transition_night_end(evt, var):

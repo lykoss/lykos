@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -98,8 +98,6 @@ def choose(wrapper: MessageDispatcher, message: str):
 
     wrapper.send(messages["matchmaker_success"].format(target1, target2))
 
-    debuglog("{0} (matchmaker) MATCH: {1} ({2}) WITH {3} ({4})".format(wrapper.source, target1, get_main_role(var, target1), target2, get_main_role(var, target2)))
-
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
     ACTED.clear()
@@ -136,7 +134,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             if var.ROLE_REVEAL in ("on", "team"):
                 to_send = "lover_suicide"
             channels.Main.send(messages[to_send].format(lover, get_reveal_role(var, lover)))
-            debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(var, lover), player, evt.params.main_role))
             add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
 
 @event_listener("game_end_messages")

@@ -5,7 +5,7 @@ import math
 from collections import defaultdict, deque
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -61,19 +61,15 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     role2 = kill2 and get_reveal_role(var, target2)
     if kill1 and kill2:
         to_send = "mad_scientist_kill"
-        debuglog(player.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(var, target1), target2, get_main_role(var, target2)))
     elif kill1:
         to_send = "mad_scientist_kill_single"
-        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(var, target1)))
     elif kill2:
         to_send = "mad_scientist_kill_single"
-        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(var, target2)))
         # swap the targets around to show the proper target
         target1, target2 = target2, target1
         role1, role2 = role2, role1
     else:
         to_send = "mad_scientist_fail"
-        debuglog(player.nick, "(mad scientist) KILL FAIL")
 
     if to_send != "mad_scientist_fail" and var.ROLE_REVEAL not in ("on", "team"):
         to_send += "_no_reveal"

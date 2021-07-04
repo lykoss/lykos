@@ -5,7 +5,7 @@ import random
 import typing
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -43,7 +43,6 @@ def observe(wrapper: MessageDispatcher, message: str):
     OBSERVED[wrapper.source] = target
     wrapper.pm(messages["werecrow_observe_success"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["wolfchat_observe"].format(wrapper.source, target), {"werecrow"}, role="werecrow", command="observe")
-    debuglog("{0} (werecrow) OBSERVE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):

@@ -5,7 +5,7 @@ import random
 import typing
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
@@ -53,7 +53,6 @@ def see(wrapper: MessageDispatcher, message: str):
 
     # used message keys (for grep): augur_success_blue, augur_success_red, augur_success_grey
     wrapper.send(messages["augur_success_" + aura].format(target))
-    debuglog("{0} (augur) SEE: {1} ({2}) as {3} ({4} aura)".format(wrapper.source, target, trole, targrole, aura))
 
     SEEN.add(wrapper.source)
 

@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -86,9 +86,6 @@ def investigate(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["investigator_results_different"].format(target1, target2))
 
     INVESTIGATED.add(wrapper.source)
-    debuglog("{0} (investigator) ID: {1} ({2}) and {3} ({4}) as {5}".format(
-        wrapper.source, target1, get_main_role(var, target1), target2, get_main_role(var, target2),
-        "same" if evt.data["same"] else "different"))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

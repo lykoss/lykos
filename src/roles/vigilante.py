@@ -6,7 +6,7 @@ import typing
 from collections import defaultdict
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -37,7 +37,6 @@ def vigilante_kill(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     wrapper.send(messages["player_kill"].format(orig))
-    debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
 def vigilante_retract(wrapper: MessageDispatcher, message: str):
@@ -49,7 +48,6 @@ def vigilante_retract(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     wrapper.send(messages["retracted_kill"])
-    debuglog("{0} (vigilante) RETRACT".format(wrapper.source))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 def vigilante_pass(wrapper: MessageDispatcher, message: str):
@@ -57,8 +55,6 @@ def vigilante_pass(wrapper: MessageDispatcher, message: str):
     del KILLS[:wrapper.source:]
     PASSED.add(wrapper.source)
     wrapper.send(messages["hunter_pass"])
-
-    debuglog("{0} (vigilante) PASS".format(wrapper.source))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -42,7 +42,6 @@ def bless(wrapper: MessageDispatcher, message: str):
     var.ROLES["blessed villager"].add(target)
     wrapper.pm(messages["blessed_success"].format(target))
     target.send(messages["blessed_notify_target"])
-    debuglog("{0} (priest) BLESS: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def consecrate(wrapper: MessageDispatcher, message: str):
@@ -72,7 +71,6 @@ def consecrate(wrapper: MessageDispatcher, message: str):
     evt.dispatch(var, wrapper.source, target)
 
     wrapper.pm(messages["consecrate_success"].format(target))
-    debuglog("{0} (priest) CONSECRATE: {1}".format(wrapper.source, target))
     add_absent(var, wrapper.source, "consecrating")
     from src.votes import chk_decision
     from src.wolfgame import chk_win

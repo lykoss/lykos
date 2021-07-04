@@ -5,7 +5,7 @@ import random
 from typing import TYPE_CHECKING
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -49,7 +49,6 @@ def observe(wrapper: MessageDispatcher, message: str):
     BITTEN[wrapper.source] = target
     wrapper.pm(messages["alpha_bite_target"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
-    debuglog("{0} (alpha wolf) BITE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("alpha wolf",))
 def retract(wrapper: MessageDispatcher, message: str):
@@ -58,7 +57,6 @@ def retract(wrapper: MessageDispatcher, message: str):
         del BITTEN[wrapper.source]
         wrapper.pm(messages["no_bite"])
         send_wolfchat_message(wrapper.game_state, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
-        debuglog("{0} (alpha wolf) RETRACT BITE".format(wrapper.source))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

@@ -3,7 +3,7 @@ import random
 from typing import List, Tuple
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog, cats
+from src import users, channels, errlog, plog, cats
 from src.functions import get_players, get_all_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict

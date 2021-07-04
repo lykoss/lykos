@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -43,8 +43,6 @@ def clone(wrapper: MessageDispatcher, message: str):
     ACTED.add(wrapper.source)
     wrapper.pm(messages["clone_target_success"].format(target))
 
-    debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
-
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
     if var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
@@ -73,9 +71,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                     else:
                         CLONED[clone] = CLONED[player]
                         clone.send(messages["clone_success"].format(CLONED[clone]))
-                        debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, CLONED[clone], get_main_role(var, CLONED[clone])))
-
-                debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
 
     del CLONED[:player:]
     CAN_ACT.discard(player)

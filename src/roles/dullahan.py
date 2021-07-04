@@ -8,7 +8,7 @@ from collections import defaultdict, deque
 
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -42,15 +42,12 @@ def dullahan_kill(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
-
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
 def dullahan_retract(wrapper: MessageDispatcher, message: str):
     """Removes a dullahan's kill selection."""
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]
         wrapper.pm(messages["retracted_kill"])
-        debuglog("{0} (dullahan) RETRACT".format(wrapper.source))
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
@@ -83,7 +80,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                     channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
                     channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
-                debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(player, target, get_main_role(var, target)))
                 add_dying(var, target, "dullahan", "dullahan_die")
 
 @event_listener("transition_day", priority=2)

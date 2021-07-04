@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, match_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -52,7 +52,6 @@ def pray(wrapper: MessageDispatcher, message: str):
     if len(people) == 0:
         # role is not in this game, this still counts as a successful activation of the power!
         wrapper.pm(messages["vision_none"].format(role))
-        debuglog("{0} (prophet) PRAY {1} - NONE".format(wrapper.source, role))
         return
 
     target = random.choice(list(people))
@@ -65,8 +64,6 @@ def pray(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["vision_role"].format(role, target))
     else:
         wrapper.pm(messages["vision_players"].format(role, part))
-    debuglog("{0} (prophet) PRAY {1} ({2})".format(wrapper.source, role, target))
-
 
 @event_listener("send_role")
 def on_send_role(evt, var):

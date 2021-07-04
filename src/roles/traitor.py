@@ -4,7 +4,7 @@ import itertools
 import math
 from collections import defaultdict
 
-from src import debuglog, errlog, plog, users, channels
+from src import errlog, plog, users, channels
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -90,7 +90,6 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
             if var.PHASE in var.GAME_PHASES:
                 var.FINAL_ROLES[traitor] = "wolf"
                 traitor.send(messages["traitor_turn"])
-                debuglog(traitor, "(traitor) TURNING")
     if did_something:
         if var.PHASE in var.GAME_PHASES:
             channels.Main.send(messages["traitor_turn_channel"])

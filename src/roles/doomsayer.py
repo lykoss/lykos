@@ -4,7 +4,7 @@ import re
 import random
 from typing import TYPE_CHECKING
 
-from src import users, channels, status, debuglog, errlog, plog
+from src import users, channels, status, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -57,7 +57,6 @@ def see(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
     mapping[wrapper.source] = target
 
-    debuglog("{0} (doomsayer) SEE: {1} ({2}) - {3}".format(wrapper.source, target, targrole, mode.upper()))
     send_wolfchat_message(var, wrapper.source, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), role="doomsayer", command="see")
 
     SEEN.add(wrapper.source)

@@ -6,7 +6,7 @@ import typing
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_target, get_main_role, get_all_roles
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -54,8 +54,6 @@ def vg_kill(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
-
 @command("retract", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(wrapper: MessageDispatcher, message: str):
     """Removes a vengeful ghost's kill selection."""
@@ -65,7 +63,6 @@ def vg_retract(wrapper: MessageDispatcher, message: str):
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]
         wrapper.pm(messages["retracted_kill"])
-        debuglog("{0} (vengeful ghost) RETRACT".format(wrapper.source))
 
 @event_listener("get_participants")
 def on_get_participants(evt, var):
@@ -121,7 +118,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         else:
             GHOSTS[player] = "villager"
         player.send(messages["vengeful_turn"].format(GHOSTS[player]))
-        debuglog(player.nick, "(vengeful ghost) TRIGGER", GHOSTS[player])
 
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, var):

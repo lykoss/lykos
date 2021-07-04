@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -64,8 +64,6 @@ def hvisit(wrapper: MessageDispatcher, message: str):
         revt = Event("visit", {})
         revt.dispatch(var, "succubus", wrapper.source, target)
 
-    debuglog("{0} (succubus) VISIT: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
-
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Do not entrance someone tonight."""
@@ -75,7 +73,6 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
 
     PASSED.add(wrapper.source)
     wrapper.send(messages["succubus_pass"])
-    debuglog("{0} (succubus) PASS".format(wrapper.source))
 
 @event_listener("visit")
 def on_visit(evt, var, visitor_role, visitor, visited):

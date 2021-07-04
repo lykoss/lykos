@@ -7,7 +7,7 @@ import typing
 import math
 from collections import defaultdict
 
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -49,8 +49,6 @@ def immunize(wrapper: MessageDispatcher, message: str):
     DOCTORS[wrapper.source] -= 1
     remove_lycanthropy(var, target)
     remove_disease(var, target)
-
-    debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("add_lycanthropy")
 def on_add_lycanthropy(evt, var, target):

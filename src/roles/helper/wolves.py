@@ -14,7 +14,7 @@ from src.messages import messages, LocalRole
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
-from src import debuglog, users
+from src import users
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher

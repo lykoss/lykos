@@ -5,7 +5,7 @@ import random
 import typing
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, errlog, plog
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
@@ -56,8 +56,6 @@ def see(wrapper: MessageDispatcher, message: str):
     if targrole == "wolf":
         to_send = "oracle_success_wolf"
     wrapper.send(messages[to_send].format(target))
-
-    debuglog("{0} (oracle) SEE: {1} ({2}) (Wolf: {3})".format(wrapper.source, target, trole, "True" if targrole == "wolf" else "False"))
 
     SEEN.add(wrapper.source)
 

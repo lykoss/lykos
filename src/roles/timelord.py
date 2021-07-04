@@ -7,7 +7,7 @@ import time
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -78,8 +78,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                     var.TIMERS[timer_name] = (t, time.time(), time_warn)
                     t.daemon = True
                     t.start()
-
-    debuglog("{0} (time lord) TRIGGER".format(player))
 
 @event_listener("night_idled")
 def on_night_idled(evt, var, player):

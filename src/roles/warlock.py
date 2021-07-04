@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -55,8 +55,6 @@ def curse(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["curse_success"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, orig), {"warlock"}, role="warlock", command="curse")
 
-    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
-
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
@@ -66,8 +64,6 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["warlock_pass"])
     send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
 
-    debuglog("{0} (warlock) PASS".format(wrapper.source))
-
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def retract(wrapper: MessageDispatcher, message: str):
     """Retract your curse or pass."""
@@ -76,8 +72,6 @@ def retract(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["warlock_retract"])
     send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
-
-    debuglog("{0} (warlock) RETRACT".format(wrapper.source))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

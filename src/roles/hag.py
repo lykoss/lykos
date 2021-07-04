@@ -8,7 +8,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -55,7 +55,6 @@ def hex_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["hex_success"].format(target))
 
     send_wolfchat_message(var, wrapper.source, messages["hex_success_wolfchat"].format(wrapper.source, target), {"hag"}, role="hag", command="hex")
-    debuglog("{0} (hag) HEX: {1} ({2})".format(wrapper.source, target, get_main_role(var, target)))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
