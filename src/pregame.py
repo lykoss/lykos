@@ -19,7 +19,7 @@ from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Wolfchat, All
-from src import config, channels
+from src import config, channels, locks
 
 if TYPE_CHECKING:
     from src.users import User
@@ -114,7 +114,7 @@ def retract(wrapper: MessageDispatcher, message: str):
     if wrapper.source not in get_players(var) or wrapper.source in var.DISCONNECTED:
         return
 
-    with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
+    with locks.reaper, locks.join_timer:
         if var.PHASE == "join":
             if wrapper.source not in START_VOTES:
                 wrapper.pm(messages["start_novote"])
@@ -129,7 +129,7 @@ def retract(wrapper: MessageDispatcher, message: str):
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
     if var.PHASE == "join":
-        with var.WARNING_LOCK:
+        with locks.join_timer:
             START_VOTES.discard(player)
 
             # Cancel the start vote timer if there are no votes left
@@ -188,7 +188,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             wrapper.send.send(messages["max_players"].format(wrapper.source, var.MAX_PLAYERS))
             return
 
-        with var.WARNING_LOCK:
+        with locks.join_timer:
             if not forced and wrapper.source in START_VOTES:
                 wrapper.pm(messages["start_already_voted"])
                 return
@@ -465,7 +465,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         else:
             raise KeyError("Invalid action for role_attribution_end")
 
-    with var.WARNING_LOCK: # cancel timers
+    with locks.join_timer: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
             if name in var.TIMERS:
                 var.TIMERS[name][0].cancel()
@@ -552,7 +552,7 @@ def expire_start_votes(var, channel):
     if var.PHASE != "join":
         return
 
-    with var.WARNING_LOCK:
+    with locks.join_timer:
         START_VOTES.clear()
         channel.send(messages["start_expired"])
 

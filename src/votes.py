@@ -12,7 +12,7 @@ from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event, event_listener
-from src import channels, pregame, users
+from src import channels, pregame, users, locks
 
 if TYPE_CHECKING:
     from src.users import User
@@ -149,7 +149,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
         if len(pl) >= var.MIN_PLAYERS:
             msg += messages["majority_votes"].format("; " if votelist else "", math.ceil(len(pl) / 2))
 
-        with var.WARNING_LOCK:
+        with locks.join_timer:
             if pregame.START_VOTES:
                 msg += messages["start_votes"].format(len(pregame.START_VOTES), pregame.START_VOTES)
 
@@ -210,7 +210,7 @@ def vote(wrapper: MessageDispatcher, message: str):
 # Specify timeout=True to force a lynch and end of day even if there is no majority
 # admin_forced=True will make it not count towards village's abstain limit if nobody is voted
 def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
-    with var.GRAVEYARD_LOCK:
+    with locks.reaper:
         players = set(get_players(var)) - get_absent(var)
         avail = len(players)
         needed = avail // 2 + 1

@@ -7,6 +7,7 @@ from src.functions import get_players, get_main_role, get_all_roles, get_reveal_
 from src.messages import messages
 from src.events import Event, event_listener
 from src.users import User
+from src import locks
 
 __all__ = ["add_dying", "is_dying", "kill_players"]
 
@@ -29,7 +30,7 @@ def add_dying(var, player: User, killer_role: str, reason: str, *, death_trigger
 
     # ensure that the reaper thread doesn't smash things against the gameplay thread when running this
     # (eventually the reaper thread will just pass messages to the main thread via the asyncio event loop and these locks would therefore be unnecessary)
-    with var.GRAVEYARD_LOCK: # FIXME
+    with locks.reaper: # FIXME
         if not var.GAME_ID or var.GAME_ID > t:
             #  either game ended, or a new game has started
             return False
@@ -63,7 +64,7 @@ def kill_players(var, *, end_game: bool = True) -> bool:
     """
     t = time.time()
 
-    with var.GRAVEYARD_LOCK: # FIXME
+    with locks.reaper: # FIXME
         if not var.GAME_ID or var.GAME_ID > t:
             #  either game ended, or a new game has started
             return True

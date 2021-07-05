@@ -9,7 +9,7 @@ from src.decorators import command, handle_error
 from src.functions import get_players, change_role
 from src.status import add_dying
 from src.events import EventListener
-from src import channels
+from src import channels, locks
 
 @game_mode("sleepy", minp=10, maxp=24, likelihood=5)
 class SleepyMode(GameMode):
@@ -87,7 +87,7 @@ class SleepyMode(GameMode):
             if not pl:
                 break
             if random.random() < self.NIGHTMARE_CHANCE:
-                with var.WARNING_LOCK:
+                with locks.join_timer:
                     target = random.choice(pl)
                     pl.remove(target)
                     t = threading.Timer(60, self.do_nightmare, (var, target, var.NIGHT_COUNT))

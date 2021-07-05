@@ -39,7 +39,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, Callable, Tuple
 
-from src import db, config, events, dispatcher, channels, users, hooks, handler
+from src import db, config, locks, dispatcher, channels, users, hooks, handler
 from src.users import User
 
 from src.debug import handle_error
@@ -210,7 +210,7 @@ def reset_settings(): # burn the cities. salt the earth so that nothing may ever
 
 def reset_modes_timers(var):
     # Reset game timers
-    with var.WARNING_LOCK: # make sure it isn't being used by the ping join handler
+    with locks.join_timer: # make sure it isn't being used by the ping join handler
         for x, timr in var.TIMERS.items():
             timr[0].cancel()
         var.TIMERS = {}
@@ -273,29 +273,31 @@ def fsync(wrapper: MessageDispatcher, message: str):
     sync_modes()
 
 @event_listener("sync_modes")
-def on_sync_modes(evt): # FIXME: This uses var
+def on_sync_modes(evt):
     sync_modes()
 
 def sync_modes():
-    voices = [None]
-    mode = hooks.Features["PREFIX"]["+"]
-    pl = get_players(var)
+    game_state = channels.Main.game_state
+    if game_state:
+        voices = [None]
+        mode = hooks.Features["PREFIX"]["+"]
+        pl = get_players(game_state)
 
-    for user in channels.Main.users:
-        if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
-            if mode in user.channels[channels.Main]:
+        for user in channels.Main.users:
+            if config.Main.get("gameplay.nightchat") and game_state.PHASE == "night":
+                if mode in user.channels[channels.Main]:
+                    voices.append(("-" + mode, user))
+            elif user in pl and mode not in user.channels[channels.Main]:
+                voices.append(("+" + mode, user))
+            elif user not in pl and mode in user.channels[channels.Main]:
                 voices.append(("-" + mode, user))
-        elif user in pl and mode not in user.channels[channels.Main]:
-            voices.append(("+" + mode, user))
-        elif user not in pl and mode in user.channels[channels.Main]:
-            voices.append(("-" + mode, user))
 
-    if var.PHASE in var.GAME_PHASES:
-        voices[0] = "+m"
-    else:
-        voices[0] = "-m"
+        if game_state.in_game:
+            voices[0] = "+m"
+        else:
+            voices[0] = "-m"
 
-    channels.Main.mode(*voices)
+        channels.Main.mode(*voices)
 
 @command("refreshdb", flag="m", pm=True)
 def refreshdb(wrapper: MessageDispatcher, message: str):
@@ -563,7 +565,7 @@ def altpinger(wrapper: MessageDispatcher, message: str):
 
 @handle_error
 def join_timer_handler(var):
-    with var.WARNING_LOCK:
+    with locks.join_timer:
         var.PINGING_IFS = True
         to_ping = []
         pl = get_players(var)
@@ -862,7 +864,7 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
         var.LAST_RSTATS = None
         var.LAST_TIME = None
 
-    with var.WARNING_LOCK:
+    with locks.join_timer:
         if "join_pinger" in var.TIMERS:
             var.TIMERS["join_pinger"][0].cancel()
 
@@ -1411,7 +1413,7 @@ def chk_win(*, end_game=True, winner=None):
 
 def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
-    with var.GRAVEYARD_LOCK:
+    with locks.reaper:
         if var.PHASE == "day":
             pl = set(get_players(var)) - get_absent(var)
             lpl = len(pl)
@@ -1560,7 +1562,7 @@ def reaper(cli, gameid):
         skip = False
         time.sleep(1 if short else 10)
         short = False
-        with var.GRAVEYARD_LOCK:
+        with locks.reaper:
             # Terminate reaper when game ends
             if var.PHASE not in var.GAME_PHASES:
                 return
@@ -1721,7 +1723,7 @@ def fgoat(wrapper: MessageDispatcher, message: str):
 
 @handle_error
 def return_to_village(var, target, *, show_message, new_user=None):
-    with var.GRAVEYARD_LOCK:
+    with locks.reaper:
         if channels.Main not in target.channels:
             # managed to leave the channel in between the time return_to_village was scheduled and called
             return
@@ -1827,7 +1829,7 @@ def leave(var, what, user, why=None):
     if var.PHASE == "join":
         lpl = len(ps) - 1
         if lpl < var.MIN_PLAYERS:
-            with var.WARNING_LOCK:
+            with locks.join_timer:
                 from src.pregame import START_VOTES
                 START_VOTES.clear()
 
