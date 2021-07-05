@@ -37,9 +37,9 @@ import urllib.request
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import FrozenSet, Set, Optional, Callable, Tuple
+from typing import FrozenSet, Set, Optional, Callable
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans
 from src.users import User
 
 from src.debug import handle_error
@@ -49,11 +49,13 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.gamemodes import GAME_MODES
 from src.messages import messages, LocalMode
 from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
 from src.votes import chk_decision
+from src.trans import chk_win, chk_nightdone, reset, stop_game
 from src.cats import (
     Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, Wolf_Objective, Village_Objective,
     role_order
@@ -77,7 +79,6 @@ var.DCED_LOSERS = UserSet()  # type: ignore
 var.ADMIN_TO_PING = None  # type: ignore
 var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
-var.TIMERS = {}  # type: ignore
 var.PHASE = "none"  # type: ignore
 
 var.ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
@@ -91,7 +92,6 @@ var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, st
 
 var.IDLE_WARNED = UserSet() # type: ignore
 var.IDLE_WARNED_PM = UserSet() # type: ignore
-var.NIGHT_IDLED = UserSet() # type: ignore
 var.NIGHT_IDLE_EXEMPT = UserSet() # type: ignore
 
 var.DEAD = UserSet() # type: ignore
@@ -108,7 +108,6 @@ var.LAST_SAID_TIME = UserDict() # type: ignore
 
 var.GAME_START_TIME = datetime.now()  # type: ignore # for idle checker only
 var.CAN_START_TIME = 0 # type: ignore
-var.STARTED_DAY_PLAYERS = 0 # type: ignore
 
 var.DISCONNECTED = UserDict() # type: ignore # actually UserDict[User, Tuple[datetime, str]]
 
@@ -160,8 +159,8 @@ def connect_callback():
                 channels.Main.send(*players, first="PING! ")
                 channels.Main.send(messages["game_restart_cancel"])
 
-            var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
-            reset()
+            var.CURRENT_GAMEMODE = GAME_MODES["default"][0]()
+            reset(channels.Main.game_state)
 
             who_end_listener.remove("who_end")
 
@@ -269,7 +268,7 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
             return
 
     reset_modes_timers(var)
-    reset()
+    reset(var)
 
     msg = "{0} quit from {1}"
 
@@ -321,7 +320,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
 
     reset_modes_timers(var)
     db.set_pre_restart_state(p.nick for p in get_players(var))
-    reset()
+    reset(var)
 
     msg = "{0} restart from {1}".format(
         "Scheduled" if restart_program.aftergame else "Forced", wrapper.source)
@@ -743,7 +742,7 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
         # Set join timer
         if var.JOIN_TIME_LIMIT > 0:
             t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [var, wrapper])
-            var.TIMERS["join"] = (t, time.time(), var.JOIN_TIME_LIMIT)
+            trans.TIMERS["join"] = (t, time.time(), var.JOIN_TIME_LIMIT)
             t.daemon = True
             t.start()
 
@@ -801,11 +800,11 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
         var.LAST_TIME = None
 
     with locks.join_timer:
-        if "join_pinger" in var.TIMERS:
-            var.TIMERS["join_pinger"][0].cancel()
+        if "join_pinger" in trans.TIMERS:
+            trans.TIMERS["join_pinger"][0].cancel()
 
         t = threading.Timer(10, join_timer_handler, (var,))
-        var.TIMERS["join_pinger"] = (t, time.time(), 10)
+        trans.TIMERS["join_pinger"] = (t, time.time(), 10)
         t.daemon = True
         t.start()
 
@@ -815,11 +814,11 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
     return True
 
 @handle_error
-def kill_join(var, wrapper: MessageDispatcher): # FIXME: Remove var
+def kill_join(var: GameState, wrapper: MessageDispatcher): # FIXME: Remove var
     pl = [x.nick for x in get_players(var)]
     pl.sort(key=lambda x: x.lower())
     reset_modes_timers(var)
-    reset()
+    reset(var)
     wrapper.send(*pl, first="PING! ")
     wrapper.send(messages["game_idle_cancel"])
     # use this opportunity to expire pending stasis
@@ -1143,7 +1142,7 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)
-def on_kill_players(evt: Event, var, players: Set[User]):
+def on_kill_players(evt: Event, var: GameState, players: Set[User]):
     cmode = []
     deadchat = []
     game_ending = False
@@ -1175,7 +1174,7 @@ def on_kill_players(evt: Event, var, players: Set[User]):
 
     # see if we need to end the game or transition phases
     # FIXME: make state transitions part of the overall event loop
-    game_ending = chk_win()
+    game_ending = chk_win(var)
 
     if not game_ending:
         # if game isn't about to end, join people to deadchat
@@ -1186,7 +1185,7 @@ def on_kill_players(evt: Event, var, players: Set[User]):
             chk_decision(var)
         elif var.PHASE == "night" and var.GAMEPHASE == "night":
             # PHASE is night but GAMEPHASE is day during transition_night; ensure we only try to end night during actual nighttime
-            chk_nightdone()
+            chk_nightdone(var)
     else:
         # HACK: notify kill_players that game is ending so it can pass it to its caller
         evt.prevent_default = True
@@ -1259,7 +1258,7 @@ def reaper(cli, gameid):
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
-                        var.NIGHT_IDLED.discard(user) # don't double-dip if they idled out night as well
+                        trans.NIGHT_IDLED.discard(user) # don't double-dip if they idled out night as well
                         add_warning(user, var.IDLE_PENALTY, users.Bot, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     add_dying(var, user, "bot", "idle", death_triggers=False)
                 pl = get_players(var)
@@ -1280,7 +1279,7 @@ def reaper(cli, gameid):
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        var.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
+                        trans.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, var.PART_PENALTY, users.Bot, messages["quit_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
@@ -1291,7 +1290,7 @@ def reaper(cli, gameid):
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        var.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
+                        trans.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, var.PART_PENALTY, users.Bot, messages["part_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
@@ -1302,7 +1301,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
-                        var.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
+                        trans.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, var.ACC_PENALTY, users.Bot, messages["acc_warning"], expires=var.ACC_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
@@ -1546,7 +1545,7 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     if var.PHASE != "join":
         var.DCED_LOSERS.add(wrapper.source)
         if var.LEAVE_PENALTY:
-            var.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
+            trans.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
             add_warning(wrapper.source, var.LEAVE_PENALTY, users.Bot, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
 
     add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
@@ -1684,78 +1683,6 @@ def relay(wrapper: MessageDispatcher, message: str):
                 player.queue_message(messages["relay_message_wolfchat"].format(wrapper.source, message))
         if badguys or var.SPECTATING_WOLFCHAT:
             player.send_messages()
-
-@handle_error
-def transition_night():
-    if var.PHASE not in ("day", "join"):
-        return
-    var.PHASE = "night"
-
-    var.NIGHT_START_TIME = datetime.now()
-    var.NIGHT_COUNT += 1
-    var.NIGHT_IDLE_EXEMPT.clear()
-
-    event_begin = Event("transition_night_begin", {})
-    event_begin.dispatch(var)
-
-    if var.DEVOICE_DURING_NIGHT:
-        modes = []
-        for player in get_players(var):
-            if not player.is_fake:
-                modes.append(("-v", player))
-        channels.Main.mode(*modes)
-
-    for x, tmr in var.TIMERS.items():  # cancel daytime timer
-        tmr[0].cancel()
-    var.TIMERS = {}
-
-    dmsg = []
-
-    if var.NIGHT_TIMEDELTA or var.START_WITH_DAY:  #  transition from day
-        td = var.NIGHT_START_TIME - var.DAY_START_TIME
-        var.DAY_START_TIME = None
-        var.DAY_TIMEDELTA += td
-        min, sec = td.seconds // 60, td.seconds % 60
-        dmsg.append(messages["day_lasted"].format(min, sec))
-
-    var.NIGHT_ID = time.time()
-    if var.NIGHT_TIME_LIMIT > 0:
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, night_timeout, kwargs={"gameid": var.NIGHT_ID})
-        var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
-        t.daemon = True
-        t.start()
-
-    if var.NIGHT_TIME_WARN > 0:
-        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, kwargs={"gameid": var.NIGHT_ID})
-        var.TIMERS["night_warn"] = (t2, var.NIGHT_ID, var.NIGHT_TIME_WARN)
-        t2.daemon = True
-        t2.start()
-
-    # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
-    if chk_win():
-        return
-
-    event_role = Event("send_role", {})
-    event_role.dispatch(var)
-
-    event_end = Event("transition_night_end", {})
-    event_end.dispatch(var)
-
-    dmsg.append(messages["night_begin"])
-
-    if var.NIGHT_COUNT > 1:
-        dmsg.append(messages["first_night_begin"])
-    channels.Main.send(*dmsg, sep=" ")
-
-    # it's now officially nighttime
-    var.GAMEPHASE = "night"
-
-    event_night = Event("begin_night", {"messages": []})
-    event_night.dispatch(var)
-    channels.Main.send(*event_night.data["messages"])
-
-    # If there are no nightroles that can act, immediately turn it to daytime
-    chk_nightdone()
 
 def cgamemode(var, arg):
     from src.gamemodes import GAME_MODES
@@ -2180,15 +2107,18 @@ def timeleft(wrapper: MessageDispatcher, message: str):
         if msg is not None:
             wrapper.reply(msg)
 
-    if var.PHASE in var.TIMERS:
+    if var.PHASE in trans.TIMERS or f"{var.PHASE}_limit" in trans.TIMERS:
         if var.PHASE == "day":
             what = "sunset" # FIXME: hardcoded english
+            name = "day_limit"
         elif var.PHASE == "night":
             what = "sunrise"
+            name = "night_limit"
         elif var.PHASE == "join":
             what = "the game is canceled if it's not started"
+            name = "join"
 
-        remaining = int((var.TIMERS[var.PHASE][1] + var.TIMERS[var.PHASE][2]) - time.time())
+        remaining = int((trans.TIMERS[name][1] + trans.TIMERS[name][2]) - time.time())
         msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)
     else:
         msg = messages["timers_disabled"].format(var.PHASE.capitalize())

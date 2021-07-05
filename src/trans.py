@@ -6,25 +6,31 @@ from typing import TYPE_CHECKING
 import threading
 import time
 
+from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
-from src.warnings import add_warning, expire_tempbans
+from src.containers import UserSet
 from src.functions import get_players, get_main_role, get_reveal_role
+from src.warnings import add_warning, expire_tempbans
 from src.messages import messages
 from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent
 from src.events import Event, event_listener
 from src.votes import chk_decision
 from src.cats import Wolfteam, Hidden, Village, Wolf_Objective, Village_Objective, role_order
-from src import channels, users, locks, db
+from src import channels, users, locks, config, db
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
 
+NIGHT_IDLED = UserSet()
+TIMERS = {}
+DAY_ID = 0
+
 @handle_error
-def hurry_up(gameid, change, *, admin_forced=False):
+def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
     if var.PHASE != "day":
         return
-    if gameid and gameid != var.DAY_ID:
+    if gameid and gameid != DAY_ID:
         return
 
     if not change:
@@ -33,7 +39,8 @@ def hurry_up(gameid, change, *, admin_forced=False):
         channels.Main.send(messages[event.data["message"]])
         return
 
-    var.DAY_ID = 0
+    global DAY_ID
+    DAY_ID = 0
     chk_decision(var, timeout=True, admin_forced=admin_forced)
 
 @command("fnight", flag="N")
@@ -42,7 +49,7 @@ def fnight(wrapper: MessageDispatcher, message: str):
     if wrapper.game_state.PHASE != "day":
         wrapper.pm(messages["not_daytime"])
     else:
-        hurry_up(0, True, admin_forced=True)
+        hurry_up(wrapper.game_state, 0, True, admin_forced=True)
 
 @command("fday", flag="N")
 def fday(wrapper: MessageDispatcher, message: str):
@@ -50,40 +57,32 @@ def fday(wrapper: MessageDispatcher, message: str):
     if wrapper.game_state.PHASE != "night":
         wrapper.pm(messages["not_nighttime"])
     else:
-        transition_day()
+        transition_day(wrapper.game_state)
 
-def begin_day(var: GameState): # FIXME: Fix call sites
+def begin_day(var: GameState):
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.STARTED_DAY_PLAYERS = len(get_players(var))
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
 
-    var.DAY_ID = time.time()
-    if var.DAY_TIME_WARN > 0:
-        if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
-            t1 = threading.Timer(var.SHORT_DAY_WARN, hurry_up, [var.DAY_ID, False])
-            l = var.SHORT_DAY_WARN
-        else:
-            t1 = threading.Timer(var.DAY_TIME_WARN, hurry_up, [var.DAY_ID, False])
-            l = var.DAY_TIME_WARN
-        var.TIMERS["day_warn"] = (t1, var.DAY_ID, l)
-        t1.daemon = True
-        t1.start()
+    global DAY_ID
+    DAY_ID = time.time()
+    if config.Main.get("timers.enabled"):
+        value = None
+        if config.Main.get("timers.day.enabled"):
+            value = "timers.day.{0}"
+        if config.Main.get("timers.shortday.enabled") and len(get_players(var)) <= config.Main.get("timers.shortday.players"):
+            value = "timers.shortday.{0}"
+        if value is not None:
+            for s in ("warn", "limit"):
+                if config.Main.get(value.format(s)):
+                    timer = threading.Timer(config.Main.get(value.format(s)), hurry_up, (var, DAY_ID, (s == "limit")))
+                    timer.daemon = True
+                    timer.start()
+                    TIMERS[f"day_{s}"] = (timer, DAY_ID, config.Main.get(value.format(s)))
 
-    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
-        if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
-            t2 = threading.Timer(var.SHORT_DAY_LIMIT, hurry_up, [var.DAY_ID, True])
-            l = var.SHORT_DAY_LIMIT
-        else:
-            t2 = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [var.DAY_ID, True])
-            l = var.DAY_TIME_LIMIT
-        var.TIMERS["day"] = (t2, var.DAY_ID, l)
-        t2.daemon = True
-        t2.start()
-
-    if var.DEVOICE_DURING_NIGHT:
+    if not config.Main.get("gameplay.nightchat"):
         modes = []
         for player in get_players(var):
             if not player.is_fake:
@@ -96,7 +95,7 @@ def begin_day(var: GameState): # FIXME: Fix call sites
     chk_decision(var)
 
 @handle_error
-def night_warn(gameid):
+def night_warn(var: GameState, gameid: int):
     if gameid != var.NIGHT_ID or var.PHASE != "night":
         return
 
@@ -119,9 +118,8 @@ def night_warn(gameid):
             player.queue_message(messages["night_idle_notice"])
     users.User.send_messages()
 
-
 @handle_error
-def night_timeout(gameid):
+def night_timeout(var: GameState, gameid: int):
     if gameid != var.NIGHT_ID or var.PHASE != "night":
         return
 
@@ -131,7 +129,7 @@ def night_timeout(gameid):
 
     # if night idle warnings are disabled, head straight to day
     if not var.NIGHT_IDLE_PENALTY:
-        event.data["transition_day"](gameid)
+        event.data["transition_day"](var, gameid)
         return
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
@@ -148,9 +146,9 @@ def night_timeout(gameid):
             # don't give the warning right away:
             # 1. they may idle out entirely, in which case that replaces this warning
             # 2. warning is deferred to end of game so admins can't !fwarn list to cheat and determine who idled
-            var.NIGHT_IDLED.add(player)
+            NIGHT_IDLED.add(player)
 
-    event.data["transition_day"](gameid)
+    event.data["transition_day"](var, gameid)
 
 @event_listener("night_idled")
 def on_night_idled(evt, var, player):
@@ -158,7 +156,7 @@ def on_night_idled(evt, var, player):
         evt.prevent_default = True
 
 @handle_error
-def transition_day(var, gameid=0): # FIXME: Fix call sites
+def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
     if gameid:
         if gameid != var.NIGHT_ID:
             return
@@ -178,7 +176,7 @@ def transition_day(var, gameid=0): # FIXME: Fix call sites
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
         # but this is good enough for now to prevent it from crashing
-        begin_day()
+        begin_day(var)
         return
 
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
@@ -351,10 +349,82 @@ def transition_day(var, gameid=0): # FIXME: Fix call sites
     event_end.dispatch(var)
 
     # make sure that we process ALL of the transition_day events before checking for game end
-    if chk_win(): # game ending
+    if chk_win(var): # game ending
         return
 
-    event_end.data["begin_day"]()
+    event_end.data["begin_day"](var)
+
+@handle_error
+def transition_night(var: GameState):
+    if var.PHASE not in ("day", "join"):
+        return
+    var.PHASE = "night"
+
+    var.NIGHT_START_TIME = datetime.now()
+    var.NIGHT_COUNT += 1
+    var.NIGHT_IDLE_EXEMPT.clear()
+
+    event_begin = Event("transition_night_begin", {})
+    event_begin.dispatch(var)
+
+    if var.DEVOICE_DURING_NIGHT:
+        modes = []
+        for player in get_players(var):
+            if not player.is_fake:
+                modes.append(("-v", player))
+        channels.Main.mode(*modes)
+
+    for x, tmr in TIMERS.items(): # cancel daytime timer
+        tmr[0].cancel()
+    TIMERS.clear()
+
+    dmsg = []
+
+    if var.NIGHT_TIMEDELTA or var.START_WITH_DAY:  #  transition from day
+        td = var.NIGHT_START_TIME - var.DAY_START_TIME
+        var.DAY_START_TIME = None
+        var.DAY_TIMEDELTA += td
+        min, sec = td.seconds // 60, td.seconds % 60
+        dmsg.append(messages["day_lasted"].format(min, sec))
+
+    var.NIGHT_ID = time.time()
+    if var.NIGHT_TIME_LIMIT > 0:
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, night_timeout, kwargs={"gameid": var.NIGHT_ID})
+        var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
+        t.daemon = True
+        t.start()
+
+    if var.NIGHT_TIME_WARN > 0:
+        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, kwargs={"gameid": var.NIGHT_ID})
+        var.TIMERS["night_warn"] = (t2, var.NIGHT_ID, var.NIGHT_TIME_WARN)
+        t2.daemon = True
+        t2.start()
+
+    # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
+    if chk_win():
+        return
+
+    event_role = Event("send_role", {})
+    event_role.dispatch(var)
+
+    event_end = Event("transition_night_end", {})
+    event_end.dispatch(var)
+
+    dmsg.append(messages["night_begin"])
+
+    if var.NIGHT_COUNT > 1:
+        dmsg.append(messages["first_night_begin"])
+    channels.Main.send(*dmsg, sep=" ")
+
+    # it's now officially nighttime
+    var.GAMEPHASE = "night"
+
+    event_night = Event("begin_night", {"messages": []})
+    event_night.dispatch(var)
+    channels.Main.send(*event_night.data["messages"])
+
+    # If there are no nightroles that can act, immediately turn it to daytime
+    chk_nightdone()
 
 @event_listener("transition_day_resolve_end", priority=2.9)
 def on_transition_day_resolve_end(evt, var, victims):
@@ -363,7 +433,7 @@ def on_transition_day_resolve_end(evt, var, victims):
     for i in range(evt.data["howl"]):
         evt.data["message"]["*"].append(messages["new_wolf"])
 
-def chk_nightdone():
+def chk_nightdone(var: GameState):
     if var.PHASE != "night":
         return
 
@@ -375,14 +445,14 @@ def chk_nightdone():
     nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
-        for x, t in var.TIMERS.items():
+        for x, t in TIMERS.items():
             t[0].cancel()
 
-        var.TIMERS = {}
+        TIMERS.clear()
         if var.PHASE == "night":  # Double check
-            event.data["transition_day"]()
+            event.data["transition_day"](var)
 
-def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
+def stop_game(var: GameState, winner="", abort=False, additional_winners=None, log=True):
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
     elif not var.ORIGINAL_ROLES: # game already ended
@@ -559,13 +629,13 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
     # Add warnings for people that idled out night
     if var.IDLE_PENALTY:
-        for player in var.NIGHT_IDLED:
+        for player in NIGHT_IDLED:
             if player.is_fake:
                 continue
             add_warning(player, var.NIGHT_IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.NIGHT_IDLE_EXPIRY)
 
     reset_modes_timers(var)
-    reset()
+    reset(var)
     expire_tempbans()
 
     # This must be after reset()
@@ -576,15 +646,14 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
         channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
         var.ADMIN_TO_PING = None
 
-def chk_win(*, end_game=True, winner=None):
+def chk_win(var: GameState, *, end_game=True, winner=None):
     """ Returns True if someone won """
     lpl = len(get_players(var))
 
     if var.PHASE == "join":
-        if lpl == 0:
+        if not lpl:
             reset_modes_timers(var)
-
-            reset()
+            reset(var)
 
             # This must be after reset()
             if var.AFTER_FLASTGAME is not None:
@@ -599,9 +668,9 @@ def chk_win(*, end_game=True, winner=None):
     if var.PHASE not in var.GAME_PHASES:
         return False #some other thread already ended game probably
 
-    return chk_win_conditions(var.ROLES, var.MAIN_ROLES, end_game, winner)
+    return chk_win_conditions(var, var.ROLES, var.MAIN_ROLES, end_game, winner)
 
-def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
+def chk_win_conditions(var: GameState, rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.PHASE == "day":
@@ -658,7 +727,7 @@ def reset_game(wrapper: MessageDispatcher, message: str):
     else:
         pl = [p for p in get_players(var) if not p.is_fake]
         reset_modes_timers(var)
-        reset()
+        reset(var)
         if pl:
             wrapper.send(messages["fstop_ping"].format(pl))
 
@@ -672,9 +741,9 @@ def reset_settings(): # burn the cities. salt the earth so that nothing may ever
 def reset_modes_timers(var):
     # Reset game timers
     with locks.join_timer: # make sure it isn't being used by the ping join handler
-        for x, timr in var.TIMERS.items():
+        for x, timr in TIMERS.items():
             timr[0].cancel()
-        var.TIMERS = {}
+        TIMERS.clear()
 
     # Reset modes
     cmodes = []
@@ -686,12 +755,25 @@ def reset_modes_timers(var):
             cmodes.append(("+" + mode, user))
     channels.Main.old_modes.clear()
     if var.QUIET_DEAD_PLAYERS:
-        for deadguy in var.DEAD:
-            if not deadguy.is_fake:
-                cmodes.append(("-{0}".format(var.QUIET_MODE), var.QUIET_PREFIX + deadguy.nick + "!*@*"))
+        ircd = get_ircd()
+        if ircd.supports_quiet():
+            for deadguy in var.DEAD:
+                if not deadguy.is_fake:
+                    cmodes.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{deadguy.nick}!*@*"))
     channels.Main.mode("-m", *cmodes)
 
-def reset():
+def reset(var: GameState):
+    NIGHT_IDLED.clear()
+
+    var.teardown()
+
+    channels.Main.game_state = None
+    users.Bot.game_state = None
+
+    evt = Event("reset", {})
+    evt.dispatch(var)
+
+def old_reset():
     var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
     var.ALL_PLAYERS.clear()

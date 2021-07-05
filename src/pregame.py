@@ -19,7 +19,7 @@ from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Wolfchat, All
-from src import config, channels, locks
+from src import config, channels, locks, trans
 
 if TYPE_CHECKING:
     from src.users import User
@@ -123,8 +123,8 @@ def retract(wrapper: MessageDispatcher, message: str):
                 wrapper.send(messages["start_retract"].format(wrapper.source))
 
                 if not START_VOTES:
-                    var.TIMERS["start_votes"][0].cancel()
-                    del var.TIMERS["start_votes"]
+                    trans.TIMERS["start_votes"][0].cancel()
+                    del trans.TIMERS["start_votes"]
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -133,13 +133,13 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             START_VOTES.discard(player)
 
             # Cancel the start vote timer if there are no votes left
-            if not START_VOTES and "start_votes" in var.TIMERS:
-                var.TIMERS["start_votes"][0].cancel()
-                del var.TIMERS["start_votes"]
-
+            if not START_VOTES and "start_votes" in trans.TIMERS:
+                trans.TIMERS["start_votes"][0].cancel()
+                del trans.TIMERS["start_votes"]
 
 def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""):
-    from src.wolfgame import stop_game, chk_win_conditions, cgamemode
+    from src.trans import stop_game, chk_win_conditions
+    from src.wolfgame import cgamemode
 
     var = wrapper.game_state
 
@@ -206,7 +206,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                     # If this was the first vote
                     if len(START_VOTES) == 1:
                         t = threading.Timer(60, expire_start_votes, (var, wrapper.target))
-                        var.TIMERS["start_votes"] = (t, time.time(), 60)
+                        trans.TIMERS["start_votes"] = (t, time.time(), 60)
                         t.daemon = True
                         t.start()
                     return
@@ -468,8 +468,8 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     with locks.join_timer: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
             if name in var.TIMERS:
-                var.TIMERS[name][0].cancel()
-                del var.TIMERS[name]
+                trans.TIMERS[name][0].cancel()
+                del trans.TIMERS[name]
 
     var.LAST_STATS = None
     var.LAST_TIME = None
@@ -520,19 +520,19 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     if restart:
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
     if not var.START_WITH_DAY:
-        from src.wolfgame import transition_night
+        from src.trans import transition_night
         var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
-        transition_night()
+        transition_night(var)
         var.ROLES_SENT = True
     else:
         # send role messages
         evt = Event("send_role", {})
         evt.dispatch(var)
         var.ROLES_SENT = True
-        from src.wolfgame import transition_day
+        from src.trans import transition_day
         var.FIRST_DAY = True
         var.GAMEPHASE = "night"
-        transition_day()
+        transition_day(var)
 
     decrement_stasis()
 
