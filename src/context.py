@@ -107,20 +107,12 @@ def lower(nick: Union[None, str, IRCContext], *, casemapping: Optional[str] = No
 def equals(nick1: Union[None, str, IRCContext], nick2: Union[None, str, IRCContext]):
     return nick1 is not None and nick2 is not None and lower(nick1) == lower(nick2)
 
-def context_types(*types):
-    def wrapper(cls):
-        cls._getters = l = []
-        cls.is_fake = False
-        for context_type in types:
-            name = "is_" + context_type
-            setattr(cls, name, False)
-            l.append((context_type, attrgetter(name)))
-        return cls
-    return wrapper
-
-@context_types("channel", "user")
 class IRCContext:
     """Base class for channels and users."""
+
+    is_fake = False
+    is_channel = False
+    is_user = False
 
     _messages = defaultdict(list)
 
@@ -199,8 +191,8 @@ class IRCContext:
         context_type = []
         if cls.is_fake:
             context_type.append("fake")
-        for name, getter in cls._getters:
-            if getter(cls):
+        for name in ("channel", "user"):
+            if getattr(cls, "is_" + name):
                 context_type.append(name)
 
         final = " ".join(context_type)

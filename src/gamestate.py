@@ -33,6 +33,7 @@ class GameState:
 
     def teardown(self):
         self._roles.clear()
+        self.del_role_stats()
 
     @property
     def in_game(self):

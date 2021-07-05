@@ -44,6 +44,7 @@ from src.users import User
 
 from src.debug import handle_error
 from src.events import Event, EventListener, event_listener
+from src.transport.irc import get_ircd
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
@@ -165,10 +166,10 @@ def connect_callback():
             who_end_listener.remove("who_end")
 
     def end_listmode(event, chan, mode):
-        if chan is channels.Main and mode == var.QUIET_MODE:
+        if chan is channels.Main and mode == get_ircd().quiet_mode:
             pending = []
             for quiet in chan.modes.get(mode, ()):
-                if re.search(r"^{0}.+\!\*@\*$".format(var.QUIET_PREFIX), quiet):
+                if re.search(r"^{0}.+\!\*@\*$".format(get_ircd().quiet_prefix), quiet):
                     pending.append(("-" + mode, quiet))
             accumulator.send(pending)
             next(accumulator, None)
@@ -1151,9 +1152,11 @@ def on_kill_players(evt: Event, var, players: Set[User]):
         if not player.is_fake:
             if var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT:
                 cmode.append(("-v", player.nick))
-            if var.PHASE in var.GAME_PHASES and var.QUIET_DEAD_PLAYERS:
+            if var.in_game and var.QUIET_DEAD_PLAYERS:
                 # Died during the game, so quiet!
-                cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX + player.nick + "!*@*"))
+                ircd = get_ircd()
+                if ircd.supports_quiet():
+                    cmode.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{player.nick}!*@*"))
             if var.PHASE == "join":
                 for mode in channels.Main.old_modes[player]:
                     cmode.append(("+" + mode, player.nick))

@@ -13,6 +13,8 @@ from src.match import Match, match_all
 if typing.TYPE_CHECKING:
     from src.gamestate import GameState
     from src.dispatcher import MessageDispatcher
+    from src.users import User
+    from typing import List
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -21,7 +23,7 @@ __all__ = [
     "match_role", "match_mode", "match_totem"
     ]
 
-def get_players(var: GameState, roles=None, *, mainroles=None):
+def get_players(var: GameState, roles=None, *, mainroles=None) -> List[User]:
     from src.status import is_dying
     if mainroles is None:
         mainroles = var.MAIN_ROLES

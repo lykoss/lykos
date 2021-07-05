@@ -17,6 +17,7 @@ from src.decorators import handle_error, command, hook
 from src.context import Features
 from src.users import User
 from src.events import Event, EventListener
+from src.transport.irc import get_services
 
 if typing.TYPE_CHECKING:
     from oyoyo.client import IRCClient
@@ -231,19 +232,9 @@ def connect_callback(cli: IRCClient):
             username = nick
         password = config.Main.get("transports[0].authentication.services.password")
         use_sasl = config.Main.get("transports[0].authentication.services.use_sasl")
-        services = config.Main.get("transports[0].authentication.services.module")
-        nickserv = None
-        cmd = None
-        if services in ("atheme", "anope", "generic"):
-            nickserv = "NickServ"
-            cmd = "IDENTIFY {account} {password}"
-        elif services == "undernet":
-            nickserv = "x@channels.undernet.org"
-            cmd = "LOGIN {account} {password}"
-        elif services != "none":
-            raise config.InvalidConfigValue(f"service module unrecognized: {services}")
-        if password and not use_sasl:
-            cli.ns_identify(username, password, nickserv, cmd)
+        services = get_services()
+        if services.supports_auth() and password and not use_sasl:
+            cli.ns_identify(username, password, services.nickserv, services.command)
 
         # give bot operators an opportunity to do some custom stuff here if they wish
         event = Event("irc_connected", {})
