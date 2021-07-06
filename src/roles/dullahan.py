@@ -17,6 +17,7 @@ from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 TARGETS = UserDict() # type: UserDict[users.User, UserSet]
@@ -58,7 +59,7 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
         evt.data["individual_win"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
     for h, v in list(KILLS.items()):
         if v is player:
             h.send(messages["hunter_discard"])
@@ -75,7 +76,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                     channels.Main.send(*protected)
                     return
 
-                if var.ROLE_REVEAL in ("on", "team"):
+                if var.role_reveal in ("on", "team"):
                     role = get_reveal_role(var, target)
                     channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:

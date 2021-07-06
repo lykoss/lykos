@@ -12,6 +12,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.trans import chk_win
 
 VOTED = None # type: Optional[users.User]
 
@@ -25,8 +26,7 @@ def on_lynch(evt, var, votee, voters):
         lmsg = messages["lynch_reveal"].format(votee, "fool")
         VOTED = votee
         channels.Main.send(lmsg)
-        from src.wolfgame import chk_win
-        chk_win(winner="fool")
+        chk_win(var, winner="fool")
 
         evt.prevent_default = True
         evt.stop_processing = True

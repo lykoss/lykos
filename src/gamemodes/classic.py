@@ -7,7 +7,7 @@ class ClassicMode(GameMode):
     """Classic game mode from before all the changes."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ABSTAIN_ENABLED = False
+        self.CUSTOM_SETTINGS.abstain_enabled = False
         self.ROLE_GUIDE = {
             6:  ["wolf", "seer", "cursed villager"],
             8:  ["traitor", "harlot", "village drunk"],

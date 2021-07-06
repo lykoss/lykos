@@ -18,6 +18,7 @@ from src.cats import Wolf
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 GUARDED = UserDict() # type: UserDict[users.User, users.User]
 LASTGUARDED = UserDict() # type: UserDict[users.User, users.User]
@@ -88,13 +89,13 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_players(var, ("guardian angel",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt, var, victims):
+def on_transition_day_resolve_end(evt, var: GameState, victims):
     for gangel in get_all_players(var, ("guardian angel",)):
         if GUARDED.get(gangel) in get_players(var, Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 to_send = "guardian_angel_protected_wolf_no_reveal"
-                if var.ROLE_REVEAL == "on":
+                if var.role_reveal == "on":
                     to_send = "guardian_angel_protected_wolf"
                 evt.data["message"][gangel].append(messages[to_send].format(gangel))
                 evt.data["dead"].append(gangel)

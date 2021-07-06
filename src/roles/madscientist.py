@@ -5,11 +5,12 @@ import math
 from collections import defaultdict, deque
 
 from src.utilities import *
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.gamestate import GameState
 from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
 def _get_targets(var, pl, user):
@@ -41,7 +42,7 @@ def _get_targets(var, pl, user):
     return (target1, target2)
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
     if not death_triggers or "mad scientist" not in all_roles:
         return
 
@@ -71,7 +72,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     else:
         to_send = "mad_scientist_fail"
 
-    if to_send != "mad_scientist_fail" and var.ROLE_REVEAL not in ("on", "team"):
+    if to_send != "mad_scientist_fail" and var.role_reveal not in ("on", "team"):
         to_send += "_no_reveal"
 
     channels.Main.send(messages[to_send].format(player, target1, role1, target2, role2))

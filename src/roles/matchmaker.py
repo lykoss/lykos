@@ -17,7 +17,7 @@ from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Win_Stealer
 
 if TYPE_CHECKING:
-    from src.users import User
+    from src.gamestate import GameState
     from src.dispatcher import MessageDispatcher
 
 MATCHMAKERS = UserSet()
@@ -38,7 +38,7 @@ def _set_lovers(target1, target2):
     target1.send(messages["matchmaker_target_notify"].format(target2))
     target2.send(messages["matchmaker_target_notify"].format(target1))
 
-def get_lovers():
+def get_lovers(var):
     lovers = []
     pl = get_players(var)
     for lover in LOVERS:
@@ -110,10 +110,10 @@ def on_transition_day_begin(evt, var):
             mm.send(messages["random_matchmaker"])
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt, var: GameState):
     ps = get_players(var)
     for mm in get_all_players(var, ("matchmaker",)):
-        if mm in MATCHMAKERS and not var.ALWAYS_PM_ROLE:
+        if mm in MATCHMAKERS and not var.always_pm_role:
             continue
         pl = ps[:]
         random.shuffle(pl)
@@ -122,7 +122,7 @@ def on_send_role(evt, var):
             mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
     MATCHMAKERS.discard(player)
     ACTED.discard(player)
     if death_triggers and player in LOVERS:
@@ -131,7 +131,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             if lover not in get_players(var):
                 continue # already died somehow
             to_send = "lover_suicide_no_reveal"
-            if var.ROLE_REVEAL in ("on", "team"):
+            if var.role_reveal in ("on", "team"):
                 to_send = "lover_suicide"
             channels.Main.send(messages[to_send].format(lover, get_reveal_role(var, lover)))
             add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
@@ -156,7 +156,7 @@ def on_game_end_messages(evt, var):
 
 @event_listener("team_win")
 def on_team_win(evt, var, player, main_role, allroles, winner):
-    if winner == "lovers" and player in get_lovers()[0]:
+    if winner == "lovers" and player in get_lovers(var)[0]:
         evt.data["team_win"] = True
 
 @event_listener("player_win")
@@ -183,7 +183,7 @@ def on_chk_nightdone(evt, var):
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt, var, target1, target2):
     if target1 in LOVERS and target2 in LOVERS:
-        for lset in get_lovers():
+        for lset in get_lovers(var):
             if target1 in lset and target2 in lset:
                 evt.data["same"] = True
                 break

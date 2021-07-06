@@ -8,6 +8,7 @@ from src import channels, users, status, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target, match_totem
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_protection, try_exchange
 from src.events import Event
@@ -382,7 +383,7 @@ def on_lynch_immunity(evt, var, user, reason):
         evt.data["immune"] = True
 
 @event_listener("lynch")
-def on_lynch(evt, var, votee, voters):
+def on_lynch(evt, var: GameState, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
@@ -393,7 +394,7 @@ def on_lynch(evt, var, votee, voters):
                 return
 
             to_send = "totem_desperation_no_reveal"
-            if var.ROLE_REVEAL in ("on", "team"):
+            if var.role_reveal in ("on", "team"):
                 to_send = "totem_desperation"
             channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(var, target)))
             status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
@@ -451,7 +452,7 @@ def on_transition_day_begin(evt, var):
     havetotem.clear()
 
 @event_listener("transition_day_resolve_end", priority=4)
-def on_transition_day_resolve6(evt, var, victims):
+def on_transition_day_resolve6(evt, var: GameState, victims):
     for victim in victims:
         if victim in RETRIBUTION:
             killers = list(evt.data["killers"].get(victim, []))
@@ -478,7 +479,7 @@ def on_transition_day_resolve6(evt, var, victims):
 
                 evt.data["dead"].append(loser)
                 to_send = "totem_death_no_reveal"
-                if var.ROLE_REVEAL in ("on", "team"):
+                if var.role_reveal in ("on", "team"):
                     to_send = "totem_death"
                 evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(var, loser)))
 

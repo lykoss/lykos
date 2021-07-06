@@ -5,6 +5,7 @@ from typing import Tuple
 from src.containers import UserDict
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
+from src.gamestate import GameState
 from src.events import Event, event_listener
 from src.users import User
 from src import locks
@@ -113,13 +114,13 @@ def kill_players(var, *, end_game: bool = True) -> bool:
         return not evt.dispatch(var, dead)
 
 @event_listener("transition_day_resolve_end", priority=1)
-def kill_off_dying_players(evt, var, victims):
+def kill_off_dying_players(evt, var: GameState, victims):
     for victim in DYING:
         if victim not in evt.data["dead"]:
             evt.data["novictmsg"] = False
             evt.data["dead"].append(victim)
 
             to_send = "death_no_reveal"
-            if var.ROLE_REVEAL in ("on", "team"):
+            if var.role_reveal in ("on", "team"):
                 to_send = "death"
             evt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(var, victim)))

@@ -8,9 +8,9 @@ class MatchmakerMode(GameMode):
     """Love is in the air!"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.NIGHT_TIME_LIMIT = 150
-        self.NIGHT_TIME_WARN = 105
-        self.DEFAULT_ROLE = "matchmaker"
+        self.CUSTOM_SETTINGS.night_time_limit = 150
+        self.CUSTOM_SETTINGS.night_time_warn = 105
+        self.CUSTOM_SETTINGS.default_role = "matchmaker"
         self.ROLE_GUIDE = {
             8:  ["wolf", "wolf(2)"],
             12: ["monster"],

@@ -23,9 +23,10 @@ class BorealMode(GameMode):
     """Some shamans are working against you. Exile them before you starve!"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.LIMIT_ABSTAIN = False
-        self.SELF_LYNCH_ALLOWED = False
-        self.DEFAULT_ROLE = "shaman"
+        self.CUSTOM_SETTINGS.limit_abstain = False
+        self.CUSTOM_SETTINGS.self_lynch_allowed = False
+        self.CUSTOM_SETTINGS.default_role = "shaman"
+
         # If you add non-wolfteam, non-shaman roles, be sure to update update_stats to account for it!
         # otherwise !stats will break if they turn into VG.
         self.ROLE_GUIDE = {

@@ -9,10 +9,10 @@ from src.cats import Village
 class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self, arg=""):
-        self.ABSTAIN_ENABLED = False
         super().__init__(arg)
-        self.DEFAULT_ROLE = "cultist"
-        self.HIDDEN_ROLE = "cultist"
+        self.CUSTOM_SETTINGS.abstain_enabled = False
+        self.CUSTOM_SETTINGS.default_role = "cultist"
+        self.CUSTOM_SETTINGS.hidden_role = "cultist"
         self.ROLE_GUIDE = {
             6:  ["wolf", "hunter"],
             8:  ["seer"],

@@ -9,14 +9,15 @@ from src import users, channels, status, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt, var: GameState):
     for blessed in get_all_players(var, ("blessed villager",)):
         status.add_protection(var, blessed, blessed, "blessed villager")
-        if not var.ROLES_SENT or var.ALWAYS_PM_ROLE:
+        if not var.ROLES_SENT or var.always_pm_role:
             blessed.send(messages["blessed_notify"])
 
 @event_listener("myrole")

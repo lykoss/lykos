@@ -3,6 +3,7 @@ import math
 from src.events import Event, find_listener
 from src.functions import get_players, get_all_players
 from src.decorators import event_listener
+from src.gamestate import GameState
 from src.messages import messages
 
 from src.roles.helper.gunners import setup_variables
@@ -16,12 +17,12 @@ find_listener("send_role", "gunners.<wolf gunner>.on_send_role").remove("send_ro
 find_listener("transition_day_resolve_end", "gunners.<wolf gunner>.on_transition_day_resolve_end").remove("transition_day_resolve_end")
 
 @event_listener("wolf_notify")
-def on_wolf_notify(evt, var, role):
+def on_wolf_notify(evt, var: GameState, role):
     if role != "wolf gunner":
         return
     gunners = get_all_players(var, ("wolf gunner",))
     for gunner in gunners:
-        if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
+        if GUNNERS[gunner] or var.always_pm_role:
             gunner.send(messages["gunner_bullets"].format(GUNNERS[gunner]))
 
 @event_listener("gun_shoot")

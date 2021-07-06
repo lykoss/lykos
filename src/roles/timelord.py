@@ -12,49 +12,51 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import event_listener
+from src.gamestate import GameState
+
+TIME_LORD_DAY_LIMIT = 60
+TIME_LORD_DAY_WARN = 45
+TIME_LORD_NIGHT_LIMIT = 30
+TIME_LORD_NIGHT_WARN = 0
 
 TIME_ATTRIBUTES = (
-    ("DAY_TIME_LIMIT", "TIME_LORD_DAY_LIMIT"),
-    ("DAY_TIME_WARN", "TIME_LORD_DAY_WARN"),
-    ("SHORT_DAY_LIMIT", "TIME_LORD_DAY_LIMIT"),
-    ("SHORT_DAY_WARN", "TIME_LORD_DAY_WARN"),
-    ("NIGHT_TIME_LIMIT", "TIME_LORD_NIGHT_LIMIT"),
-    ("NIGHT_TIME_WARN", "TIME_LORD_NIGHT_WARN"),
+    ("day_time_limit", TIME_LORD_DAY_LIMIT),
+    ("day_time_warn", TIME_LORD_DAY_WARN),
+    ("short_day_limit", TIME_LORD_DAY_LIMIT),
+    ("short_day_warn", TIME_LORD_DAY_WARN),
+    ("night_time_limit", TIME_LORD_NIGHT_LIMIT),
+    ("night_time_warn", TIME_LORD_NIGHT_WARN),
 )
 
 TRIGGERED = False
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
     global TRIGGERED
     if not death_triggers or "time lord" not in all_roles:
         return
 
-    for attr, new_attr in TIME_ATTRIBUTES:
-        if attr not in var.ORIGINAL_SETTINGS:
-            var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
-
-        setattr(var, attr, getattr(var, new_attr))
+    var.game_settings.update(TIME_ATTRIBUTES)
 
     TRIGGERED = True
     channels.Main.send(messages["time_lord_dead"].format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
 
-    from src.trans import hurry_up, night_warn, night_timeout, DAY_ID, TIMERS
+    from src.trans import hurry_up, night_warn, night_timeout, DAY_ID, NIGHT_ID, TIMERS
     if var.GAMEPHASE == "day":
-        time_limit = var.DAY_TIME_LIMIT
+        time_limit = var.day_time_limit
         limit_cb = hurry_up
         limit_args = [var, DAY_ID, True]
-        time_warn = var.DAY_TIME_WARN
+        time_warn = var.day_time_warn
         warn_cb = hurry_up
         warn_args = [var, DAY_ID, False]
         timer_name = "day_warn"
     elif var.GAMEPHASE == "night":
-        time_limit = var.NIGHT_TIME_LIMIT
+        time_limit = var.night_time_limit
         limit_cb = night_timeout
-        limit_args = [var, var.NIGHT_ID]
-        time_warn = var.NIGHT_TIME_WARN
+        limit_args = [var, NIGHT_ID]
+        time_warn = var.night_time_warn
         warn_cb = night_warn
-        warn_args = [var, var.NIGHT_ID]
+        warn_args = [var, NIGHT_ID]
         timer_name = "night_warn"
     else:
         return

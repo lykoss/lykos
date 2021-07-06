@@ -9,8 +9,8 @@ from src import channels, users
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self, arg=""):
-        self.LIMIT_ABSTAIN = False
         super().__init__(arg)
+        self.CUSTOM_SETTINGS.limit_abstain = False
         self.ROLE_GUIDE = {
             7:  ["werekitten", "seer", "guardian angel", "cursed villager", "cursed villager(2)"],
             8:  ["wolf", "village drunk"],

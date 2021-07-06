@@ -8,10 +8,10 @@ class RapidFireMode(GameMode):
     """Many roles that lead to multiple chain deaths."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.DAY_TIME_LIMIT = 480
-        self.DAY_TIME_WARN = 360
-        self.SHORT_DAY_LIMIT = 240
-        self.SHORT_DAY_WARN = 180
+        self.CUSTOM_SETTINGS.day_time_limit = 480
+        self.CUSTOM_SETTINGS.day_time_warn = 360
+        self.CUSTOM_SETTINGS.short_day_time_limit = 240
+        self.CUSTOM_SETTINGS.short_day_time_warn = 180
         self.ROLE_GUIDE = {
             6:  ["wolf", "seer", "mad scientist", "cursed villager"],
             8:  ["wolf cub", "hunter", "assassin"],

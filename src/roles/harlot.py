@@ -19,6 +19,7 @@ from src.cats import Wolf, Wolfchat
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 VISITED = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet()
@@ -84,14 +85,14 @@ def on_transition_day_resolve(evt, var, victim):
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt, var, victims):
+def on_transition_day_resolve_end(evt, var: GameState, victims):
     for victim in victims:
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for hlt in VISITED:
                 if VISITED[hlt] is victim and hlt not in evt.data["dead"]:
                     role = get_reveal_role(var, hlt)
                     to_send = "visited_victim_noreveal"
-                    if var.ROLE_REVEAL in ("on", "team"):
+                    if var.role_reveal in ("on", "team"):
                         to_send = "visited_victim"
                     evt.data["message"][hlt].append(messages[to_send].format(hlt, role))
                     evt.data["dead"].append(hlt)

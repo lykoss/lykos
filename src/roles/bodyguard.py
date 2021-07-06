@@ -19,6 +19,7 @@ from src.users import User
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 GUARDED: UserDict[User, User] = UserDict()
 PASSED = UserSet()
@@ -79,7 +80,7 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_players(var, ("bodyguard",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt, var, victims):
+def on_transition_day_resolve_end(evt, var: GameState, victims):
     for bodyguard in DYING:
         evt.data["message"][bodyguard].clear()
     DYING.clear()
@@ -87,7 +88,7 @@ def on_transition_day_resolve_end(evt, var, victims):
         if GUARDED.get(bodyguard) in get_players(var, Wolf) and bodyguard not in evt.data["dead"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
-                if var.ROLE_REVEAL == "on":
+                if var.role_reveal == "on":
                     evt.data["message"][bodyguard].append(messages["bodyguard_protected_wolf"].format(bodyguard))
                 else: # off and team
                     evt.data["message"][bodyguard].append(messages["bodyguard_protection"].format(bodyguard))

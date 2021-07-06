@@ -12,6 +12,7 @@ from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event, event_listener
+from src.trans import chk_win
 from src import channels, pregame, users, locks
 
 if TYPE_CHECKING:
@@ -72,13 +73,13 @@ def lynch(wrapper: MessageDispatcher, message: str):
 def no_lynch(wrapper: MessageDispatcher, message: str):
     """Allow you to abstain from voting for the day."""
     var = wrapper.game_state
-    if not var.ABSTAIN_ENABLED:
+    if not var.abstain_enabled:
         wrapper.pm(messages["command_disabled"])
         return
-    elif var.LIMIT_ABSTAIN and ABSTAINED:
+    elif var.limit_abstain and ABSTAINED:
         wrapper.pm(messages["exhausted_abstain"])
         return
-    elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
+    elif var.limit_abstain and var.FIRST_DAY:
         wrapper.pm(messages["no_abstain_day_one"])
         return
     elif try_absent(var, wrapper.source):
@@ -293,7 +294,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                     lynch_evt = Event("lynch", {}, players=avail)
                     if lynch_evt.dispatch(var, votee, voters):
                         to_send = "lynch_no_reveal"
-                        if var.ROLE_REVEAL in ("on", "team"):
+                        if var.role_reveal in ("on", "team"):
                             to_send = "lynch_reveal"
                         lmsg = messages[to_send].format(votee, get_reveal_role(var, votee))
                         channels.Main.send(lmsg)
@@ -304,8 +305,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
         elif timeout:
             channels.Main.send(messages["sunset"])
 
-        from src.wolfgame import chk_win
-        if chk_win():
+        if chk_win(var):
             return # game ended, just exit out
 
         if timeout or LYNCHED >= num_lynches:

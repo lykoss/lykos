@@ -9,7 +9,8 @@ class MudkipMode(GameMode):
     """Why are all the professors named after trees?"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ABSTAIN_ENABLED = False
+        self.CUSTOM_SETTINGS.abstain_enabled = False
+        self.CUSTOM_SETTINGS.start_with_day = True
 
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 0},
@@ -35,7 +36,6 @@ class MudkipMode(GameMode):
         # make assassin a primary role
         self.SECONDARY_ROLES.pop("assassin", None)
 
-        self.START_WITH_DAY = True
         self.ROLE_GUIDE = {
             6:  ["wolf", "cult leader", "investigator", "insomniac"],
             7:  ["jester"],

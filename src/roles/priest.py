@@ -14,6 +14,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.trans import chk_win
 from src.status import try_misdirection, try_exchange, add_absent
 
 if typing.TYPE_CHECKING:
@@ -53,8 +54,6 @@ def consecrate(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["not_enough_parameters"])
         return
 
-    var = wrapper.game_state
-
     dead = set(var.ALL_PLAYERS) - set(alive)
     target = users.complete_match(targ, dead)
     if not target:
@@ -73,8 +72,7 @@ def consecrate(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["consecrate_success"].format(target))
     add_absent(var, wrapper.source, "consecrating")
     from src.votes import chk_decision
-    from src.wolfgame import chk_win
-    if not chk_win():
+    if not chk_win(var):
         # game didn't immediately end due to marking as absent, see if we should force through a lynch
         chk_decision(var)
 

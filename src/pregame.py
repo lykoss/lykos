@@ -14,6 +14,7 @@ import re
 from src.containers import UserDict, UserSet
 from src.debug import handle_error
 from src.decorators import COMMANDS, command
+from src.gamestate import set_gamemode
 from src.functions import get_players
 from src.warnings import decrement_stasis
 from src.messages import messages
@@ -70,6 +71,7 @@ def wait(wrapper: MessageDispatcher, message: str):
 @command("fwait", flag="w", phases=("join",))
 def fwait(wrapper: MessageDispatcher, message: str):
     """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
+    var = wrapper.game_state
     pl = get_players(var)
 
     var = wrapper.game_state
@@ -138,8 +140,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                 del trans.TIMERS["start_votes"]
 
 def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""):
-    from src.trans import stop_game, chk_win_conditions
-    from src.wolfgame import cgamemode
+    from src.trans import stop_game
 
     var = wrapper.game_state
 
@@ -219,7 +220,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
             if voted:
-                cgamemode(var, random.choice(voted))
+                set_gamemode(var, random.choice(voted))
             else:
                 possiblegamemodes = []
                 numvotes = 0
@@ -238,14 +239,14 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                         if len(villagers) >= GAME_MODES[gamemode][1] and len(villagers) <= GAME_MODES[gamemode][2] and GAME_MODES[gamemode][3] > 0:
                             possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
                     gamemode = random.choice(possiblegamemodes)
-                cgamemode(var, gamemode)
+                set_gamemode(var, gamemode)
 
     else:
-        cgamemode(var, restart)
+        set_gamemode(var, restart)
         var.GAME_ID = time.time() # restart reaper timer
 
     event = Event("role_attribution", {"addroles": Counter()})
-    if event.dispatch(var, chk_win_conditions, villagers):
+    if event.dispatch(var, villagers):
         addroles = event.data["addroles"]
         strip = lambda x: re.sub(r"\(.*\)", "", x)
         lv = len(villagers)
@@ -519,7 +520,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     if restart:
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
-    if not var.START_WITH_DAY:
+    if not var.start_with_day:
         from src.trans import transition_night
         var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night(var)

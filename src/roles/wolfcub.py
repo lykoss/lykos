@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src.functions import get_players
-from src import errlog, plog, users, channels
+from src import users, channels, trans
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -52,7 +52,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):
-            var.NIGHT_IDLE_EXEMPT.add(wc) # if they grow up during night, don't give them idle warnings
+            trans.NIGHT_IDLE_EXEMPT.add(wc) # if they grow up during night, don't give them idle warnings
             rolemap["wolf"].add(wc)
             rolemap["wolf cub"].remove(wc)
             if mainroles[wc] == "wolf cub":

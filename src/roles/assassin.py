@@ -1,4 +1,5 @@
 from __future__ import annotations
+from lykos.src.gamestate import GameState
 
 import re
 import random
@@ -88,7 +89,7 @@ def on_send_role(evt, var):
                 ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
     if player in TARGETED.values():
         for x, y in list(TARGETED.items()):
             if y is player:
@@ -105,7 +106,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                 channels.Main.send(*protected)
                 return
             to_send = "assassin_success_no_reveal"
-            if var.ROLE_REVEAL in ("on", "team"):
+            if var.role_reveal in ("on", "team"):
                 to_send = "assassin_success"
             channels.Main.send(messages[to_send].format(player, target, get_reveal_role(var, target)))
             add_dying(var, target, killer_role=evt.params.main_role, reason="assassin")

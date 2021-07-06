@@ -3,6 +3,7 @@ import random
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.events import event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Wolf
@@ -16,9 +17,9 @@ def wolf_list(var):
     return messages["wolves_list"].format(", ".join(wolves))
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt, var: GameState):
     for minion in get_all_players(var, ("minion",)):
-        if minion in RECEIVED_INFO and not var.ALWAYS_PM_ROLE:
+        if minion in RECEIVED_INFO and not var.always_pm_role:
             continue
         minion.send(messages["minion_notify"])
         minion.send(wolf_list(var))

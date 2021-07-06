@@ -92,7 +92,6 @@ var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, st
 
 var.IDLE_WARNED = UserSet() # type: ignore
 var.IDLE_WARNED_PM = UserSet() # type: ignore
-var.NIGHT_IDLE_EXEMPT = UserSet() # type: ignore
 
 var.DEAD = UserSet() # type: ignore
 
@@ -101,7 +100,6 @@ var.DEADCHAT_PLAYERS = UserSet() # type: ignore
 var.SPECTATING_WOLFCHAT = UserSet() # type: ignore
 var.SPECTATING_DEADCHAT = UserSet() # type: ignore
 
-var.ORIGINAL_SETTINGS = {} # type: ignore
 var.GAMEMODE_VOTES = UserDict() # type: ignore
 
 var.LAST_SAID_TIME = UserDict() # type: ignore
@@ -914,7 +912,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
                 return
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
-            if get_main_role(var, target) != "person" and var.ROLE_REVEAL in ("on", "team"):
+            if get_main_role(var, target) != "person" and var.role_reveal in ("on", "team"):
                 msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
             if var.PHASE == "join":
                 player_count = len(get_players(var)) - 1
@@ -976,7 +974,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
     wrapper.reply(msg)
 
-    if var.PHASE == "join" or var.STATS_TYPE == "disabled":
+    if var.PHASE == "join" or var.stats_type == "disabled":
         return
 
     entries = []
@@ -993,7 +991,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
     # Uses events in order to enable roles to modify logic
     # The events are fired off as part of transition_day and del_player, and are not calculated here
-    if var.STATS_TYPE == "default":
+    if var.stats_type == "default":
         # Collapse var.ROLE_STATS into a Dict[str, Tuple[int, int]]
         role_stats = {}
         for stat_set in var.ROLE_STATS:
@@ -1028,7 +1026,7 @@ def stats(wrapper: MessageDispatcher, message: str):
                 entries.append(messages["stats_reply_entry_range"].format(role, count[0], count[1]))
 
     # Show everything as-is, with no hidden information
-    elif var.STATS_TYPE == "accurate":
+    elif var.stats_type == "accurate":
         l1 = [k for k in var.ROLES.keys() if var.ROLES[k]]
         l2 = [k for k in var.ORIGINAL_ROLES.keys() if var.ORIGINAL_ROLES[k]]
         rs = set(l1+l2)
@@ -1060,7 +1058,7 @@ def stats(wrapper: MessageDispatcher, message: str):
     # and wolf mystics are told since neutrals are split off. Determination
     # of what numbers are shown is the same as summing up counts in "accurate"
     # as accurate, this contains no hidden information
-    elif var.STATS_TYPE == "team":
+    elif var.stats_type == "team":
         wolfteam = 0
         villagers = 0
         neutral = 0
@@ -1251,7 +1249,7 @@ def reaper(cli, gameid):
                         var.IDLE_WARNED.discard(user)  # player saved themselves from death
                         var.IDLE_WARNED_PM.discard(user)
                 for user in to_kill:
-                    if var.ROLE_REVEAL in ("on", "team"):
+                    if var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["idle_death"].format(user, get_reveal_role(var, user)))
                     else:
                         channels.Main.send(messages["idle_death_no_reveal"].format(user))
@@ -1274,7 +1272,7 @@ def reaper(cli, gameid):
                 mainrole = get_main_role(var, dcedplayer)
                 revealrole = get_reveal_role(var, dcedplayer)
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
-                    if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
+                    if mainrole != "person" and var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
@@ -1285,7 +1283,7 @@ def reaper(cli, gameid):
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "quit", death_triggers=False)
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
-                    if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
+                    if mainrole != "person" and var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["part_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
@@ -1296,7 +1294,7 @@ def reaper(cli, gameid):
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "part", death_triggers=False)
                 elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
-                    if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
+                    if mainrole != "person" and var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["account_death"].format(dcedplayer, revealrole))
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
@@ -1430,15 +1428,15 @@ def nick_change(evt, user, old_nick): # FIXME: This function needs some way to h
 
 @event_listener("chan_part")
 def left_channel(evt, chan, user, reason): # FIXME: This uses var
-    leave(var, "part", user, chan)
+    leave(chan.gamestate, "part", user, chan)
 
 @event_listener("chan_kick") # FIXME: This uses var
 def channel_kicked(evt, chan, actor, user, reason):
-    leave(var, "kick", user, chan)
+    leave(chan.gamestate, "kick", user, chan)
 
 @event_listener("server_quit")
 def quit_server(evt, user, reason): # FIXME: This uses var
-    leave(var, "quit", user, reason)
+    leave(channels.Main.game_state, "quit", user, reason)
 
 def leave(var, what, user, why=None):
     if what in ("part", "kick") and why is not channels.Main:
@@ -1478,7 +1476,7 @@ def leave(var, what, user, why=None):
             population = " " + messages["new_player_count"].format(lpl)
 
     reveal = ""
-    if get_main_role(var, user) == "person" or var.ROLE_REVEAL not in ("on", "team"):
+    if get_main_role(var, user) == "person" or var.role_reveal not in ("on", "team"):
         reveal = "_no_reveal"
 
     grace_times = {"part": var.PART_GRACE_TIME, "quit": var.QUIT_GRACE_TIME, "account": var.ACC_GRACE_TIME, "leave": 0}
@@ -1537,7 +1535,7 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     else:
         return
 
-    if get_main_role(var, wrapper.source) != "person" and var.ROLE_REVEAL in ("on", "team"):
+    if get_main_role(var, wrapper.source) != "person" and var.role_reveal in ("on", "team"):
         role = get_reveal_role(var, wrapper.source)
         channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
@@ -1683,34 +1681,6 @@ def relay(wrapper: MessageDispatcher, message: str):
                 player.queue_message(messages["relay_message_wolfchat"].format(wrapper.source, message))
         if badguys or var.SPECTATING_WOLFCHAT:
             player.send_messages()
-
-def cgamemode(var, arg):
-    from src.gamemodes import GAME_MODES
-    if var.ORIGINAL_SETTINGS:  # needs reset
-        reset_settings()
-
-    modeargs = arg.split("=", 1)
-
-    modeargs = [a.strip() for a in modeargs]
-    if modeargs[0] in GAME_MODES.keys():
-        from src.gamemodes import InvalidModeException
-        md = modeargs.pop(0)
-        try:
-            gm = GAME_MODES[md][0](*modeargs)
-            gm.startup()
-            for attr in dir(gm):
-                val = getattr(gm, attr)
-                if (hasattr(var, attr) and not callable(val)
-                                        and not attr.startswith("_")):
-                    var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
-                    setattr(var, attr, val)
-            var.CURRENT_GAMEMODE = gm
-            return True
-        except InvalidModeException as e:
-            channels.Main.send("Invalid mode: "+str(e))
-            return False
-    else:
-        channels.Main.send(messages["game_mode_not_found"].format(modeargs[0]))
 
 @hook("error")
 def on_error(cli, pfx, msg):
@@ -2669,7 +2639,8 @@ def fgame(wrapper: MessageDispatcher, message: str):
             return
         parts[0] = match.get().key
 
-        if cgamemode(var, "=".join(parts)):
+        from src.gamestate import set_gamemode
+        if set_gamemode(var, "=".join(parts)):
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
             var.FGAMED = True
     else:

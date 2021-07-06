@@ -3,13 +3,14 @@ from src import users, channels, errlog, plog
 from src.functions import get_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Hidden
 
 @event_listener("send_role")
-def on_send_role(evt, var):
-    if not var.ROLES_SENT or var.ALWAYS_PM_ROLE:
+def on_send_role(evt, var: GameState):
+    if not var.ROLES_SENT or var.always_pm_role:
         villroles = {"villager"}
         if var.HIDDEN_ROLE == "villager":
             villroles |= Hidden

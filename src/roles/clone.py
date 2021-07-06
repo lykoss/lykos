@@ -19,6 +19,7 @@ from src.events import EventListener
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 CLONED = UserDict() # type: UserDict[users.User, users.User]
 CAN_ACT = UserSet()
@@ -77,11 +78,11 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     ACTED.discard(player)
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt, var: GameState):
     ps = get_players(var)
     CAN_ACT.update(get_all_players(var, ("clone",)) - CLONED.keys())
     for clone in get_all_players(var, ("clone",)):
-        if clone in CLONED and not var.ALWAYS_PM_ROLE:
+        if clone in CLONED and not var.always_pm_role:
             continue
         pl = ps[:]
         random.shuffle(pl)

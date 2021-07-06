@@ -8,12 +8,12 @@ class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.DAY_TIME_LIMIT = 480
-        self.DAY_TIME_WARN = 360
-        self.SHORT_DAY_LIMIT = 240
-        self.SHORT_DAY_WARN = 180
-        self.NIGHT_TIME_LIMIT = 60
-        self.NIGHT_TIME_WARN = 40
+        self.CUSTOM_SETTINGS.day_time_limit = 480
+        self.CUSTOM_SETTINGS.day_time_warn = 360
+        self.CUSTOM_SETTINGS.short_day_time_limit = 240
+        self.CUSTOM_SETTINGS.short_day_time_warn = 180
+        self.CUSTOM_SETTINGS.night_time_limit = 60
+        self.CUSTOM_SETTINGS.night_time_warn = 40
         self.GUN_CHANCES = {
             "gunner": (10/20, 8/20, 16/20), # 50% hit, 40% miss, 10% explode, 80% headshot
             "wolf gunner": (12/20, 8/20, 1), # 60% hit, 40% miss, 0% explode, 100% headshot

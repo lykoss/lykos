@@ -127,7 +127,8 @@ def change_role(var: GameState, player, oldrole, newrole, *, inherit_from=None, 
         var.FINAL_ROLES[player] = newrole
 
     # if giving the player a new role during night, don't warn them for not acting
-    var.NIGHT_IDLE_EXEMPT.add(player)
+    from src.trans import NIGHT_IDLE_EXEMPT
+    NIGHT_IDLE_EXEMPT.add(player)
 
     sayrole = newrole
     if sayrole in Hidden:
@@ -160,7 +161,7 @@ def get_reveal_role(var: GameState, user) -> str:
     evt.dispatch(var, user)
     role = evt.data["role"]
 
-    if var.ROLE_REVEAL != "team":
+    if var.role_reveal != "team":
         return role
 
     if role in Wolfteam:

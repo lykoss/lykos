@@ -4,11 +4,12 @@ import itertools
 import math
 from collections import defaultdict
 
-from src import errlog, plog, users, channels
+from src import users, channels, trans
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import in_misdirection_scope
+from src.gamestate import GameState
 from src.events import Event
 from src.roles.helper.wolves import register_wolf, get_wolfchat_roles
 from src.cats import All, Wolf
@@ -16,13 +17,13 @@ from src.cats import All, Wolf
 register_wolf("traitor")
 
 @event_listener("get_reveal_role")
-def on_get_reveal_role(evt, var, user):
+def on_get_reveal_role(evt, var: GameState, user):
     # in team reveal, show traitor as wolfteam, otherwise team stats won't sync with how
     # they're revealed upon death. Team stats should show traitor as wolfteam or else
     # the stats are wrong in that they'll report one less wolf than actually exists,
     # which can confuse a lot of people
-    if evt.data["role"] == "traitor" and var.HIDDEN_TRAITOR and var.ROLE_REVEAL != "team":
-        evt.data["role"] = var.HIDDEN_ROLE
+    if evt.data["role"] == "traitor" and var.HIDDEN_TRAITOR and var.role_reveal != "team":
+        evt.data["role"] = var.hidden_role
 
 @event_listener("get_final_role")
 def on_get_final_role(evt, var, user, role):
@@ -80,7 +81,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for traitor in list(rolemap["traitor"]):
-            var.NIGHT_IDLE_EXEMPT.add(traitor) # if they turn during night, don't give them idle warnings
+            trans.NIGHT_IDLE_EXEMPT.add(traitor) # if they turn during night, don't give them idle warnings
             rolemap["wolf"].add(traitor)
             rolemap["traitor"].remove(traitor)
             if "cursed villager" in rolemap:

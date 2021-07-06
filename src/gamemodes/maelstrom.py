@@ -5,6 +5,7 @@ from src.gamemodes import game_mode, GameMode
 from src.messages import messages
 from src.functions import get_players
 from src.events import Event, EventListener
+from src.trans import chk_win_conditions
 from src import channels, users
 from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Killer
 
@@ -12,10 +13,10 @@ from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Kill
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
     def __init__(self, arg=""):
-        self.ROLE_REVEAL = "on"
-        self.STATS_TYPE = "disabled"
         super().__init__(arg)
-        self.ALWAYS_PM_ROLE = True
+        self.CUSTOM_SETTINGS.role_reveal = "on"
+        self.CUSTOM_SETTINGS.stats_type = "disabled"
+        self.CUSTOM_SETTINGS.always_pm_role = True
         # clone and wild child are pointless in this mode
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
@@ -25,8 +26,7 @@ class MaelstromMode(GameMode):
             "transition_night_begin": EventListener(self.transition_night_begin)
         }
 
-    def role_attribution(self, evt, var, chk_win_conditions, villagers):
-        self.chk_win_conditions = chk_win_conditions
+    def role_attribution(self, evt, var, villagers):
         evt.data["addroles"].update(self._role_attribution(var, villagers, True))
         evt.prevent_default = True
 
@@ -109,7 +109,7 @@ class MaelstromMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if self.chk_win_conditions(rolemap, mainroles, end_game=False):
+        if chk_win_conditions(var, rolemap, mainroles, end_game=False):
             return self._role_attribution(var, villagers, do_templates)
 
         return addroles

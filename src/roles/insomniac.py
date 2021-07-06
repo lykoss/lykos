@@ -1,5 +1,6 @@
 from src.functions import get_players, get_all_players, get_all_roles
 from src.decorators import event_listener
+from src.gamestate import GameState
 from src.messages import messages
 from src.cats import Nocturnal
 
@@ -24,8 +25,8 @@ def _get_targets(var, pl, user):
     return (target1, target2)
 
 @event_listener("send_role")
-def on_send_role(evt, var):
-    if not var.ROLES_SENT or var.ALWAYS_PM_ROLE:
+def on_send_role(evt, var: GameState):
+    if not var.ROLES_SENT or var.always_pm_role:
         for insomniac in get_all_players(var, ("insomniac",)):
             insomniac.send(messages["insomniac_notify"])
 

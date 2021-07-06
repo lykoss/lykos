@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 import threading
 import time
 
@@ -21,10 +21,13 @@ from src import channels, users, locks, config, db
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
+    from src.users import User
 
 NIGHT_IDLED = UserSet()
+NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS = {}
 DAY_ID = 0
+NIGHT_ID = 0
 
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
@@ -62,7 +65,7 @@ def fday(wrapper: MessageDispatcher, message: str):
 def begin_day(var: GameState):
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.LAST_GOAT.clear()
+    var.LAST_GOAT.clear() # FIXME: Move this with !goat when it has its own module (and put it in an event listener)
     msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
 
@@ -71,16 +74,16 @@ def begin_day(var: GameState):
     if config.Main.get("timers.enabled"):
         value = None
         if config.Main.get("timers.day.enabled"):
-            value = "timers.day.{0}"
+            value = "day_time_{0}"
         if config.Main.get("timers.shortday.enabled") and len(get_players(var)) <= config.Main.get("timers.shortday.players"):
-            value = "timers.shortday.{0}"
+            value = "short_day_time_{0}"
         if value is not None:
             for s in ("warn", "limit"):
-                if config.Main.get(value.format(s)):
-                    timer = threading.Timer(config.Main.get(value.format(s)), hurry_up, (var, DAY_ID, (s == "limit")))
+                if getattr(var, value.format(s)):
+                    timer = threading.Timer(getattr(var, value.format(s)), hurry_up, (var, DAY_ID, (s == "limit")))
                     timer.daemon = True
                     timer.start()
-                    TIMERS[f"day_{s}"] = (timer, DAY_ID, config.Main.get(value.format(s)))
+                    TIMERS[f"day_{s}"] = (timer, DAY_ID, getattr(var, value.format(s)))
 
     if not config.Main.get("gameplay.nightchat"):
         modes = []
@@ -96,7 +99,7 @@ def begin_day(var: GameState):
 
 @handle_error
 def night_warn(var: GameState, gameid: int):
-    if gameid != var.NIGHT_ID or var.PHASE != "night":
+    if gameid != NIGHT_ID or var.PHASE != "night":
         return
 
     channels.Main.send(messages["twilight_warning"])
@@ -106,7 +109,7 @@ def night_warn(var: GameState, gameid: int):
     event.dispatch(var)
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
-    nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
+    nightroles: List[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
     idling = Counter(nightroles) - Counter(event.data["acted"])
     if not idling:
         return
@@ -120,7 +123,7 @@ def night_warn(var: GameState, gameid: int):
 
 @handle_error
 def night_timeout(var: GameState, gameid: int):
-    if gameid != var.NIGHT_ID or var.PHASE != "night":
+    if gameid != NIGHT_ID or var.PHASE != "night":
         return
 
     # determine which roles idled out night and give them warnings
@@ -133,7 +136,7 @@ def night_timeout(var: GameState, gameid: int):
         return
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
-    nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
+    nightroles: List[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
     idled = Counter(nightroles) - Counter(event.data["acted"])
     for player, count in idled.items():
         if player.is_fake or count == 0:
@@ -152,15 +155,16 @@ def night_timeout(var: GameState, gameid: int):
 
 @event_listener("night_idled")
 def on_night_idled(evt, var, player):
-    if player in var.NIGHT_IDLE_EXEMPT:
+    if player in NIGHT_IDLE_EXEMPT:
         evt.prevent_default = True
 
 @handle_error
 def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
     if gameid:
-        if gameid != var.NIGHT_ID:
+        if gameid != NIGHT_ID:
             return
-    var.NIGHT_ID = 0
+    global NIGHT_ID
+    NIGHT_ID = 0
 
     if var.PHASE not in ("night", "join"):
         return
@@ -173,7 +177,7 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
 
-    if var.START_WITH_DAY and var.FIRST_DAY:
+    if var.start_with_day and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
         # but this is good enough for now to prevent it from crashing
         begin_day(var)
@@ -282,7 +286,7 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
                 continue
 
             to_send = "death_no_reveal"
-            if var.ROLE_REVEAL in ("on", "team"):
+            if var.role_reveal in ("on", "team"):
                 to_send = "death"
             revt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(var, victim)))
             revt.data["dead"].append(victim)
@@ -358,16 +362,17 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
 def transition_night(var: GameState):
     if var.PHASE not in ("day", "join"):
         return
+    global NIGHT_ID
     var.PHASE = "night"
 
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
-    var.NIGHT_IDLE_EXEMPT.clear()
+    NIGHT_IDLE_EXEMPT.clear()
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
 
-    if var.DEVOICE_DURING_NIGHT:
+    if not config.Main.get("gameplay.nightchat"):
         modes = []
         for player in get_players(var):
             if not player.is_fake:
@@ -380,28 +385,27 @@ def transition_night(var: GameState):
 
     dmsg = []
 
-    if var.NIGHT_TIMEDELTA or var.START_WITH_DAY:  #  transition from day
+    if var.NIGHT_TIMEDELTA or var.start_with_day:  #  transition from day
         td = var.NIGHT_START_TIME - var.DAY_START_TIME
         var.DAY_START_TIME = None
         var.DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         dmsg.append(messages["day_lasted"].format(min, sec))
 
-    var.NIGHT_ID = time.time()
-    if var.NIGHT_TIME_LIMIT > 0:
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, night_timeout, kwargs={"gameid": var.NIGHT_ID})
-        var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
-        t.daemon = True
-        t.start()
-
-    if var.NIGHT_TIME_WARN > 0:
-        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, kwargs={"gameid": var.NIGHT_ID})
-        var.TIMERS["night_warn"] = (t2, var.NIGHT_ID, var.NIGHT_TIME_WARN)
-        t2.daemon = True
-        t2.start()
+    if config.Main.get("timers.enabled"):
+        value = None
+        if config.Main.get("timers.night.enabled"):
+            value = "night_time_{0}"
+        if value is not None:
+            for s, fn in (("warn", night_warn), ("limit", night_timeout)):
+                if getattr(var, value.format(s)):
+                    timer = threading.Timer(getattr(var, value.format(s)), fn, (var, NIGHT_ID))
+                    timer.daemon = True
+                    timer.start()
+                    TIMERS[f"night_{s}"] = (timer, NIGHT_ID, getattr(var, value.format(s)))
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
-    if chk_win():
+    if chk_win(var):
         return
 
     event_role = Event("send_role", {})
@@ -424,7 +428,7 @@ def transition_night(var: GameState):
     channels.Main.send(*event_night.data["messages"])
 
     # If there are no nightroles that can act, immediately turn it to daytime
-    chk_nightdone()
+    chk_nightdone(var)
 
 @event_listener("transition_day_resolve_end", priority=2.9)
 def on_transition_day_resolve_end(evt, var, victims):
@@ -597,15 +601,15 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                     player_list.append(entry)
 
         if log:
-            game_options = {"role reveal": var.ROLE_REVEAL,
-                            "stats": var.STATS_TYPE,
-                            "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
+            game_options = {"role reveal": var.role_reveal,
+                            "stats": var.stats_type,
+                            "abstain": "on" if var.abstain_enabled and not var.limit_abstain else "restricted" if var.abstain_enabled else "off",
                             "roles": {}}
             for role, pl in var.ORIGINAL_ROLES.items():
                 if len(pl) > 0:
                     game_options["roles"][role] = len(pl)
 
-            db.add_game(var.CURRENT_GAMEMODE.name,
+            db.add_game(var.current_mode.name,
                         len(get_players(var)) + len(var.DEAD),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
@@ -705,7 +709,7 @@ def chk_win_conditions(var: GameState, rolemap, mainroles, end_game=True, winner
         # 5 = gamemode-specific win conditions
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
         if not event.dispatch(var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-            return chk_win_conditions(rolemap, mainroles, end_game, winner)
+            return chk_win_conditions(var, rolemap, mainroles, end_game, winner)
         winner = event.data["winner"]
         message = event.data["message"]
 
@@ -763,15 +767,21 @@ def reset_modes_timers(var):
     channels.Main.mode("-m", *cmodes)
 
 def reset(var: GameState):
-    NIGHT_IDLED.clear()
+    evt = Event("reset", {})
+    evt.dispatch(var)
 
     var.teardown()
 
     channels.Main.game_state = None
     users.Bot.game_state = None
 
-    evt = Event("reset", {})
-    evt.dispatch(var)
+@event_listener("reset")
+def on_reset(evt, var):
+    global NIGHT_ID, DAY_ID
+    NIGHT_ID = 0
+    DAY_ID = 0
+    NIGHT_IDLED.clear()
+    NIGHT_IDLE_EXEMPT.clear()
 
 def old_reset():
     var.PHASE = "none" # "join", "day", or "night"
@@ -796,10 +806,7 @@ def old_reset():
 
     var.IDLE_WARNED.clear()
     var.IDLE_WARNED_PM.clear()
-    var.NIGHT_IDLED.clear()
-    var.NIGHT_IDLE_EXEMPT.clear()
 
-    var.ROLES.clear()
     var.ORIGINAL_ROLES.clear()
     var.FINAL_ROLES.clear()
     var.ROLES["person"] = UserSet()

@@ -12,10 +12,12 @@ from src.functions import get_players, get_all_players, get_target, get_main_rol
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
 from src.events import Event
+from src.trans import chk_win
 from src.cats import Wolf, Killer
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 _rolestate = {} # type: Dict[str, Dict[str, Any]]
 
@@ -59,7 +61,7 @@ def setup_variables(rolename):
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
             if realrole in Wolf and shoot_evt.data["kill"]:
                 to_send = "gunner_victim_wolf_death_no_reveal"
-                if var.ROLE_REVEAL == "on":
+                if var.role_reveal == "on":
                     to_send = "gunner_victim_wolf_death"
                 wrapper.send(messages[to_send].format(target, targrole))
                 add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
@@ -70,7 +72,7 @@ def setup_variables(rolename):
                 if gun_evt.data["headshot"] == 1: # would always headshot
                     to_send = "gunner_victim_villager_death"
                 wrapper.send(messages[to_send].format(target))
-                if var.ROLE_REVEAL in ("on", "team"):
+                if var.role_reveal in ("on", "team"):
                     wrapper.send(messages["gunner_victim_role"].format(targrole))
                 add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
                 if kill_players(var):
@@ -79,8 +81,7 @@ def setup_variables(rolename):
                 wrapper.send(messages["gunner_victim_injured"].format(target))
                 add_absent(var, target, "wounded")
                 from src.votes import chk_decision
-                from src.wolfgame import chk_win
-                if not chk_win():
+                if not chk_win(var):
                     # game didn't immediately end due to injury, see if we should force through a vote
                     chk_decision(var)
 
@@ -88,20 +89,20 @@ def setup_variables(rolename):
             wrapper.send(messages["gunner_miss"].format(wrapper.source))
         else: # BOOM! your gun explodes, you're dead
             to_send = "gunner_suicide_no_reveal"
-            if var.ROLE_REVEAL in ("on", "team"):
+            if var.role_reveal in ("on", "team"):
                 to_send = "gunner_suicide"
             wrapper.send(messages[to_send].format(wrapper.source, get_reveal_role(var, wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
     @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
-    def on_send_role(evt, var):
+    def on_send_role(evt, var: GameState):
         for gunner in get_all_players(var, (rolename,)):
-            if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
+            if GUNNERS[gunner] or var.always_pm_role:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("transition_day_resolve_end", priority=4, listener_id="gunners.<{}>.on_transition_day_resolve_end".format(rolename))
-    def on_transition_day_resolve_end(evt, var, victims):
+    def on_transition_day_resolve_end(evt, var: GameState, victims):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
                 if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
@@ -114,7 +115,7 @@ def setup_variables(rolename):
                         GUNNERS[victim] -= 1  # deduct the used bullet
                         if event.data["hit"] and event.data["kill"]:
                             to_send = "gunner_killed_wolf_overnight_no_reveal"
-                            if var.ROLE_REVEAL in ("on", "team"):
+                            if var.role_reveal in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
                             evt.data["message"][victim].append(messages[to_send].format(victim, shot, get_reveal_role(var, shot)))
                             evt.data["dead"].append(shot)
