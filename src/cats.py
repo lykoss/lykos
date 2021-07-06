@@ -48,7 +48,7 @@ FROZEN = False
 
 ROLES = {}
 
-def get(cat):
+def get(cat: str) -> Category:
     if not FROZEN:
         raise RuntimeError("Fatal: Role categories are not ready")
     if cat not in ROLE_CATS:
@@ -73,7 +73,7 @@ def role_order():
     buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
-def _register_roles(evt):
+def _register_roles(evt: Event):
     global FROZEN
     mevt = Event("get_role_metadata", {})
     mevt.dispatch(None, "role_categories")

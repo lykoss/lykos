@@ -2,7 +2,8 @@ import random
 from collections import defaultdict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src.events import EventListener
+from src.gamestate import GameState
+from src.events import EventListener, Event
 from src.trans import chk_win_conditions
 from src import channels, users
 from src.cats import All, Wolf, Wolf_Objective, Killer
@@ -44,7 +45,7 @@ class RandomMode(GameMode):
             "chK_win": EventListener(self.lovers_chk_win)
         }
 
-    def role_attribution(self, evt, var, villagers):
+    def role_attribution(self, evt: Event, var: GameState, villagers):
         lpl = len(villagers)
         addroles = evt.data["addroles"]
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role

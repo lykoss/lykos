@@ -1,7 +1,9 @@
+from typing import Optional
+
 from src.functions import get_players, get_all_players, get_all_roles
-from src.decorators import event_listener
 from src.gamestate import GameState
 from src.messages import messages
+from src.events import Event, event_listener
 from src.cats import Nocturnal
 
 def _get_targets(var, pl, user):
@@ -25,13 +27,13 @@ def _get_targets(var, pl, user):
     return (target1, target2)
 
 @event_listener("send_role")
-def on_send_role(evt, var: GameState):
+def on_send_role(evt: Event, var: GameState):
     if not var.ROLES_SENT or var.always_pm_role:
         for insomniac in get_all_players(var, ("insomniac",)):
             insomniac.send(messages["insomniac_notify"])
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     if var.NIGHT_COUNT == 0: # starting with day
         return
     pl = get_players(var)
@@ -51,6 +53,6 @@ def on_transition_day_begin(evt, var):
             insomniac.send(messages["insomniac_asleep"].format(p1, p2))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["insomniac"] = {"Village", "Nocturnal"}

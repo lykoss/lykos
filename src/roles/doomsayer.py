@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import re
 import random
-from typing import TYPE_CHECKING
+from typing import Optional, Set, TYPE_CHECKING
 
-from src import users, channels, status, errlog, plog
+from src import users, channels, status
 from src.functions import get_players, get_all_players, get_main_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.events import Event, event_listener
 from src.cats import All
 
 from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
@@ -17,6 +18,7 @@ from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolf
 if TYPE_CHECKING:
     from src.users import User
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 register_wolf("doomsayer")
 
@@ -63,38 +65,38 @@ def see(wrapper: MessageDispatcher, message: str):
     LASTSEEN[wrapper.source] = target
 
 @event_listener("new_role")
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "doomsayer" and evt.data["role"] != "doomsayer":
         SEEN.discard(player)
         for name, mapping in _mappings:
             del mapping[:player:]
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     # only remove from SEEN; keep results of sees intact on death
     # so that we can apply them in begin_day even if doomsayer dies.
     SEEN.discard(player)
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(SEEN)
     evt.data["nightroles"].extend(get_all_players(var, ("doomsayer",)))
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     for target in SICK.values():
         target.queue_message(messages["player_sick"])
     if SICK:
         target.send_messages()
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, var):
+def on_transition_day(evt: Event, var: GameState):
     for killer, victim in list(KILLS.items()):
         evt.data["victims"].append(victim)
         evt.data["killers"][victim].append(killer)
 
 @event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+def on_transition_night_end(evt: Event, var: GameState):
     if var.NIGHT_COUNT > 1 and get_all_players(var, ("doomsayer",)):
         status.add_lycanthropy_scope(var, All) # any role can transform if ds is in play
     for lycan in LYCANS.values():
@@ -106,7 +108,7 @@ def on_transition_night_end(evt, var):
     SICK.clear()
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     for sick in SICK.values():
         status.add_absent(var, sick, "illness")
         status.add_silent(var, sick)
@@ -120,13 +122,13 @@ def on_begin_day(evt, var):
     KILLS.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     SEEN.clear()
     KILLS.clear()
     SICK.clear()
     LYCANS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["doomsayer"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective"}

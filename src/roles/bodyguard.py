@@ -5,15 +5,16 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Set, TYPE_CHECKING
+from typing import Set, Optional, List, TYPE_CHECKING
 
 from src.utilities import *
-from src import channels, errlog, plog
+from src import channels
 from src.functions import get_players, get_all_players, get_target, get_main_role
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
+from src.events import Event, event_listener
 from src.cats import Wolf
 from src.users import User
 
@@ -58,7 +59,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["guardian_no_protect"])
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     if var.PHASE == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for k,v in list(GUARDED.items()):
@@ -67,20 +68,20 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     PASSED.discard(player)
 
 @event_listener("new_role")
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "bodyguard" and evt.data["role"] != "bodyguard":
         if player in GUARDED:
             guarded = GUARDED.pop(player)
             guarded.send(messages["protector_disappeared"])
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(GUARDED)
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_players(var, ("bodyguard",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt, var: GameState, victims):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
     for bodyguard in DYING:
         evt.data["message"][bodyguard].clear()
     DYING.clear()
@@ -95,13 +96,13 @@ def on_transition_day_resolve_end(evt, var: GameState, victims):
                 evt.data["dead"].append(bodyguard)
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
+def on_transition_night_begin(evt: Event, var: GameState):
     # needs to be here in order to allow bodyguard protections to work during the daytime
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for bg in get_all_players(var, ("bodyguard",)):
         pl = ps[:]
@@ -117,7 +118,7 @@ def on_send_role(evt, var):
         bg.send(messages["players_list"].format(pl))
 
 @event_listener("try_protection")
-def on_try_protection(evt, var, target, attacker, attacker_role, reason):
+def on_try_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, reason: str):
     if len(evt.data["protections"]) <= 1: # We only care if there's 2+ protections
         return
     for (protector, protector_role, scope) in list(evt.data["protections"]):
@@ -126,7 +127,7 @@ def on_try_protection(evt, var, target, attacker, attacker_role, reason):
             evt.data["protections"].append((protector, protector_role, scope))
 
 @event_listener("player_protected")
-def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+def on_player_protected(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
         add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
@@ -134,7 +135,7 @@ def on_player_protected(evt, var, target, attacker, attacker_role, protector, pr
             DYING.add(protector)
 
 @event_listener("remove_protection")
-def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+def on_remove_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
     if attacker_role == "fallen angel" and protector_role == "bodyguard":
         evt.data["remove"] = True
         add_dying(var, protector, killer_role="fallen angel", reason=reason)
@@ -142,16 +143,16 @@ def on_remove_protection(evt, var, target, attacker, attacker_role, protector, p
         target.send(messages[reason + "_deprotect"])
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     PASSED.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     GUARDED.clear()
     PASSED.clear()
     DYING.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["bodyguard"] = {"Village", "Safe", "Nocturnal"}

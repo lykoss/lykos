@@ -3,26 +3,27 @@ from __future__ import annotations
 import random
 import re
 import math
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Dict, Any, List, TYPE_CHECKING
 
 from src import users
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserDict
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
-from src.events import Event
+from src.events import Event, event_listener
 from src.trans import chk_win
 from src.cats import Wolf, Killer
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
+    from src.users import User
 
 _rolestate = {} # type: Dict[str, Dict[str, Any]]
 
-def setup_variables(rolename):
-    GUNNERS = UserDict() # type: UserDict[users.User, int]
+def setup_variables(rolename: str):
+    GUNNERS: UserDict[User, int] = UserDict()
     _rolestate[rolename] = {
         "GUNNERS": GUNNERS
     }
@@ -96,13 +97,13 @@ def setup_variables(rolename):
             kill_players(var)
 
     @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
-    def on_send_role(evt, var: GameState):
+    def on_send_role(evt: Event, var: GameState):
         for gunner in get_all_players(var, (rolename,)):
             if GUNNERS[gunner] or var.always_pm_role:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("transition_day_resolve_end", priority=4, listener_id="gunners.<{}>.on_transition_day_resolve_end".format(rolename))
-    def on_transition_day_resolve_end(evt, var: GameState, victims):
+    def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
                 if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
@@ -146,21 +147,21 @@ def setup_variables(rolename):
                     looter.send(messages["wolf_gunner"].format(victim))
 
     @event_listener("myrole", listener_id="gunners.<{}>.on_myrole".format(rolename))
-    def on_myrole(evt, var, user):
+    def on_myrole(evt: Event, var: GameState, user: User):
         if GUNNERS.get(user):
             evt.data["messages"].append(messages["gunner_myrole"].format(rolename, GUNNERS[user]))
 
     @event_listener("revealroles_role", listener_id="gunners.<{}>.on_revealroles_role".format(rolename))
-    def on_revealroles_role(evt, var, user, role):
+    def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
         if role == rolename and user in GUNNERS:
             evt.data["special_case"].append(messages["gunner_revealroles"].format(GUNNERS[user]))
 
     @event_listener("reset", listener_id="gunners.<{}>.on_reset".format(rolename))
-    def on_reset(evt, var):
+    def on_reset(evt: Event, var: GameState):
         GUNNERS.clear()
 
     @event_listener("new_role", listener_id="gunners.<{}>.on_new_role".format(rolename))
-    def on_new_role(evt, var, user, old_role):
+    def on_new_role(evt: Event, var: GameState, user: User, old_role: str):
         if old_role == rolename:
             if evt.data["role"] != rolename:
                 del GUNNERS[user]
@@ -174,7 +175,7 @@ def setup_variables(rolename):
     return GUNNERS
 
 @event_listener("gun_chances")
-def on_gun_chances(evt, var, user, role):
+def on_gun_chances(evt: Event, var: GameState, user: User, role: str):
     if role in var.GUN_CHANCES:
         hit, miss, headshot = var.GUN_CHANCES[role]
         evt.data["hit"] += hit

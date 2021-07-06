@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Dict, Set
 import threading
 import time
 
@@ -154,7 +154,7 @@ def night_timeout(var: GameState, gameid: int):
     event.data["transition_day"](var, gameid)
 
 @event_listener("night_idled")
-def on_night_idled(evt, var, player):
+def on_night_idled(evt: Event, var: GameState, player):
     if player in NIGHT_IDLE_EXEMPT:
         evt.prevent_default = True
 
@@ -431,7 +431,7 @@ def transition_night(var: GameState):
     chk_nightdone(var)
 
 @event_listener("transition_day_resolve_end", priority=2.9)
-def on_transition_day_resolve_end(evt, var, victims):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims):
     if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
         evt.data["message"]["*"].append(messages["no_victims"] + messages["no_victims_append"])
     for i in range(evt.data["howl"]):
@@ -674,7 +674,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
     return chk_win_conditions(var, var.ROLES, var.MAIN_ROLES, end_game, winner)
 
-def chk_win_conditions(var: GameState, rolemap, mainroles, end_game=True, winner=None):
+def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.PHASE == "day":
@@ -776,7 +776,7 @@ def reset(var: GameState):
     users.Bot.game_state = None
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     global NIGHT_ID, DAY_ID
     NIGHT_ID = 0
     DAY_ID = 0

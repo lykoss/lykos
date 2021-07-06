@@ -6,16 +6,20 @@ import typing
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_target, get_main_role, get_all_roles
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_silent, is_silent
+from src.events import Event, event_listener
 from src.cats import All, Wolfteam
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
+    from typing import Set, Optional
 
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 GHOSTS = UserDict() # type: UserDict[users.User, str]
@@ -65,17 +69,17 @@ def vg_retract(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["retracted_kill"])
 
 @event_listener("get_participants")
-def on_get_participants(evt, var):
+def on_get_participants(evt: Event, var: GameState):
     evt.data["players"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
     evt.data["players"].extend(drivenoff)
 
 @event_listener("consecrate")
-def on_consecrate(evt, var, actor, target):
+def on_consecrate(evt: Event, var: GameState, actor: User, target: User):
     if target in GHOSTS:
         add_silent(var, target)
 
 @event_listener("gun_shoot")
-def on_gun_shoot(evt, var, user, target, role):
+def on_gun_shoot(evt: Event, var: GameState, user: User, target: User, role: str):
     if evt.data["hit"] and "vengeful ghost" in get_all_roles(var, target):
         # VGs automatically die if hit by a gun to make gunner a bit more dangerous in some modes
         evt.data["kill"] = True
@@ -83,7 +87,7 @@ def on_gun_shoot(evt, var, user, target, role):
 # needs to happen after regular team win is determined, but before succubus
 # FIXME: I hate priorities, did I mention that?
 @event_listener("team_win", priority=6)
-def on_team_win(evt, var, player, main_role, all_roles, winner):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
     if player in GHOSTS:
         against = GHOSTS[player].lstrip("!")
         if against == "villager" and winner == "wolves":
@@ -94,7 +98,7 @@ def on_team_win(evt, var, player, main_role, all_roles, winner):
             evt.data["team_win"] = False
 
 @event_listener("player_win")
-def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
     if player in GHOSTS:
         evt.data["special"].append("vg activated")
         if GHOSTS[player][0] == "!":
@@ -104,7 +108,7 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
             evt.data["individual_win"] = True
 
 @event_listener("del_player", priority=6)
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     for h, v in list(KILLS.items()):
         if player is v:
             h.send(messages["hunter_discard"])
@@ -120,7 +124,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         player.send(messages["vengeful_turn"].format(GHOSTS[player]))
 
 @event_listener("transition_day_begin", priority=6)
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     # select a random target for VG if they didn't kill
     wolves = get_players(var, Wolfteam)
     villagers = get_players(var, All - Wolfteam)
@@ -137,20 +141,20 @@ def on_transition_day_begin(evt, var):
                 KILLS[ghost] = random.choice(choice)
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, var):
+def on_transition_day(evt: Event, var: GameState):
     for k, d in KILLS.items():
         evt.data["victims"].append(d)
         evt.data["killers"][d].append(k)
 
 @event_listener("transition_day", priority=3.01)
-def on_transition_day3(evt, var):
+def on_transition_day3(evt: Event, var: GameState):
     for k, d in list(KILLS.items()):
         if GHOSTS[k] == "villager":
             evt.data["killers"][d].remove(k)
             evt.data["killers"][d].insert(0, k)
 
 @event_listener("transition_day", priority=6.01)
-def on_transition_day6(evt, var):
+def on_transition_day6(evt: Event, var: GameState):
     for k, d in list(KILLS.items()):
         if GHOSTS[k] == "villager" and k in evt.data["killers"][d]:
             evt.data["killers"][d].remove(k)
@@ -159,7 +163,7 @@ def on_transition_day6(evt, var):
         del KILLS[k]
 
 @event_listener("retribution_kill", priority=6)
-def on_retribution_kill(evt, var, victim, orig_target):
+def on_retribution_kill(evt: Event, var: GameState, victim: User, orig_target: User):
     target = evt.data["target"]
     if target in GHOSTS:
         drivenoff[target] = GHOSTS[target]
@@ -168,7 +172,7 @@ def on_retribution_kill(evt, var, victim, orig_target):
         evt.data["target"] = None
 
 @event_listener("get_participant_role")
-def on_get_participant_role(evt, var, user):
+def on_get_participant_role(evt: Event, var: GameState, user: User):
     if user in GHOSTS:
         if user in drivenoff:
             against = drivenoff[user]
@@ -180,12 +184,12 @@ def on_get_participant_role(evt, var, user):
             evt.data["role"] = "villager"
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(KILLS)
     evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
 
 @event_listener("send_role")
-def on_transition_night_end(evt, var):
+def on_transition_night_end(evt: Event, var: GameState):
     # alive VGs are messaged as part of villager.py, this handles dead ones
     villagers = get_players(var, All - Wolfteam)
     wolves = get_players(var, Wolfteam)
@@ -202,14 +206,14 @@ def on_transition_night_end(evt, var):
         v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl), sep="\n")
 
 @event_listener("myrole")
-def on_myrole(evt, var, user):
+def on_myrole(evt: Event, var: GameState, user: User):
     if user in GHOSTS:
         evt.prevent_default = True
         if GHOSTS[user][0] != "!":
             user.send(messages["vengeful_role"].format(GHOSTS[user]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var):
+def on_revealroles(evt: Event, var: GameState):
     if GHOSTS:
         glist = []
         for ghost, team in GHOSTS.items():
@@ -221,17 +225,17 @@ def on_revealroles(evt, var):
         evt.data["output"].append(messages["vengeful_ghost_revealroles"].format(glist))
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     drivenoff.clear()
     KILLS.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     KILLS.clear()
     GHOSTS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         evt.data["vengeful ghost"] = sum(1 for against in GHOSTS.values() if against[0] != "!")
     elif kind == "special_keys":

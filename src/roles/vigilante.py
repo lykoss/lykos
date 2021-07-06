@@ -6,16 +6,20 @@ import typing
 from collections import defaultdict
 
 from src.utilities import *
-from src import users, channels, errlog, plog
+from src import users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
+from src.events import Event, event_listener
 from src.cats import Wolf, Win_Stealer
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
+    from typing import Optional, Set
 
 KILLS = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet()
@@ -57,7 +61,7 @@ def vigilante_pass(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["hunter_pass"])
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     PASSED.discard(player)
     del KILLS[:player:]
     for vigilante, target in list(KILLS.items()):
@@ -66,7 +70,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             del KILLS[vigilante]
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, var):
+def on_transition_day(evt: Event, var: GameState):
     for vigilante, target in list(KILLS.items()):
         evt.data["victims"].append(target)
         evt.data["killers"][target].append(vigilante)
@@ -77,19 +81,19 @@ def on_transition_day(evt, var):
             add_dying(var, vigilante, "vigilante", "night_kill")
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "vigilante":
-        del KILLS[:user:]
-        PASSED.discard(user)
+        del KILLS[:player:]
+        PASSED.discard(player)
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(KILLS)
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(var, ("vigilante",)))
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for vigilante in get_all_players(var, ("vigilante",)):
         pl = ps[:]
@@ -100,17 +104,17 @@ def on_send_role(evt, var):
             vigilante.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     KILLS.clear()
     PASSED.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     KILLS.clear()
     PASSED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
     elif kind == "role_categories":

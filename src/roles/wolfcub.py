@@ -1,39 +1,47 @@
+from __future__ import annotations
+
 import re
 import random
-from collections import defaultdict
+from collections import defaultdict, Counter
+from typing import Optional, Dict, Set, List, TYPE_CHECKING
 
 from src.utilities import *
 from src.functions import get_players
 from src import users, channels, trans
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.events import Event, event_listener
 from src.cats import Wolf, Killer
 
 from src.roles.helper.wolves import wolf_can_kill, register_wolf, is_known_wolf_ally
+
+if TYPE_CHECKING:
+    from src.gamestate import GameState
+    from src.users import User
 
 register_wolf("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
-def on_wolf_numkills(evt, var, wolf):
+def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
     if ANGRY_WOLVES and is_known_wolf_ally(var, wolf, wolf):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     if death_triggers and "wolf cub" in all_roles:
         global ANGRY_WOLVES
         ANGRY_WOLVES = True
 
 @event_listener("new_role")
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if ANGRY_WOLVES and evt.data["in_wolfchat"] and wolf_can_kill(var, player):
         evt.data["messages"].append(messages["angry_wolves"])
 
 @event_listener("wolf_notify")
-def on_wolf_notify(evt, var, role):
+def on_wolf_notify(evt: Event, var: GameState, role: str):
     if not ANGRY_WOLVES or role not in Wolf & Killer:
         return
 
@@ -48,7 +56,7 @@ def on_wolf_notify(evt, var, role):
     users.User.send_messages()
 
 @event_listener("chk_win", priority=1)
-def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):
@@ -67,7 +75,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.stop_processing = True
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, var, roleset, reason):
+def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
     # if we're making new wolves or there aren't cubs, nothing to do here
     if reason == "howl" or roleset["wolf cub"] == 0:
         return
@@ -79,16 +87,16 @@ def on_reconfigure_stats(evt, var, roleset, reason):
         roleset["wolf cub"] = 0
 
 @event_listener("transition_day_resolve_end")
-def on_transition_day_resolve_end(evt, var, victims):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam", "Wolf Objective"}

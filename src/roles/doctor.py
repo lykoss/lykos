@@ -7,16 +7,19 @@ import typing
 import math
 from collections import defaultdict
 
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 from src.status import try_misdirection, try_exchange, remove_lycanthropy, remove_disease
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
+    from typing import Optional
 
 IMMUNIZED = UserSet()
 DOCTORS = UserDict() # type: UserDict[users.User, int]
@@ -51,17 +54,17 @@ def immunize(wrapper: MessageDispatcher, message: str):
     remove_disease(var, target)
 
 @event_listener("add_lycanthropy")
-def on_add_lycanthropy(evt, var, target):
+def on_add_lycanthropy(evt: Event, var: GameState, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
 @event_listener("add_disease")
-def on_add_disease(evt, var, target):
+def on_add_disease(evt: Event, var: GameState, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for doctor in get_all_players(var, ("doctor",)):
         if DOCTORS[doctor]: # has immunizations remaining
@@ -71,23 +74,23 @@ def on_send_role(evt, var):
             doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var):
+def on_revealroles(evt: Event, var: GameState):
     if IMMUNIZED:
         evt.data["output"].append(messages["immunized_revealroles"].format(IMMUNIZED))
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if evt.data["role"] == "doctor" and old_role != "doctor":
-        DOCTORS[user] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players(var)))
+        DOCTORS[player] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players(var)))
     if evt.data["role"] != "doctor" and old_role == "doctor":
-        del DOCTORS[user]
+        del DOCTORS[player]
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["doctor"] = {"Village", "Safe"}
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     DOCTORS.clear()
     IMMUNIZED.clear()

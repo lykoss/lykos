@@ -5,14 +5,16 @@ import math
 import threading
 import time
 from collections import defaultdict
+from typing import Set, Optional
 
 from src.utilities import *
 from src import channels, users, config
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import event_listener
+from src.events import event_listener, Event
 from src.gamestate import GameState
+from src.users import User
 
 TIME_LORD_DAY_LIMIT = 60
 TIME_LORD_DAY_WARN = 45
@@ -31,7 +33,7 @@ TIME_ATTRIBUTES = (
 TRIGGERED = False
 
 @event_listener("del_player")
-def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     global TRIGGERED
     if not death_triggers or "time lord" not in all_roles:
         return
@@ -81,17 +83,17 @@ def on_del_player(evt, var: GameState, player, all_roles, death_triggers):
                     t.start()
 
 @event_listener("night_idled")
-def on_night_idled(evt, var, player):
+def on_night_idled(evt: Event, var: GameState, player: User):
     # don't give people warning points on night idle when time lord is active
     if TRIGGERED:
         evt.prevent_default = True
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     global TRIGGERED
     TRIGGERED = False
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["time lord"] = {"Hidden"}

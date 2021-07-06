@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
     from src.gamestate import GameState
     from src.dispatcher import MessageDispatcher
     from src.users import User
-    from typing import List
+    from typing import List, Set
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -40,7 +40,7 @@ def get_players(var: GameState, roles=None, *, mainroles=None) -> List[User]:
         return list(pl)
     return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(var, p)]
 
-def get_all_players(var: GameState, roles=None, *, rolemap=None):
+def get_all_players(var: GameState, roles=None, *, rolemap=None) -> Set[User]:
     from src.status import is_dying
     if rolemap is None:
         rolemap = var.ROLES
@@ -56,7 +56,7 @@ def get_all_players(var: GameState, roles=None, *, rolemap=None):
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants(var: GameState):
+def get_participants(var: GameState) -> List[User]:
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players(var)})
     evt.dispatch(var)
@@ -110,7 +110,7 @@ def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = F
 
     return match.get()
 
-def change_role(var: GameState, player, oldrole, newrole, *, inherit_from=None, message="new_role"):
+def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inherit_from=None, message="new_role"):
     # in_wolfchat is filled as part of priority 4
     # if you wish to modify evt.data["role"], do so in priority 3 or sooner
     evt = Event("new_role",
@@ -153,7 +153,7 @@ def get_main_role(var: GameState, user):
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
 
-def get_all_roles(var: GameState, user):
+def get_all_roles(var: GameState, user: User) -> Set[str]:
     return {role for role, users in var.ROLES.items() if user in users}
 
 def get_reveal_role(var: GameState, user) -> str:

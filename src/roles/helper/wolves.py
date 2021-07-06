@@ -5,25 +5,27 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
-from src.decorators import event_listener, command
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages, LocalRole
 from src.status import try_misdirection, try_exchange, is_silent
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
 from src import users
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
 
 KILLS = UserDict() # type: UserDict[users.User, UserList]
 
 def register_wolf(rolename):
     @event_listener("send_role", listener_id="wolves.<{}>.on_send_role".format(rolename))
-    def on_transition_night_end(evt, var):
+    def on_transition_night_end(evt: Event, var: GameState):
         wolves = get_all_players(var, (rolename,))
         for wolf in wolves:
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
@@ -106,7 +108,7 @@ def wolf_retract(wrapper: MessageDispatcher, message: str):
         send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role="wolf", command="retract")
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     for killer, targets in list(KILLS.items()):
         for target in targets:
             if player is target:
@@ -115,7 +117,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             del KILLS[killer]
 
 @event_listener("transition_day", priority=1)
-def on_transition_day(evt, var):
+def on_transition_day(evt: Event, var: GameState):
     # figure out wolf target
     found = defaultdict(int)
     wolves = get_all_players(var, Wolf)
@@ -154,7 +156,7 @@ def on_transition_day(evt, var):
             evt.data["killers"][target].append("@wolves")
             del found[target]
 
-def _reorganize_killers(killers):
+def _reorganize_killers(var: GameState, killers):
     wolfteam = get_players(var, Wolfteam)
     for victim, attackers in list(killers.items()):
         k2 = []
@@ -173,20 +175,20 @@ def _reorganize_killers(killers):
         killers[victim] = k2
 
 @event_listener("transition_day", priority=3)
-def on_transition_day3(evt, var):
-    _reorganize_killers(evt.data["killers"])
+def on_transition_day3(evt: Event, var: GameState):
+    _reorganize_killers(var, evt.data["killers"])
 
 @event_listener("transition_day", priority=6)
-def on_transition_day6(evt, var):
-    _reorganize_killers(evt.data["killers"])
+def on_transition_day6(evt: Event, var: GameState):
+    _reorganize_killers(var, evt.data["killers"])
 
 @event_listener("retribution_kill")
-def on_retribution_kill(evt, var, victim, orig_target):
+def on_retribution_kill(evt: Event, var: GameState, victim, orig_target):
     if evt.data["target"] == "@wolves": # kill a random wolf
         evt.data["target"] = random.choice(get_players(var, Wolf & Killer))
 
 @event_listener("new_role", priority=4)
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     wcroles = get_wolfchat_roles(var)
 
     if old_role is None:
@@ -224,7 +226,7 @@ def on_new_role(evt, var, player, old_role):
                 evt.data["messages"].append(messages[nevt.data["message"]])
 
 @event_listener("chk_nightdone", priority=3)
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     wolves = [x for x in get_all_players(var, Wolf & Killer) if not is_silent(var, x)]
     total_kills = 0
     independent = set()
@@ -254,7 +256,7 @@ def on_chk_nightdone(evt, var):
         evt.data["acted"].append(fake)
 
 @event_listener("wolf_notify")
-def on_transition_night_end(evt, var, role):
+def on_transition_night_end(evt: Event, var: GameState, role):
     # roles allowed to talk in wolfchat
     talkroles = get_talking_roles(var)
 
@@ -281,22 +283,22 @@ def on_transition_night_end(evt, var, role):
         wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     KILLS.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     KILLS.clear()
 
 @event_listener("gun_shoot", priority=3)
-def on_gun_shoot(evt, var, user, target, role):
+def on_gun_shoot(evt: Event, var: GameState, user, target, role):
     if evt.data["hit"] and get_main_role(var, target) in Wolf:
         # wolves (as a main role) always die when shot
         # don't auto-kill wolves if they're only secondary roles
         evt.data["kill"] = True
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         wolves = [x for x in get_all_players(var, Wolf & Killer) if not is_silent(var, x)]
         total_kills = 0

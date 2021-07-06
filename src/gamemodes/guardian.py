@@ -1,7 +1,8 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src.events import EventListener
+from src.gamestate import GameState
+from src.events import EventListener, Event
 from src import channels, users
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
@@ -47,7 +48,7 @@ class GuardianMode(GameMode):
             "chk_win": EventListener(self.chk_win)
         }
 
-    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lguardians = len(get_players(var, ["guardian angel", "bodyguard"], mainroles=mainroles))
 
         if lpl < 1:

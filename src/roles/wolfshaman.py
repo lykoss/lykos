@@ -6,13 +6,13 @@ import itertools
 import typing
 from collections import defaultdict, deque
 
-from src import errlog, plog, users, channels
+from src import users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
-from src.events import Event, find_listener
+from src.events import Event, find_listener, event_listener
 from src.status import try_misdirection, try_exchange, is_silent
 
 from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables, totem_message
@@ -20,6 +20,8 @@ from src.roles.helper.wolves import register_wolf, send_wolfchat_message
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from typing import Optional, Dict
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_totem=True)
 
@@ -62,7 +64,7 @@ def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
     send_wolfchat_message(var, wrapper.source, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), role="wolf shaman", command="totem")
 
 @event_listener("transition_day_begin", priority=4)
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     # Select random totem recipients if shamans didn't act
     pl = get_players(var)
     for shaman in get_all_players(var, ("wolf shaman",)):
@@ -89,7 +91,7 @@ def on_transition_day_begin(evt, var):
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("send_role")
-def on_transition_night_end(evt, var):
+def on_transition_night_end(evt: Event, var: GameState):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["wolf shaman"] for x in chances.values())
     ps = get_players(var)
@@ -142,12 +144,12 @@ def on_transition_night_end(evt, var):
         # player list and notification that WS can kill is handled by shared wolves handler
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["wolf shaman"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective"}
 
 @event_listener("default_totems")
-def set_wolf_totems(evt, chances):
+def set_wolf_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
     chances["protection"]   ["wolf shaman"] = 1
     chances["silence"]      ["wolf shaman"] = 1
     chances["impatience"]   ["wolf shaman"] = 1

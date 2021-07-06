@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 import math
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Set
 
 from src.containers import UserDict, UserList, UserSet
 from src.decorators import command
@@ -313,7 +313,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             transition_night()
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, allroles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
     if var.PHASE == "day":
         if player in VOTES:
             del VOTES[player] # Delete other people's votes on the player
@@ -328,7 +328,7 @@ def on_del_player(evt, var, player, allroles, death_triggers):
             ABSTAINS.remove(player)
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     global LAST_VOTES, LYNCHED
     LAST_VOTES = None
     LYNCHED = 0
@@ -336,7 +336,7 @@ def on_transition_day_begin(evt, var):
     VOTES.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     global ABSTAINED, LAST_VOTES, LYNCHED
     ABSTAINED = False
     LAST_VOTES = None

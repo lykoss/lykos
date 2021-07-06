@@ -1,6 +1,7 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src.events import EventListener
+from src.events import EventListener, Event
+from src.gamestate import GameState
 from src import channels, users
 
 # someone let woffle commit while drunk again... tsk tsk
@@ -56,11 +57,11 @@ class MudkipMode(GameMode):
             "daylight_warning": EventListener(self.daylight_warning)
         }
 
-    def lynch_behaviour(self, evt, var):
+    def lynch_behaviour(self, evt: Event, var: GameState):
         evt.data["kill_ties"] = True
         voters = sum(map(len, evt.params.votes.values()))
         if voters == evt.params.players:
             evt.data["force"] = True
 
-    def daylight_warning(self, evt, var):
+    def daylight_warning(self, evt: Event, var: GameState):
         evt.data["message"] = "daylight_warning_killtie"

@@ -5,19 +5,21 @@ import random
 import typing
 
 from src.utilities import *
-from src import users, channels, errlog, plog
-from src.decorators import command, event_listener
+from src import users, channels
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Cursed, Safe, Innocent, Wolf
 
 from src.roles.helper.seers import setup_variables
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from typing import Optional
 
 SEEN = setup_variables("oracle")
 
@@ -60,7 +62,7 @@ def see(wrapper: MessageDispatcher, message: str):
     SEEN.add(wrapper.source)
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["oracle"] = {"Village", "Nocturnal", "Spy", "Safe"}
     elif kind == "lycanthropy_role":

@@ -8,17 +8,20 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Neutral, Wolfteam
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
+    from typing import Optional, Set
 
 INVESTIGATED = UserSet()
 
@@ -88,16 +91,16 @@ def investigate(wrapper: MessageDispatcher, message: str):
     INVESTIGATED.add(wrapper.source)
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     INVESTIGATED.discard(player)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "investigator" and evt.data["role"] != "investigator":
-        INVESTIGATED.discard(user)
+        INVESTIGATED.discard(player)
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for inv in var.ROLES["investigator"]:
         pl = ps[:]
@@ -106,14 +109,14 @@ def on_send_role(evt, var):
         inv.send(messages["investigator_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
+def on_transition_night_begin(evt: Event, var: GameState):
     INVESTIGATED.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     INVESTIGATED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["investigator"] = {"Village", "Spy", "Safe"}

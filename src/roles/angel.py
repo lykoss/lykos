@@ -8,17 +8,20 @@ import typing
 from collections import defaultdict
 
 from src.utilities import *
-from src import users, channels, errlog, plog
+from src import users, channels
 from src.functions import get_players, get_all_players, get_target, get_main_role
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
+from src.events import Event, event_listener
 from src.cats import Wolf
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
+    from typing import Optional, Set
+    from src.users import User
 
 GUARDED = UserDict() # type: UserDict[users.User, users.User]
 LASTGUARDED = UserDict() # type: UserDict[users.User, users.User]
@@ -65,7 +68,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["guardian_no_protect"])
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     if var.PHASE == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):
@@ -75,7 +78,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     PASSED.discard(player)
 
 @event_listener("new_role")
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "guardian angel" and evt.data["role"] != "guardian angel":
         if player in GUARDED:
             guarded = GUARDED.pop(player)
@@ -83,13 +86,13 @@ def on_new_role(evt, var, player, old_role):
         del LASTGUARDED[:player:]
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(GUARDED)
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_players(var, ("guardian angel",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt, var: GameState, victims):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims):
     for gangel in get_all_players(var, ("guardian angel",)):
         if GUARDED.get(gangel) in get_players(var, Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
@@ -101,13 +104,13 @@ def on_transition_day_resolve_end(evt, var: GameState, victims):
                 evt.data["dead"].append(gangel)
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
+def on_transition_night_begin(evt: Event, var: GameState):
     # needs to be here in order to allow protections to work during the daytime
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for gangel in get_all_players(var, ("guardian angel",)):
         pl = ps[:]
@@ -129,12 +132,12 @@ def on_send_role(evt, var):
         gangel.send(messages["players_list"].format(pl))
 
 @event_listener("player_protected")
-def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+def on_player_protected(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
     if protector_role == "guardian angel":
         evt.data["messages"].append(messages[reason + "_angel"].format(attacker, target))
 
 @event_listener("remove_protection")
-def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+def on_remove_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
     if attacker_role == "fallen angel" and protector_role == "guardian angel":
         evt.data["remove"] = True
         if protector is not target:
@@ -144,7 +147,7 @@ def on_remove_protection(evt, var, target, attacker, attacker_role, protector, p
             add_dying(var, protector, killer_role="fallen angel", reason=reason)
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     PASSED.clear()
     # clear out LASTGUARDED for people that didn't guard last night
     for g in list(LASTGUARDED.keys()):
@@ -152,13 +155,13 @@ def on_begin_day(evt, var):
             del LASTGUARDED[g]
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     GUARDED.clear()
     LASTGUARDED.clear()
     PASSED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["guardian angel"] = {"Village", "Safe", "Nocturnal"}
     elif kind == "lycanthropy_role":

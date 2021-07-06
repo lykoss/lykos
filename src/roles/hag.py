@@ -8,17 +8,21 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_silent
+from src.events import Event, event_listener
 
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
+    from typing import Optional, Set
 
 register_wolf("hag")
 
@@ -57,37 +61,37 @@ def hex_cmd(wrapper: MessageDispatcher, message: str):
     send_wolfchat_message(var, wrapper.source, messages["hex_success_wolfchat"].format(wrapper.source, target), {"hag"}, role="hag", command="hex")
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, allroles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
     del LASTHEXED[:player:]
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(HEXED)
     evt.data["nightroles"].extend(get_all_players(var, ("hag",)))
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
+def on_transition_night_begin(evt: Event, var: GameState):
     HEXED.clear()
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     LASTHEXED.clear()
     for hag, target in HEXED.items():
         LASTHEXED[hag] = target
         add_silent(var, target)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "hag" and evt.data["role"] != "hag":
-        del HEXED[:user:]
-        del LASTHEXED[:user:]
+        del HEXED[:player:]
+        del LASTHEXED[:player:]
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     LASTHEXED.clear()
     HEXED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Wolf Objective"}

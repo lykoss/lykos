@@ -2,16 +2,19 @@ import re
 import random
 import itertools
 from collections import defaultdict, deque
+from typing import Optional, Dict, Set
 
 from src.utilities import *
-from src import errlog, plog, users, channels
+from src import users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
-from src.events import Event
+from src.decorators import command
+from src.events import Event, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, is_silent
+from src.users import User
 from src.cats import Win_Stealer
 
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
@@ -55,12 +58,12 @@ def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
-def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
     if main_role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
         evt.data["individual_win"] = True
 
 @event_listener("transition_day_begin", priority=4)
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     # Select random totem recipients if shamans didn't act
     pl = get_players(var)
     for shaman in get_all_players(var, ("crazed shaman",)):
@@ -86,8 +89,8 @@ def on_transition_day_begin(evt, var):
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("send_role")
-def on_send_role(evt, var):
-    chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
+def on_send_role(evt: Event, var: GameState):
+    chances = var.current_mode.TOTEM_CHANCES
     max_totems = sum(x["crazed shaman"] for x in chances.values())
     ps = get_players(var)
     shamans = get_all_players(var, ("crazed shaman",))
@@ -137,13 +140,13 @@ def on_send_role(evt, var):
         shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["crazed shaman"] = {"Neutral", "Nocturnal"}
     elif kind == "lycanthropy_role":
         evt.data["crazed shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
-def set_crazed_totems(evt, chances):
+def set_crazed_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
     for chance in chances.values():
         chance["crazed shaman"] = 1

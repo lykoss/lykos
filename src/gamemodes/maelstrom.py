@@ -4,6 +4,7 @@ from collections import defaultdict, Counter
 from src.gamemodes import game_mode, GameMode
 from src.messages import messages
 from src.functions import get_players
+from src.gamestate import GameState
 from src.events import Event, EventListener
 from src.trans import chk_win_conditions
 from src import channels, users
@@ -26,11 +27,11 @@ class MaelstromMode(GameMode):
             "transition_night_begin": EventListener(self.transition_night_begin)
         }
 
-    def role_attribution(self, evt, var, villagers):
+    def role_attribution(self, evt: Event, var: GameState, villagers):
         evt.data["addroles"].update(self._role_attribution(var, villagers, True))
         evt.prevent_default = True
 
-    def transition_night_begin(self, evt, var):
+    def transition_night_begin(self, evt: Event, var: GameState):
         # don't do this n1
         if var.NIGHT_COUNT == 1:
             return

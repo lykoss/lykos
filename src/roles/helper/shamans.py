@@ -1,18 +1,23 @@
+from __future__ import annotations
+
 import itertools
 import random
 import re
-from typing import Dict, List, Set, Any, Tuple, Optional
+from typing import Dict, List, Set, Any, Tuple, Optional, TYPE_CHECKING
 from collections import deque
 
-from src import channels, users, status, errlog, plog
+from src import channels, users, status
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target, match_totem
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_protection, try_exchange
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Cursed, Safe, Innocent, Wolf, All
+
+if TYPE_CHECKING:
+    from src.users import User
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
@@ -109,19 +114,19 @@ def setup_variables(rolename, *, knows_totem):
     }
 
     @event_listener("reset", listener_id="shamans.<{}>.on_reset".format(rolename))
-    def on_reset(evt, var):
+    def on_reset(evt: Event, var: GameState):
         TOTEMS.clear()
         LASTGIVEN.clear()
         SHAMANS.clear()
         RETARGET.clear()
 
     @event_listener("begin_day", listener_id="shamans.<{}>.on_begin_day".format(rolename))
-    def on_begin_day(evt, var):
+    def on_begin_day(evt: Event, var: GameState):
         SHAMANS.clear()
         RETARGET.clear()
 
     @event_listener("revealroles_role", listener_id="shamans.<{}>.revealroles_role".format(rolename))
-    def on_revealroles(evt, var, user, role):
+    def on_revealroles(evt: Event, var: GameState, user, role):
         if role == rolename and user in TOTEMS:
             if var.PHASE == "night":
                 evt.data["special_case"].append(messages["shaman_revealroles_night"].format(
@@ -136,7 +141,7 @@ def setup_variables(rolename, *, knows_totem):
                 evt.data["special_case"].append(messages["shaman_revealroles_day"].format(given))
 
     @event_listener("transition_day_begin", priority=7, listener_id="shamans.<{}>.transition_day_begin".format(rolename))
-    def on_transition_day_begin2(evt, var):
+    def on_transition_day_begin2(evt: Event, var: GameState):
         LASTGIVEN.clear()
         for shaman, given in SHAMANS.items():
             for totem, targets in given.items():
@@ -188,7 +193,7 @@ def setup_variables(rolename, *, knows_totem):
                     havetotem.append(victim)
 
     @event_listener("del_player", listener_id="shamans.<{}>.del_player".format(rolename))
-    def on_del_player(evt, var, player, all_roles, death_triggers):
+    def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
         for a, b in list(SHAMANS.items()):
             if player is a:
                 del SHAMANS[a]
@@ -203,7 +208,7 @@ def setup_variables(rolename, *, knows_totem):
                     del RETARGET[a][c]
 
     @event_listener("chk_nightdone", listener_id="shamans.<{}>.chk_nightdone".format(rolename))
-    def on_chk_nightdone(evt, var):
+    def on_chk_nightdone(evt: Event, var: GameState):
         # only count shaman as acted if they've given out all of their totems
         for shaman in SHAMANS:
             totemcount = sum(TOTEMS[shaman].values())
@@ -213,14 +218,14 @@ def setup_variables(rolename, *, knows_totem):
         evt.data["nightroles"].extend(get_all_players(var, (rolename,)))
 
     @event_listener("get_role_metadata", listener_id="shamans.<{}>.get_role_metadata".format(rolename))
-    def on_get_role_metadata(evt, var, kind):
+    def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
         if kind == "night_kills":
             # only add shamans here if they were given a death totem
             # even though retribution kills, it is given a special kill message
             evt.data[rolename] = list(itertools.chain.from_iterable(TOTEMS.values())).count("death")
 
     @event_listener("new_role", listener_id="shamans.<{}>.new_role".format(rolename))
-    def on_new_role(evt, var, player, old_role):
+    def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
         if evt.params.inherit_from in TOTEMS and old_role != rolename and evt.data["role"] == rolename:
             totems = TOTEMS.pop(evt.params.inherit_from)
             del SHAMANS[:evt.params.inherit_from:]
@@ -231,7 +236,7 @@ def setup_variables(rolename, *, knows_totem):
             TOTEMS[player] = totems
 
     @event_listener("swap_role_state", listener_id="shamans.<{}>.swap_role_state".format(rolename))
-    def on_swap_role_state(evt, var, actor, target, role):
+    def on_swap_role_state(evt: Event, var: GameState, actor, target, role):
         if role == rolename and actor in TOTEMS and target in TOTEMS:
             TOTEMS[actor], TOTEMS[target] = TOTEMS[target], TOTEMS[actor]
             del SHAMANS[:actor:]
@@ -244,11 +249,11 @@ def setup_variables(rolename, *, knows_totem):
                 evt.data["target_messages"].append(totem_message(TOTEMS[target]))
 
     @event_listener("default_totems", priority=3, listener_id="shamans.<{}>.default_totems".format(rolename))
-    def add_shaman(evt, chances):
+    def add_shaman(evt: Event, chances: Dict[str, Dict[str, int]]):
         evt.data["shaman_roles"].add(rolename)
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
-    def on_transition_night_end(evt, var):
+    def on_transition_night_end(evt: Event, var: GameState):
         if var.NIGHT_COUNT == 0 or not get_all_players(var, (rolename,)):
             return
         if var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
@@ -260,7 +265,7 @@ def setup_variables(rolename, *, knows_totem):
 
     if knows_totem:
         @event_listener("myrole", listener_id="shamans.<{}>.on_myrole".format(rolename))
-        def on_myrole(evt, var, user):
+        def on_myrole(evt: Event, var: GameState, user):
             if evt.data["role"] == rolename and var.PHASE == "night" and user not in SHAMANS:
                 evt.data["messages"].append(totem_message(TOTEMS[user]))
 
@@ -365,7 +370,7 @@ def change_totem(var, player, totem, roles=None):
         _rolestate[role]["TOTEMS"][player] = totemdict
 
 @event_listener("see", priority=10)
-def on_see(evt, var, seer, target):
+def on_see(evt: Event, var: GameState, seer, target):
     if (seer in DECEIT) ^ (target in DECEIT):
         if evt.data["role"] == "wolf":
             evt.data["role"] = var.HIDDEN_ROLE
@@ -373,7 +378,7 @@ def on_see(evt, var, seer, target):
             evt.data["role"] = "wolf"
 
 @event_listener("lynch_immunity")
-def on_lynch_immunity(evt, var, user, reason):
+def on_lynch_immunity(evt: Event, var: GameState, user, reason):
     if reason == "totem":
         role = get_main_role(var, user)
         rev_evt = Event("role_revealed", {})
@@ -383,7 +388,7 @@ def on_lynch_immunity(evt, var, user, reason):
         evt.data["immune"] = True
 
 @event_listener("lynch")
-def on_lynch(evt, var: GameState, votee, voters):
+def on_lynch(evt: Event, var: GameState, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
@@ -401,14 +406,14 @@ def on_lynch(evt, var: GameState, votee, voters):
             # no kill_players() call here; let our caller do that for us
 
 @event_listener("transition_day", priority=2)
-def on_transition_day2(evt, var):
+def on_transition_day2(evt: Event, var: GameState):
     for shaman, targets in DEATH.items():
         for target in targets:
             evt.data["victims"].append(target)
             evt.data["killers"][target].append(shaman)
 
 @event_listener("transition_day", priority=4.1)
-def on_transition_day3(evt, var):
+def on_transition_day3(evt: Event, var: GameState):
     # protection totems are applied first in default logic, however
     # we set priority=4.1 to allow other modes of protection
     # to pre-empt us if desired
@@ -416,7 +421,7 @@ def on_transition_day3(evt, var):
         status.add_protection(var, player, protector=None, protector_role="shaman")
 
 @event_listener("remove_protection")
-def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+def on_remove_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
     if attacker_role == "fallen angel" and protector_role == "shaman":
         # we'll never end up killing a shaman who gave out protection, but delete the totem since
         # story-wise it gets demolished at night by the FA
@@ -426,7 +431,7 @@ def on_remove_protection(evt, var, target, attacker, attacker_role, protector, p
             brokentotem.add(target)
 
 @event_listener("transition_day_begin", priority=6)
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     # Reset totem variables
     DEATH.clear()
     PROTECTION.clear()
@@ -452,7 +457,7 @@ def on_transition_day_begin(evt, var):
     havetotem.clear()
 
 @event_listener("transition_day_resolve_end", priority=4)
-def on_transition_day_resolve6(evt, var: GameState, victims):
+def on_transition_day_resolve6(evt: Event, var: GameState, victims: List[User]):
     for victim in victims:
         if victim in RETRIBUTION:
             killers = list(evt.data["killers"].get(victim, []))
@@ -484,7 +489,7 @@ def on_transition_day_resolve6(evt, var: GameState, victims):
                 evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(var, loser)))
 
 @event_listener("transition_day_end", priority=1)
-def on_transition_day_end(evt, var):
+def on_transition_day_end(evt: Event, var: GameState):
     message = []
     havetotem.sort(key=lambda x: x.nick)
     for player, tlist in itertools.groupby(havetotem):
@@ -498,7 +503,7 @@ def on_transition_day_end(evt, var):
     channels.Main.send("\n".join(message))
 
 @event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+def on_transition_night_end(evt: Event, var: GameState):
     # These are the totems of the *previous* nights
     # We need to add them here otherwise transition_night_begin
     # will remove them before they even get used
@@ -508,7 +513,7 @@ def on_transition_night_end(evt, var):
         status.add_disease(var, player)
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     # Apply totem effects that need to begin on day proper
     for player in NARCOLEPSY:
         status.add_absent(var, player, "totem")
@@ -530,12 +535,12 @@ def on_begin_day(evt, var):
         status.add_silent(var, player)
 
 @event_listener("player_protected")
-def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+def on_player_protected(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
     if protector_role == "shaman":
         evt.data["messages"].append(messages[reason + "_totem"].format(attacker, target))
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     DEATH.clear()
     PROTECTION.clear()
     REVEALING.clear()
@@ -557,7 +562,7 @@ def on_reset(evt, var):
     havetotem.clear()
 
 @event_listener("default_totems", priority=1)
-def set_all_totems(evt, chances):
+def set_all_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
     chances.update({
         "death"         : {},
         "protection"    : {},

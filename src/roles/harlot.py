@@ -8,18 +8,20 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Wolf, Wolfchat
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
+    from src.users import User
+    from typing import Optional, Set, List
 
 VISITED = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet()
@@ -68,7 +70,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["no_visit"])
 
 @event_listener("visit")
-def on_visit(evt, var, visitor_role, visitor, visited):
+def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visited: User):
     if visited in get_all_players(var, ("harlot",)):
         # if we're being visited by anyone and we haven't visited yet, we have to stay home with them
         if visited not in VISITED:
@@ -77,7 +79,7 @@ def on_visit(evt, var, visitor_role, visitor, visited):
             visited.send(messages["already_being_visited"])
 
 @event_listener("transition_day_resolve", priority=1)
-def on_transition_day_resolve(evt, var, victim):
+def on_transition_day_resolve(evt: Event, var: GameState, victim: User):
     if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
         evt.data["message"][victim].append(messages["target_not_home"])
         evt.data["novictmsg"] = False
@@ -85,7 +87,7 @@ def on_transition_day_resolve(evt, var, victim):
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt, var: GameState, victims):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
     for victim in victims:
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for hlt in VISITED:
@@ -99,7 +101,7 @@ def on_transition_day_resolve_end(evt, var: GameState, victims):
                     evt.data["killers"][hlt].append("@wolves")
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end3(evt, var, victims):
+def on_transition_day_resolve_end3(evt: Event, var: GameState, victims: List[User]):
     for harlot in get_all_players(var, ("harlot",)):
         if VISITED.get(harlot) in get_players(var, Wolf) and harlot not in evt.data["dead"]:
             evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
@@ -107,13 +109,13 @@ def on_transition_day_resolve_end3(evt, var, victims):
             evt.data["killers"][harlot].append("@wolves")
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(VISITED)
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(var, ("harlot",)))
 
 @event_listener("new_role")
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "harlot" and evt.data["role"] != "harlot":
         PASSED.discard(player)
         FORCE_PASSED.discard(player)
@@ -121,7 +123,7 @@ def on_new_role(evt, var, player, old_role):
             VISITED.pop(player).send(messages["harlot_disappeared"].format(player))
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     for harlot in get_all_players(var, ("harlot",)):
         pl = get_players(var)
         random.shuffle(pl)
@@ -131,13 +133,13 @@ def on_send_role(evt, var):
             harlot.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     VISITED.clear()
     PASSED.clear()
     FORCE_PASSED.clear()
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     if "harlot" not in all_roles:
         return
     del VISITED[:player:]
@@ -145,13 +147,13 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     FORCE_PASSED.discard(player)
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     VISITED.clear()
     PASSED.clear()
     FORCE_PASSED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["harlot"] = {"Village", "Safe", "Nocturnal"}
     elif kind == "lycanthropy_role":

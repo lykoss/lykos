@@ -7,8 +7,9 @@ from src.messages import messages
 from src.containers import UserList, UserDict
 from src.decorators import command, handle_error
 from src.functions import get_players, change_role
+from src.gamestate import GameState
 from src.status import add_dying
-from src.events import EventListener
+from src.events import EventListener, Event
 from src import channels, locks
 
 @game_mode("sleepy", minp=10, maxp=24, likelihood=5)
@@ -78,10 +79,10 @@ class SleepyMode(GameMode):
         self.start_direction.clear()
         self.on_path.clear()
 
-    def dullahan_targets(self, evt, var, dullahan, max_targets):
+    def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
         evt.data["targets"].update(var.ROLES["priest"])
 
-    def setup_nightmares(self, evt, var):
+    def setup_nightmares(self, evt: Event, var: GameState):
         pl = get_players(var)
         for i in range(self.NIGHTMARE_MAX):
             if not pl:
@@ -203,15 +204,15 @@ class SleepyMode(GameMode):
             wrapper.pm(messages["sleepy_nightmare_restart"])
         self.nightmare_step(target)
 
-    def prolong_night(self, evt, var):
+    def prolong_night(self, evt: Event, var: GameState):
         evt.data["nightroles"].extend(self.having_nightmare)
 
-    def on_night_idled(self, evt, var, player):
+    def on_night_idled(self, evt: Event, var: GameState, player):
         # don't give warning points if the person having a nightmare idled out night
         if player in self.having_nightmare:
             evt.prevent_default = True
 
-    def nightmare_kill(self, evt, var):
+    def nightmare_kill(self, evt: Event, var: GameState):
         pl = get_players(var)
         for player in self.having_nightmare:
             if player not in pl:
@@ -220,7 +221,7 @@ class SleepyMode(GameMode):
             player.send(messages["sleepy_nightmare_death"])
         self.having_nightmare.clear()
 
-    def happy_fun_times(self, evt, var, player, all_roles, death_triggers):
+    def happy_fun_times(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         if death_triggers and evt.params.main_role == "priest":
             channels.Main.send(messages["sleepy_priest_death"])
 
@@ -241,6 +242,6 @@ class SleepyMode(GameMode):
                         newstats.add(frozenset(d.items()))
                 var.ROLE_STATS = newstats
 
-    def on_revealroles(self, evt, var):
+    def on_revealroles(self, evt: Event, var: GameState):
         if self.having_nightmare:
             evt.data["output"].append(messages["sleepy_revealroles"].format(self.having_nightmare))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Union, Set
 
 import threading
 import itertools
@@ -25,6 +25,7 @@ from src import config, channels, locks, trans
 if TYPE_CHECKING:
     from src.users import User
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
@@ -129,7 +130,7 @@ def retract(wrapper: MessageDispatcher, message: str):
                     del trans.TIMERS["start_votes"]
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     if var.PHASE == "join":
         with locks.join_timer:
             START_VOTES.discard(player)
@@ -558,7 +559,7 @@ def expire_start_votes(var, channel):
         channel.send(messages["start_expired"])
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     global MAX_RETRIES, WAIT_TOKENS, WAIT_LAST
     LAST_START.clear()
     LAST_WAIT.clear()

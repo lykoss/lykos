@@ -1,6 +1,6 @@
 import time
 from collections import Counter
-from typing import Tuple
+from typing import Tuple, List
 
 from src.containers import UserDict
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
@@ -16,7 +16,7 @@ DyingEntry = Tuple[str, str, bool]
 
 DYING = UserDict() # type: UserDict[User, DyingEntry]
 
-def add_dying(var, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
+def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
     """
     Mark a player as dying.
 
@@ -42,7 +42,7 @@ def add_dying(var, player: User, killer_role: str, reason: str, *, death_trigger
         DYING[player] = (killer_role, reason, death_triggers)
         return True
 
-def is_dying(var, player: User) -> bool:
+def is_dying(var: GameState, player: User) -> bool:
     """
     Determine if the player is marked as dying.
 
@@ -52,7 +52,7 @@ def is_dying(var, player: User) -> bool:
     """
     return player in DYING
 
-def kill_players(var, *, end_game: bool = True) -> bool:
+def kill_players(var: GameState, *, end_game: bool = True) -> bool:
     """
     Kill all players marked as dying.
 
@@ -114,7 +114,7 @@ def kill_players(var, *, end_game: bool = True) -> bool:
         return not evt.dispatch(var, dead)
 
 @event_listener("transition_day_resolve_end", priority=1)
-def kill_off_dying_players(evt, var: GameState, victims):
+def kill_off_dying_players(evt: Event, var: GameState, victims: List[User]):
     for victim in DYING:
         if victim not in evt.data["dead"]:
             evt.data["novictmsg"] = False

@@ -5,20 +5,22 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import Optional, Set, TYPE_CHECKING
 
 from src.utilities import *
-from src import channels, users, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.events import Event, event_listener
 from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist, register_wolf
 
 if TYPE_CHECKING:
     from src.users import User
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
 
 register_wolf("warlock")
 
@@ -74,28 +76,28 @@ def retract(wrapper: MessageDispatcher, message: str):
     send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(CURSED)
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(var, ("warlock",)))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, allroles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
     del CURSED[:player:]
     PASSED.discard(player)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "warlock" and evt.data["role"] != "warlock":
-        del CURSED[:user:]
-        PASSED.discard(user)
+        del CURSED[:player:]
+        PASSED.discard(player)
 
     if not evt.data["in_wolfchat"] and evt.data["role"] == "warlock":
         # this means warlock isn't in wolfchat, so only give cursed list
-        user.send(messages["players_list"].format(get_wolflist(var, user)))
+        player.send(messages["players_list"].format(get_wolflist(var, player)))
 
 @event_listener("begin_day")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     pl = get_players(var)
     wroles = get_wolfchat_roles(var)
     for warlock, target in CURSED.items():
@@ -106,11 +108,11 @@ def on_begin_day(evt, var):
     PASSED.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     CURSED.clear()
     PASSED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["warlock"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Wolf Objective"}

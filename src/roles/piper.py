@@ -9,14 +9,18 @@ from collections import defaultdict
 
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role
-from src import channels, users, errlog, plog
-from src.decorators import command, event_listener
+from src import channels, users
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.events import Event, event_listener
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from src.users import User
+    from typing import Optional, Dict, Set
 
 TOBECHARMED = UserDict() # type: UserDict[users.User, UserSet]
 CHARMED = UserSet()
@@ -99,7 +103,7 @@ def retract(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["piper_retract"])
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     # lpl doesn't included wounded/sick people or consecrating priests
     # whereas we want to ensure EVERYONE (even wounded people) are charmed for piper win
     pipers = rolemap.get("piper", set())
@@ -114,17 +118,17 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["message"] = messages["piper_win"].format(lp)
 
 @event_listener("team_win")
-def on_team_win(evt, var, player, main_role, all_roles, winner):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
     if winner == "pipers" and main_role == "piper":
         evt.data["team_win"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     CHARMED.discard(player)
     del TOBECHARMED[:player:]
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt, var):
+def on_transition_day_begin(evt: Event, var: GameState):
     tocharm = set(itertools.chain.from_iterable(TOBECHARMED.values()))
     # remove pipers from set; they can never be charmed
     # but might end up in there due to misdirection/luck totems
@@ -153,13 +157,13 @@ def on_transition_day_begin(evt, var):
     PASSED.clear()
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, var):
+def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(TOBECHARMED)
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(var, ("piper",)))
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     ps = set(get_players(var)) - CHARMED
     for piper in get_all_players(var, ("piper",)):
         pl = list(ps)
@@ -170,7 +174,7 @@ def on_send_role(evt, var):
             piper.send(messages["players_list"].format(pl))
 
 @event_listener("new_role")
-def on_new_role(evt, var, player, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "piper" and evt.data["role"] != "piper":
         del TOBECHARMED[:player:]
         PASSED.discard(player)
@@ -179,23 +183,23 @@ def on_new_role(evt, var, player, old_role):
         CHARMED.remove(player)
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     CHARMED.clear()
     TOBECHARMED.clear()
     PASSED.clear()
 
 @event_listener("revealroles")
-def on_revealroles(evt, var):
+def on_revealroles(evt: Event, var: GameState):
     if CHARMED:
         evt.data["output"].append(messages["piper_revealroles_charmed"].format(CHARMED))
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt, var, user, role):
+def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
     players = TOBECHARMED.get(user)
     if players:
         evt.data["special_case"].append(messages["piper_revealroles_charming"].format(players))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["piper"] = {"Neutral", "Win Stealer", "Nocturnal"}

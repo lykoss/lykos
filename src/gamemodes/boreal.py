@@ -17,6 +17,8 @@ from src import channels, users
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.events import Event
+    from src.gamestate import GameState
 
 @game_mode("boreal", minp=6, maxp=24, likelihood=5)
 class BorealMode(GameMode):
@@ -112,20 +114,20 @@ class BorealMode(GameMode):
             messages.messages[key] = value
         self.feed_command.remove()
 
-    def on_totem_assignment(self, evt, var, player, role):
+    def on_totem_assignment(self, evt: Event, var: GameState, player, role):
         if role == "shaman":
             # In phase 2, we want to hand out as many retribution totems as there are active VGs (if possible)
             if self.num_retribution > 0:
                 self.num_retribution -= 1
                 evt.data["totems"] = {"retribution": 1}
 
-    def on_transition_night_begin(self, evt, var):
+    def on_transition_night_begin(self, evt: Event, var: GameState):
         num_s = len(get_players(var, ("shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
         num_ws = len(get_players(var, ("wolf shaman",)))
         # as wolf shamans die, we want to pass some extras onto the remaining ones; each ws caps at 2 totems though
         self.ws_extra_totem = int(num_s * self.ws_num_totem_percent) - num_ws
 
-    def on_transition_night_end(self, evt, var):
+    def on_transition_night_end(self, evt: Event, var: GameState):
         from src.roles import vengefulghost
         # determine how many retribution totems we need to hand out tonight
         self.num_retribution = sum(1 for p in vengefulghost.GHOSTS if vengefulghost.GHOSTS[p][0] != "!")
@@ -136,15 +138,15 @@ class BorealMode(GameMode):
         percent = self.village_hunger_percent_base - self.village_hunger_percent_adj * len(get_players(var, ("wolf shaman",)))
         self.village_hunger = round(len(get_players(var, ("shaman",))) * percent)
 
-    def on_wolf_numkills(self, evt, var, wolf):
+    def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0
 
-    def on_num_totems(self, evt, var, player, role):
+    def on_num_totems(self, evt: Event, var: GameState, player, role):
         if role == "wolf shaman" and self.ws_extra_totem > 0:
             self.ws_extra_totem -= 1
             evt.data["num"] = 2
 
-    def on_transition_day_begin(self, evt, var):
+    def on_transition_day_begin(self, evt: Event, var: GameState):
         from src.roles import vengefulghost
         num_wendigos = len(vengefulghost.GHOSTS)
         num_wolf_shamans = len(get_players(var, ("wolf shaman",)))
@@ -177,7 +179,7 @@ class BorealMode(GameMode):
 
         self.totem_tracking.clear()
 
-    def on_transition_day_resolve_end(self, evt, var, victims):
+    def on_transition_day_resolve_end(self, evt: Event, var: GameState, victims):
         if len(evt.data["dead"]) == 0:
             evt.data["novictmsg"] = False
         # say if the village went hungry last night (and apply those effects if it did)
@@ -189,7 +191,7 @@ class BorealMode(GameMode):
         if remain > 0:
             evt.data["message"]["*"].append(messages["boreal_day_count"].format(remain))
 
-    def on_lynch(self, evt, var, votee, voters):
+    def on_lynch(self, evt: Event, var: GameState, votee, voters):
         if get_main_role(var, votee) not in Wolfteam:
             # if there are less VGs than alive wolf shamans, they become a wendigo as well
             from src.roles import vengefulghost
@@ -198,12 +200,12 @@ class BorealMode(GameMode):
             if num_wendigos < num_wolf_shamans:
                 change_role(var, votee, get_main_role(var, votee), "vengeful ghost", message=None)
 
-    def on_del_player(self, evt, var, player, all_roles, death_triggers):
+    def on_del_player(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         for a, b in list(self.hunger_levels.items()):
             if player in (a, b):
                 del self.hunger_levels[a]
 
-    def on_apply_totem(self, evt, var, role, totem, shaman, target):
+    def on_apply_totem(self, evt: Event, var: GameState, role, totem, shaman, target):
         if totem == "sustenance":
             if target is users.Bot:
                 # fed the village
@@ -219,7 +221,7 @@ class BorealMode(GameMode):
                 # gave to a player
                 self.totem_tracking[target] -= 1
 
-    def on_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def on_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
         if self.village_starve == self.max_village_starve and var.PHASE == "day":
             # if village didn't feed the NPCs enough nights, the starving tribe members destroy themselves from within
             # this overrides built-in win conds (such as all wolves being dead)
@@ -235,15 +237,15 @@ class BorealMode(GameMode):
         elif evt.data["winner"] == "wolves":
             evt.data["message"] = messages["boreal_wolf_win"]
 
-    def on_revealroles_role(self, evt, var, player, role):
+    def on_revealroles_role(self, evt: Event, var: GameState, player, role):
         if player in self.hunger_levels:
             evt.data["special_case"].append(messages["boreal_revealroles"].format(self.hunger_levels[player]))
 
-    def on_update_stats(self, evt, var, player, main_role, reveal_role, all_roles):
+    def on_update_stats(self, evt: Event, var: GameState, player, main_role, reveal_role, all_roles):
         if main_role == "vengeful ghost":
             evt.data["possible"].add("shaman")
 
-    def on_begin_night(self, evt, var):
+    def on_begin_night(self, evt: Event, var: GameState):
         evt.data["messages"].append(messages["boreal_night_reminder"].format(self.village_hunger, self.village_starve))
 
     def feed(self, wrapper: MessageDispatcher, message: str):

@@ -19,6 +19,8 @@ from src.status import try_misdirection, try_exchange, add_absent
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from typing import Optional
 
 PRIESTS = UserSet()
 
@@ -77,15 +79,15 @@ def consecrate(wrapper: MessageDispatcher, message: str):
         chk_decision(var)
 
 @event_listener("send_role")
-def on_send_role(evt, var):
+def on_send_role(evt: Event, var: GameState):
     for priest in get_all_players(var, ("priest",)):
         priest.send(messages["priest_notify"])
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     PRIESTS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["priest"] = {"Village", "Safe", "Innocent"}

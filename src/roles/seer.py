@@ -18,6 +18,8 @@ from src.roles.helper.seers import setup_variables
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from typing import Optional
 
 SEEN = setup_variables("seer")
 
@@ -63,7 +65,7 @@ def see(wrapper: MessageDispatcher, message: str):
     SEEN.add(wrapper.source)
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["seer"] = {"Village", "Nocturnal", "Spy", "Safe"}
     elif kind == "lycanthropy_role":

@@ -1,7 +1,8 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src.events import EventListener
+from src.gamestate import GameState
+from src.events import EventListener, Event
 from src import channels, users
 from src.cats import Village
 
@@ -24,7 +25,7 @@ class EvilVillageMode(GameMode):
             "chk_win": EventListener(self.chk_win)
         }
 
-    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lsafes = len(get_players(var, Village, mainroles=mainroles))
         lcultists = len(get_players(var, ["cultist"], mainroles=mainroles))
         evt.stop_processing = True
