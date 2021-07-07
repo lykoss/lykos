@@ -38,9 +38,9 @@ def lynch(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    can_vote_bot = var.CURRENT_GAMEMODE.can_vote_bot(var)
+    can_vote_bot = var.current_mode.can_vote_bot(var)
 
-    voted = get_target(wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=can_vote_bot, not_self_message="no_self_lynch")
+    voted = get_target(wrapper, msg, allow_self=var.self_lynch_allowed, allow_bot=can_vote_bot, not_self_message="no_self_lynch")
     if not voted:
         return
 
@@ -193,7 +193,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
         plural = "s have"
 
     to_send = messages["vote_stats"].format(len(pl), votesneeded, avail)
-    if var.ABSTAIN_ENABLED:
+    if var.abstain_enabled:
         to_send += messages["vote_stats_abstain"].format(abstaining, plural)
 
     wrapper.reply(to_send, prefix_nick=True)

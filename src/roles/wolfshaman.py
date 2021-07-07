@@ -92,7 +92,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
 
 @event_listener("send_role")
 def on_transition_night_end(evt: Event, var: GameState):
-    chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
+    chances = var.current_mode.TOTEM_CHANCES
     max_totems = sum(x["wolf shaman"] for x in chances.values())
     ps = get_players(var)
     shamans = get_all_players(var, ("wolf shaman",))
@@ -112,7 +112,7 @@ def on_transition_night_end(evt: Event, var: GameState):
             if given in pl:
                 pl.remove(given)
 
-        event = Event("num_totems", {"num": var.CURRENT_GAMEMODE.NUM_TOTEMS["wolf shaman"]})
+        event = Event("num_totems", {"num": var.current_mode.NUM_TOTEMS["wolf shaman"]})
         event.dispatch(var, shaman, "wolf shaman")
         num_totems = event.data["num"]
 

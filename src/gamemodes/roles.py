@@ -31,10 +31,13 @@ class ChangedRolesMode(GameMode):
                             raise InvalidModeException(messages["role_disabled"].format(c))
                     self.ROLE_SETS[role] = Counter(choose)
                     self.ROLE_GUIDE[1].extend((role,) * int(num))
+                    self.CUSTOM_SETTINGS._overridden.add("custom_template")
                 elif role == "default" and num in cats.ROLES:
-                    self.DEFAULT_ROLE = num
+                    self.CUSTOM_SETTINGS.default_role = num
+                    self.CUSTOM_SETTINGS._overridden.add("default_role")
                 elif role == "hidden" and num in ("villager", "cultist"):
-                    self.HIDDEN_ROLE = num
+                    self.CUSTOM_SETTINGS.hidden_role = num
+                    self.CUSTOM_SETTINGS._overridden.add("hidden_role")
                 elif role in ("role reveal", "stats", "abstain"):
                     # handled in parent constructor
                     pass
@@ -48,5 +51,6 @@ class ChangedRolesMode(GameMode):
                         self.ROLE_GUIDE[1].extend((role,) * int(num))
                     else:
                         raise InvalidModeException(messages["specific_invalid_role"].format(role))
+                    self.CUSTOM_SETTINGS._overridden.add("role")
             except ValueError:
                 raise InvalidModeException(messages["bad_role_value"].format(role, num))

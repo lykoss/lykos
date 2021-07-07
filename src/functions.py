@@ -132,7 +132,7 @@ def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inh
 
     sayrole = newrole
     if sayrole in Hidden:
-        sayrole = var.HIDDEN_ROLE
+        sayrole = var.hidden_role
 
     if message:
         player.send(messages[message].format(sayrole))

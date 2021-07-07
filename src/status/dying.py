@@ -91,7 +91,7 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
                         main_role=main_role,
                         reveal_role=reveal_role,
                         reason=reason)
-            evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
+            evt_death_triggers = death_triggers and var.in_game
             evt.dispatch(var, player, all_roles, evt_death_triggers)
 
         # give roles/modes an opportunity to adjust !stats now that all deaths have resolved

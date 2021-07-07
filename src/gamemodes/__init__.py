@@ -18,15 +18,15 @@ class InvalidModeException(Exception):
 class CustomSettings:
     def __init__(self):
         self._overridden = set()
-        self._abstain_enabled: bool = True
-        self._limit_abstain: bool = True
+        self._abstain_enabled: Optional[bool] = None
+        self._limit_abstain: Optional[bool] = None
         self.self_lynch_allowed: bool = True
         self.default_role: str = "villager"
         self.hidden_role: str = "villager"
         self.start_with_day: bool = False
         self.always_pm_role: bool = False
-        self._role_reveal: str = "on" # on/off/team
-        self._stats_type: str = "default" # default/accurate/team/disabled
+        self._role_reveal: Optional[str] = None # on/off/team
+        self._stats_type: Optional[str] = None # default/accurate/team/disabled
 
         self._day_time_limit: Optional[int] = None
         self._day_time_warn: Optional[int] = None
@@ -37,6 +37,8 @@ class CustomSettings:
 
     @property
     def abstain_enabled(self) -> bool:
+        if self._abstain_enabled is None:
+            return True
         return self._abstain_enabled
 
     @abstain_enabled.setter
@@ -47,6 +49,8 @@ class CustomSettings:
 
     @property
     def limit_abstain(self) -> bool:
+        if self._limit_abstain is None:
+            return True
         return self._limit_abstain
 
     @limit_abstain.setter
@@ -57,6 +61,8 @@ class CustomSettings:
 
     @property
     def role_reveal(self) -> str:
+        if self._role_reveal is None:
+            return "on"
         return self._role_reveal
 
     @role_reveal.setter
@@ -67,6 +73,8 @@ class CustomSettings:
 
     @property
     def stats_type(self) -> str:
+        if self._stats_type is None:
+            return "default"
         return self._stats_type
 
     @stats_type.setter

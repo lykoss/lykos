@@ -252,7 +252,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         strip = lambda x: re.sub(r"\(.*\)", "", x)
         lv = len(villagers)
         roles = []
-        for num, rolelist in var.CURRENT_GAMEMODE.ROLE_GUIDE.items():
+        for num, rolelist in var.current_mode.ROLE_GUIDE.items():
             if num <= lv:
                 roles.extend(rolelist)
         defroles = Counter(strip(x) for x in roles)
@@ -269,7 +269,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         for role, num in defroles.items():
             # if an event defined this role, use that number. Otherwise use the number from ROLE_GUIDE
             addroles[role] = addroles.get(role, num)
-        if sum([addroles[r] for r in addroles if r not in var.CURRENT_GAMEMODE.SECONDARY_ROLES]) > lv:
+        if sum([addroles[r] for r in addroles if r not in var.current_mode.SECONDARY_ROLES]) > lv:
             wrapper.send(messages["too_many_roles"])
             stop_game(var, abort=True, log=False)
             return
@@ -281,20 +281,20 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     # convert roleset aliases into the appropriate roles
     possible_rolesets = [Counter()]
     roleset_roles = defaultdict(int)
-    var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS = {}
+    var.current_mode.ACTIVE_ROLE_SETS = {}
     for role, amt in list(addroles.items()):
         # not a roleset? add a fixed amount of them
-        if role not in var.CURRENT_GAMEMODE.ROLE_SETS:
+        if role not in var.current_mode.ROLE_SETS:
             for pr in possible_rolesets:
                 pr[role] += amt
             continue
         # if a roleset, ensure we don't try to expose the roleset name in !stats or future attribution
         # but do keep track of the sets in use so we can have !stats reflect proper information
-        var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS[role] = amt
+        var.current_mode.ACTIVE_ROLE_SETS[role] = amt
         del addroles[role]
         # init !stats with all 0s so that it can number things properly; the keys need to exist in the Counter
         # across every possible roleset so that !stats works right
-        rs = Counter(var.CURRENT_GAMEMODE.ROLE_SETS[role])
+        rs = Counter(var.current_mode.ROLE_SETS[role])
         for r in rs:
             for pr in possible_rolesets:
                 pr[r] += 0
@@ -313,10 +313,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
 
-    if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
+    if var.current_mode.CUSTOM_SETTINGS._overridden and not restart:  # Custom settings
         need_reset = True
         wvs = sum(addroles[r] for r in Wolfchat)
-        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.CURRENT_GAMEMODE.SECONDARY_ROLES)):
+        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.current_mode.SECONDARY_ROLES)):
             wrapper.send(messages["too_few_players_custom"])
         elif not wvs:
             wrapper.send(messages["need_one_wolf"])
@@ -346,11 +346,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     var.SPECTATING_DEADCHAT.clear()
 
     var.setup()
-    var.ROLES[var.DEFAULT_ROLE] = UserSet()
 
     # handle forced main roles
     for role, count in addroles.items():
-        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES or role not in var.FORCE_ROLES:
+        if role in var.current_mode.SECONDARY_ROLES or role not in var.FORCE_ROLES:
             continue
         to_add = set()
         force_roles = list(var.FORCE_ROLES[role])
@@ -376,7 +375,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     for role, count in addroles.items():
         # Check if we already assigned enough people to this role above
         # or if it's a secondary role (those are assigned later on)
-        if count == 0 or role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
+        if count == 0 or role in var.current_mode.SECONDARY_ROLES:
             continue
 
         selected = random.sample(vils, count)
@@ -387,13 +386,13 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         var.ROLES[role].update(selected)
         addroles[role] = 0
 
-    var.ROLES[var.DEFAULT_ROLE].update(vils)
+    var.ROLES[var.default_role].update(vils)
     for x in vils:
-        var.MAIN_ROLES[x] = var.DEFAULT_ROLE
-        var.ORIGINAL_MAIN_ROLES[x] = var.DEFAULT_ROLE
+        var.MAIN_ROLES[x] = var.default_role
+        var.ORIGINAL_MAIN_ROLES[x] = var.default_role
     if vils:
         for pr in possible_rolesets:
-            pr[var.DEFAULT_ROLE] += len(vils)
+            pr[var.default_role] += len(vils)
 
     # Collapse possible_rolesets into var.ROLE_STATS
     # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
@@ -408,7 +407,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     var.ROLE_STATS = possible_rolesets_set
 
     # Now for the secondary roles
-    for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
+    for role, dfn in var.current_mode.SECONDARY_ROLES.items():
         count = addroles[role]
         possible = get_players(var, dfn)
         if role in var.FORCE_ROLES:
@@ -482,23 +481,23 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             evt.dispatch(var, player, None)
 
     if not restart:
-        gamemode = var.CURRENT_GAMEMODE.name
+        gamemode = var.current_mode.name
         event = Event("start_game", {})
-        event.dispatch(var, gamemode, var.CURRENT_GAMEMODE)
+        event.dispatch(var, gamemode, var.current_mode)
 
         # Alert the players to option changes they may not be aware of
         # All keys begin with gso_* (game start options)
         options = []
-        if var.ORIGINAL_SETTINGS.get("ROLE_REVEAL") is not None:
+        if var.current_mode.CUSTOM_SETTINGS._role_reveal is not None:
             # Keys used here: gso_rr_on, gso_rr_team, gso_rr_off
-            options.append(messages["gso_rr_{0}".format(var.ROLE_REVEAL)])
-        if var.ORIGINAL_SETTINGS.get("STATS_TYPE") is not None:
+            options.append(messages["gso_rr_{0}".format(var.role_reveal)])
+        if var.current_mode.CUSTOM_SETTINGS._stats_type is not None:
             # Keys used here: gso_st_default, gso_st_accurate, gso_st_team, gso_st_disabled
-            options.append(messages["gso_st_{0}".format(var.STATS_TYPE)])
-        if var.ORIGINAL_SETTINGS.get("ABSTAIN_ENABLED") is not None or var.ORIGINAL_SETTINGS.get("LIMIT_ABSTAIN") is not None:
-            if var.ABSTAIN_ENABLED and var.LIMIT_ABSTAIN:
+            options.append(messages["gso_st_{0}".format(var.stats_type)])
+        if var.current_mode.CUSTOM_SETTINGS._abstain_enabled is not None or var.current_mode.CUSTOM_SETTINGS._limit_abstain is not None:
+            if var.abstain_enabled and var.limit_abstain:
                 options.append(messages["gso_abs_rest"])
-            elif var.ABSTAIN_ENABLED:
+            elif var.abstain_enabled:
                 options.append(messages["gso_abs_unrest"])
             else:
                 options.append(messages["gso_abs_none"])
@@ -540,8 +539,8 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     if config.Main.get("reaper.enabled"):
         # DEATH TO IDLERS!
-        from src.wolfgame import reaper
-        reapertimer = threading.Thread(None, reaper, args=(wrapper.client, var.GAME_ID))
+        from src.reaper import reaper
+        reapertimer = threading.Thread(None, reaper, args=(var, var.GAME_ID))
         reapertimer.daemon = True
         reapertimer.start()
 

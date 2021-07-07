@@ -111,7 +111,7 @@ def on_send_role(evt: Event, var: GameState):
             if given in pl:
                 pl.remove(given)
 
-        event = Event("num_totems", {"num": var.CURRENT_GAMEMODE.NUM_TOTEMS["crazed shaman"]})
+        event = Event("num_totems", {"num": var.current_mode.NUM_TOTEMS["crazed shaman"]})
         event.dispatch(var, shaman, "crazed shaman")
         num_totems = event.data["num"]
 

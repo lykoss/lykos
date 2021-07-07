@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Dict, Set
+from typing import TYPE_CHECKING, List, Dict, Set, Optional
 import threading
 import time
 
@@ -545,10 +545,10 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                     continue
                 won = False
                 # determine default team win for wolves/village
-                if role in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
+                if role in Wolfteam or (var.hidden_role == "cultist" and role in Hidden):
                     if winner == "wolves":
                         won = True
-                elif role in Village or (var.HIDDEN_ROLE == "villager" and role in Hidden):
+                elif role in Village or (var.hidden_role == "villager" and role in Hidden):
                     if winner == "villagers":
                         won = True
                 # Let events modify this as necessary.
@@ -638,7 +638,6 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                 continue
             add_warning(player, var.NIGHT_IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.NIGHT_IDLE_EXPIRY)
 
-    reset_modes_timers(var)
     reset(var)
     expire_tempbans()
 
@@ -656,7 +655,6 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
     if var.PHASE == "join":
         if not lpl:
-            reset_modes_timers(var)
             reset(var)
 
             # This must be after reset()
@@ -669,7 +667,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
             return True
         return False
-    if var.PHASE not in var.GAME_PHASES:
+    if not var.in_game:
         return False #some other thread already ended game probably
 
     return chk_win_conditions(var, var.ROLES, var.MAIN_ROLES, end_game, winner)
@@ -730,43 +728,35 @@ def reset_game(wrapper: MessageDispatcher, message: str):
         stop_game(var, log=False)
     else:
         pl = [p for p in get_players(var) if not p.is_fake]
-        reset_modes_timers(var)
         reset(var)
         if pl:
             wrapper.send(messages["fstop_ping"].format(pl))
 
-def reset_settings(): # burn the cities. salt the earth so that nothing may ever grow again
-    var.CURRENT_GAMEMODE.teardown()
-    var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
-    for attr in list(var.ORIGINAL_SETTINGS.keys()):
-        setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
-    var.ORIGINAL_SETTINGS.clear()
-
-def reset_modes_timers(var):
+def reset(var: Optional[GameState]):
     # Reset game timers
-    with locks.join_timer: # make sure it isn't being used by the ping join handler
-        for x, timr in TIMERS.items():
-            timr[0].cancel()
-        TIMERS.clear()
+    if var is not None:
+        with locks.join_timer: # make sure it isn't being used by the ping join handler
+            for x, timr in TIMERS.items():
+                timr[0].cancel()
+            TIMERS.clear()
 
-    # Reset modes
-    cmodes = []
-    for plr in get_players(var):
-        if not plr.is_fake:
-            cmodes.append(("-v", plr.nick))
-    for user, modes in channels.Main.old_modes.items():
-        for mode in modes:
-            cmodes.append(("+" + mode, user))
-    channels.Main.old_modes.clear()
-    if var.QUIET_DEAD_PLAYERS:
-        ircd = get_ircd()
-        if ircd.supports_quiet():
-            for deadguy in var.DEAD:
-                if not deadguy.is_fake:
-                    cmodes.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{deadguy.nick}!*@*"))
-    channels.Main.mode("-m", *cmodes)
+        # Reset modes
+        cmodes = []
+        for plr in get_players(var):
+            if not plr.is_fake:
+                cmodes.append(("-v", plr.nick))
+        for user, modes in channels.Main.old_modes.items():
+            for mode in modes:
+                cmodes.append(("+" + mode, user))
+        channels.Main.old_modes.clear()
+        if var.QUIET_DEAD_PLAYERS:
+            ircd = get_ircd()
+            if ircd.supports_quiet():
+                for deadguy in var.DEAD:
+                    if not deadguy.is_fake:
+                        cmodes.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{deadguy.nick}!*@*"))
+        channels.Main.mode("-m", *cmodes)
 
-def reset(var: GameState):
     evt = Event("reset", {})
     evt.dispatch(var)
 

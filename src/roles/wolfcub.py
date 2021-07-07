@@ -66,7 +66,7 @@ def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainro
             if mainroles[wc] == "wolf cub":
                 mainroles[wc] = "wolf"
             did_something = True
-            if var.PHASE in var.GAME_PHASES:
+            if var.in_game:
                 # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame
                 # stats as cub still.
                 wc.send(messages["cub_grow_up"])

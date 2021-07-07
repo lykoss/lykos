@@ -18,9 +18,6 @@ WAIT_TB_BURST = 3   # maximum number of tokens that can be accumulated
 STATS_RATE_LIMIT = 60
 VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300
-GSTATS_RATE_LIMIT = 0
-PSTATS_RATE_LIMIT = 0
-RSTATS_RATE_LIMIT = 0
 TIME_RATE_LIMIT = 10
 START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
@@ -35,17 +32,8 @@ PART_GRACE_TIME = 30
 QUIT_GRACE_TIME = 60
 ACC_GRACE_TIME = 30
 START_QUIT_DELAY = 10
-#  controls how many people it does in one /msg; only works for messages that are the same
-MAX_PRIVMSG_TARGETS = 4
-# how many mode values can be specified at once; used only as fallback
-MODELIMIT = 3
 QUIET_DEAD_PLAYERS = False
-DEVOICE_DURING_NIGHT = False
-QUIET_MODE = "q" # "q" or "b"
-QUIET_PREFIX = "" # "" or "~q:"
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
-# The bot will automatically toggle those modes of people joining
-AUTO_TOGGLE_MODES = ""
 
 DEFAULT_EXPIRY = "30d"
 LEAVE_PENALTY = 1
@@ -98,9 +86,6 @@ RW_TRAITOR_NON_WOLF = 0x80 # Consider traitor as a non-wolf for the purposes of 
 
 ENABLE_DEADCHAT = True # dead players can communicate with each other
 
-ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day
-LIMIT_ABSTAIN = True # if true, village will be limited to successfully !abstaining a vote only once
-SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
 HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
 HIDDEN_CLONE = False
@@ -147,26 +132,6 @@ AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
-GAME_MODES = {}
-GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
-
-# Disable CPRIVMSG/CNOTICE -- some ircds implicitly treat regular PRIVMSG and NOTICE as such, and support more
-# targets per message the normal way than with the explicit command
-DISABLE_CPRIVMSG = False
-
-SSL_VERIFY = True
-SSL_CERTFP = ()
-# Tracking Mozilla's "intermediate" compatibility list -- https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29
-SSL_CIPHERS = ( # single string split over multiple lines - lack of commas intentional
-    "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-"
-    "SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-"
-    "SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-"
-    "AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-"
-    "SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS"
-)
-SSL_CERTFILE = None
-SSL_KEYFILE = None
-
 NICKSERV = "NickServ"
 NICKSERV_IDENTIFY_COMMAND = "IDENTIFY {account} {password}"
 NICKSERV_GHOST_COMMAND = "GHOST {nick}"
@@ -182,34 +147,7 @@ LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
 
-# Data collection settings. lykos will send details about errors that happen to the lykos developers,
-# these settings control how much data is sent. Please see https://werewolf.chat/dc for more information.
-# These settings additionally impacts what data is written to the error log.
-TRACEBACK_VERBOSITY = 2  # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
-USER_DATA_LEVEL = 0  # 0 = fully anonymize users, 1 = expose nick only, 2 = expose full hostmask, account, and channel membership
-CHANNEL_DATA_LEVEL = 0  # 0 = fully anonymize channels, 1 = expose channel name
-
-# How often to ping the server (in seconds) to detect unclean disconnection
-SERVER_PING_INTERVAL = 120
-
-# The default role can be anything, but HIDDEN_ROLE must be either "villager" or "cultist";
-# hidden roles are informed they are HIDDEN_ROLE (ergo that role should not have any abilities),
-# and win with that role's team. Seer sees all non-safe and non-cursed roles as HIDDEN_ROLE.
-DEFAULT_ROLE = "villager"
-HIDDEN_ROLE = "villager"
-
-# Roles listed here cannot be used in !fgame roles=blah.
-DISABLED_ROLES: FrozenSet[str] = frozenset()
-
 # Game modes that cannot be randomly picked or voted for
 DISABLED_GAMEMODES: FrozenSet[str] = frozenset()
 
-# Commands listed here cannot be used by anyone (even admins/owners)
-DISABLED_COMMANDS: FrozenSet[str] = frozenset()
-
-GIF_CHANCE = 1/50
-
 ALL_FLAGS = frozenset("AaDdFgjmNpSsw")
-
-GRAVEYARD_LOCK = threading.RLock()
-WARNING_LOCK = threading.RLock()

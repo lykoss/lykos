@@ -5,12 +5,12 @@ import random
 import typing
 
 from src.utilities import *
-from src import users, channels, errlog, plog
-from src.decorators import command, event_listener
+from src import users, channels
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 from src.status import try_misdirection, try_exchange
 from src.cats import Cursed, Safe, Innocent, Neutral, Win_Stealer, Team_Switcher, Wolf
 
@@ -48,13 +48,13 @@ def see(wrapper: MessageDispatcher, message: str):
     elif targrole in Safe:
         pass # Keep the same role
     elif targrole in Innocent:
-        targrole = var.HIDDEN_ROLE
+        targrole = var.hidden_role
     elif targrole in (Neutral - Win_Stealer - Team_Switcher):
         pass # Keep the same role
     elif targrole in Wolf:
         targrole = "wolf"
     else:
-        targrole = var.HIDDEN_ROLE
+        targrole = var.hidden_role
 
     evt = Event("see", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)

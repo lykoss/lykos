@@ -36,7 +36,7 @@ def on_get_final_role(evt: Event, var: GameState, user: User, role: str):
 
 @event_listener("update_stats", priority=1)
 def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
-    if mainrole == var.HIDDEN_ROLE and var.HIDDEN_TRAITOR:
+    if mainrole == var.hidden_role and var.HIDDEN_TRAITOR:
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)
@@ -90,11 +90,11 @@ def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainro
                 rolemap["cursed villager"].discard(traitor)
             mainroles[traitor] = "wolf"
             did_something = True
-            if var.PHASE in var.GAME_PHASES:
+            if var.in_game:
                 var.FINAL_ROLES[traitor] = "wolf"
                 traitor.send(messages["traitor_turn"])
     if did_something:
-        if var.PHASE in var.GAME_PHASES:
+        if var.in_game:
             channels.Main.send(messages["traitor_turn_channel"])
             # fix !stats to show that traitor turned as well
             newstats = set()

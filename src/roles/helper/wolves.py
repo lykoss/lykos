@@ -199,7 +199,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 
     sayrole = evt.data["role"]
     if sayrole in Hidden:
-        sayrole = var.HIDDEN_ROLE
+        sayrole = var.hidden_role
 
     if player in KILLS:
         del KILLS[player]

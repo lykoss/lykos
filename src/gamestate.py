@@ -52,6 +52,7 @@ class GameState:
             raise RuntimeError("GameState.setup() called while already setup")
         for role in All:
             self._roles[role] = UserSet()
+        self._roles[self.default_role] = UserSet()
         self.setup_completed = True
 
     def teardown(self):

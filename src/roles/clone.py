@@ -54,7 +54,7 @@ def on_get_reveal_role(evt: Event, var: GameState, user):
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     # clone happens regardless of death_triggers being true or not
-    if var.PHASE not in var.GAME_PHASES:
+    if not var.in_game:
         return
 
     clones = get_all_players(var, ("clone",))
@@ -129,7 +129,7 @@ def first_death_occured(evt: Event, var: GameState, player, all_roles, death_tri
     global CLONE_ENABLED
     if CLONE_ENABLED:
         return
-    if CLONED and var.PHASE in var.GAME_PHASES:
+    if CLONED and var.in_game:
         CLONE_ENABLED = True
 
 @event_listener("update_stats")

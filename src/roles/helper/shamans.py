@@ -17,6 +17,7 @@ from src.events import Event, event_listener
 from src.cats import Cursed, Safe, Innocent, Wolf, All
 
 if TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
     from src.users import User
 
 #####################################################################################
@@ -256,11 +257,11 @@ def setup_variables(rolename, *, knows_totem):
     def on_transition_night_end(evt: Event, var: GameState):
         if var.NIGHT_COUNT == 0 or not get_all_players(var, (rolename,)):
             return
-        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
+        if var.current_mode.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)
-        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["luck"][rolename] > 0:
+        if var.current_mode.TOTEM_CHANCES["luck"][rolename] > 0:
             status.add_misdirection_scope(var, All, as_target=True)
-        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["misdirection"][rolename] > 0:
+        if var.current_mode.TOTEM_CHANCES["misdirection"][rolename] > 0:
             status.add_misdirection_scope(var, All, as_actor=True)
 
     if knows_totem:
@@ -282,7 +283,7 @@ def totem_message(totems, count_only=False):
         pieces = [messages["shaman_totem_piece"].format(num, totem) for totem, num in totems.items()]
         return messages["shaman_totem_multiple_known"].format(pieces)
 
-def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional[str], Optional[users.User]]:
+def get_totem_target(var: GameState, wrapper: MessageDispatcher, message, lastgiven, totems) -> Tuple[Optional[str], Optional[users.User]]:
     """Get the totem target."""
     pieces = re.split(" +", message)
     totem = None
@@ -308,7 +309,7 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
 
     return totem, target
 
-def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[users.User, users.User]]:
+def give_totem(var: GameState, wrapper: MessageDispatcher, target: User, totem: str, *, key, role) -> Optional[Tuple[users.User, users.User]]:
     """Give a totem to a player."""
 
     orig_target = target
@@ -324,7 +325,7 @@ def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[user
     wrapper.send(messages[key].format(orig_target, totem))
     return target, orig_target
 
-def change_totem(var, player, totem, roles=None):
+def change_totem(var: GameState, player: User, totem: str, roles=None):
     """Change the player's totem to the specified totem.
 
     If roles is specified, only operates if the player has one of those roles.
@@ -350,7 +351,7 @@ def change_totem(var, player, totem, roles=None):
                     tval, count = t.split(":")
                     tval = tval.strip()
                     count = int(count.strip())
-                    match = match_totem(tval, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
+                    match = match_totem(tval, scope=var.current_mode.TOTEM_CHANCES)
                     if not match:
                         # FIXME: localize
                         raise ValueError("{0} is not a valid totem type.".format(tval))
@@ -360,7 +361,7 @@ def change_totem(var, player, totem, roles=None):
                         raise ValueError("Totem count for {0} cannot be less than 1.".format(tval))
                     totemdict[tval] = count
             else:
-                match = match_totem(totem, scope=var.CURRENT_GAMEMODE.TOTEM_CHANCES)
+                match = match_totem(totem, scope=var.current_mode.TOTEM_CHANCES)
                 if not match:
                     # FIXME: localize
                     raise ValueError("{0} is not a valid totem type.".format(totem))
@@ -373,7 +374,7 @@ def change_totem(var, player, totem, roles=None):
 def on_see(evt: Event, var: GameState, seer, target):
     if (seer in DECEIT) ^ (target in DECEIT):
         if evt.data["role"] == "wolf":
-            evt.data["role"] = var.HIDDEN_ROLE
+            evt.data["role"] = var.hidden_role
         else:
             evt.data["role"] = "wolf"
 

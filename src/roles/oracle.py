@@ -46,7 +46,7 @@ def see(wrapper: MessageDispatcher, message: str):
     if targrole in Cursed:
         targrole = "wolf"
     elif targrole in Safe | Innocent:
-        targrole = var.HIDDEN_ROLE
+        targrole = var.hidden_role
     elif targrole in Wolf:
         targrole = "wolf"
 

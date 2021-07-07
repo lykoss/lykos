@@ -377,7 +377,7 @@ def connect_callback(cli: IRCClient):
                 Features[c] = enabled
 
             if Features.get("sasl", False):
-                if var.SSL_CERTFILE:
+                if config.Main.get("ssl.ca_file"):
                     mech = "EXTERNAL"
                 else:
                     mech = "PLAIN"

@@ -16,7 +16,7 @@ from src.cats import Hidden
 def on_send_role(evt: Event, var: GameState):
     if not var.ROLES_SENT or var.always_pm_role:
         villroles = {"villager"}
-        if var.HIDDEN_ROLE == "villager":
+        if var.hidden_role == "villager":
             villroles |= Hidden
         villagers = get_players(var, villroles)
         if villagers:
