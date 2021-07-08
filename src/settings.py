@@ -1,7 +1,5 @@
 raise RuntimeError("src.settings incorrectly loaded")
 
-LANGUAGE = 'en'
-
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
@@ -25,29 +23,9 @@ GOAT_RATE_LIMIT = 300 # (per-user)
 MIN_PLAYERS = 6
 MAX_PLAYERS = 24
 JOIN_TIME_LIMIT = 3600
-KILL_IDLE_TIME = 300
-WARN_IDLE_TIME = 180
-PM_WARN_IDLE_TIME = 240
-PART_GRACE_TIME = 30
-QUIT_GRACE_TIME = 60
-ACC_GRACE_TIME = 30
 START_QUIT_DELAY = 10
 QUIET_DEAD_PLAYERS = False
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
-
-DEFAULT_EXPIRY = "30d"
-LEAVE_PENALTY = 1
-LEAVE_EXPIRY = "30d"
-IDLE_PENALTY = 1
-IDLE_EXPIRY = "30d"
-PART_PENALTY = 1
-PART_EXPIRY = "30d"
-ACC_PENALTY = 1
-ACC_EXPIRY = "30d"
-# Give penalties if idling night.
-# All other penalties take precedence over night penalties; only one penalty will be given per game.
-NIGHT_IDLE_PENALTY = 1
-NIGHT_IDLE_EXPIRY = "14d"
 
 # The formatting of this sucks, sorry. This is used to automatically apply sanctions to warning levels
 # When a user crosses from below the min threshold to min or above points, the listed sanctions apply

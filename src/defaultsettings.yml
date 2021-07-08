@@ -1084,6 +1084,24 @@ reaper: &reaper
           _desc: Expiration time for the warning applied to the user when they have the wrong account for too long.
           _type: str
           _default: 30d
+    leave:
+      _desc: |
+        If the user chooses to '!quit -force' during the game, this defines the applied sanctions.
+        Note that, unlike the other entries here, this does not have a grace period, and instantly applies the sanction.
+      _type: dict
+      _default:
+        enabled:
+          _desc: Whether or not game quit warnings are enabled.
+          _type: bool
+          _default: true
+        points:
+          _desc: Number of warning points to apply to the user if they choose to '!quit -force' the game.
+          _type: int
+          _default: 1
+        expiration:
+          _desc: Expiration time for the warning applied to the user who chose to '!quit -force' the game,
+          _type: str
+          _default: 30d
 
 warnings.sanction.scalestasis: &warnings.sanction.scalestasis
   _name: warnings.sanction.scalestasis

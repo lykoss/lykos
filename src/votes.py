@@ -13,7 +13,7 @@ from src.messages import messages
 from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event, event_listener
 from src.trans import chk_win
-from src import channels, pregame, users, locks
+from src import channels, pregame, reaper, locks
 
 if TYPE_CHECKING:
     from src.users import User
@@ -98,7 +98,7 @@ def no_lynch(wrapper: MessageDispatcher, message: str):
 def retract(wrapper: MessageDispatcher, message: str):
     """Takes back your vote during the day (for whom to lynch)."""
     var = wrapper.game_state
-    if wrapper.source not in get_players(var) or wrapper.source in var.DISCONNECTED or var.PHASE != "day":
+    if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED or var.PHASE != "day":
         return
 
     global LAST_VOTES

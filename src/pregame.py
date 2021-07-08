@@ -20,7 +20,7 @@ from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Wolfchat, All
-from src import config, channels, locks, trans
+from src import config, channels, locks, trans, reaper
 
 if TYPE_CHECKING:
     from src.users import User
@@ -114,7 +114,7 @@ def fstart(wrapper: MessageDispatcher, message: str):
 def retract(wrapper: MessageDispatcher, message: str):
     """Take back your vote during the day (for whom to lynch)."""
     var = wrapper.game_state
-    if wrapper.source not in get_players(var) or wrapper.source in var.DISCONNECTED:
+    if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED:
         return
 
     with locks.reaper, locks.join_timer:
@@ -175,9 +175,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         if wrapper.source not in villagers and not forced:
             return
 
-        now = datetime.now()
-        var.GAME_START_TIME = now  # Only used for the idler checker
-        dur = int((var.CAN_START_TIME - now).total_seconds())
+        dur = int((var.CAN_START_TIME - datetime.now()).total_seconds())
         if dur > 0 and not forced:
             wrapper.send(messages["please_wait"].format(dur))
             return

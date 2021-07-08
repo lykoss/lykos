@@ -119,7 +119,8 @@ class command:
     def _caller(self, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
         var = wrapper.game_state # FIXME
-        if self.playing and (wrapper.source not in get_players(wrapper.game_state) or wrapper.source in var.DISCONNECTED):
+        from src import reaper
+        if self.playing and (wrapper.source not in get_players(wrapper.game_state) or wrapper.source in reaper.DISCONNECTED):
             return
 
         logger = logging.getLogger("command.{}".format(self.key))

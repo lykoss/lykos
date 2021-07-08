@@ -42,6 +42,7 @@ class GameState:
     def __init__(self, pregame_state: PregameState):
         from src.gamemodes import GameMode
         self.setup_completed: bool = False
+        self._torndown: bool = False
         self.current_mode: GameMode = None
         self.game_settings = {}
         self._roles: UserDict[str, UserSet] = UserDict()
@@ -50,6 +51,8 @@ class GameState:
     def setup(self):
         if self.setup_completed:
             raise RuntimeError("GameState.setup() called while already setup")
+        if self._torndown:
+            raise RuntimeError("cannot setup a used-up GameState")
         for role in All:
             self._roles[role] = UserSet()
         self._roles[self.default_role] = UserSet()
@@ -59,17 +62,20 @@ class GameState:
         self._roles.clear()
         self.del_role_stats()
         self.current_mode.teardown()
+        self._torndown = True
 
     def _get_value(self, key: str) -> Any:
         if not self.setup_completed or not self.current_mode:
             raise RuntimeError("Current game state has not been setup")
+        if self._torndown:
+            raise RuntimeError("Current game state is no longer valid")
         if key in self.game_settings:
             return self.game_settings[key]
         return getattr(self.current_mode.CUSTOM_SETTINGS, key)
 
     @property
     def in_game(self):
-        return self.setup_completed
+        return self.setup_completed and not self._torndown
 
     @property
     def abstain_enabled(self) -> bool:

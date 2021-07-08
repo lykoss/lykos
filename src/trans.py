@@ -16,14 +16,13 @@ from src.status import is_silent, is_dying, try_protection, add_dying, kill_play
 from src.events import Event, event_listener
 from src.votes import chk_decision
 from src.cats import Wolfteam, Hidden, Village, Wolf_Objective, Village_Objective, role_order
-from src import channels, users, locks, config, db
+from src import channels, users, locks, config, db, reaper
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
 
-NIGHT_IDLED = UserSet()
 NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS = {}
 DAY_ID = 0
@@ -131,7 +130,7 @@ def night_timeout(var: GameState, gameid: int):
     event.dispatch(var)
 
     # if night idle warnings are disabled, head straight to day
-    if not var.NIGHT_IDLE_PENALTY:
+    if not config.Main.get("reaper.night_idle.enabled"):
         event.data["transition_day"](var, gameid)
         return
 
@@ -149,7 +148,7 @@ def night_timeout(var: GameState, gameid: int):
             # don't give the warning right away:
             # 1. they may idle out entirely, in which case that replaces this warning
             # 2. warning is deferred to end of game so admins can't !fwarn list to cheat and determine who idled
-            NIGHT_IDLED.add(player)
+            reaper.NIGHT_IDLED.add(player)
 
     event.data["transition_day"](var, gameid)
 
@@ -541,7 +540,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
 
             team_wins = set()
             for player, role in mainroles.items():
-                if player in var.DCED_LOSERS or winner == "":
+                if player in reaper.DCED_LOSERS or winner == "":
                     continue
                 won = False
                 # determine default team win for wolves/village
@@ -568,7 +567,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                          "special": [],
                          "team_win": player in team_wins,
                          "individual_win": False,
-                         "dced": player in var.DCED_LOSERS
+                         "dced": player in reaper.DCED_LOSERS
                          }
                 # player.account could be None if they disconnected during the game. Use original tracked account name
                 if entry["account"] is None and player in var.ORIGINAL_ACCS:
@@ -630,13 +629,6 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
             user.queue_message(messages["endgame_deadchat"].format(channels.Main))
 
         user.send_messages()
-
-    # Add warnings for people that idled out night
-    if var.IDLE_PENALTY:
-        for player in NIGHT_IDLED:
-            if player.is_fake:
-                continue
-            add_warning(player, var.NIGHT_IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.NIGHT_IDLE_EXPIRY)
 
     reset(var)
     expire_tempbans()
@@ -770,7 +762,6 @@ def on_reset(evt: Event, var: GameState):
     global NIGHT_ID, DAY_ID
     NIGHT_ID = 0
     DAY_ID = 0
-    NIGHT_IDLED.clear()
     NIGHT_IDLE_EXEMPT.clear()
 
 def old_reset():
@@ -788,14 +779,8 @@ def old_reset():
     reset_settings()
 
     var.LAST_GOAT.clear()
-    var.LAST_SAID_TIME.clear()
-    var.DISCONNECTED.clear()
-    var.DCED_LOSERS.clear()
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
-
-    var.IDLE_WARNED.clear()
-    var.IDLE_WARNED_PM.clear()
 
     var.ORIGINAL_ROLES.clear()
     var.FINAL_ROLES.clear()

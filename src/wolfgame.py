@@ -39,7 +39,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, Callable
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper
 from src.users import User
 
 from src.debug import handle_error
@@ -75,7 +75,6 @@ var.LAST_TIME = None  # type: ignore
 var.LAST_GOAT = UserDict() # type: ignore # actually UserDict[users.User, datetime]
 
 var.ADMIN_PINGING = False  # type: ignore
-var.DCED_LOSERS = UserSet()  # type: ignore
 var.ADMIN_TO_PING = None  # type: ignore
 var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
@@ -90,9 +89,6 @@ var.ALL_PLAYERS = UserList() # type: ignore
 var.FORCE_ROLES = DefaultUserDict(UserSet) # type: ignore
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
-var.IDLE_WARNED = UserSet() # type: ignore
-var.IDLE_WARNED_PM = UserSet() # type: ignore
-
 var.DEAD = UserSet() # type: ignore
 
 var.DEADCHAT_PLAYERS = UserSet() # type: ignore
@@ -102,12 +98,7 @@ var.SPECTATING_DEADCHAT = UserSet() # type: ignore
 
 var.GAMEMODE_VOTES = UserDict() # type: ignore
 
-var.LAST_SAID_TIME = UserDict() # type: ignore
-
-var.GAME_START_TIME = datetime.now()  # type: ignore # for idle checker only
 var.CAN_START_TIME = 0 # type: ignore
-
-var.DISCONNECTED = UserDict() # type: ignore # actually UserDict[User, Tuple[datetime, str]]
 
 var.RESTARTING = False # type: ignore
 
@@ -422,7 +413,7 @@ def replace(wrapper: MessageDispatcher, message: str):
     elif target is not wrapper.source:
         target.swap(wrapper.source)
         if var.in_game:
-            return_to_village(var, wrapper.source, show_message=False)
+            reaper.return_to_village(var, wrapper.source, show_message=False)
 
         cmodes = []
 
@@ -920,7 +911,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
             wrapper.send(*msg)
 
             if var.PHASE != "join":
-                var.DCED_LOSERS.add(target)
+                reaper.DCED_LOSERS.add(target)
 
             add_dying(var, target, "bot", "fquit", death_triggers=False)
             kill_players(var)
@@ -1130,9 +1121,6 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
 
         # Died during the joining process as a person
         var.ALL_PLAYERS.remove(player)
-    if var.in_game:
-        # remove the player from variables if they're in there
-        var.DISCONNECTED.pop(player, None)
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)
@@ -1184,23 +1172,13 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
         # HACK: notify kill_players that game is ending so it can pass it to its caller
         evt.prevent_default = True
 
-@command("")  # update last said
-def update_last_said(wrapper: MessageDispatcher, message: str):
-    if wrapper.target is not channels.Main:
-        return
-
-    var = wrapper.game_state
-
-    if var.PHASE not in ("join", "none"):
-        var.LAST_SAID_TIME[wrapper.source] = datetime.now()
-
 @event_listener("chan_join", priority=1)
 def on_join(evt, chan, user): # FIXME: This uses var
     if user is users.Bot:
         plog("Joined {0}".format(chan))
     if chan is not channels.Main:
         return
-    user.update_account_data("<chan_join>", lambda new_user: return_to_village(var, new_user, show_message=True))
+    user.update_account_data("<chan_join>", lambda new_user: reaper.return_to_village(channels.Main.game_state, new_user, show_message=True))
 
 @command("goat")
 def goat(wrapper: MessageDispatcher, message: str):
@@ -1236,58 +1214,21 @@ def fgoat(wrapper: MessageDispatcher, message: str):
 
     wrapper.send(messages["goat_success"].format(wrapper.source, togoat))
 
-@handle_error
-def return_to_village(var, target, *, show_message, new_user=None):
-    with locks.reaper:
-        if channels.Main not in target.channels:
-            # managed to leave the channel in between the time return_to_village was scheduled and called
-            return
-
-        if target.account not in var.ORIGINAL_ACCS.values():
-            return
-
-        if target in var.DISCONNECTED:
-            del var.DISCONNECTED[target]
-            if new_user is None:
-                new_user = target
-
-            var.LAST_SAID_TIME[target] = datetime.now()
-            var.DCED_LOSERS.discard(target)
-
-            if new_user is not target:
-                # different users, perform a swap. This will clean up disconnected users.
-                target.swap(new_user)
-
-            if show_message:
-                if config.Main.get("gameplay.nightchat") or var.PHASE != "night":
-                    channels.Main.mode(("+v", new_user))
-                if target.nick == new_user.nick:
-                    channels.Main.send(messages["player_return"].format(new_user))
-                else:
-                    channels.Main.send(messages["player_return_nickchange"].format(new_user, target))
-        else:
-            # this particular user doesn't exist in var.DISCONNECTED, but that doesn't
-            # mean that they aren't dced. They may have rejoined as a different nick,
-            # for example, and we want to mark them as back without requiring them to do
-            # a !swap.
-            userlist = users.get(account=target.account, allow_multiple=True, allow_ghosts=True)
-            userlist = [u for u in userlist if u in var.DISCONNECTED]
-            if len(userlist) == 1:
-                return_to_village(var, userlist[0], show_message=show_message, new_user=target)
-
 @event_listener("account_change")
 def account_change(evt, user, old_account): # FIXME: This uses var
-    if user not in channels.Main.users:
+    if user not in channels.Main.users or not channels.Main.game_state:
         return # We only care about game-related changes in this function
 
+    var = channels.Main.game_state
+
     pl = get_participants(var)
-    if user in pl and user.account not in var.ORIGINAL_ACCS.values() and user not in var.DISCONNECTED:
+    if user in pl and user.account not in var.ORIGINAL_ACCS.values() and user not in reaper.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.PHASE != "join":
             channels.Main.mode(["-v", user.nick])
-    elif (user not in pl or user in var.DISCONNECTED) and user.account in var.ORIGINAL_ACCS.values():
+    elif (user not in pl or user in reaper.DISCONNECTED) and user.account in var.ORIGINAL_ACCS.values():
         # if they were gone, maybe mark them as back
-        return_to_village(var, user, show_message=True)
+        reaper.return_to_village(var, user, show_message=True)
 
 @event_listener("nick_change")
 def nick_change(evt, user, old_nick): # FIXME: This function needs some way to have var
@@ -1302,7 +1243,7 @@ def nick_change(evt, user, old_nick): # FIXME: This function needs some way to h
                 if re.search(var.GUEST_NICK_PATTERN, other.nick):
                     # The user joined to the game is using a Guest nick, which is usually due to a connection issue.
                     # Automatically swap in this user for that old one.
-                    replace(var, MessageDispatcher(user, users.Bot), "")
+                    replace(MessageDispatcher(user, users.Bot), "")
                 return
 
 @event_listener("chan_part")
@@ -1328,13 +1269,13 @@ def leave(var: GameState, what, user, why=None):
     ps = get_players(var)
     # Only mark living players as disconnected, unless they were kicked
     if (user in ps or what == "kick") and var.in_game:
-        var.DCED_LOSERS.add(user)
+        reaper.DCED_LOSERS.add(user)
 
     # leaving the game channel means you leave deadchat
     if user in var.DEADCHAT_PLAYERS:
         leave_deadchat(var, user)
 
-    if user not in ps or user in var.DISCONNECTED:
+    if user not in ps or user in reaper.DISCONNECTED:
         return
 
     # If we got that far, the player was in the game. This variable tracks whether or not we want to kill them off.
@@ -1358,7 +1299,13 @@ def leave(var: GameState, what, user, why=None):
     if get_main_role(var, user) == "person" or var.role_reveal not in ("on", "team"):
         reveal = "_no_reveal"
 
-    grace_times = {"part": var.PART_GRACE_TIME, "quit": var.QUIT_GRACE_TIME, "account": var.ACC_GRACE_TIME, "leave": 0}
+    grace_times = {"leave": 0}
+    if config.Main.get("reaper.part.enabled"):
+        grace_times["part"] = config.Main.get("reaper.part.grace")
+    if config.Main.get("reaper.quit.enabled"):
+        grace_times["quit"] = config.Main.get("reaper.quit.grace")
+    if config.Main.get("reaper.account.enabled"):
+        grace_times["account"] = config.Main.get("reaper.account.grace")
 
     reason = what
     if reason == "kick":
@@ -1386,7 +1333,7 @@ def leave(var: GameState, what, user, why=None):
         add_dying(var, user, "bot", what, death_triggers=False)
         kill_players(var)
     else:
-        var.DISCONNECTED[user] = (datetime.now(), what)
+        reaper.DISCONNECTED[user] = (datetime.now(), what)
 
 @command("leave", pm=True, phases=("join", "day", "night"))
 def leave_game(wrapper: MessageDispatcher, message: str):
@@ -1420,10 +1367,10 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     else:
         channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
     if var.PHASE != "join":
-        var.DCED_LOSERS.add(wrapper.source)
-        if var.LEAVE_PENALTY:
-            trans.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
-            add_warning(wrapper.source, var.LEAVE_PENALTY, users.Bot, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
+        reaper.DCED_LOSERS.add(wrapper.source)
+        if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled"):
+            reaper.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
+            add_warning(wrapper.source, config.Main.get("reaper.leave.points"), users.Bot, messages["leave_warning"], expires=config.Main.get("reaper.leave.expiration"))
 
     add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
     kill_players(var)
@@ -1449,9 +1396,6 @@ def relay(wrapper: MessageDispatcher, message: str):
         return
 
     pl = get_players(var)
-
-    if wrapper.source in pl and wrapper.source in var.IDLE_WARNED_PM:
-        wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
 
     if message.startswith(var.CMD_CHAR):
         return
