@@ -7,9 +7,10 @@ from src.cats import All
 from src import channels, config
 
 if typing.TYPE_CHECKING:
-    from typing import FrozenSet, Set, Tuple, Any
+    from src.gamemodes import GameMode
+    from typing import FrozenSet, Set, Tuple, Any, Dict
 
-__all__ = ["GameState", "set_gamemode"]
+__all__ = ["GameState", "PregameState", "IngameState", "set_gamemode"]
 
 def set_gamemode(var: GameState, arg: str) -> bool:
     from src.gamemodes import GAME_MODES, InvalidModeException
@@ -32,7 +33,7 @@ def set_gamemode(var: GameState, arg: str) -> bool:
 
 class PregameState:
     def __init__(self):
-        pass
+        self.players = UserList()
 
     @property
     def in_game(self):
@@ -40,15 +41,16 @@ class PregameState:
 
 class GameState:
     def __init__(self, pregame_state: PregameState):
-        from src.gamemodes import GameMode
+        self.setup_started: bool = False
         self.setup_completed: bool = False
         self._torndown: bool = False
-        self.current_mode: GameMode = None
-        self.game_settings = {}
+        self.current_mode: GameMode = pregame_state.current_mode
+        self.game_settings: Dict[str, Any] = {}
+        self.players = pregame_state.players
         self._roles: UserDict[str, UserSet] = UserDict()
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
 
-    def setup(self):
+    def begin_setup(self):
         if self.setup_completed:
             raise RuntimeError("GameState.setup() called while already setup")
         if self._torndown:
@@ -56,6 +58,13 @@ class GameState:
         for role in All:
             self._roles[role] = UserSet()
         self._roles[self.default_role] = UserSet()
+        self.setup_started = True
+
+    def finish_setup(self):
+        if self.setup_completed:
+            raise RuntimeError("GameState.setup() called while already setup")
+        if self._torndown:
+            raise RuntimeError("cannot setup a used-up GameState")
         self.setup_completed = True
 
     def teardown(self):

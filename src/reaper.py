@@ -107,7 +107,7 @@ def reaper(var: GameState, gameid: int):
                 revealrole = get_reveal_role(var, dcedplayer)
                 if (what == "quit" and config.Main.get("reaper.quit.enabled") and
                    (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.quit.grace"))):
-                    if mainrole != "person" and var.role_reveal in ("on", "team"):
+                    if var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
@@ -120,7 +120,7 @@ def reaper(var: GameState, gameid: int):
 
                 elif (what == "part" and config.Main.get("reaper.part.enabled") and
                      (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.part.grace"))):
-                    if mainrole != "person" and var.role_reveal in ("on", "team"):
+                    if var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["part_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
@@ -133,7 +133,7 @@ def reaper(var: GameState, gameid: int):
 
                 elif (what == "account" and config.Main.get("reaper.account.enabled") and
                      (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.account.grace"))):
-                    if mainrole != "person" and var.role_reveal in ("on", "team"):
+                    if var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["account_death"].format(dcedplayer, revealrole))
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))

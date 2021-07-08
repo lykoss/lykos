@@ -18,7 +18,7 @@ from src.status import try_misdirection, try_exchange
 def on_send_role(evt: Event, var: GameState):
     for blessed in get_all_players(var, ("blessed villager",)):
         status.add_protection(var, blessed, blessed, "blessed villager")
-        if not var.ROLES_SENT or var.always_pm_role:
+        if not var.setup_completed or var.always_pm_role:
             blessed.send(messages["blessed_notify"])
 
 @event_listener("myrole")

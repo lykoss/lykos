@@ -6,15 +6,15 @@ import functools
 import typing
 
 from src.messages import messages, LocalRole, LocalMode, LocalTotem
+from src.gamestate import PregameState, GameState
 from src.events import Event
 from src.cats import Wolfteam, Neutral, Hidden, All
 from src.match import Match, match_all
 
 if typing.TYPE_CHECKING:
-    from src.gamestate import GameState
     from src.dispatcher import MessageDispatcher
     from src.users import User
-    from typing import List, Set
+    from typing import List, Set, Union
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -23,8 +23,13 @@ __all__ = [
     "match_role", "match_mode", "match_totem"
     ]
 
-def get_players(var: GameState, roles=None, *, mainroles=None) -> List[User]:
+def get_players(var: Union[GameState, PregameState], roles=None, *, mainroles=None) -> List[User]:
     from src.status import is_dying
+    if isinstance(var, PregameState):
+        if roles is not None:
+            return []
+        return list(var.players)
+
     if mainroles is None:
         mainroles = var.MAIN_ROLES
     if roles is None:
@@ -36,12 +41,17 @@ def get_players(var: GameState, roles=None, *, mainroles=None) -> List[User]:
 
     if mainroles is not var.MAIN_ROLES:
         # we weren't given an actual player list (possibly),
-        # so the elements of pl are not necessarily in var.ALL_PLAYERS
+        # so the elements of pl are not necessarily in var.players
         return list(pl)
-    return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(var, p)]
+    return [p for p in var.players if p in pl and not is_dying(var, p)]
 
-def get_all_players(var: GameState, roles=None, *, rolemap=None) -> Set[User]:
+def get_all_players(var: Union[GameState, PregameState], roles=None, *, rolemap=None) -> Set[User]:
     from src.status import is_dying
+    if isinstance(var, PregameState):
+        if roles is not None:
+            return []
+        return set(var.players)
+
     if rolemap is None:
         rolemap = var.ROLES
     if roles is None:
@@ -56,7 +66,7 @@ def get_all_players(var: GameState, roles=None, *, rolemap=None) -> Set[User]:
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants(var: GameState) -> List[User]:
+def get_participants(var: Union[GameState, PregameState]) -> List[User]:
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players(var)})
     evt.dispatch(var)

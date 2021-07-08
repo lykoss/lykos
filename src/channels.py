@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import time
-import typing
 from enum import Enum
-from typing import Optional
+from typing import Optional, Dict, Set, TYPE_CHECKING
 from collections import defaultdict
 import logging
 
@@ -12,8 +11,9 @@ from src.events import Event, EventListener
 from src import users, config
 from src.debug import CheckedSet, CheckedDict
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from src.gamestate import GameState
+    from src.users import User
 
 Main: Channel = None # type: ignore[assignment]
 Dummy: Channel = None # type: ignore[assignment]
@@ -88,12 +88,12 @@ class Channel(IRCContext):
 
     def __init__(self, name, client):
         super().__init__(name, client)
-        self.users = CheckedSet("channels.Channel.users")
-        self.modes = {}
+        self.users: CheckedSet[User] = CheckedSet("channels.Channel.users")
+        self.modes: Dict[str, Set[User]] = {}
         self.old_modes = defaultdict(set)
         self.timestamp = None
         self.state = _States.NotJoined
-        self.game_state = None # type: Optional[GameState]
+        self.game_state: Optional[GameState] = None
         self._pending = []
 
     def __del__(self):

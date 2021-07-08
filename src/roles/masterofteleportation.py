@@ -36,10 +36,10 @@ def choose(wrapper: MessageDispatcher, message: str):
         return
 
     ACTED.add(wrapper.source)
-    index1 = var.ALL_PLAYERS.index(target1)
-    index2 = var.ALL_PLAYERS.index(target2)
-    var.ALL_PLAYERS[index2] = target1
-    var.ALL_PLAYERS[index1] = target2
+    index1 = var.players.index(target1)
+    index2 = var.players.index(target2)
+    var.players[index2] = target1
+    var.players[index1] = target2
     wrapper.send(messages["master_of_teleportation_success"].format(target1, target2))
 
 @event_listener("send_role")

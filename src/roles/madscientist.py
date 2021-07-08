@@ -24,21 +24,21 @@ def _get_targets(var: GameState, pl: Set[User], user: User):
 
     """
 
-    index = var.ALL_PLAYERS.index(user)
-    num_players = len(var.ALL_PLAYERS)
+    index = var.players.index(user)
+    num_players = len(var.players)
     # determine left player
     i = index
     while True:
         i = (i - 1) % num_players
-        if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
-            target1 = var.ALL_PLAYERS[i]
+        if var.players[i] in pl or var.players[i] is user:
+            target1 = var.players[i]
             break
     # determine right player
     i = index
     while True:
         i = (i + 1) % num_players
-        if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
-            target2 = var.ALL_PLAYERS[i]
+        if var.players[i] in pl or var.players[i] is user:
+            target2 = var.players[i]
             break
 
     return (target1, target2)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import fnmatch
 import time
 import re
-from typing import Callable, List, Optional, Iterable
+from typing import Callable, List, Optional, Iterable, Set, TYPE_CHECKING
 
 from src.context import IRCContext, Features, lower
 from src import config, db
@@ -11,6 +11,10 @@ from src.events import EventListener
 from src.debug import CheckedDict, CheckedSet, handle_error
 from src.match import Match
 from src.gamestate import GameState
+
+if TYPE_CHECKING:
+    from src.containers import UserSet, UserDict, UserList
+    from src.channels import Channel
 
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
@@ -184,12 +188,12 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
     return _raw_nick_pattern.search(rawnick).groupdict(default)
 
-def _cleanup_user(evt, var: GameState, user):
+def _cleanup_user(evt, var: GameState, user: User):
     """Removes a user from our global tracking set once it has left all channels."""
     # if user is in-game, keep them around so that other players can act on them
     # and so that they can return to the village. If they aren't in game, erase
     # all memory of them from the bot.
-    if var.in_game and user in var.ALL_PLAYERS:
+    if var.in_game and user in var.players:
         user.disconnected = True
     else:
         user.disconnected = False
@@ -224,8 +228,21 @@ class User(IRCContext):
 
     account_timestamp: float
 
+    def __init__(self, cli, nick, ident, host, account):
+        """Make linters happy."""
+        self._ident: str
+        self._host: str
+        self._account: str
+        self.name: str
+        self.channels: CheckedDict[Channel, Set[str]]
+        self.timestamp: float
+        self.sets: List[UserSet]
+        self.lists: List[UserList]
+        self.dict_keys: List[UserDict]
+        self.dict_values: List[UserDict]
+
     def __new__(cls, cli, nick, ident, host, account):
-        self = super().__new__(cls)
+        self: User = super().__new__(cls)
         super(__class__, self).__init__(nick, cli)
 
         self._ident = ident
@@ -319,9 +336,6 @@ class User(IRCContext):
 
         return self
 
-    def __init__(self, *args, **kwargs):
-        pass # everything that needed to be done was done in __new__
-
     def __str__(self):
         return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}:{self.account}".format(self=self)
 
@@ -373,7 +387,7 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
-    def swap(self, new, *, same_user=False):
+    def swap(self, new: User, *, same_user=False):
         """Swap yourself out with the new user everywhere.
 
         :param new: New user to replace current one with.

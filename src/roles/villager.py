@@ -13,7 +13,7 @@ from src.cats import Hidden
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
-    if not var.ROLES_SENT or var.always_pm_role:
+    if not var.setup_completed or var.always_pm_role:
         villroles = {"villager"}
         if var.hidden_role == "villager":
             villroles |= Hidden

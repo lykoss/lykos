@@ -55,7 +55,7 @@ def consecrate(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["not_enough_parameters"])
         return
 
-    dead = set(var.ALL_PLAYERS) - set(alive)
+    dead = set(var.players) - set(alive)
     target = users.complete_match(targ, dead)
     if not target:
         wrapper.pm(messages["consecrate_fail"].format(targ))

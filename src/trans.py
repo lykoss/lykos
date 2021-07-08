@@ -660,8 +660,8 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
             return True
         return False
-    if not var.in_game:
-        return False #some other thread already ended game probably
+    if var.setup_completed and not var.in_game:
+        return False # some other thread already ended game probably
 
     return chk_win_conditions(var, var.ROLES, var.MAIN_ROLES, end_game, winner)
 
@@ -769,7 +769,6 @@ def on_reset(evt: Event, var: GameState):
 def old_reset():
     var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
-    var.ALL_PLAYERS.clear()
     var.RESTART_TRIES = 0
     var.DEAD.clear()
     var.ORIGINAL_ACCS.clear()
@@ -786,7 +785,6 @@ def old_reset():
 
     var.ORIGINAL_ROLES.clear()
     var.FINAL_ROLES.clear()
-    var.ROLES["person"] = UserSet()
     var.MAIN_ROLES.clear()
     var.ORIGINAL_MAIN_ROLES.clear()
 

@@ -6,29 +6,29 @@ from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Nocturnal
 
-def _get_targets(var, pl, user):
-    index = var.ALL_PLAYERS.index(user)
-    num_players = len(var.ALL_PLAYERS)
+def _get_targets(var: GameState, pl, user):
+    index = var.players.index(user)
+    num_players = len(var.players)
     # determine left player
     i = index
     while True:
         i = (i - 1) % num_players
-        if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
-            target1 = var.ALL_PLAYERS[i]
+        if var.players[i] in pl or var.players[i] is user:
+            target1 = var.players[i]
             break
     # determine right player
     i = index
     while True:
         i = (i + 1) % num_players
-        if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
-            target2 = var.ALL_PLAYERS[i]
+        if var.players[i] in pl or var.players[i] is user:
+            target2 = var.players[i]
             break
 
     return (target1, target2)
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
-    if not var.ROLES_SENT or var.always_pm_role:
+    if not var.setup_completed or var.always_pm_role:
         for insomniac in get_all_players(var, ("insomniac",)):
             insomniac.send(messages["insomniac_notify"])
 

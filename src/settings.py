@@ -13,17 +13,8 @@ IRC_TB_BURST = 23 # maximum number of tokens that can be accumulated
 WAIT_TB_INIT  = 2   # initial number of tokens
 WAIT_TB_DELAY = 240 # wait time between adding tokens
 WAIT_TB_BURST = 3   # maximum number of tokens that can be accumulated
-STATS_RATE_LIMIT = 60
-VOTES_RATE_LIMIT = 60
-ADMINS_RATE_LIMIT = 300
-TIME_RATE_LIMIT = 10
-START_RATE_LIMIT = 10 # (per-user)
-WAIT_RATE_LIMIT = 10  # (per-user)
-GOAT_RATE_LIMIT = 300 # (per-user)
 MIN_PLAYERS = 6
 MAX_PLAYERS = 24
-JOIN_TIME_LIMIT = 3600
-START_QUIT_DELAY = 10
 QUIET_DEAD_PLAYERS = False
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
 

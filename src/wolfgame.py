@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import logging
 import os
 import platform
 import random
@@ -39,7 +40,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, Callable
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context
 from src.users import User
 
 from src.debug import handle_error
@@ -48,8 +49,7 @@ from src.transport.irc import get_ircd
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.gamestate import GameState
-from src.gamemodes import GAME_MODES
+from src.gamestate import GameState, PregameState
 from src.messages import messages, LocalMode
 from src.warnings import *
 from src.context import IRCContext
@@ -80,12 +80,10 @@ var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
 var.PHASE = "none"  # type: ignore
 
-var.ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
 var.ORIGINAL_ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
 var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.ORIGINAL_MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
-var.ALL_PLAYERS = UserList() # type: ignore
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
 var.DEAD = UserSet() # type: ignore
@@ -117,7 +115,7 @@ def connect_callback():
         elif signum == SIGUSR1:
             restart_program.func(wrapper, "")
         elif signum == SIGUSR2:
-            plog("Scheduling aftergame restart") # TODO: Replace this with a proper logging call
+            logging.getLogger("general").info("Scheduling aftergame restart")
             aftergame.func(wrapper, "frestart")
 
     signal.signal(signal.SIGINT, sighandler)
@@ -265,7 +263,7 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
                wrapper.source, message.strip()))
 
 def _restart_program(mode=None):
-    plog("RESTARTING") # TODO: Replace this with a proper logging call
+    logging.getLogger("general").info("RESTARTING")
 
     python = sys.executable
 
@@ -394,8 +392,8 @@ def replace(wrapper: MessageDispatcher, message: str):
     pl = get_participants(var)
     target: Optional[User] = None
 
-    for user in var.ALL_PLAYERS:
-        if users.equals(user.account, wrapper.source.account):
+    for user in var.players:
+        if context.equals(user.account, wrapper.source.account):
             if user is wrapper.source or user not in pl:
                 continue
             elif target is None:
@@ -625,7 +623,7 @@ def join(wrapper: MessageDispatcher, message: str):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
-    if not evt.dispatch(var, wrapper, message, forced=False): # FIXME: Remove var from this
+    if not evt.dispatch(wrapper, message, forced=False):
         return
     if var.PHASE in ("none", "join"):
         if wrapper.private:
@@ -633,21 +631,20 @@ def join(wrapper: MessageDispatcher, message: str):
 
         def _cb():
             if message:
-                evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
-        evt.data["join_player"](var, wrapper, callback=_cb) # FIXME: remove var
+                evt.data["vote_gamemode"](wrapper, message.lower().split()[0], doreply=False)
+        evt.data["join_player"](wrapper, callback=_cb)
 
     else: # join deadchat
         if wrapper.private and wrapper.source is not wrapper.target:
             evt.data["join_deadchat"](var, wrapper.source)
 
-def join_player(var, wrapper: MessageDispatcher, # FIXME: remove var
+def join_player(wrapper: MessageDispatcher,
                 who: Optional[User] = None,
                 forced: bool = False,
                 *,
                 callback: Optional[Callable] = None) -> None:
     """Join a player to the game.
 
-    :param var: Deprecated
     :param wrapper: Player being joined
     :param who: User who executed the join or fjoin command
     :param forced: True if this was a forced join
@@ -659,8 +656,6 @@ def join_player(var, wrapper: MessageDispatcher, # FIXME: remove var
     if wrapper.target is not channels.Main:
         return
 
-    var = wrapper.game_state
-
     if not wrapper.source.is_fake and wrapper.source.account is None:
         if forced:
             who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
@@ -668,10 +663,10 @@ def join_player(var, wrapper: MessageDispatcher, # FIXME: remove var
             wrapper.source.send(messages["not_logged_in"], notice=True)
         return
 
-    if _join_player(var, wrapper, who, forced) and callback: # FIXME: remove var
+    if _join_player(wrapper, who, forced) and callback:
         callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
-def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIXME: remove var
+def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=False):
     var = wrapper.game_state
     pl = get_players(var)
 
@@ -698,14 +693,14 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
     if not wrapper.source.is_fake:
         cmodes.append(("+v", wrapper.source))
     if var.PHASE == "none":
+        channels.Main.game_state = users.Bot.game_state = var = PregameState()
         if not wrapper.source.is_fake:
             toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
-        var.ROLES["person"].add(wrapper.source)
         var.MAIN_ROLES[wrapper.source] = "person"
-        var.ALL_PLAYERS.append(wrapper.source)
+        var.players.append(wrapper.source)
         var.PHASE = "join"
         with locks.wait:
             from src import pregame
@@ -720,9 +715,9 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
         wrapper.send(messages["new_game"].format(wrapper.source))
 
         # Set join timer
-        if var.JOIN_TIME_LIMIT > 0:
-            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [var, wrapper])
-            trans.TIMERS["join"] = (t, time.time(), var.JOIN_TIME_LIMIT)
+        if config.Main.get("timers.enabled") and config.Main.get("timers.join.enabled"):
+            t = threading.Timer(config.Main.get("timers.join.limit"), kill_join, [var, wrapper])
+            trans.TIMERS["join"] = (t, time.time(), config.Main.get("timers.join.limit"))
             t.daemon = True
             t.start()
 
@@ -739,14 +734,14 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
     else:
         if not config.Main.get("debug.enabled"):
             for player in pl:
-                if users.equals(player.account, temp.account):
+                if context.equals(player.account, temp.account):
                     if who is wrapper.source:
                         who.send(messages["account_already_joined_self"].format(player), notice=True)
                     else:
                         who.send(messages["account_already_joined_other"].format(who), notice=True)
                     return
 
-        var.ALL_PLAYERS.append(wrapper.source)
+        var.players.append(wrapper.source)
         if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
             toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
@@ -754,7 +749,6 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
                 channels.Main.old_modes[wrapper.source].add(mode)
             wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
 
-        var.ROLES["person"].add(wrapper.source)
         var.MAIN_ROLES[wrapper.source] = "person"
         # ORIGINAL_ACCS is only cleared on reset(), so can be used to determine if a player has previously joined
         # The logic in this if statement should only run once per account
@@ -823,11 +817,11 @@ def fjoin(wrapper: MessageDispatcher, message: str):
         "vote_gamemode": vote_gamemode
         })
 
-    if not evt.dispatch(var, wrapper, message, forced=True):
+    if not evt.dispatch(wrapper, message, forced=True):
         return
     success = False
     if not message.strip():
-        evt.data["join_player"](var, wrapper, forced=True)
+        evt.data["join_player"](wrapper, forced=True)
         return
 
     parts = re.split(" +", message)
@@ -850,12 +844,12 @@ def fjoin(wrapper: MessageDispatcher, message: str):
             if tojoin is users.Bot:
                 wrapper.pm(messages["not_allowed"])
             else:
-                evt.data["join_player"](var, type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
+                evt.data["join_player"](type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
                 success = True
         # Allow joining single number fake users in debug mode
         elif users.predicate(tojoin) and debug_mode:
             user = users.add(wrapper.client, nick=tojoin)
-            evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+            evt.data["join_player"](type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
             success = True
         # Allow joining ranges of numbers as fake users in debug mode
         elif "-" in tojoin and debug_mode:
@@ -867,7 +861,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
                 success = True
                 for i in range(int(first), int(last)+1):
                     user = users.add(wrapper.client, nick=str(i))
-                    evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+                    evt.data["join_player"](type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
     if success:
         wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(var))))
 
@@ -893,7 +887,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
                 return
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
-            if get_main_role(var, target) != "person" and var.role_reveal in ("on", "team"):
+            if var.in_game and var.role_reveal in ("on", "team"):
                 msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
             if var.PHASE == "join":
                 player_count = len(get_players(var)) - 1
@@ -940,7 +934,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
     if wrapper.public and (wrapper.source in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
-        if var.LAST_STATS and var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now():
+        if var.LAST_STATS and var.LAST_STATS + timedelta(seconds=config.Main.get("ratelimits.stats")) > datetime.now():
             wrapper.pm(messages["command_ratelimited"])
             return
 
@@ -1111,7 +1105,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
             del var.GAMEMODE_VOTES[player]
 
         # Died during the joining process as a person
-        var.ALL_PLAYERS.remove(player)
+        var.players.remove(player)
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)
@@ -1164,9 +1158,9 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
         evt.prevent_default = True
 
 @event_listener("chan_join", priority=1)
-def on_join(evt, chan, user): # FIXME: This uses var
+def on_join(evt, chan, user: User):
     if user is users.Bot:
-        plog("Joined {0}".format(chan)) # TODO: Replace this with a proper logging call
+        logging.getLogger("transport.{}".format(config.Main.get("transports[0].name"))).info("Joined {0}".format(chan))
     if chan is not channels.Main:
         return
     user.update_account_data("<chan_join>", lambda new_user: reaper.return_to_village(channels.Main.game_state, new_user, show_message=True))
@@ -1177,7 +1171,7 @@ def goat(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
+    if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source] + timedelta(seconds=config.Main.get("ratelimits.goat")) > datetime.now():
         wrapper.pm(messages["command_ratelimited"])
         return
     target = re.split(" +", message)[0]
@@ -1222,7 +1216,7 @@ def account_change(evt, user, old_account): # FIXME: This uses var
         reaper.return_to_village(var, user, show_message=True)
 
 @event_listener("nick_change")
-def nick_change(evt, user, old_nick): # FIXME: This function needs some way to have var
+def nick_change(evt, user: User, old_nick): # FIXME: This function needs some way to have var
     if user not in channels.Main.users:
         return
 
@@ -1230,7 +1224,7 @@ def nick_change(evt, user, old_nick): # FIXME: This function needs some way to h
     pl = get_participants(var)
     if user.account in var.ORIGINAL_ACCS.values() and user not in pl:
         for other in pl:
-            if users.equals(user.account, other.account):
+            if context.equals(user.account, other.account):
                 if re.search(var.GUEST_NICK_PATTERN, other.nick):
                     # The user joined to the game is using a Guest nick, which is usually due to a connection issue.
                     # Automatically swap in this user for that old one.
@@ -1287,7 +1281,7 @@ def leave(var: GameState, what, user, why=None):
             population = " " + messages["new_player_count"].format(lpl)
 
     reveal = ""
-    if get_main_role(var, user) == "person" or var.role_reveal not in ("on", "team"):
+    if not var.in_game or var.role_reveal not in ("on", "team"):
         reveal = "_no_reveal"
 
     grace_times = {"leave": 0}
@@ -1352,7 +1346,7 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     else:
         return
 
-    if get_main_role(var, wrapper.source) != "person" and var.role_reveal in ("on", "team"):
+    if var.in_game and var.role_reveal in ("on", "team"):
         role = get_reveal_role(var, wrapper.source)
         channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
@@ -1738,7 +1732,7 @@ def show_admins(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    if wrapper.public and var.LAST_ADMINS and var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now():
+    if wrapper.public and var.LAST_ADMINS and var.LAST_ADMINS + timedelta(seconds=config.Main.get("ratelimits.admins")) > datetime.now():
         wrapper.pm(messages["command_ratelimited"])
         return
 
@@ -1819,7 +1813,7 @@ def timeleft(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     if (wrapper.public and var.LAST_TIME and
-            var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
+            var.LAST_TIME + timedelta(seconds=config.Main.get("ratelimits.time")) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"].format())
         return
 
@@ -1860,7 +1854,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    lpl = len(var.ALL_PLAYERS)
+    lpl = len(var.players)
     specific = 0
 
     pieces = re.split(" +", message.strip())
@@ -2060,8 +2054,9 @@ def setdisplay(wrapper: MessageDispatcher, message: str):
     wrapper.reply(messages["display_name_set"].format(wrapper.source.account))
 
 # Called from !game and !join, used to vote for a game mode
-def vote_gamemode(var, wrapper, gamemode, doreply): # FIXME: remove var
+def vote_gamemode(wrapper: MessageDispatcher, gamemode, doreply): # FIXME: remove var
     from src.gamemodes import GAME_MODES
+    game_state = wrapper.game_state
     if var.FGAMED:
         if doreply:
             wrapper.pm(messages["admin_forced_game"])
@@ -2107,7 +2102,7 @@ def game(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode to be picked."""
     var = wrapper.game_state
     if message:
-        vote_gamemode(var, wrapper, message.lower().split()[0], doreply=True)
+        vote_gamemode(wrapper, message.lower().split()[0], doreply=True)
     else:
         wrapper.pm(messages["no_mode_specified"].format(_get_gamemodes(var)))
 
