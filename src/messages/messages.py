@@ -9,8 +9,11 @@ MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 
 class Messages:
-    def __init__(self):
-        self.lang = config.Main.get("gameplay.language")
+    def __init__(self, *, override=None):
+        if override:
+            self.lang = override
+        else:
+            self.lang = config.Main.get("gameplay.language")
         self.cache = {}
         self._load_messages()
 

@@ -11,29 +11,29 @@ import time
 import math
 import re
 
-from src.containers import UserDict, UserSet
+from src.containers import UserDict, UserSet, DefaultUserDict
 from src.debug import handle_error
 from src.decorators import COMMANDS, command
 from src.gamestate import set_gamemode
-from src.functions import get_players
+from src.functions import get_players, match_role
 from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Wolfchat, All
-from src import config, channels, locks, trans, reaper
+from src import config, channels, locks, trans, reaper, users
 
 if TYPE_CHECKING:
     from src.users import User
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
 
-WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
 WAIT_LAST = 0
 
 LAST_START: UserDict[User, List[Union[datetime, int]]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
+FORCE_ROLES: DefaultUserDict(UserSet)
 RESTART_TRIES: int = 0
 MAX_RETRIES = 3 # constant: not a setting
 
@@ -47,7 +47,7 @@ def wait(wrapper: MessageDispatcher, message: str):
 
     pl = get_players(var)
 
-    with WAIT_LOCK:
+    with locks.wait:
         global WAIT_TOKENS, WAIT_LAST
         wait_check_time = time.time()
         WAIT_TOKENS += (wait_check_time - WAIT_LAST) / var.WAIT_TB_DELAY
@@ -132,6 +132,8 @@ def retract(wrapper: MessageDispatcher, message: str):
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
     if var.PHASE == "join":
+        for role in FORCE_ROLES:
+            FORCE_ROLES[role].discard(player)
         with locks.join_timer:
             START_VOTES.discard(player)
 
@@ -234,7 +236,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 gamemode = random.choice(possiblegamemodes)
                 if gamemode is None:
                     possiblegamemodes = []
-                    for gamemode in GAME_MODES.keys() - var.DISABLED_GAMEMODES:
+                    for gamemode in GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")):
                         if len(villagers) >= GAME_MODES[gamemode][1] and len(villagers) <= GAME_MODES[gamemode][2] and GAME_MODES[gamemode][3] > 0:
                             possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
                     gamemode = random.choice(possiblegamemodes)
@@ -347,10 +349,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     # handle forced main roles
     for role, count in addroles.items():
-        if role in var.current_mode.SECONDARY_ROLES or role not in var.FORCE_ROLES:
+        if role in var.current_mode.SECONDARY_ROLES or role not in FORCE_ROLES:
             continue
         to_add = set()
-        force_roles = list(var.FORCE_ROLES[role])
+        force_roles = list(FORCE_ROLES[role])
         random.shuffle(force_roles)
         for user in force_roles:
             # If we already assigned enough people to this role, ignore the rest
@@ -408,8 +410,8 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     for role, dfn in var.current_mode.SECONDARY_ROLES.items():
         count = addroles[role]
         possible = get_players(var, dfn)
-        if role in var.FORCE_ROLES:
-            force_roles = list(var.FORCE_ROLES[role])
+        if role in FORCE_ROLES:
+            force_roles = list(FORCE_ROLES[role])
             random.shuffle(force_roles)
             for user in force_roles:
                 if count == 0:
@@ -466,7 +468,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     with locks.join_timer: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
-            if name in var.TIMERS:
+            if name in trans.TIMERS:
                 trans.TIMERS[name][0].cancel()
                 del trans.TIMERS[name]
 
@@ -555,12 +557,37 @@ def expire_start_votes(var, channel):
         START_VOTES.clear()
         channel.send(messages["start_expired"])
 
+@command("frole", flag="d", phases=("join",))
+def frole(wrapper: MessageDispatcher, message: str):
+    """Force a player into a certain role."""
+    pl = get_players(wrapper.game_state)
+
+    parts = message.lower().split(",")
+    for part in parts:
+        try:
+            (name, role) = part.split(":", 1)
+        except ValueError:
+            wrapper.send(messages["frole_incorrect"].format(part))
+            return
+        umatch = users.complete_match(name.strip(), pl)
+        rmatch = match_role(role.strip(), allow_special=False)
+        role = None
+        if rmatch:
+            role = rmatch.get().key
+        if not umatch or not rmatch or role == wrapper.game_state.default_role:
+            wrapper.send(messages["frole_incorrect"].format(part))
+            return
+        FORCE_ROLES[role].add(umatch.get())
+
+    wrapper.send(messages["operation_successful"])
+
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
     global MAX_RETRIES, WAIT_TOKENS, WAIT_LAST
     LAST_START.clear()
     LAST_WAIT.clear()
     START_VOTES.clear()
+    FORCE_ROLES.clear()
     MAX_RETRIES = 0
     WAIT_TOKENS = 0
     WAIT_LAST = 0

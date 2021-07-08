@@ -1,6 +1,5 @@
 from typing import Dict, Set, Optional
 
-from src.utilities import *
 from src import users, channels
 from src.functions import get_players
 from src.decorators import command

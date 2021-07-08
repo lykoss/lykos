@@ -4,7 +4,6 @@ import re
 import random
 from typing import List, Tuple, TYPE_CHECKING
 
-from src.utilities import *
 from src import users, channels, cats
 from src.functions import get_players, get_all_players
 from src.decorators import command, event_listener

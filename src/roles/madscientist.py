@@ -5,7 +5,6 @@ import math
 from collections import defaultdict, deque
 from typing import Optional, Set
 
-from src.utilities import *
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import command

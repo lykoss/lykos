@@ -4,7 +4,6 @@ import re
 import random
 import typing
 
-from src.utilities import *
 from src import users, channels
 from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role
 from src.decorators import command

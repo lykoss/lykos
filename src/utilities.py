@@ -1,22 +1,7 @@
-__all__ = ["plural", "singular"]
-
-def plural(role, count=2): # FIXME: deprecated, use translation metadata
-    if count == 1:
-        return role
-    bits = role.split()
-    if bits[-1][-2:] == "'s":
-        bits[-1] = plural(bits[-1][:-2], count)
-        bits[-1] += "'" if bits[-1][-1] == "s" else "'s"
-    else:
-        bits[-1] = {"person": "people",
-                    "wolf": "wolves",
-                    "has": "have",
-                    "succubus": "succubi",
-                    "child": "children"}.get(bits[-1], bits[-1] + "s")
-    return " ".join(bits)
+__all__ = ["singular"]
 
 def singular(plural): # FIXME: deprecated, use translation metadata
-    # converse of plural above (kinda)
+    # converse of plural (kinda)
     # this is used to map plural team names back to singular,
     # so we don't need to worry about stuff like possessives
     # Note that this is currently only ever called on team names,

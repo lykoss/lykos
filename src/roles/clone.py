@@ -7,7 +7,6 @@ import typing
 import math
 from collections import defaultdict
 
-from src.utilities import *
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command
@@ -121,7 +120,7 @@ def on_swap_role_state(evt: Event, var: GameState, actor, target, role):
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
     # this means they ended game while being clone and not some other role
-    if main_role == "clone" and survived and singular(winner) not in Win_Stealer:
+    if main_role == "clone" and survived and not evt.params.is_win_stealer:
         evt.data["individual_win"] = True
 
 @event_listener("del_player", priority=1)

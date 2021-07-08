@@ -4,7 +4,6 @@ import re
 import random
 import typing
 
-from src.utilities import *
 from src import users, channels
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict

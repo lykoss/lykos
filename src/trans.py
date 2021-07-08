@@ -15,7 +15,7 @@ from src.messages import messages
 from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent
 from src.events import Event, event_listener
 from src.votes import chk_decision
-from src.cats import Wolfteam, Hidden, Village, Wolf_Objective, Village_Objective, role_order
+from src.cats import Wolfteam, Hidden, Village, Win_Stealer, Wolf_Objective, Village_Objective, role_order
 from src import channels, users, locks, config, db, reaper
 
 if TYPE_CHECKING:
@@ -535,6 +535,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
         player_list = []
 
         if winner != "" or log:
+            is_win_stealer = winner in Win_Stealer.plural()
             if additional_winners is not None:
                 winners.update(additional_winners)
 
@@ -580,7 +581,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
 
                     # let events modify this default and also add special tags/pseudo-roles to the stats
                     event = Event("player_win", {"individual_win": won, "special": []},
-                                  team_wins=team_wins)
+                                  team_wins=team_wins, is_win_stealer=is_win_stealer)
                     event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
                     won = event.data["individual_win"]
                     # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
@@ -752,7 +753,8 @@ def reset(var: Optional[GameState]):
     evt = Event("reset", {})
     evt.dispatch(var)
 
-    var.teardown()
+    if var:
+        var.teardown()
 
     channels.Main.game_state = None
     users.Bot.game_state = None
@@ -787,7 +789,6 @@ def old_reset():
     var.ROLES["person"] = UserSet()
     var.MAIN_ROLES.clear()
     var.ORIGINAL_MAIN_ROLES.clear()
-    var.FORCE_ROLES.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)

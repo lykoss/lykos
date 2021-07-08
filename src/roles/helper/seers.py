@@ -4,7 +4,6 @@ import re
 import random
 from typing import Set, Optional, TYPE_CHECKING
 
-from src.utilities import *
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role

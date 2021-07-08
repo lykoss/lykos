@@ -56,7 +56,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
 
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
-    if main_role == "master of teleportation" and survived and singular(winner) not in Win_Stealer:
+    if main_role == "master of teleportation" and survived and not evt.params.is_win_stealer:
         evt.data["individual_win"] = True
 
 @event_listener("transition_day_begin")

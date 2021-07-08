@@ -6,7 +6,6 @@ import random
 import typing
 from collections import defaultdict, deque
 
-from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src import users, channels
 from src.decorators import command

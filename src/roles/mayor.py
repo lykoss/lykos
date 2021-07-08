@@ -5,7 +5,6 @@ import math
 from collections import defaultdict
 from typing import Optional
 
-from src.utilities import *
 from src import users, channels
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict

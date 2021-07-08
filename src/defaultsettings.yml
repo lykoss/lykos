@@ -1087,7 +1087,7 @@ reaper: &reaper
     leave:
       _desc: |
         If the user chooses to '!quit -force' during the game, this defines the applied sanctions.
-        Note that, unlike the other entries here, this does not have a grace period, and instantly applies the sanction.
+        Note that, unlike the other entries here, this does not have a grace period, and instead will instantly applies the sanction.
       _type: dict
       _default:
         enabled:
@@ -1099,7 +1099,7 @@ reaper: &reaper
           _type: int
           _default: 1
         expiration:
-          _desc: Expiration time for the warning applied to the user who chose to '!quit -force' the game,
+          _desc: Expiration time for the warning applied to the user who chose to '!quit -force' the game.
           _type: str
           _default: 30d
 

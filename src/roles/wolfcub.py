@@ -5,7 +5,6 @@ import random
 from collections import defaultdict, Counter
 from typing import Optional, Dict, Set, List, TYPE_CHECKING
 
-from src.utilities import *
 from src.functions import get_players
 from src import users, channels, trans
 from src.decorators import command

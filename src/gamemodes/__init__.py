@@ -160,6 +160,7 @@ class GameMode:
         self.NUM_TOTEMS = {}
 
         self.EVENTS = {}
+        self.ROLE_GUIDE = {}
 
         self.CUSTOM_SETTINGS = CustomSettings()
 

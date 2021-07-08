@@ -10,7 +10,7 @@ class ChangedRolesMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.MAX_PLAYERS = 35
-        self.ROLE_GUIDE = {1: []}
+        self.ROLE_GUIDE[1] = []
         self.SECONDARY_ROLES = {}
         arg = arg.replace("=", ":").replace(";", ",")
 

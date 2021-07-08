@@ -17,7 +17,7 @@ logger.init()
 from src import debug
 from src import events
 from src import cats, messages
-from src import context, functions, utilities
+from src import context, functions
 from src import db
 from src import users
 from src import channels, containers

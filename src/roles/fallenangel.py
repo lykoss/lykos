@@ -7,7 +7,6 @@ import math
 from collections import defaultdict
 from typing import Optional, TYPE_CHECKING
 
-from src.utilities import *
 from src import users, channels, status
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict

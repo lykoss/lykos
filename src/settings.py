@@ -27,20 +27,6 @@ START_QUIT_DELAY = 10
 QUIET_DEAD_PLAYERS = False
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
 
-# The formatting of this sucks, sorry. This is used to automatically apply sanctions to warning levels
-# When a user crosses from below the min threshold to min or above points, the listed sanctions apply
-# Sanctions also apply while moving within the same threshold bracket (such as from min to max)
-# Valid sanctions are deny, stasis, scalestasis, and tempban
-# Scalestasis applies stasis equal to the formula ax^2 + bx + c, where x is the number of warning points
-# Tempban number can either be a duration (ending in d, h, or m) or a number meaning it expires when
-# warning points fall below that threshold.
-AUTO_SANCTION = (
-        #min max sanctions
-        (6, 10, {"stasis": 1}),
-        (11, 15, {"scalestasis": (0, 1, -8)}),
-        (16, 16, {"tempban": 8})
-        )
-
 # Send a message to deadchat or wolfchat when a user spectates them
 SPECTATE_NOTICE = True
 # Whether to include which user is doing the spectating in the message
@@ -62,8 +48,6 @@ RW_NO_INTERACTION   = 0x20 # Do not relay commands to/from non-wolves regardless
 RW_REM_NON_WOLVES   = 0x40 # Remove non-wolves from wolfchat entirely (can be killed, do not count towards wolf win condition, do not show in wolflist, etc.)
 RW_TRAITOR_NON_WOLF = 0x80 # Consider traitor as a non-wolf for the purposes of the above restrictions (if unset, traitor is treated the same as wolf cub)
 
-ENABLE_DEADCHAT = True # dead players can communicate with each other
-
 HIDDEN_TRAITOR = True
 HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
 HIDDEN_CLONE = False
@@ -71,13 +55,6 @@ GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 
 START_VOTES_SCALE = 0.3
 START_VOTES_MAX = 4
-
-# Debug mode settings, whether or not timers and stasis should apply during debug mode
-DISABLE_DEBUG_MODE_TIMERS = True
-DISABLE_DEBUG_MODE_TIME_LORD = False
-DISABLE_DEBUG_MODE_REAPER = True
-DISABLE_DEBUG_MODE_STASIS = True
-DEBUG_MODE_NOTHROW_MESSAGES = True
 
 # number of bullets a gunner role gets when the role is assigned or swapped in
 SHOTS_MULTIPLIER = {
@@ -124,8 +101,5 @@ LOG_CHANNEL = "" # Log !fwarns to this channel, if set
 LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
-
-# Game modes that cannot be randomly picked or voted for
-DISABLED_GAMEMODES: FrozenSet[str] = frozenset()
 
 ALL_FLAGS = frozenset("AaDdFgjmNpSsw")

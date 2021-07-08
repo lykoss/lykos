@@ -7,7 +7,6 @@ import math
 from collections import defaultdict
 from typing import TYPE_CHECKING, Set, Optional
 
-from src.utilities import *
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command

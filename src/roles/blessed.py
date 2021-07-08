@@ -5,7 +5,6 @@ import math
 from collections import defaultdict
 from typing import Optional
 
-from src.utilities import *
 from src import users, channels, status
 from src.functions import get_players, get_all_players
 from src.decorators import command

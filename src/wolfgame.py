@@ -86,7 +86,6 @@ var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.ORIGINAL_MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.ALL_PLAYERS = UserList() # type: ignore
-var.FORCE_ROLES = DefaultUserDict(UserSet) # type: ignore
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
 var.DEAD = UserSet() # type: ignore
@@ -118,7 +117,7 @@ def connect_callback():
         elif signum == SIGUSR1:
             restart_program.func(wrapper, "")
         elif signum == SIGUSR2:
-            plog("Scheduling aftergame restart")
+            plog("Scheduling aftergame restart") # TODO: Replace this with a proper logging call
             aftergame.func(wrapper, "frestart")
 
     signal.signal(signal.SIGINT, sighandler)
@@ -266,7 +265,7 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
                wrapper.source, message.strip()))
 
 def _restart_program(mode=None):
-    plog("RESTARTING")
+    plog("RESTARTING") # TODO: Replace this with a proper logging call
 
     python = sys.executable
 
@@ -355,7 +354,6 @@ def pinger(wrapper: MessageDispatcher, message: str):
 @command("notice", pm=True)
 def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
     """Makes the bot NOTICE you for every interaction."""
-
     if wrapper.private and message:
         # Ignore if called in PM with parameters, likely a message to wolfchat
         # and not an intentional invocation of this command
@@ -365,13 +363,12 @@ def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
 
     account = temp.account
 
-    if account is None:
+    if not account:
         wrapper.pm(messages["not_logged_in"])
         return
 
     notice = wrapper.source.prefers_notice()
-    # FIXME: Should not use var here
-    action, toggle = (var.PREFER_NOTICE_ACCS.discard, "off") if notice else (var.PREFER_NOTICE_ACCS.add, "on")
+    action, toggle = (db.PREFER_NOTICE.discard, "off") if notice else (db.PREFER_NOTICE.add, "on")
 
     action(account)
     db.toggle_notice(account)
@@ -546,7 +543,7 @@ def join_timer_handler(var):
         channels.Main.who()
 
 def join_deadchat(var: GameState, *all_users: User):
-    if not var.ENABLE_DEADCHAT or var.in_game:
+    if not config.Main.get("gameplay.deadchat") or not var.in_game:
         return
 
     to_join = []
@@ -578,7 +575,7 @@ def join_deadchat(var: GameState, *all_users: User):
     user.send_messages() # send all messages at once
 
 def leave_deadchat(var: GameState, user: User, *, force=None):
-    if not var.ENABLE_DEADCHAT or not var.in_game or user not in var.DEADCHAT_PLAYERS:
+    if not config.Main.get("gameplay.deadchat") or not var.in_game or user not in var.DEADCHAT_PLAYERS:
         return
 
     var.DEADCHAT_PLAYERS.remove(user)
@@ -600,10 +597,7 @@ def leave_deadchat(var: GameState, user: User, *, force=None):
 @command("deadchat", pm=True)
 def deadchat_pref(wrapper: MessageDispatcher, message: str):
     """Toggles auto joining deadchat on death."""
-
-    var = wrapper.game_state
-
-    if not var.ENABLE_DEADCHAT:
+    if not config.Main.get("gameplay.deadchat"):
         return
 
     temp = wrapper.source.lower()
@@ -612,12 +606,12 @@ def deadchat_pref(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["not_logged_in"])
         return
 
-    if temp.account in var.DEADCHAT_PREFS_ACCS:
+    if temp.account in db.DEADCHAT_PREFS:
         wrapper.pm(messages["chat_on_death"])
-        var.DEADCHAT_PREFS_ACCS.remove(temp.account)
+        db.DEADCHAT_PREFS.remove(temp.account)
     else:
         wrapper.pm(messages["no_chat_on_death"])
-        var.DEADCHAT_PREFS_ACCS.add(temp.account)
+        db.DEADCHAT_PREFS.add(temp.account)
 
     db.toggle_deadchat(temp.account)
 
@@ -713,8 +707,8 @@ def _join_player(var, wrapper: MessageDispatcher, who=None, forced=False): # FIX
         var.MAIN_ROLES[wrapper.source] = "person"
         var.ALL_PLAYERS.append(wrapper.source)
         var.PHASE = "join"
-        from src import pregame
-        with pregame.WAIT_LOCK:
+        with locks.wait:
+            from src import pregame
             pregame.WAIT_TOKENS = var.WAIT_TB_INIT
             pregame.WAIT_LAST   = time.time()
         var.GAME_ID = time.time()
@@ -1116,9 +1110,6 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
         if player in var.GAMEMODE_VOTES:
             del var.GAMEMODE_VOTES[player]
 
-        for role in var.FORCE_ROLES:
-            var.FORCE_ROLES[role].discard(player)
-
         # Died during the joining process as a person
         var.ALL_PLAYERS.remove(player)
 
@@ -1143,7 +1134,7 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
                     cmode.append(("+" + mode, player.nick))
                 del channels.Main.old_modes[player]
             lplayer = player.lower()
-            if lplayer.account not in var.DEADCHAT_PREFS_ACCS:
+            if lplayer.account not in db.DEADCHAT_PREFS:
                 deadchat.append(player)
 
     # attempt to devoice all dead players
@@ -1175,7 +1166,7 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
 @event_listener("chan_join", priority=1)
 def on_join(evt, chan, user): # FIXME: This uses var
     if user is users.Bot:
-        plog("Joined {0}".format(chan))
+        plog("Joined {0}".format(chan)) # TODO: Replace this with a proper logging call
     if chan is not channels.Main:
         return
     user.update_account_data("<chan_join>", lambda new_user: reaper.return_to_village(channels.Main.game_state, new_user, show_message=True))
@@ -1407,7 +1398,7 @@ def relay(wrapper: MessageDispatcher, message: str):
         badguys = get_players(var, Wolfchat)
     wolves = get_players(var, Wolf)
 
-    if wrapper.source not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
+    if wrapper.source not in pl and config.Main.get("gameplay.deadchat") and wrapper.source in var.DEADCHAT_PLAYERS:
         to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
         if to_msg or var.SPECTATING_DEADCHAT:
             if message.startswith("\u0001ACTION"):
@@ -1455,12 +1446,9 @@ def relay(wrapper: MessageDispatcher, message: str):
 @hook("error")
 def on_error(cli, pfx, msg):
     if var.RESTARTING or msg.lower().endswith("(excess flood)"):
-        import src
-        if src.lagcheck > 0:
-            src.lagcheck = max(1, src.lagcheck - 1)
         _restart_program()
     elif msg.lower().startswith("closing link:"):
-        raise SystemExit
+        sys.exit()
 
 @command("ftemplate", flag="F", pm=True)
 def ftemplate(wrapper: MessageDispatcher, message: str):
@@ -1735,7 +1723,7 @@ def wiki(wrapper: MessageDispatcher, message: str):
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
-    if chan == var.CHANNEL:
+    if chan == config.Main.get("transports[0].channels.main"):
         cli.join(chan)
         return # No questions
     user = users.get(raw_nick, allow_none=True)
@@ -1878,7 +1866,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
     pieces = re.split(" +", message.strip())
     gamemode = var.current_mode
 
-    if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
+    if (not pieces[0] or pieces[0].isdigit()) and not gamemode.ROLE_GUIDE:
         minp = max(GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
         msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
         wrapper.reply(msg, prefix_nick=True)
@@ -1893,7 +1881,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
             pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
-        valid = GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles"}
+        valid = GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")) - {"roles"}
         mode = pieces.pop(0)
 
         matches = match_mode(mode, scope=valid, remove_spaces=True)
@@ -1908,9 +1896,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
         gamemode = GAME_MODES[mode][0]()
 
-        try:
-            gamemode.ROLE_GUIDE
-        except AttributeError:
+        if not gamemode.ROLE_GUIDE:
             minp = max(GAME_MODES[mode][1], var.MIN_PLAYERS)
             wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
@@ -2081,7 +2067,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply): # FIXME: remove var
             wrapper.pm(messages["admin_forced_game"])
         return
 
-    allowed = GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES
+    allowed = GAME_MODES.keys() - {"roles"} - set(config.Main.get("gameplay.disable.gamemodes"))
     matches = match_mode(gamemode, scope=allowed, remove_spaces=True)
     if len(matches) == 0:
         if doreply:
@@ -2104,7 +2090,7 @@ def _get_gamemodes(var):
     gamemodes = []
     order = {}
     for gm, (cls, min, max, chance) in GAME_MODES.items():
-        if gm == "roles" or gm in var.DISABLED_GAMEMODES:
+        if gm == "roles" or gm in config.Main.get("gameplay.disable.gamemodes"):
             continue
         order[LocalMode(gm).local] = (min, max)
 
@@ -2129,10 +2115,6 @@ def game(wrapper: MessageDispatcher, message: str):
 def show_modes(wrapper: MessageDispatcher, message: str):
     """Show the available game modes."""
     wrapper.pm(messages["available_modes"].format(_get_gamemodes(wrapper.game_state)))
-
-def game_help(args=""): # FIXME: Needs DI for var
-    return messages["available_mode_setters_help"].format(_get_gamemodes(var))
-game.__doc__ = game_help
 
 def _call_command(wrapper, command, no_out=False):
     """
@@ -2253,7 +2235,7 @@ def fdo(wrapper: MessageDispatcher, message: str):
     """Act through the bot as an action."""
     _say(wrapper, message, "fdo", action=True)
 
-def can_run_restricted_cmd(user):
+def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
     # if allowed in normal games, restrict it so that it can only be used by dead players and
     # non-players (don't allow active vengeful ghosts either).
     # also don't allow in-channel (e.g. make it pm only)
@@ -2261,19 +2243,20 @@ def can_run_restricted_cmd(user):
     if config.Main.get("debug.enabled"):
         return True
 
-    pl = get_participants(var)
+    pl = get_participants(wrapper.game_state)
 
-    if user in pl:
+    if wrapper.source in pl:
+        wrapper.pm(messages[key])
         return False
 
-    if user.account in {player.account for player in pl}:
+    if wrapper.source.account in {player.account for player in pl}:
+        wrapper.pm(messages[key])
         return False
 
     return True
 
 def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: bool):
-    if not can_run_restricted_cmd(wrapper.source):
-        wrapper.pm(messages["fspectate_restricted"])
+    if not try_restricted_cmd(wrapper, "fspectate_restricted"):
         return
 
     var = wrapper.game_state
@@ -2312,7 +2295,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
                     player.queue_message(messages["fspectate_notice"].format(spectator, what))
                 if players:
                     player.send_messages()
-        elif var.ENABLE_DEADCHAT:
+        elif config.Main.get("gameplay.deadchat"):
             if wrapper.source in var.DEADCHAT_PLAYERS:
                 wrapper.pm(messages["fspectate_in_deadchat"])
                 return
@@ -2338,8 +2321,7 @@ def fspectate(wrapper: MessageDispatcher, message: str):
 def revealroles(wrapper: MessageDispatcher, message: str):
     """Reveal role information."""
 
-    if not can_run_restricted_cmd(wrapper.source):
-        wrapper.pm(messages["temp_invalid_perms"])
+    if not try_restricted_cmd(wrapper, "temp_invalid_perms"):
         return
 
     var = wrapper.game_state
@@ -2398,7 +2380,7 @@ def fgame(wrapper: MessageDispatcher, message: str):
             var.FGAMED = False
             return
 
-        allowed = GAME_MODES.keys() - var.DISABLED_GAMEMODES
+        allowed = GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes"))
         gamemode = gamemode.split()[0]
         match = match_mode(gamemode, scope=allowed, remove_spaces=True)
         if len(match) == 0:
@@ -2414,21 +2396,18 @@ def fgame(wrapper: MessageDispatcher, message: str):
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
             var.FGAMED = True
     else:
-        wrapper.pm(fgame.__doc__())
+        wrapper.pm(fgame_help())
 
 def fgame_help(args=""):
     args = args.strip()
     from src.gamemodes import GAME_MODES
 
     if not args:
-        return messages["available_mode_setters"].format(GAME_MODES.keys() - var.DISABLED_GAMEMODES)
-    elif args in GAME_MODES.keys() and args not in var.DISABLED_GAMEMODES:
+        return messages["available_mode_setters"].format(GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")))
+    elif args in GAME_MODES.keys() and args not in config.Main.get("gameplay.disable.gamemodes"):
         return GAME_MODES[args][0].__doc__ or messages["setter_no_doc"].format(args)
     else:
         return messages["setter_not_found"].format(args)
-
-
-fgame.__doc__ = fgame_help
 
 # eval/exec/freceive are owner-only but also marked with "d" flag
 # to disable them outside of debug mode
@@ -2513,31 +2492,6 @@ def rforce(wrapper: MessageDispatcher, message: str):
         return
 
     _force_command(wrapper, msg.pop(0), players, " ".join(msg))
-
-@command("frole", flag="d", phases=("join",))
-def frole(wrapper: MessageDispatcher, message: str):
-    """Force a player into a certain role."""
-    var = wrapper.game_state
-    pl = get_players(var)
-
-    parts = message.lower().split(",")
-    for part in parts:
-        try:
-            (name, role) = part.split(":", 1)
-        except ValueError:
-            wrapper.send(messages["frole_incorrect"].format(part))
-            return
-        umatch = users.complete_match(name.strip(), pl)
-        rmatch = match_role(role.strip(), allow_special=False)
-        role = None
-        if rmatch:
-            role = rmatch.get().key
-        if not umatch or not rmatch or role == var.default_role:
-            wrapper.send(messages["frole_incorrect"].format(part))
-            return
-        var.FORCE_ROLES[role].add(umatch.get())
-
-    wrapper.send(messages["operation_successful"])
 
 @command("ftotem", flag="d", phases=("night",))
 def ftotem(wrapper: MessageDispatcher, message: str):

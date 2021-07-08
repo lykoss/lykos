@@ -4,7 +4,6 @@ import itertools
 from collections import defaultdict, deque
 from typing import Optional, Dict, Set
 
-from src.utilities import *
 from src import users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command
@@ -59,7 +58,7 @@ def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
 
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
-    if main_role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
+    if main_role == "crazed shaman" and survived and not evt.params.is_win_stealer:
         evt.data["individual_win"] = True
 
 @event_listener("transition_day_begin", priority=4)

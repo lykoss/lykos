@@ -26,6 +26,7 @@ from collections import defaultdict
 from typing import Dict
 import itertools
 
+from src.messages.messages import Messages as _Messages
 from src.events import Event, EventListener
 
 __all__ = [
@@ -47,6 +48,8 @@ ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Win Stealer"
 FROZEN = False
 
 ROLES = {}
+
+_interal_en = _Messages(override="en")
 
 def get(cat: str) -> Category:
     if not FROZEN:
@@ -154,6 +157,12 @@ class Category:
 
     def __repr__(self):
         return "Role category: {0}".format(self.name)
+
+    def plural(self):
+        """Return the English plural versions of roles for internal use."""
+        values = set()
+        for role in self:
+            values.add(_interal_en.raw("_roles", role)[1])
 
     def __invert__(self):
         new = self.from_combination(All, self, "", set.difference_update)

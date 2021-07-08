@@ -1,5 +1,4 @@
 from __future__ import annotations
-from lykos.src.gamestate import GameState
 
 import re
 import random
@@ -8,11 +7,11 @@ import math
 import typing
 from collections import defaultdict, deque
 
-from src.utilities import *
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.gamestate import GameState
 from src.messages import messages
 from src.events import Event, event_listener
 from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_silent
