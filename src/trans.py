@@ -223,7 +223,7 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
     for v in victims_set:
         if is_dying(var, v):
             victims.append(v)
-        elif v in var.ROLES["bodyguard"] and v in bodyguard.GUARDED and bodyguard.GUARDED[v] in victims_set:
+        elif v in var.roles["bodyguard"] and v in bodyguard.GUARDED and bodyguard.GUARDED[v] in victims_set:
             vappend.append(v)
         elif harlot.VISITED.get(v) in victims_set:
             vappend.append(v)
@@ -240,7 +240,7 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
 
         prevlen = len(vappend)
         for v in vappend[:]:
-            if v in var.ROLES["bodyguard"] and bodyguard.GUARDED.get(v) not in vappend:
+            if v in var.roles["bodyguard"] and bodyguard.GUARDED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
             elif harlot.VISITED.get(v) not in vappend:
@@ -320,14 +320,14 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
     event = Event("reconfigure_stats", {"new": []})
     for i in range(revt2.data["howl"]):
         newstats = set()
-        for rs in var.ROLE_STATS:
+        for rs in var.get_role_stats():
             d = Counter(dict(rs))
             event.data["new"] = [d]
             event.dispatch(var, d, "howl")
             for v in event.data["new"]:
                 if min(v.values()) >= 0:
                     newstats.add(frozenset(v.items()))
-        var.ROLE_STATS = newstats
+        var.set_role_stats(newstats)
 
     killer_role = {}
     for deadperson in dead:
@@ -663,7 +663,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
     if var.setup_completed and not var.in_game:
         return False # some other thread already ended game probably
 
-    return chk_win_conditions(var, var.ROLES, var.MAIN_ROLES, end_game, winner)
+    return chk_win_conditions(var, var.roles, var.MAIN_ROLES, end_game, winner)
 
 def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""

@@ -89,7 +89,7 @@ def on_send_role(evt: Event, var: GameState):
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):
-    if user in var.ROLES["mad scientist"]:
+    if user in var.roles["mad scientist"]:
         pl = get_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))

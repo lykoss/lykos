@@ -126,7 +126,7 @@ class command:
         logger = logging.getLogger("command.{}".format(self.key))
 
         for role in self.roles:
-            if wrapper.source in var.ROLES[role]:
+            if wrapper.source in var.roles[role]:
                 break
         else:
             if (self.users is not None and wrapper.source not in self.users) or self.roles:
@@ -141,7 +141,7 @@ class command:
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
-                chk_nightdone()
+                chk_nightdone(var)
             return
 
         if self.owner_only:

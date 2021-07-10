@@ -115,6 +115,6 @@ def on_reset(evt: Event, var: GameState):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
-        evt.data["vigilante"] = len(var.ROLES["vigilante"])
+        evt.data["vigilante"] = len(var.roles["vigilante"])
     elif kind == "role_categories":
         evt.data["vigilante"] = {"Village", "Killer", "Nocturnal", "Safe"}

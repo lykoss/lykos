@@ -47,7 +47,7 @@ class GameState:
         self.current_mode: GameMode = pregame_state.current_mode
         self.game_settings: Dict[str, Any] = {}
         self.players = pregame_state.players
-        self._roles: UserDict[str, UserSet] = UserDict()
+        self.roles: UserDict[str, UserSet] = UserDict()
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
 
     def begin_setup(self):
@@ -164,20 +164,9 @@ class GameState:
         except AttributeError:
             return config.Main.get("timers.night.warn")
 
-    @property
-    def ROLES(self):
-        return self._roles
-
     def get_role_stats(self) -> FrozenSet[FrozenSet[Tuple[str, int]]]:
         return frozenset(self._rolestats)
 
     def set_role_stats(self, value) -> None:
         self._rolestats.clear()
         self._rolestats.update(value)
-
-    def del_role_stats(self) -> None:
-        self._rolestats.clear()
-
-    ROLE_STATS = property(get_role_stats, set_role_stats, del_role_stats, "Manipulate and return the current valid role sets")
-
-

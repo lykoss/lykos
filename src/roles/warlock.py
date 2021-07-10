@@ -101,7 +101,7 @@ def on_begin_day(evt: Event, var: GameState):
     wroles = get_wolfchat_roles()
     for warlock, target in CURSED.items():
         if target in pl and get_main_role(var, target) not in wroles:
-            var.ROLES["cursed villager"].add(target)
+            var.roles["cursed villager"].add(target)
 
     CURSED.clear()
     PASSED.clear()

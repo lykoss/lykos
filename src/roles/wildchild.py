@@ -63,13 +63,13 @@ def on_swap_role_state(evt: Event, var: GameState, actor: User, target: User, ro
             evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor]))
         else: # The King is dead, long live the King!
             change_role(var, actor, "wild child", "wolf", message="wild_child_idol_died")
-            var.ROLES["wild child"].add(actor)
+            var.roles["wild child"].add(actor)
 
         if IDOLS[target] in get_players(var):
             evt.data["target_messages"].append(messages["wild_child_idol"].format(IDOLS[target]))
         else:
             change_role(var, target, "wild child", "wolf", message="wild_child_idol_died")
-            var.ROLES["wild child"].add(target)
+            var.roles["wild child"].add(target)
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):
@@ -88,7 +88,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
         if IDOLS.get(child) is player:
             # Change their main role to wolf
             change_role(var, child, get_main_role(var, child), "wolf", message="wild_child_idol_died")
-            var.ROLES["wild child"].add(child)
+            var.roles["wild child"].add(child)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):

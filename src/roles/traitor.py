@@ -98,7 +98,7 @@ def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainro
             channels.Main.send(messages["traitor_turn_channel"])
             # fix !stats to show that traitor turned as well
             newstats = set()
-            for rs in var.ROLE_STATS:
+            for rs in var.get_role_stats():
                 d = dict(rs)
                 # traitor count of 0 is not possible since we for-sure turned traitors into wolves earlier
                 # as such, exclude such cases from newstats entirely.
@@ -106,7 +106,7 @@ def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainro
                     d["wolf"] = d.get("wolf", 0) + d["traitor"]
                     d["traitor"] = 0
                     newstats.add(frozenset(d.items()))
-            var.ROLE_STATS = newstats
+            var.set_role_stats(newstats)
 
         evt.prevent_default = True
         evt.stop_processing = True

@@ -17,7 +17,7 @@ from src.cats import Wolfchat
 
 @event_listener("see")
 def on_see(evt: Event, var: GameState, seer, target):
-    if target in var.ROLES["cursed villager"]:
+    if target in var.roles["cursed villager"]:
         evt.data["role"] = "wolf"
 
 @event_listener("get_role_metadata")

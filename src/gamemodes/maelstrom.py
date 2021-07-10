@@ -40,7 +40,7 @@ class MaelstromMode(GameMode):
         addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
-        for role, rs in var.ROLES.items():
+        for role, rs in var.roles.items():
             if role in self.SECONDARY_ROLES:
                 continue
             rs.clear()
@@ -55,10 +55,10 @@ class MaelstromMode(GameMode):
                 villagers.remove(x)
                 new_evt.data["role"] = role
                 new_evt.dispatch(var, x, var.ORIGINAL_MAIN_ROLES[x])
-                var.ROLES[new_evt.data["role"]].add(x)
+                var.roles[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
-        for role, pl in var.ROLES.items():
+        for role, pl in var.roles.items():
             if role in self.SECONDARY_ROLES:
                 continue
             for p in pl:

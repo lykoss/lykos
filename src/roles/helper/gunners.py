@@ -143,7 +143,7 @@ def setup_variables(rolename: str):
 
                     _rolestate["wolf gunner"]["GUNNERS"][looter] = _rolestate["wolf gunner"]["GUNNERS"].get(looter, 0) + 1
                     del GUNNERS[victim]
-                    var.ROLES["wolf gunner"].add(looter)
+                    var.roles["wolf gunner"].add(looter)
                     looter.send(messages["wolf_gunner"].format(victim))
 
     @event_listener("myrole", listener_id="gunners.<{}>.on_myrole".format(rolename))

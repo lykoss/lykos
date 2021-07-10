@@ -80,7 +80,7 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
             # kill them off
             del var.MAIN_ROLES[player]
             for role in all_roles:
-                var.ROLES[role].remove(player)
+                var.roles[role].remove(player)
             dead.add(player)
             # Don't track players that quit before the game started
             if var.PHASE != "join":
@@ -97,14 +97,14 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
         # give roles/modes an opportunity to adjust !stats now that all deaths have resolved
         evt = Event("reconfigure_stats", {"new": []})
         newstats = set()
-        for rs in var.ROLE_STATS:
+        for rs in var.get_role_stats():
             d = Counter(dict(rs))
             evt.data["new"] = [d]
             evt.dispatch(var, d, "del_player")
             for v in evt.data["new"]:
                 if min(v.values()) >= 0:
                     newstats.add(frozenset(v.items()))
-        var.ROLE_STATS = newstats
+        var.set_role_stats(newstats)
 
         # notify listeners that all deaths have resolved
         # FIXME: end_game is a temporary hack until we move state transitions into the event loop

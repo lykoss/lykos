@@ -80,7 +80,7 @@ class SleepyMode(GameMode):
         self.on_path.clear()
 
     def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
-        evt.data["targets"].update(var.ROLES["priest"])
+        evt.data["targets"].update(var.roles["priest"])
 
     def setup_nightmares(self, evt: Event, var: GameState):
         pl = get_players(var)
@@ -233,14 +233,14 @@ class SleepyMode(GameMode):
                     change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
 
                 newstats = set()
-                for rs in var.ROLE_STATS:
+                for rs in var.get_role_stats():
                     d = Counter(dict(rs))
                     newstats.add(rs)
                     if old in d and d[old] >= 1:
                         d[old] -= 1
                         d[new] += 1
                         newstats.add(frozenset(d.items()))
-                var.ROLE_STATS = newstats
+                var.set_role_stats(newstats)
 
     def on_revealroles(self, evt: Event, var: GameState):
         if self.having_nightmare:

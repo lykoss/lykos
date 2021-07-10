@@ -23,7 +23,7 @@ def on_send_role(evt: Event, var: GameState):
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user):
-    if user in var.ROLES["blessed villager"]:
+    if user in var.roles["blessed villager"]:
         evt.data["messages"].append(messages["blessed_myrole"])
 
 @event_listener("get_role_metadata")

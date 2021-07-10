@@ -101,7 +101,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
-    for inv in var.ROLES["investigator"]:
+    for inv in var.roles["investigator"]:
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(inv)

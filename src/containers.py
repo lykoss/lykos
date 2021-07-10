@@ -24,7 +24,7 @@ The containers present here should always follow these rules:
   *must* be called before the variable goes out of scope;
 
 - Copying a container for mutation purpose in a local context should make use of context managers,
-  e.g. 'with copy.deepcopy(var.ROLES) as rolelist:' instead of 'rolelist = copy.deepcopy(var.ROLES)',
+  e.g. 'with copy.deepcopy(var.roles) as rolelist:' instead of 'rolelist = copy.deepcopy(var.roles)',
   with all operations on 'rolelist' being done inside the block. Once the 'with' block is exited (be it
   through exceptions or normal execution), the copied contained ('rolelist' in this case) is automatically cleared.
 

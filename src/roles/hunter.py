@@ -131,7 +131,7 @@ def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         # hunters is the set of all hunters that have not killed in a *previous* night
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
-        hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
+        hunters = (var.roles["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
     elif kind == "role_categories":
         evt.data["hunter"] = {"Village", "Killer", "Safe"}

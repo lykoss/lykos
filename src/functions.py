@@ -53,7 +53,7 @@ def get_all_players(var: Union[GameState, PregameState], roles=None, *, rolemap=
         return set(var.players)
 
     if rolemap is None:
-        rolemap = var.ROLES
+        rolemap = var.roles
     if roles is None:
         roles = set(rolemap.keys())
     pl = set()
@@ -61,7 +61,7 @@ def get_all_players(var: Union[GameState, PregameState], roles=None, *, rolemap=
         for user in rolemap[role]:
             pl.add(user)
 
-    if rolemap is not var.ROLES:
+    if rolemap is not var.roles:
         return pl
 
     return {p for p in pl if not is_dying(var, p)}
@@ -129,8 +129,8 @@ def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inh
     evt.dispatch(var, player, oldrole)
     newrole = evt.data["role"]
 
-    var.ROLES[oldrole].remove(player)
-    var.ROLES[newrole].add(player)
+    var.roles[oldrole].remove(player)
+    var.roles[newrole].add(player)
     # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the player's actual role
     if var.MAIN_ROLES[player] == oldrole:
         var.MAIN_ROLES[player] = newrole
@@ -164,7 +164,7 @@ def get_main_role(var: GameState, user):
     return role
 
 def get_all_roles(var: GameState, user: User) -> Set[str]:
-    return {role for role, users in var.ROLES.items() if user in users}
+    return {role for role, users in var.roles.items() if user in users}
 
 def get_reveal_role(var: GameState, user) -> str:
     evt = Event("get_reveal_role", {"role": get_main_role(var, user)})

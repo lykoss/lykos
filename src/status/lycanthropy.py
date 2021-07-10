@@ -86,7 +86,7 @@ def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User
                     if "prefix" in evt2.data[vrole]:
                         prefix = evt2.data[vrole]["prefix"]
                     for sec_role in evt2.data[vrole].get("secondary_roles", ()):
-                        var.ROLES[sec_role].add(victim)
+                        var.roles[sec_role].add(victim)
                         to_send = "{0}_notify".format(sec_role.replace(" ", "_"))
                         victim.send(messages[to_send])
                         # FIXME: Not every role has proper message keys, such as shamans

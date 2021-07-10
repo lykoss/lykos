@@ -160,7 +160,7 @@ def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visit
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user):
     # Remind dullahans of their targets
-    if user in var.ROLES["dullahan"]:
+    if user in var.roles["dullahan"]:
         targets = list(TARGETS[user])
         for target in list(targets):
             if target in var.DEAD:
@@ -197,7 +197,7 @@ def on_reset(evt: Event, var: GameState):
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         num = 0
-        for dull in var.ROLES["dullahan"]:
+        for dull in var.roles["dullahan"]:
             for target in TARGETS[dull]:
                 if target not in var.DEAD:
                     num += 1

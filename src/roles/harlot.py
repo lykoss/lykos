@@ -79,7 +79,7 @@ def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visit
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt: Event, var: GameState, victim: User):
-    if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
+    if victim in var.roles["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
         evt.data["message"][victim].append(messages["target_not_home"])
         evt.data["novictmsg"] = False
         evt.stop_processing = True

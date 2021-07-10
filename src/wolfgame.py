@@ -960,9 +960,9 @@ def stats(wrapper: MessageDispatcher, message: str):
     # Uses events in order to enable roles to modify logic
     # The events are fired off as part of transition_day and del_player, and are not calculated here
     if var.stats_type == "default":
-        # Collapse var.ROLE_STATS into a Dict[str, Tuple[int, int]]
+        # Collapse the role stats into a Dict[str, Tuple[int, int]]
         role_stats = {}
-        for stat_set in var.ROLE_STATS:
+        for stat_set in var.get_role_stats():
             for r, a in stat_set:
                 if r not in role_stats:
                     role_stats[r] = (a, a)
@@ -995,7 +995,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
     # Show everything as-is, with no hidden information
     elif var.stats_type == "accurate":
-        l1 = [k for k in var.ROLES.keys() if var.ROLES[k]]
+        l1 = [k for k in var.roles.keys() if var.roles[k]]
         l2 = [k for k in var.ORIGINAL_ROLES.keys() if var.ORIGINAL_ROLES[k]]
         rs = set(l1+l2)
         rs = [role for role in role_order() if role in rs]
@@ -1006,7 +1006,7 @@ def stats(wrapper: MessageDispatcher, message: str):
         rs.append(var.default_role)
 
         for role in rs:
-            count = len(var.ROLES[role])
+            count = len(var.roles[role])
             # only show actual roles
             if role in var.current_mode.SECONDARY_ROLES:
                 continue
@@ -1031,7 +1031,7 @@ def stats(wrapper: MessageDispatcher, message: str):
         villagers = 0
         neutral = 0
 
-        for role, players in var.ROLES.items():
+        for role, players in var.roles.items():
             if role in var.current_mode.SECONDARY_ROLES:
                 continue
             if role in Wolfteam:
@@ -1063,7 +1063,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
-    # update var.ROLE_STATS
+    # update the role stats
     # Event priorities:
     # 1 = Expanding the possible set (e.g. traitor would add themselves if nickrole is villager)
     # 3 = Removing from the possible set (e.g. can't be traitor if was a night kill and only wolves could kill at night),
@@ -1074,7 +1074,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
             reason=evt.params.reason)
     event.dispatch(var, player, evt.params.main_role, evt.params.reveal_role, all_roles)
     # Given the set of possible roles this nick could be (or its actual role if known_role is True),
-    # figure out the set of roles that need deducting from their counts in var.ROLE_STATS
+    # figure out the set of roles that need deducting from their counts in the role stats
     if event.data["known_role"]:
         # we somehow know the exact role that died (for example, we know traitor died even though they revealed as villager)
         # as a result, deduct only them
@@ -1086,12 +1086,12 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
     # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
     # that set is not added to newstats to indicate that set is no longer possible
     for p in possible:
-        for rs in var.ROLE_STATS:
+        for rs in var.get_role_stats():
             d = Counter(dict(rs))
             if p in d and d[p] >= 1:
                 d[p] -= 1
                 newstats.add(frozenset(d.items()))
-    var.ROLE_STATS = newstats
+    var.set_role_stats(newstats)
 
     if var.PHASE == "join":
         if player in var.GAMEMODE_VOTES:
@@ -1405,7 +1405,7 @@ def relay(wrapper: MessageDispatcher, message: str):
     elif wrapper.source in badguys and len(badguys) > 1:
         # handle wolfchat toggles
         if not config.Main.get("gameplay.wolfchat.traitor_non_wolf"):
-            wolves.extend(var.ROLES["traitor"])
+            wolves.extend(var.roles["traitor"])
         if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
         elif var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
@@ -2316,9 +2316,9 @@ def revealroles(wrapper: MessageDispatcher, message: str):
 
     output = []
     for role in role_order():
-        if var.ROLES.get(role):
+        if var.roles.get(role):
             # make a copy since this list is modified
-            users = list(var.ROLES[role])
+            users = list(var.roles[role])
             out = []
             # go through each nickname, adding extra info if necessary
             for user in users:
@@ -2328,7 +2328,7 @@ def revealroles(wrapper: MessageDispatcher, message: str):
 
                 if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.current_mode.SECONDARY_ROLES:
                     for old_role in role_order(): # order doesn't matter here, but oh well
-                        if user in var.ORIGINAL_ROLES[old_role] and user not in var.ROLES[old_role]:
+                        if user in var.ORIGINAL_ROLES[old_role] and user not in var.roles[old_role]:
                             special_case.append(messages["revealroles_old_role"].format(old_role))
                             break
                 if special_case:

@@ -21,7 +21,7 @@ __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_t
            "get_warning_sanctions", "get_player_stats", "add_warning", "add_warning_sanction", "acknowledge_warning",
            "add_game", "list_all_warnings", "list_warnings", "del_warning", "has_unacknowledged_warnings",
            "expire_tempbans", "expire_stasis", "PREFER_NOTICE", "STASISED", "PING_IF_PREFS", "PING_IF_NUMS",
-           "DEADCHAT_PREFS", "FLAGS", "DENY"]
+           "DEADCHAT_PREFS", "FLAGS", "DENY", "ALL_FLAGS"]
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
