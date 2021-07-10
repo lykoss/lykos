@@ -98,7 +98,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):
     pl = get_players(var)
-    wroles = get_wolfchat_roles(var)
+    wroles = get_wolfchat_roles()
     for warlock, target in CURSED.items():
         if target in pl and get_main_role(var, target) not in wroles:
             var.ROLES["cursed villager"].add(target)

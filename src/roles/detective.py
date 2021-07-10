@@ -51,7 +51,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised!
-        wolves = get_all_players(var, get_wolfchat_roles(var))
+        wolves = get_all_players(var, get_wolfchat_roles())
         if wolves:
             for wolf in wolves:
                 wolf.queue_message(messages["detective_reveal"].format(wrapper.source))

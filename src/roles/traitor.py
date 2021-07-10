@@ -43,7 +43,7 @@ def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, re
 def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
-    wolfchat = get_wolfchat_roles(var)
+    wolfchat = get_wolfchat_roles()
     if evt.params.reason != "night_death":
         # a chained death, someone dying during day, or someone idling out
         # either way, traitor can die here

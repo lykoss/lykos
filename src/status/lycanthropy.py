@@ -48,7 +48,7 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
 
     roles = {}
 
-    wolfchat = get_wolfchat_roles(var)
+    wolfchat = get_wolfchat_roles()
     for role, count in roleset.items():
         if role in wolfchat or count == 0 or role not in SCOPE:
             continue

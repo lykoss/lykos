@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, Set, TYPE_CHECKING
 
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import command
@@ -14,7 +14,7 @@ from src.messages import messages, LocalRole
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event, event_listener
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
-from src import users
+from src import users, config
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -189,7 +189,7 @@ def on_retribution_kill(evt: Event, var: GameState, victim, orig_target):
 
 @event_listener("new_role", priority=4)
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
-    wcroles = get_wolfchat_roles(var)
+    wcroles = get_wolfchat_roles()
 
     if old_role is None:
         # initial role assignment; don't do all the logic below about notifying other wolves and such
@@ -258,7 +258,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
 @event_listener("wolf_notify")
 def on_transition_night_end(evt: Event, var: GameState, role):
     # roles allowed to talk in wolfchat
-    talkroles = get_talking_roles(var)
+    talkroles = get_talking_roles()
 
     # condition imposed on talking in wolfchat (only during day/night, or no talking)
     # 0 = no talking
@@ -267,12 +267,12 @@ def on_transition_night_end(evt: Event, var: GameState, role):
     # 3 = only during night
     wccond = 1
 
-    if var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-        if var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+    if config.Main.get("gameplay.wolfchat.disable_night"):
+        if config.Main.get("gameplay.wolfchat.disable_day"):
             wccond = 0
         else:
             wccond = 2
-    elif var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+    elif config.Main.get("gameplay.wolfchat.disable_day"):
         wccond = 3
 
     if role not in talkroles or wccond == 0:
@@ -325,19 +325,19 @@ def wolf_can_kill(var, wolf):
     wolfroles = get_all_roles(var, wolf)
     return bool(Wolf & Killer & wolfroles)
 
-def get_wolfchat_roles(var):
+def get_wolfchat_roles():
     wolves = Wolfchat
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
+    if config.Main.get("gameplay.wolfchat.remove_non_wolves"):
+        if config.Main.get("gameplay.wolfchat.traitor_non_wolf") or "traitor" not in All:
             wolves = Wolf
         else:
             wolves = Wolf | {"traitor"}
     return wolves
 
-def get_talking_roles(var):
+def get_talking_roles():
     roles = Wolfchat
-    if var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT or var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
+    if config.Main.get("gameplay.wolfchat.wolves_only_chat") or config.Main.get("gameplay.wolfchat.remove_non_wolves"):
+        if config.Main.get("gameplay.wolfchat.traitor_non_wolf") or "traitor" not in All:
             roles = Wolf
         else:
             roles = Wolf | {"traitor"}
@@ -346,25 +346,23 @@ def get_talking_roles(var):
 def is_known_wolf_ally(var, actor, target):
     actor_role = get_main_role(var, actor)
     target_role = get_main_role(var, target)
-    wolves = get_wolfchat_roles(var)
+    wolves = get_wolfchat_roles()
     return actor_role in wolves and target_role in wolves
 
 def send_wolfchat_message(var, user, message, roles, *, role=None, command=None):
-    if role not in Wolf & Killer and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
-        return
-    if command not in _kill_cmds and var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+    if command not in _kill_cmds and config.Main.get("gameplay.wolfchat.only_kill_command"):
+        if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
-        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+        if var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             return
     if not is_known_wolf_ally(var, user, user):
         return
 
-    wcroles = get_wolfchat_roles(var)
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+    wcroles = get_wolfchat_roles()
+    if config.Main.get("gameplay.wolfchat.only_same_command"):
+        if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             wcroles = roles
-        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+        if var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             wcroles = roles
 
     wcwolves = get_players(var, wcroles)
@@ -395,8 +393,8 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
         random.shuffle(pl)
 
     badguys = Wolfchat
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
+    if config.Main.get("gameplay.wolfchat.remove_non_wolves"):
+        if config.Main.get("gameplay.wolfchat.traitor_non_wolf") or "traitor" not in All:
             badguys = Wolf
         else:
             badguys = Wolf | {"traitor"}

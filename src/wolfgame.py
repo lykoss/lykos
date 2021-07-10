@@ -1380,7 +1380,7 @@ def relay(wrapper: MessageDispatcher, message: str):
 
     if "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_talking_roles
-        badguys = get_players(var, get_talking_roles(var))
+        badguys = get_players(var, get_talking_roles())
     else:
         badguys = get_players(var, Wolfchat)
     wolves = get_players(var, Wolf)
@@ -1404,15 +1404,15 @@ def relay(wrapper: MessageDispatcher, message: str):
 
     elif wrapper.source in badguys and len(badguys) > 1:
         # handle wolfchat toggles
-        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if not config.Main.get("gameplay.wolfchat.traitor_non_wolf"):
             wolves.extend(var.ROLES["traitor"])
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+        if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
-        elif var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+        elif var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             return
-        elif wrapper.source not in wolves and var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
+        elif wrapper.source not in wolves and config.Main.get("gameplay.wolfchat.wolves_only_chat"):
             return
-        elif wrapper.source not in wolves and var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        elif wrapper.source not in wolves and config.Main.get("gameplay.wolfchat.remove_non_wolves"):
             return
 
         badguys.remove(wrapper.source)

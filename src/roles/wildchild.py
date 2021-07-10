@@ -73,7 +73,7 @@ def on_swap_role_state(evt: Event, var: GameState, actor: User, target: User, ro
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):
-    if user in IDOLS and user not in get_players(var, get_wolfchat_roles(var)):
+    if user in IDOLS and user not in get_players(var, get_wolfchat_roles()):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("del_player")
@@ -122,7 +122,7 @@ def on_transition_night_end(evt: Event, var: GameState):
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
-    if role == "wild child" and user not in get_players(var, get_wolfchat_roles(var)):
+    if role == "wild child" and user not in get_players(var, get_wolfchat_roles()):
         if user in IDOLS:
             evt.data["special_case"].append(messages["wild_child_revealroles_picked"].format(IDOLS[user]))
         else:

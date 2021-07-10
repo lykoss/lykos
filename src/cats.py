@@ -1,6 +1,6 @@
 # role categories; roles return a subset of these categories when fetching their metadata
 # Wolf: Defines the role as a true wolf role (usually can kill, dies when shot, kills visiting harlots, etc.)
-# Wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
+# Wolfchat: Defines the role as having access to wolfchat (depending on gameplay.wolfchat config settings)
 # Wolfteam: Defines the role as wolfteam for determining winners
 # Killer: Roles which can kill other roles during the game. Roles which kill upon or after death (ms, vg) don't belong in here
 # Village: Defines the role as village for determining winners
