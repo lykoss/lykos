@@ -1111,7 +1111,7 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
         if not player.is_fake:
             if var.PHASE != "night" or config.Main.get("gameplay.nightchat"):
                 cmode.append(("-v", player.nick))
-            if var.in_game and var.QUIET_DEAD_PLAYERS:
+            if var.in_game and config.Main.get("gameplay.quiet_dead_players"):
                 # Died during the game, so quiet!
                 ircd = get_ircd()
                 if ircd.supports_quiet():

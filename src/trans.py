@@ -742,7 +742,7 @@ def reset(var: Optional[GameState]):
             for mode in modes:
                 cmodes.append(("+" + mode, user))
         channels.Main.old_modes.clear()
-        if var.QUIET_DEAD_PLAYERS:
+        if config.Main.get("gameplay.quiet_dead_players"):
             ircd = get_ircd()
             if ircd.supports_quiet():
                 for deadguy in var.DEAD:

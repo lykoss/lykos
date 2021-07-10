@@ -664,6 +664,10 @@ gameplay: &gameplay
         each other during a game. If disabled, they will be unable to speak with each other through the bot.
       _type: bool
       _default: true
+    quiet_dead_players:
+      _desc: Whether or not to quiet players upon their death. Not all transports may support this.
+      _type: bool
+      _default: false
     wolfchat:
       _desc: |
         Many wolf roles have access to wolfchat, which allows them to communicate with each other throughout the

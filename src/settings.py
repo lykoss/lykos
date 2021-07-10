@@ -7,7 +7,6 @@ IRC_TB_DELAY = 1.73 # wait time between adding tokens
 IRC_TB_BURST = 23 # maximum number of tokens that can be accumulated
 MIN_PLAYERS = 6
 MAX_PLAYERS = 24
-QUIET_DEAD_PLAYERS = False
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
 
 # Send a message to deadchat or wolfchat when a user spectates them
