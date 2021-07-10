@@ -40,7 +40,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, Callable
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame
 from src.users import User
 
 from src.debug import handle_error
@@ -94,8 +94,6 @@ var.SPECTATING_WOLFCHAT = UserSet() # type: ignore
 var.SPECTATING_DEADCHAT = UserSet() # type: ignore
 
 var.GAMEMODE_VOTES = UserDict() # type: ignore
-
-var.CAN_START_TIME = 0 # type: ignore
 
 var.RESTARTING = False # type: ignore
 
@@ -711,7 +709,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
         var.PINGED_ALREADY = set()
         if wrapper.source.account:
             var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
-        var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
+        pregame.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         wrapper.send(messages["new_game"].format(wrapper.source))
 
         # Set join timer
@@ -758,14 +756,14 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
             now = datetime.now()
 
             # add var.EXTRA_WAIT_JOIN to wait time
-            if now > var.CAN_START_TIME:
-                var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
+            if now > pregame.CAN_START_TIME:
+                pregame.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
             else:
-                var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
+                pregame.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
 
             # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
-            if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > var.CAN_START_TIME:
-                var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
+            if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > pregame.CAN_START_TIME:
+                pregame.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
 
         var.LAST_STATS = None # reset
         var.LAST_GSTATS = None
@@ -1507,7 +1505,7 @@ def ftemplate(wrapper: MessageDispatcher, message: str):
                 db.delete_template(name)
                 wrapper.reply(messages["template_deleted"].format(name))
 
-        # re-init var.FLAGS_ACCS since it may have changed
+        # re-init db.FLAGS since it may have changed
         db.init_vars()
 
 @command("fflags", flag="F", pm=True)
@@ -1540,7 +1538,7 @@ def fflags(wrapper: MessageDispatcher, message: str):
     if nick == "*":
         # display a list of all access
         parts = []
-        for acc, flags in var.FLAGS_ACCS.items():
+        for acc, flags in db.FLAGS.items():
             if not flags:
                 continue
             parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
@@ -1565,13 +1563,13 @@ def fflags(wrapper: MessageDispatcher, message: str):
 
     if not flags:
         # display access for the given user
-        if not var.FLAGS_ACCS[lacc]:
+        if not db.FLAGS[lacc]:
             wrapper.reply(messages["no_access_account"].format(acc))
         else:
-            wrapper.reply(messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[lacc]))))
+            wrapper.reply(messages["access_account"].format(acc, "".join(sorted(db.FLAGS[lacc]))))
         return
 
-    cur_flags = set(var.FLAGS_ACCS[lacc])
+    cur_flags = set(db.FLAGS[lacc])
     if flags[0] != "+" and flags[0] != "-":
         # flags is a template name
         tpl_name = flags.upper()
@@ -1612,7 +1610,7 @@ def fflags(wrapper: MessageDispatcher, message: str):
             db.set_access(acc, flags=None)
             wrapper.reply(messages["access_deleted_account"].format(acc))
 
-        # re-init var.FLAGS_ACCS since it may have changed
+        # re-init db.FLAGS since it may have changed
         db.init_vars()
 
 @command("rules", pm=True)
@@ -1821,7 +1819,7 @@ def timeleft(wrapper: MessageDispatcher, message: str):
         var.LAST_TIME = datetime.now()
 
     if var.PHASE == "join":
-        dur = int((var.CAN_START_TIME - datetime.now()).total_seconds())
+        dur = int((pregame.CAN_START_TIME - datetime.now()).total_seconds())
         msg = None
         if dur > 0:
             msg = messages["start_timer"].format(dur)

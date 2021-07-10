@@ -36,9 +36,12 @@ class _States(Enum):
 def predicate(name):
     return not name.startswith(tuple(Features["CHANTYPES"]))
 
+def _normalize(x: str):
+    return lower(x.lstrip(Features.STATUSMSG))
+
 def get(name: str, *, allow_none: bool = False) -> Optional[Channel]:
     try:
-        return _channels[lower(name)]
+        return _channels[_normalize(name)]
     except KeyError:
         if allow_none:
             return None
@@ -54,29 +57,29 @@ def add(name, cli, key=""):
     # another one (or some other weird stuff like that). Instead of
     # jumping through hoops, we just disallow it here.
 
-    if lower(name) in _channels:
-        if cli is not _channels[lower(name)].client:
+    if _normalize(name) in _channels:
+        if cli is not _channels[_normalize(name)].client:
             raise RuntimeError("different IRC client for channel {0}".format(name))
-        return _channels[lower(name)]
+        return _channels[_normalize(name)]
 
     cls = Channel
     if predicate(name):
         cls = FakeChannel
 
-    chan = _channels[lower(name)] = cls(name, cli)
+    chan = _channels[_normalize(name)] = cls(name, cli)
     chan._key = key
     chan.join()
     return chan
 
 def exists(name):
     """Return True if a channel by the name exists, False otherwise."""
-    return lower(name) in _channels
+    return _normalize(name) in _channels
 
 def channels():
     """Iterate over all the current channels."""
     yield from _channels.values()
 
-def _chan_join(evt, channel, user):
+def _chan_join(evt, channel: Channel, user: User):
     if user is users.Bot:
         channel.state = _States.Joined
 

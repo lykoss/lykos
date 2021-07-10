@@ -7,7 +7,7 @@ from collections import defaultdict
 import src
 from src.functions import get_players
 from src.messages import messages
-from src import config, channels
+from src import config, channels, db
 from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.debug import handle_error
@@ -155,13 +155,13 @@ class command:
 
         temp = wrapper.source.lower()
 
-        flags = var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
+        flags = db.FLAGS[temp.account]
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
             logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
             return self.func(wrapper, message)
 
-        denied_commands = var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
+        denied_commands = db.DENY[temp.account]
 
         if self.commands & denied_commands:
             wrapper.pm(messages["invalid_permissions"])

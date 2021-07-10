@@ -33,6 +33,7 @@ WAIT_LAST = 0
 LAST_START: UserDict[User, List[Union[datetime, int]]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
+CAN_START_TIME: int = 0
 FORCE_ROLES: DefaultUserDict[UserSet] = DefaultUserDict(UserSet)
 RESTART_TRIES: int = 0
 MAX_RETRIES = 3 # constant: not a setting
@@ -48,7 +49,7 @@ def wait(wrapper: MessageDispatcher, message: str):
     pl = get_players(var)
 
     with locks.wait:
-        global WAIT_TOKENS, WAIT_LAST
+        global WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
         wait_check_time = time.time()
         WAIT_TOKENS += (wait_check_time - WAIT_LAST) / var.WAIT_TB_DELAY
         WAIT_LAST = wait_check_time
@@ -63,19 +64,18 @@ def wait(wrapper: MessageDispatcher, message: str):
 
         LAST_WAIT[wrapper.source] = now
         WAIT_TOKENS -= 1
-        if now > var.CAN_START_TIME:
-            var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
+        if now > CAN_START_TIME:
+            CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
         else:
-            var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
+            CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
         wrapper.send(messages["wait_time_increase"].format(wrapper.source, var.EXTRA_WAIT))
 
 @command("fwait", flag="w", phases=("join",))
 def fwait(wrapper: MessageDispatcher, message: str):
     """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
+    global CAN_START_TIME
     var = wrapper.game_state
     pl = get_players(var)
-
-    var = wrapper.game_state
 
     msg = re.split(" +", message.strip(), 1)[0]
 
@@ -87,10 +87,10 @@ def fwait(wrapper: MessageDispatcher, message: str):
     now = datetime.now()
     extra = max(-900, min(900, extra))
 
-    if now > var.CAN_START_TIME:
-        var.CAN_START_TIME = now + timedelta(seconds=extra)
+    if now > CAN_START_TIME:
+        CAN_START_TIME = now + timedelta(seconds=extra)
     else:
-        var.CAN_START_TIME += timedelta(seconds=extra)
+        CAN_START_TIME += timedelta(seconds=extra)
 
     if extra >= 0:
         wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra)))
@@ -178,7 +178,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         if wrapper.source not in villagers and not forced:
             return
 
-        dur = int((var.CAN_START_TIME - datetime.now()).total_seconds())
+        dur = int((CAN_START_TIME - datetime.now()).total_seconds())
         if dur > 0 and not forced:
             wrapper.send(messages["please_wait"].format(dur))
             return
@@ -591,7 +591,7 @@ def frole(wrapper: MessageDispatcher, message: str):
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
-    global MAX_RETRIES, WAIT_TOKENS, WAIT_LAST
+    global MAX_RETRIES, WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
     LAST_START.clear()
     LAST_WAIT.clear()
     START_VOTES.clear()
@@ -599,3 +599,4 @@ def on_reset(evt: Event, var: GameState):
     MAX_RETRIES = 0
     WAIT_TOKENS = 0
     WAIT_LAST = 0
+    CAN_START_TIME = 0
