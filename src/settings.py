@@ -84,5 +84,3 @@ LOG_CHANNEL = "" # Log !fwarns to this channel, if set
 LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
-
-ALL_FLAGS = frozenset("AaDdFgjmNpSsw")

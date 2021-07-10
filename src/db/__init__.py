@@ -27,6 +27,25 @@ __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_t
 # they do not run by default for performance reasons
 SCHEMA_VERSION = 8
 
+# Constant of all the flags that the bot uses
+# This is not meant to be modified
+# Capital letters usually mean more dangerous flags to hand out
+ALL_FLAGS = {
+    "A": "game player management",
+    "a": "game knowledge access",
+    "D": "critical bot management",
+    "d": "debug mode-only manipulation commands",
+    "F": "admin powers, including the ability to set and unset flags",
+    "g": "control over the gamemodes",
+    "j": "joke commands",
+    "m": "ability to refresh the bot's internal state",
+    "N": "game phase manipulation",
+    "p": "player chat knowledge access",
+    "S": "game start management",
+    "s": "sending messages as the bot",
+    "w": "control over waiting times",
+}
+
 # variables accessible outside of the module that hold current db state
 # These track accounts by string account name instead of User instances because the latter can only track online users
 

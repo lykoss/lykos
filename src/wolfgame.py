@@ -1486,12 +1486,12 @@ def ftemplate(wrapper: MessageDispatcher, message: str):
                     continue
                 elif flag == "*":
                     if adding:
-                        cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
+                        cur_flags = cur_flags | (db.ALL_FLAGS.keys() - {"F"})
                     else:
                         cur_flags = set()
                     continue
-                elif flag not in var.ALL_FLAGS:
-                    wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                elif flag not in db.ALL_FLAGS:
+                    wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(db.ALL_FLAGS))))
                     return
                 elif adding:
                     cur_flags.add(flag)
@@ -1593,12 +1593,12 @@ def fflags(wrapper: MessageDispatcher, message: str):
                 continue
             elif flag == "*":
                 if adding:
-                    cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
+                    cur_flags = cur_flags | (db.ALL_FLAGS.keys() - {"F"})
                 else:
                     cur_flags = set()
                 continue
-            elif flag not in var.ALL_FLAGS:
-                wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+            elif flag not in db.ALL_FLAGS:
+                wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(db.ALL_FLAGS))))
                 return
             elif adding:
                 cur_flags.add(flag)
