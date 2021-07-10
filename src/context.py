@@ -1,4 +1,5 @@
 from __future__ import annotations
+from lykos.oyoyo.client import IRCClient
 
 import sys
 from collections import defaultdict, OrderedDict
@@ -116,7 +117,7 @@ class IRCContext:
 
     _messages = defaultdict(list)
 
-    def __init__(self, name, client):
+    def __init__(self, name: str, client: IRCClient):
         self.name = name
         self.client = client
         self.ref = None

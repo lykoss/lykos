@@ -21,6 +21,7 @@ from src.transport.irc import get_services
 
 if typing.TYPE_CHECKING:
     from oyoyo.client import IRCClient
+    from src.channels import Channel
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
@@ -281,7 +282,7 @@ def connect_callback(cli: IRCClient):
 
         hook.unhook(294)
 
-    def setup_handler(evt, target):
+    def setup_handler(evt, target: Union[User, Channel]):
         target.client.command_handler["privmsg"] = on_privmsg
         target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
         who_end.remove("who_end")
@@ -289,34 +290,36 @@ def connect_callback(cli: IRCClient):
     who_end = EventListener(setup_handler)
     who_end.install("who_end")
 
-    def mustregain(cli, server, bot_nick, nick, msg):
+    def mustregain(cli: IRCClient, server, bot_nick, nick, msg):
         nonlocal regaincount
 
         config_nick = config.Main.get("transports[0].user.nick")
         password = config.Main.get("transports[0].authentication.services.password")
+        services = get_services()
         if not password or bot_nick == nick or regaincount > 3:
             return
-        if var.NICKSERV_REGAIN_COMMAND:
-            cli.ns_regain(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+        if services.supports_regain():
+            cli.ns_regain(nick=config_nick, password=password, nickserv=services.nickserv, command=services.regain)
         else:
-            cli.ns_ghost(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_ghost(nick=config_nick, password=password, nickserv=services.nickserv, command=services.ghost)
         # it is possible (though unlikely) that regaining the nick fails for some reason and we would loop infinitely
         # as such, keep track of a count of how many times we regain, and after 3 times we no longer attempt to regain nicks
         # Since we'd only be regaining on initial connect, this should be safe. The same trick is used below for release as well
         regaincount += 1
         users.Bot.change_nick(config_nick)
 
-    def mustrelease(cli, server, bot_nick, nick, msg):
+    def mustrelease(cli: IRCClient, server, bot_nick, nick, msg):
         nonlocal releasecount
 
         config_nick = config.Main.get("transports[0].user.nick")
         password = config.Main.get("transports[0].authentication.services.password")
+        services = get_services()
         if not password or bot_nick == nick or releasecount > 3:
             return # prevents the bot from trying to release without a password
-        if var.NICKSERV_RELEASE_COMMAND:
-            cli.ns_release(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+        if services.supports_release():
+            cli.ns_release(nick=config_nick, password=password, nickserv=services.nickserv, command=services.release)
         else:
-            cli.ns_ghost(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_ghost(nick=config_nick, password=password, nickserv=services.nickserv, command=services.ghost)
         releasecount += 1
         users.Bot.change_nick(config_nick)
 
@@ -327,8 +330,11 @@ def connect_callback(cli: IRCClient):
         users.Bot.change_nick()
 
         hook.unhook(239)
-        hook("unavailresource", hookid=240)(mustrelease)
-        hook("nicknameinuse", hookid=241)(mustregain)
+        services = get_services()
+        if services.supports_release() or services.supports_ghost():
+            hook("unavailresource", hookid=240)(mustrelease)
+        if services.supports_regain() or services.supports_ghost():
+            hook("nicknameinuse", hookid=241)(mustregain)
 
     request_caps = {"account-notify", "chghost", "extended-join", "multi-prefix"}
 
@@ -340,7 +346,7 @@ def connect_callback(cli: IRCClient):
     selected_sasl = None
 
     @hook("cap")
-    def on_cap(cli, svr, mynick, cmd, *caps):
+    def on_cap(cli: IRCClient, svr, mynick, cmd, *caps):
         nonlocal supported_sasl, selected_sasl
         # caps is a star because we might receive multiline in LS
         if cmd == "LS":
@@ -421,11 +427,11 @@ def connect_callback(cli: IRCClient):
 
     if config.Main.get("transports[0].authentication.services.use_sasl"):
         @hook("authenticate")
-        def auth_plus(cli, something, plus):
-            username = config.Main.get("transports[0].authentication.services.username")
+        def auth_plus(cli: IRCClient, something, plus):
+            username: str = config.Main.get("transports[0].authentication.services.username")
             if not username:
                 username = config.Main.get("transports[0].user.nick")
-            password = config.Main.get("transports[0].authentication.services.password")
+            password: str = config.Main.get("transports[0].authentication.services.password")
             if plus == "+":
                 if selected_sasl == "EXTERNAL":
                     cli.send("AUTHENTICATE +")
@@ -437,7 +443,6 @@ def connect_callback(cli: IRCClient):
 
         @hook("saslsuccess")
         def on_successful_auth(cli, blah, blahh, blahhh):
-            nonlocal selected_sasl
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 

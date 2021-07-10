@@ -78,14 +78,6 @@ AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
-NICKSERV = "NickServ"
-NICKSERV_IDENTIFY_COMMAND = "IDENTIFY {account} {password}"
-NICKSERV_GHOST_COMMAND = "GHOST {nick}"
-NICKSERV_RELEASE_COMMAND = "RELEASE {nick}"
-NICKSERV_REGAIN_COMMAND = "REGAIN {nick}"
-CHANSERV = "ChanServ"
-CHANSERV_OP_COMMAND = "OP {channel}"
-
 GUEST_NICK_PATTERN = r"^Guest\d+$|^\d|away.+|.+away"
 
 LOG_CHANNEL = "" # Log !fwarns to this channel, if set

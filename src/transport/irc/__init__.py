@@ -61,46 +61,55 @@ class IRCD_Solanum(IRCD_Base):
 class IRCD_Unreal(IRCD_Base):
     name = "unrealircd"
 
+# Services
 
 class Services_Base:
     name = ""
     nickserv = ""
     command = ""
+    regain = ""
+    release = ""
+    ghost = ""
 
     def supports_auth(self):
-        return False
+        return bool(self.command)
+
+    def supports_regain(self):
+        return bool(self.regain)
+
+    def supports_release(self):
+        return bool(self.release)
+
+    def supports_ghost(self):
+        return bool(self.ghost)
 
 class Services_Anope(Services_Base):
     name = "anope"
     nickserv = "NickServ"
     command = "IDENTIFY {account} {password}"
-
-    def supports_auth(self):
-        return True
+    regain = "RECOVER {nick} {password}"
+    release = "RELEASE {nick} {password}"
+    ghost = "GHOST {nick} {password}"
 
 class Services_Atheme(Services_Base):
     name = "atheme"
     nickserv = "NickServ"
     command = "IDENTIFY {account} {password}"
-
-    def supports_auth(self):
-        return True
+    regain = "REGAIN {nick} {password}"
+    release = "RELEASE {nick} {password}"
+    ghost = "GHOST {nick} {password}"
 
 class Services_Generic(Services_Base):
     name = "generic"
     nickserv = "NickServ"
     command = "IDENTIFY {account} {password}"
-
-    def supports_auth(self):
-        return True
+    ghost = "GHOST {nick} {password}"
 
 class Services_None(Services_Base):
     name = "none"
 
 class Services_Undernet(Services_Base):
+    # undernet does not support GHOST, because it sucks. why are you even on undernet
     name = "undernet"
     nickserv = "x@channels.undernet.org"
     command = "LOGIN {account} {password}"
-
-    def supports_auth(self):
-        return True
