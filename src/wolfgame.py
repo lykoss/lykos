@@ -383,7 +383,7 @@ def replace(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["you_already_playing"])
         return
 
-    if wrapper.source.account is None:
+    if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -431,7 +431,7 @@ def replace(wrapper: MessageDispatcher, message: str):
 def altpinger(wrapper: MessageDispatcher, message: str):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
 
-    if wrapper.source.account is None:
+    if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -598,7 +598,7 @@ def deadchat_pref(wrapper: MessageDispatcher, message: str):
 
     temp = wrapper.source.lower()
 
-    if wrapper.source.account is None:
+    if not wrapper.source.account:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -654,7 +654,7 @@ def join_player(wrapper: MessageDispatcher,
     if wrapper.target is not channels.Main:
         return
 
-    if not wrapper.source.is_fake and wrapper.source.account is None:
+    if not wrapper.source.is_fake and not wrapper.source.account:
         if forced:
             who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
         else:
@@ -1549,6 +1549,9 @@ def fflags(wrapper: MessageDispatcher, message: str):
         m = users.complete_match(nick)
         if m:
             acc = m.get().account
+            if not acc:
+                wrapper.reply(messages["account_not_logged_in"].format(m))
+                return
         else:
             acc = nick
 

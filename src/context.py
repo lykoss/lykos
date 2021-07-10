@@ -1,5 +1,4 @@
 from __future__ import annotations
-from lykos.oyoyo.client import IRCClient
 
 import sys
 from collections import defaultdict, OrderedDict
@@ -9,6 +8,19 @@ import logging
 
 from src.messages.message import Message
 from src import config
+from oyoyo.client import IRCClient
+
+class _NotLoggedIn:
+    def __copy__(self):
+        return self
+    def __deepcopy__(self, memo):
+        return self
+    def __bool__(self):
+        return False
+    def __repr__(self):
+        return "NotLoggedIn"
+
+NotLoggedIn = _NotLoggedIn()
 
 def _who(cli, target, data=b""):
     """Handle WHO requests."""
@@ -84,8 +96,8 @@ def _send(data, first, sep, client, send_type, name, chan=None):
             client.send("{0} {1} {4}:{2}{3}".format(send_type, name, first, extra, chan))
 
 def lower(nick: Union[None, str, IRCContext], *, casemapping: Optional[str] = None):
-    if nick is None:
-        return None
+    if nick is None or nick is NotLoggedIn:
+        return nick
     if isinstance(nick, IRCContext):
         return nick.lower()
     if casemapping is None:
@@ -579,7 +591,9 @@ class IRCFeatures:
         self[key] = value
 
     def unset(self, key: str):
-        del self._features[key]
+        # we may get CAP DEL more than once for the same feature
+        if key in self._features:
+            del self._features[key]
 
 class IRCTargMaxFeature:
     def __init__(self, features: IRCFeatures, value: Optional[str] = None):

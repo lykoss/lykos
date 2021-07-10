@@ -50,7 +50,10 @@ CREATE TABLE person (
     -- May be less than the total if they spent any on various things
     achievement_current INTEGER NOT NULL DEFAULT 0,
     -- The total amount of achievement points the player has earned
-    achievement_total INTEGER NOT NULL DEFAULT 0
+    achievement_total INTEGER NOT NULL DEFAULT 0,
+    -- Arbitrary data attached to this person
+    -- Meant to be set by custom functionality added by bot admins
+    data TEXT
 );
 
 -- Achievement tracking. Actual achievements and their conditions are defined in the code,

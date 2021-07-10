@@ -25,7 +25,7 @@ __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_t
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 # Constant of all the flags that the bot uses
 # This is not meant to be modified
@@ -914,6 +914,44 @@ def expire_tempbans():
     conn.commit()
     return acclist
 
+def get_data(acc, path=()):
+    conn = _conn()
+    c = conn.cursor()
+    peid, plid = _get_ids(acc)
+    if not peid:
+        return None
+    c.execute("SELECT data FROM person WHERE id = ?", (peid,))
+    data = c.fetchone()[0]
+    if not data:
+        return None
+    data = json.loads(data)
+    if not data:
+        return None
+    for p in path:
+        if p not in data:
+            return None
+        data = data[p]
+    return data
+
+def set_data(acc, path, key, value):
+    conn = _conn()
+    c = conn.cursor()
+    peid, plid = _get_ids(acc)
+    if not peid:
+        return
+
+    data = get_data(acc)
+    if data is None:
+        data = {}
+
+    cur = data
+    for p in path:
+        if p not in cur:
+            cur[p] = {}
+        cur = cur[p]
+    cur[key] = value
+    c.execute("UPDATE person SET data = ? WHERE id = ?", (json.dumps(data), peid))
+
 def get_pre_restart_state():
     conn = _conn()
     c = conn.cursor()
@@ -990,6 +1028,11 @@ def _upgrade(oldversion):
             # and an achievements table to track exactly which achievements were earned by them
             with open(os.path.join(dn, "upgrade8.sql"), "rt") as f:
                 c.executescript(f.read())
+        if oldversion < 9:
+            print("Upgrade from version 8 to 9...", file=sys.stderr)
+            # add data column to person
+            c.execute("ALTER TABLE person ADD data TEXT")
+            conn.commit()
 
         print("Rebuilding indexes...", file=sys.stderr)
         c.execute("REINDEX")

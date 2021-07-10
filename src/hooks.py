@@ -11,7 +11,7 @@ import sys
 from typing import Dict, Any
 
 from src.decorators import hook
-from src.context import Features
+from src.context import Features, NotLoggedIn
 from src.events import Event, event_listener
 
 from src import config, context, channels, users
@@ -103,7 +103,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     """
 
     if account == "0":
-        account = None
+        account = NotLoggedIn
 
     is_away = ("G" in status)
 
@@ -118,8 +118,8 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
         user = users.add(cli, nick=nick, ident=ident, host=host, account=account)
 
     new_user = user
-    if {user.account, account} != {None} and not context.equals(user.account, account):
-        # first check tests if both are None, and skips over this if so
+    if {user.account, account} != {NotLoggedIn} and not context.equals(user.account, account):
+        # first check tests if both are NotLoggedIn, and skips over this if so
         old_account = user.account
         user.account = account
         new_user = users.get(nick, ident, host, account, allow_bot=True)
@@ -285,8 +285,8 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
     values = _whois_pending.pop(nick)
     # check for account change
     new_user = user = values["user"]
-    if {user.account, values["account"]} != {None} and not context.equals(user.account, values["account"]):
-        # first check tests if both are None, and skips over this if so
+    if {user.account, values["account"]} != {NotLoggedIn} and not context.equals(user.account, values["account"]):
+        # first check tests if both are NotLoggedIn, and skips over this if so
         old_account = user.account
         user.account = values["account"]
         new_user = users.get(user.nick, user.ident, user.host, values["account"], allow_bot=True)
@@ -636,7 +636,7 @@ def on_nick_change(cli, old_rawnick, nick):
 
     """
 
-    user = users.get(old_rawnick, allow_bot=True)
+    user = users.get(old_rawnick, allow_bot=True, update=True)
     old_nick = user.nick
     user.nick = nick
     new_user = users.get(nick, user.ident, user.host, user.account, allow_bot=True)
@@ -659,7 +659,7 @@ def on_account_change(cli, rawnick, account):
 
     """
 
-    user = users.get(rawnick)
+    user = users.get(rawnick, update=True)
     old_account = user.account
     user.account = account
     new_user = users.get(user.nick, user.ident, user.host, account, allow_bot=True)
@@ -688,14 +688,14 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     """
 
     if account == "*":
-        account = None
+        account = NotLoggedIn
 
     if realname == "":
         realname = None
 
     ch = channels.add(chan, cli)
 
-    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True)
+    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True, update=True)
     if user is None:
         user = users.add(cli, nick=rawnick, account=account)
     if account:
@@ -733,7 +733,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users.get(rawnick, allow_bot=True)
+    user = users.get(rawnick, allow_bot=True, update=True)
     Event("chan_part", {}).dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
@@ -758,7 +758,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     """
 
     ch = channels.add(chan, cli)
-    actor = users.get(rawnick, allow_none=True)
+    actor = users.get(rawnick, allow_none=True, update=True)
     user = users.get(target, allow_bot=True)
     Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
@@ -795,7 +795,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users.get(rawnick, allow_bot=True)
+    user = users.get(rawnick, allow_bot=True, update=True)
     user.disconnected = True
     Event("server_quit", {}).dispatch(user, reason)
 
@@ -820,7 +820,7 @@ def on_chghost(cli, rawnick, ident, host):
 
     """
 
-    user = users.get(rawnick, allow_bot=True)
+    user = users.get(rawnick, allow_bot=True, update=True)
     old_ident = user.ident
     old_host = user.host
     # we avoid multiple swaps if we change the rawnick instead of ident and host separately

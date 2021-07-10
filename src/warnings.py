@@ -90,7 +90,7 @@ def _get_auto_sanctions(sanctions, prev, cur):
 def add_warning(target: Union[str, users.User], amount: int, actor: users.User, reason: str, notes: str = None, expires=None, sanctions=None):
     if isinstance(target, users.User):
         tacc = target.account
-        if tacc is None:
+        if not tacc:
             return False
     else:
         tacc = target
@@ -156,6 +156,9 @@ def fstasis(wrapper: MessageDispatcher, message: str):
             acc = m.get().account
         else:
             acc = data[0]
+        if not acc:
+            wrapper.reply(messages["account_not_logged_in"].format(m))
+            return
         cur = var.STASISED_ACCS[irc_lower(acc)]
 
         if len(data) == 1:

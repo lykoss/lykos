@@ -38,15 +38,17 @@ from src import game_stats
 # Do the same with roles
 
 try:
-    import roles # type: ignore
-    # noinspection PyStatementEffect
-    roles.CUSTOM_ROLES_DEFINED # type: ignore
+    import roles as custom_roles # type: ignore
+    if not custom_roles.CUSTOM_ROLES_DEFINED:
+        raise AttributeError()
 except (ModuleNotFoundError, AttributeError):
-    import src.roles
+    from src import roles
+    roles.import_builtin_roles()
 
 try:
-    import gamemodes # type: ignore
-    # noinspection PyStatementEffect
-    gamemodes.CUSTOM_MODES_DEFINED # type: ignore
+    import gamemodes as custom_gamemodes # type: ignore
+    if not custom_gamemodes.CUSTOM_MODES_DEFINED:
+        raise AttributeError()
 except (ModuleNotFoundError, AttributeError):
-    import src.gamemodes
+    from src import gamemodes
+    gamemodes.import_builtin_modes()

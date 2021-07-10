@@ -481,10 +481,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
             evt.dispatch(ingame_state, player, None)
 
+    start_event = Event("start_game", {"custom_game_callback": None})  # defined here to make the linter happy
     if not restart:
         gamemode = ingame_state.current_mode.name
-        event = Event("start_game", {})
-        event.dispatch(ingame_state, gamemode, ingame_state.current_mode)
+        start_event.dispatch(ingame_state, gamemode, ingame_state.current_mode)
 
         # Alert the players to option changes they may not be aware of
         # All keys begin with gso_* (game start options)
@@ -527,6 +527,8 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         from src.trans import transition_night
         var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night(ingame_state)
+    elif start_event.data["custom_game_callback"]:
+        start_event.data["custom_game_callback"](ingame_state)
     else:
         # send role messages
         evt = Event("send_role", {})

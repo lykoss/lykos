@@ -10,7 +10,7 @@ from src.gamestate import GameState
 from src.events import Event, EventListener
 from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
-__all__ = ["InvalidModeException", "game_mode", "GameMode", "GAME_MODES"]
+__all__ = ["InvalidModeException", "game_mode", "import_builtin_modes", "GameMode", "GAME_MODES"]
 
 class InvalidModeException(Exception):
     pass
@@ -142,6 +142,17 @@ class CustomSettings:
     @night_time_warn.setter
     def night_time_warn(self, value: int):
         self._night_time_warn = value
+
+def import_builtin_modes():
+    path = os.path.dirname(os.path.abspath(__file__))
+    search = os.path.join(path, "*.py")
+
+    for f in glob.iglob(search):
+        f = os.path.basename(f)
+        n, _ = os.path.splitext(f)
+        if f.startswith("_"):
+            continue
+        importlib.import_module("." + n, package="src.gamemodes")
 
 class GameMode:
     def __init__(self, arg=""):

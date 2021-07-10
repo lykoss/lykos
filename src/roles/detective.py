@@ -12,6 +12,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event, event_listener
+from src.cats import Safe, Wolfteam
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
@@ -50,12 +51,16 @@ def investigate(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["investigate_success"].format(target, targrole))
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
-        # The detective's identity is compromised!
-        wolves = get_all_players(var, get_wolfchat_roles())
-        if wolves:
-            for wolf in wolves:
-                wolf.queue_message(messages["detective_reveal"].format(wrapper.source))
-            wolf.send_messages()
+        # The detective's identity is compromised! Let the opposing team know
+        if get_main_role(var, wrapper.source) in Wolfteam:
+            to_notify = get_players(var, Safe)
+        else:
+            to_notify = get_players(var, get_wolfchat_roles())
+            
+        if to_notify:
+            for player in to_notify:
+                player.queue_message(messages["detective_reveal"].format(wrapper.source))
+            player.send_messages()
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
