@@ -1,18 +1,10 @@
 raise RuntimeError("src.settings incorrectly loaded")
 
-MINIMUM_WAIT = 60
-EXTRA_WAIT = 30
-EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
-WAIT_AFTER_JOIN = 25 # Wait at least this many seconds after the last join
 # token bucket for the IRC client; 1 token = 1 message sent to IRC
 # Run the bot with --lagtest to receive settings recommendations for this
 IRC_TB_INIT = 23 # initial number of tokens
 IRC_TB_DELAY = 1.73 # wait time between adding tokens
 IRC_TB_BURST = 23 # maximum number of tokens that can be accumulated
-# !wait uses a token bucket
-WAIT_TB_INIT  = 2   # initial number of tokens
-WAIT_TB_DELAY = 240 # wait time between adding tokens
-WAIT_TB_BURST = 3   # maximum number of tokens that can be accumulated
 MIN_PLAYERS = 6
 MAX_PLAYERS = 24
 QUIET_DEAD_PLAYERS = False

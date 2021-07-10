@@ -700,16 +700,16 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
         var.MAIN_ROLES[wrapper.source] = "person"
         var.players.append(wrapper.source)
         var.PHASE = "join"
-        with locks.wait:
-            from src import pregame
-            pregame.WAIT_TOKENS = var.WAIT_TB_INIT
-            pregame.WAIT_LAST   = time.time()
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
         if wrapper.source.account:
             var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
-        pregame.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
+        if config.Main.get("timers.wait.enabled"):
+            pregame.CAN_START_TIME = datetime.now() + timedelta(seconds=config.Main.get("timers.wait.initial"))
+            with locks.wait:
+                pregame.WAIT_TOKENS = config.Main.get("timers.wait.command.tokenbucket.initial")
+                pregame.WAIT_LAST   = time.time()
         wrapper.send(messages["new_game"].format(wrapper.source))
 
         # Set join timer
@@ -755,15 +755,10 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
             now = datetime.now()
 
-            # add var.EXTRA_WAIT_JOIN to wait time
-            if now > pregame.CAN_START_TIME:
-                pregame.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
-            else:
-                pregame.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
-
-            # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
-            if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > pregame.CAN_START_TIME:
-                pregame.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
+            if config.Main.get("timers.wait.enabled"):
+                # make sure there's at least wait.join seconds of wait time left, if not add them
+                if now + timedelta(seconds=config.Main.get("timers.wait.join")) > pregame.CAN_START_TIME:
+                    pregame.CAN_START_TIME = now + timedelta(seconds=config.Main.get("timers.wait.join"))
 
         var.LAST_STATS = None # reset
         var.LAST_GSTATS = None

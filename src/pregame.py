@@ -44,17 +44,13 @@ def wait(wrapper: MessageDispatcher, message: str):
     if wrapper.target is not channels.Main:
         return
 
-    var = wrapper.game_state
-
-    pl = get_players(var)
-
     with locks.wait:
         global WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
         wait_check_time = time.time()
-        WAIT_TOKENS += (wait_check_time - WAIT_LAST) / var.WAIT_TB_DELAY
+        WAIT_TOKENS += (wait_check_time - WAIT_LAST) / config.Main.get("timers.wait.command.tokenbucket.refill")
         WAIT_LAST = wait_check_time
 
-        WAIT_TOKENS = min(WAIT_TOKENS, var.WAIT_TB_BURST)
+        WAIT_TOKENS = min(WAIT_TOKENS, config.Main.get("timers.wait.command.tokenbucket.maximum"))
 
         now = datetime.now()
         if ((LAST_WAIT and wrapper.source in LAST_WAIT and LAST_WAIT[wrapper.source] +
@@ -64,25 +60,26 @@ def wait(wrapper: MessageDispatcher, message: str):
 
         LAST_WAIT[wrapper.source] = now
         WAIT_TOKENS -= 1
+        wait_amount = config.Main.get("timers.wait.command.amount")
+        if not config.Main.get("timers.wait.enabled"):
+            wait_amount = 0
         if now > CAN_START_TIME:
-            CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
+            CAN_START_TIME = now + timedelta(seconds=wait_amount)
         else:
-            CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
-        wrapper.send(messages["wait_time_increase"].format(wrapper.source, var.EXTRA_WAIT))
+            CAN_START_TIME += timedelta(seconds=wait_amount)
+        wrapper.send(messages["wait_time_increase"].format(wrapper.source, wait_amount))
 
 @command("fwait", flag="w", phases=("join",))
 def fwait(wrapper: MessageDispatcher, message: str):
     """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
     global CAN_START_TIME
-    var = wrapper.game_state
-    pl = get_players(var)
 
     msg = re.split(" +", message.strip(), 1)[0]
 
     if msg and (msg.isdigit() or (msg[0] == "-" and msg[1:].isdigit())):
         extra = int(msg)
     else:
-        extra = var.EXTRA_WAIT
+        extra = config.Main.get("timers.wait.command.amount")
 
     now = datetime.now()
     extra = max(-900, min(900, extra))
