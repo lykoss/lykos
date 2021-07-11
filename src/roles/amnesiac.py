@@ -7,7 +7,7 @@ import math
 from collections import defaultdict
 from typing import Optional, Set, TYPE_CHECKING
 
-from src import channels, users
+from src import channels, users, config
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -32,7 +32,7 @@ def on_transition_night_begin(evt: Event, var: GameState):
     global STATS_FLAG
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
         amnesiacs = get_all_players(var, ("amnesiac",))
-        if amnesiacs and not var.HIDDEN_AMNESIAC:
+        if amnesiacs and not config.Main.get("gameplay.hidden.amnesiac"):
             STATS_FLAG = True
 
         for amn in amnesiacs:
@@ -45,7 +45,7 @@ def on_investigate(evt: Event, var: GameState, actor: User, target: User):
 
 @event_listener("new_role", priority=1) # Exchange, clone, etc. - assign the amnesiac's final role
 def update_amnesiac(evt: Event, var: GameState, player: User, old_role: Optional[str]):
-    # FIXME: exchange totem messes with var.HIDDEN_AMNESIAC (the new amnesiac is no longer hidden should they die)
+    # FIXME: exchange totem messes with gameplay.hidden.amnesiac (the new amnesiac is no longer hidden should they die)
     if evt.params.inherit_from is not None and evt.data["role"] == "amnesiac" and old_role != "amnesiac":
         evt.data["role"] = ROLES[evt.params.inherit_from]
 
@@ -57,7 +57,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 
 @event_listener("role_revealed")
 def on_revealing_totem(evt: Event, var: GameState, user: User, role: str):
-    if role not in _get_blacklist(var) and not var.HIDDEN_AMNESIAC and var.ORIGINAL_ROLES["amnesiac"]:
+    if role not in _get_blacklist(var) and not config.Main.get("gameplay.hidden.amnesiac") and var.ORIGINAL_ROLES["amnesiac"]:
         global STATS_FLAG
         STATS_FLAG = True
     if role == "amnesiac":
@@ -66,7 +66,7 @@ def on_revealing_totem(evt: Event, var: GameState, user: User, role: str):
 
 @event_listener("get_reveal_role")
 def on_reveal_role(evt: Event, var: GameState, user: User):
-    if var.HIDDEN_AMNESIAC and var.ORIGINAL_MAIN_ROLES[user] == "amnesiac":
+    if config.Main.get("gameplay.hidden.amnesiac") and var.ORIGINAL_MAIN_ROLES[user] == "amnesiac":
         evt.data["role"] = "amnesiac"
 
 @event_listener("get_endgame_message")

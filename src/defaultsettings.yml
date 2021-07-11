@@ -652,6 +652,22 @@ gameplay: &gameplay
         - str
         - "null"
       _default: null
+    hidden:
+      _desc: The roles here will hide their true identity upon dying.
+      _type: dict
+      _default:
+        traitor:
+          _desc: Reveal traitor as the hidden role, typically villager, if they die before turning.
+          _type: bool
+          _default: true
+        amnesiac:
+          _desc: Amnesiac will always show up as amnesiac when dying, even if they turned.
+          _type: bool
+          _default: false
+        clone:
+          _desc: Clone will always show up as clone when dying, even if they turned.
+          _type: bool
+          _default: false
     nightchat:
       _desc: |
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel

@@ -14,9 +14,6 @@ SPECTATE_NOTICE = True
 # Whether to include which user is doing the spectating in the message
 SPECTATE_NOTICE_USER = False
 
-HIDDEN_TRAITOR = True
-HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
-HIDDEN_CLONE = False
 GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 
 START_VOTES_SCALE = 0.3

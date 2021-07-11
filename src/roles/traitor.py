@@ -5,7 +5,7 @@ import math
 from collections import defaultdict
 from typing import Optional, Dict, Set
 
-from src import users, channels, trans
+from src import users, channels, trans, config
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -24,7 +24,7 @@ def on_get_reveal_role(evt: Event, var: GameState, user: User):
     # they're revealed upon death. Team stats should show traitor as wolfteam or else
     # the stats are wrong in that they'll report one less wolf than actually exists,
     # which can confuse a lot of people
-    if evt.data["role"] == "traitor" and var.HIDDEN_TRAITOR and var.role_reveal != "team":
+    if evt.data["role"] == "traitor" and config.Main.get("gameplay.hidden.traitor") and var.role_reveal != "team":
         evt.data["role"] = var.hidden_role
 
 @event_listener("get_final_role")
@@ -36,7 +36,7 @@ def on_get_final_role(evt: Event, var: GameState, user: User, role: str):
 
 @event_listener("update_stats", priority=1)
 def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
-    if mainrole == var.hidden_role and var.HIDDEN_TRAITOR:
+    if mainrole == var.hidden_role and config.Main.get("gameplay.hidden.traitor"):
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)

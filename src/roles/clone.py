@@ -7,7 +7,7 @@ import typing
 import math
 from collections import defaultdict
 
-from src import channels, users
+from src import channels, users, config
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -47,7 +47,7 @@ def clone(wrapper: MessageDispatcher, message: str):
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt: Event, var: GameState, user):
-    if var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
+    if config.Main.get("gameplay.hidden.clone") and user in var.ORIGINAL_ROLES["clone"]:
         evt.data["role"] = "clone"
 
 @event_listener("del_player")
@@ -133,7 +133,7 @@ def first_death_occured(evt: Event, var: GameState, player, all_roles, death_tri
 
 @event_listener("update_stats")
 def on_update_stats(evt: Event, var: GameState, player, mainrole, revealrole, allroles):
-    if CLONE_ENABLED and not var.HIDDEN_CLONE:
+    if CLONE_ENABLED and not config.Main.get("gameplay.hidden.clone"):
         evt.data["possible"].add("clone")
 
 @event_listener("myrole")
