@@ -9,8 +9,13 @@ from src.users import User
 from src.roles.helper.gunners import setup_variables
 from src.roles.helper.wolves import register_wolf, is_known_wolf_ally
 
+HIT_CHANCE       = 7/10
+HEADSHOT_CHANCE  = 6/10
+EXPLODE_CHANCE   = 0/10
+SHOTS_MULTIPLIER = 0.06
+
 register_wolf("wolf gunner")
-GUNNERS = setup_variables("wolf gunner")
+GUNNERS = setup_variables("wolf gunner", hit=HIT_CHANCE, headshot=HEADSHOT_CHANCE, explode=EXPLODE_CHANCE, multiplier=SHOTS_MULTIPLIER)
 # unregister the gunner night message and send the number of bullets a different way
 find_listener("send_role", "gunners.<wolf gunner>.on_send_role").remove("send_role")
 # wolf gunners don't shoot other wolves at night nor get their gun stolen

@@ -5,7 +5,7 @@ import re
 import math
 from typing import Dict, Any, List, TYPE_CHECKING
 
-from src import users
+from src import users, config
 from src.decorators import command
 from src.containers import UserDict
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 _rolestate = {} # type: Dict[str, Dict[str, Any]]
 
-def setup_variables(rolename: str):
+def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
     GUNNERS: UserDict[User, int] = UserDict()
     _rolestate[rolename] = {
         "GUNNERS": GUNNERS
@@ -47,12 +47,16 @@ def setup_variables(rolename: str):
 
         GUNNERS[wrapper.source] -= 1
 
-        gun_evt = Event("gun_chances", {"hit": 0, "miss": 0, "headshot": 0})
+        gun_evt = Event("gun_chances", {"hit": 0, "explode": 0, "headshot": 0})
         gun_evt.dispatch(var, wrapper.source, rolename)
 
-        rand = random.random() # need to save it
+        hit_dict = {
+            "hit": random.random() <= gun_evt.data["hit"],
+            "kill": random.random() <= gun_evt.data["headshot"],
+            "explode": random.random() <= gun_evt.data["explode"],
+        }
 
-        shoot_evt = Event("gun_shoot", {"hit": rand <= gun_evt.data["hit"], "kill": random.random() <= gun_evt.data["headshot"]})
+        shoot_evt = Event("gun_shoot", hit_dict)
         shoot_evt.dispatch(var, wrapper.source, target, rolename)
 
         realrole = get_main_role(var, target)
@@ -66,8 +70,7 @@ def setup_variables(rolename: str):
                     to_send = "gunner_victim_wolf_death"
                 wrapper.send(messages[to_send].format(target, targrole))
                 add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
-                if kill_players(var):
-                    return
+                kill_players(var)
             elif shoot_evt.data["kill"]:
                 to_send = "gunner_victim_villager_death_accident"
                 if gun_evt.data["headshot"] == 1: # would always headshot
@@ -76,8 +79,7 @@ def setup_variables(rolename: str):
                 if var.role_reveal in ("on", "team"):
                     wrapper.send(messages["gunner_victim_role"].format(targrole))
                 add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
-                if kill_players(var):
-                    return
+                kill_players(var)
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
                 add_absent(var, target, "wounded")
@@ -86,15 +88,15 @@ def setup_variables(rolename: str):
                     # game didn't immediately end due to injury, see if we should force through a vote
                     chk_decision(var)
 
-        elif rand <= gun_evt.data["hit"] + gun_evt.data["miss"]:
-            wrapper.send(messages["gunner_miss"].format(wrapper.source))
-        else: # BOOM! your gun explodes, you're dead
+        elif shoot_evt.data["explode"]: # BOOM! your gun explodes, you're dead
             to_send = "gunner_suicide_no_reveal"
             if var.role_reveal in ("on", "team"):
                 to_send = "gunner_suicide"
             wrapper.send(messages[to_send].format(wrapper.source, get_reveal_role(var, wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
+        else:
+            wrapper.send(messages["gunner_miss"].format(wrapper.source))
 
     @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
     def on_send_role(evt: Event, var: GameState):
@@ -106,12 +108,12 @@ def setup_variables(rolename: str):
     def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
-                if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
+                if random.random() < config.Main.get("gameplay.gunner_wolf.kills_attacker"):
                     # pick a random wolf to be shot
                     wolves = [wolf for wolf in get_players(var, Wolf & Killer) if wolf not in evt.data["dead"]]
                     if wolves:
                         shot = random.choice(wolves)
-                        event = Event("gun_shoot", {"hit": True, "kill": True})
+                        event = Event("gun_shoot", {"hit": True, "kill": True, "explode": False})
                         event.dispatch(var, victim, shot, rolename)
                         GUNNERS[victim] -= 1  # deduct the used bullet
                         if event.data["hit"] and event.data["kill"]:
@@ -131,8 +133,8 @@ def setup_variables(rolename: str):
 
                 # let wolf steal gun if the gunner has any bullets remaining
                 # this gives the looter the "wolf gunner" secondary role
-                # if the wolf gunner role isn't loaded, guns cannot be stolen regardless of var.WOLF_STEALS_GUN
-                if var.WOLF_STEALS_GUN and GUNNERS[victim] and "wolf gunner" in _rolestate:
+                # if the wolf gunner role isn't loaded, guns cannot be stolen regardless of gameplay.gunner_wolf.steals_gun
+                if config.Main.get("gameplay.gunner_wolf.steals_gun") and GUNNERS[victim] and "wolf gunner" in _rolestate:
                     possible = get_players(var, Wolf & Killer)
                     random.shuffle(possible)
                     for looter in possible:
@@ -167,17 +169,16 @@ def setup_variables(rolename: str):
                 del GUNNERS[user]
 
         elif evt.data["role"] == rolename:
-            bullets = math.ceil(var.SHOTS_MULTIPLIER[rolename] * len(get_players(var)))
+            bullets = math.ceil(multiplier * len(get_players(var)))
             event = Event("gun_bullets", {"bullets": bullets})
             event.dispatch(var, user, rolename)
             GUNNERS[user] = event.data["bullets"]
 
-    return GUNNERS
+    @event_listener("gun_chances", listener_id="gunners.<{}>.on_gun_chances".format(rolename))
+    def on_gun_chances(evt: Event, var: GameState, player: User, role: str):
+        if role == rolename:
+            evt.data["hit"] = hit
+            evt.data["headshot"] = headshot
+            evt.data["explode"] = explode
 
-@event_listener("gun_chances")
-def on_gun_chances(evt: Event, var: GameState, user: User, role: str):
-    if role in var.GUN_CHANCES:
-        hit, miss, headshot = var.GUN_CHANCES[role]
-        evt.data["hit"] += hit
-        evt.data["miss"] += miss
-        evt.data["headshot"] += headshot
+    return GUNNERS

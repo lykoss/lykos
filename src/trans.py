@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Dict, Set, Optional
+from typing import TYPE_CHECKING, List, Dict, Set, Optional, Union
 import threading
 import time
 
@@ -25,8 +25,12 @@ if TYPE_CHECKING:
 
 NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS = {}
-DAY_ID = 0
-NIGHT_ID = 0
+
+DAY_ID: Union[float, int] = 0
+DAY_START_TIME: Optional[datetime] = None
+
+NIGHT_ID: Union[float, int] = 0
+NIGHT_START_TIME: Optional[datetime] = None
 
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
@@ -158,11 +162,11 @@ def on_night_idled(evt: Event, var: GameState, player):
         evt.prevent_default = True
 
 @handle_error
-def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
-    if gameid:
-        if gameid != NIGHT_ID:
-            return
-    global NIGHT_ID
+def transition_day(var: GameState, gameid: int = 0):
+    global DAY_START_TIME, NIGHT_ID, NIGHT_START_TIME
+    if gameid and gameid != NIGHT_ID:
+        return
+
     NIGHT_ID = 0
 
     if var.PHASE not in ("night", "join"):
@@ -171,7 +175,7 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
     var.PHASE = "day"
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
-    var.DAY_START_TIME = datetime.now()
+    DAY_START_TIME = datetime.now()
 
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
@@ -182,8 +186,8 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
         begin_day(var)
         return
 
-    td = var.DAY_START_TIME - var.NIGHT_START_TIME
-    var.NIGHT_START_TIME = None
+    td = DAY_START_TIME - NIGHT_START_TIME
+    NIGHT_START_TIME = None
     var.NIGHT_TIMEDELTA += td
     minimum, sec = td.seconds // 60, td.seconds % 60
 
@@ -361,12 +365,11 @@ def transition_day(var: GameState, gameid: int = 0): # FIXME: Fix call sites
 def transition_night(var: GameState):
     if var.PHASE not in ("day", "join"):
         return
-    global NIGHT_ID
+    global NIGHT_ID, DAY_START_TIME
     var.PHASE = "night"
 
-    var.NIGHT_START_TIME = datetime.now()
+    NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
-    NIGHT_IDLE_EXEMPT.clear()
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
@@ -384,9 +387,10 @@ def transition_night(var: GameState):
 
     dmsg = []
 
+    NIGHT_ID = time.time()
     if var.NIGHT_TIMEDELTA or var.start_with_day:  #  transition from day
-        td = var.NIGHT_START_TIME - var.DAY_START_TIME
-        var.DAY_START_TIME = None
+        td = NIGHT_START_TIME - DAY_START_TIME
+        DAY_START_TIME = None
         var.DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         dmsg.append(messages["day_lasted"].format(min, sec))
@@ -460,13 +464,13 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
         channels.Main.send(messages["role_attribution_failed"])
     elif not var.ORIGINAL_ROLES: # game already ended
         return
-    if var.DAY_START_TIME:
+    if DAY_START_TIME:
         now = datetime.now()
-        td = now - var.DAY_START_TIME
+        td = now - DAY_START_TIME
         var.DAY_TIMEDELTA += td
-    if var.NIGHT_START_TIME:
+    if NIGHT_START_TIME:
         now = datetime.now()
-        td = now - var.NIGHT_START_TIME
+        td = now - NIGHT_START_TIME
         var.NIGHT_TIMEDELTA += td
 
     daymin, daysec = var.DAY_TIMEDELTA.seconds // 60, var.DAY_TIMEDELTA.seconds % 60
@@ -759,11 +763,17 @@ def reset(var: Optional[GameState]):
     channels.Main.game_state = None
     users.Bot.game_state = None
 
+@event_listener("transition_night_begin")
+def on_transition_night_begin(evt: Event, var: GameState):
+    NIGHT_IDLE_EXEMPT.clear()
+
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
-    global NIGHT_ID, DAY_ID
-    NIGHT_ID = 0
+    global  DAY_ID, DAY_START_TIME, NIGHT_ID, NIGHT_START_TIME
     DAY_ID = 0
+    DAY_START_TIME = None
+    NIGHT_ID = 0
+    NIGHT_START_TIME = None
     NIGHT_IDLE_EXEMPT.clear()
 
 def old_reset():

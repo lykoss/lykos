@@ -668,6 +668,18 @@ gameplay: &gameplay
           _desc: Clone will always show up as clone when dying, even if they turned.
           _type: bool
           _default: false
+    gunner_wolf:
+      _desc: Determines some interactions between gunner and attacking wolves at night.
+      _type: dict
+      _default:
+        kills_attacker:
+          _desc: Determines the chance of gunner killing a wolf when targeted at night.
+          _type: float
+          _default: 0.25
+        steals_gun:
+          _desc: Determines whether a wolf will steal a loaded gun from dead gunner.
+          _type: bool
+          _default: true
     nightchat:
       _desc: |
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel

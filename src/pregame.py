@@ -26,6 +26,7 @@ from src import config, channels, locks, trans, reaper, users
 if TYPE_CHECKING:
     from src.users import User
     from src.dispatcher import MessageDispatcher
+    from src.channels import Channel
 
 WAIT_TOKENS = 0
 WAIT_LAST = 0
@@ -418,7 +419,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 if count == 0:
                     break
                 if user in possible:
-                    ingame_state.ROLES[role].add(user)
+                    ingame_state.roles[role].add(user)
                     possible.remove(user)
                     count -= 1
         # Don't do anything further if this secondary role was forced on enough players already
@@ -428,7 +429,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             wrapper.send(messages["not_enough_targets"].format(role))
             stop_game(ingame_state, abort=True, log=False)
             return
-        ingame_state.ROLES[role].update(x for x in random.sample(possible, count))
+        ingame_state.roles[role].update(x for x in random.sample(possible, count))
 
     # Give game modes the ability to customize who was assigned which role after everything's been set
     # The listener can add the following tuples into the "actions" dict to specify modifications
@@ -438,7 +439,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     # ("remove", User, str) -- removes a secondary role from the user (no-op if it's not a secondary role for user)
     # Actions are applied in order
     event = Event("role_attribution_end", {"actions": []})
-    event.dispatch(ingame_state, var.MAIN_ROLES, var.roles)
+    event.dispatch(ingame_state, var.MAIN_ROLES, ingame_state.roles)
     for tup in event.data["actions"]:
         if tup[0] == "swap":
             if tup[1] not in var.MAIN_ROLES or tup[2] not in var.MAIN_ROLES:
@@ -447,23 +448,23 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             tworole = var.MAIN_ROLES[tup[2]]
             var.MAIN_ROLES[tup[1]] = tworole
             var.ORIGINAL_MAIN_ROLES[tup[1]] = tworole
-            var.roles[onerole].discard(tup[1])
-            var.roles[tworole].add(tup[1])
+            ingame_state.roles[onerole].discard(tup[1])
+            ingame_state.roles[tworole].add(tup[1])
 
             var.MAIN_ROLES[tup[2]] = onerole
             var.ORIGINAL_MAIN_ROLES[tup[2]] = onerole
-            var.roles[tworole].discard(tup[2])
-            var.roles[onerole].add(tup[2])
+            ingame_state.roles[tworole].discard(tup[2])
+            ingame_state.roles[onerole].add(tup[2])
         elif tup[0] == "add":
             if tup[1] not in var.MAIN_ROLES or tup[2] not in All:
                 raise KeyError("Invalid user or role in role_attribution_end:add action")
-            var.roles[tup[2]].add(tup[1])
+            ingame_state.roles[tup[2]].add(tup[1])
         elif tup[0] == "remove":
             if tup[1] not in var.MAIN_ROLES or tup[2] not in All:
                 raise KeyError("Invalid user or role in role_attribution_end:remove action")
             if var.MAIN_ROLES[tup[1]] == tup[2]:
                 raise ValueError("Cannot remove a user's main role in role_attribution_end:remove action")
-            var.roles[tup[2]].discard(tup[1])
+            ingame_state.roles[tup[2]].discard(tup[1])
         else:
             raise KeyError("Invalid action for role_attribution_end")
 
@@ -509,16 +510,12 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         wrapper.send(messages[key].format(villagers, gamemode, options))
         wrapper.target.mode("+m")
 
-    ingame_state.finish_setup()
-
     var.ORIGINAL_ROLES.clear()
     for role, players in ingame_state.ROLES.items():
         var.ORIGINAL_ROLES[role] = players.copy()
 
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
-    var.DAY_START_TIME = datetime.now()
-    var.NIGHT_START_TIME = datetime.now()
     var.LAST_PING = None
 
     if restart:
@@ -534,7 +531,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         evt = Event("send_role", {})
         evt.dispatch(ingame_state)
         from src.trans import transition_day
-        var.FIRST_DAY = True
         var.GAMEPHASE = "night"
         transition_day(ingame_state)
 
@@ -554,7 +550,7 @@ def _command_disabled(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["command_disabled_admin"])
 
 @handle_error
-def expire_start_votes(var, channel):
+def expire_start_votes(var: GameState, channel: Channel):
     # Should never happen as the timer is removed on game start, but just to be safe
     if var.PHASE != "join":
         return

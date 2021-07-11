@@ -8,6 +8,7 @@ from typing import Dict, Tuple, Optional
 from src.messages import messages
 from src.gamestate import GameState
 from src.events import Event, EventListener
+from src.users import User
 from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
 __all__ = ["InvalidModeException", "game_mode", "import_builtin_modes", "GameMode", "GAME_MODES"]
@@ -169,6 +170,7 @@ class GameMode:
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
         self.NUM_TOTEMS = {}
+        self.GUN_CHANCES = {}
 
         self.EVENTS = {}
         self.ROLE_GUIDE = {}
@@ -283,6 +285,11 @@ class GameMode:
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
+
+    def custom_gun_chances(self, evt: Event, var: GameState, player: User, role: str):
+        if role in self.GUN_CHANCES:
+            for key, value in self.GUN_CHANCES[role]:
+                evt.data[key] += value
 
 GAME_MODES: Dict[str, Tuple[GameMode, int, int, int]] = {}
 

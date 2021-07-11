@@ -14,11 +14,18 @@ class DrunkFireMode(GameMode):
         self.CUSTOM_SETTINGS.short_day_time_warn = 180
         self.CUSTOM_SETTINGS.night_time_limit = 60
         self.CUSTOM_SETTINGS.night_time_warn = 40
-        self.GUN_CHANCES = {
-            "gunner": (10/20, 8/20, 16/20), # 50% hit, 40% miss, 10% explode, 80% headshot
-            "wolf gunner": (12/20, 8/20, 1), # 60% hit, 40% miss, 0% explode, 100% headshot
-            "sharpshooter": (1, 0, 1) # 100% hit, 0% miss, 0% explode, 100% headshot
+        self.GUN_CHANCES = { # these are *added* on top of the base chances!
+            "gunner": {
+                "hit": -1/4, # base is 75%, now 50%
+                "headshot": 6/10, # base is 20%, now 80%
+                "explode": 1/20, # base is 5%, now 10%
+            },
+            "wolf gunner": {
+                "hit": 3/10, # base is 70%, now 100%
+                "headshot": 4/10, # base is 60%, now 100%
+            },
         }
+
         self.ROLE_GUIDE = {
             8:  ["wolf gunner", "traitor", "seer", "village drunk", "village drunk(2)", "cursed villager", "gunner", "gunner(2)", "gunner(3)", "sharpshooter", "sharpshooter(2)"],
             10: ["wolf gunner(2)", "village drunk(3)", "gunner(4)"],
@@ -27,5 +34,6 @@ class DrunkFireMode(GameMode):
             16: ["traitor(2)", "village drunk(5)", "sharpshooter(4)"],
         }
         self.EVENTS = {
-            "chk_win": EventListener(self.all_dead_chk_win)
+            "chk_win": EventListener(self.all_dead_chk_win),
+            "gun_chances": EventListener(self.custom_gun_chances)
         }
