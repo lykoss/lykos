@@ -30,10 +30,10 @@ if TYPE_CHECKING:
 # To allow maximum flexibility and allow for customization, lykos makes use of an   #
 # event system. The core system will fire events (also referred to as dispatching   #
 # an event), which can be listened to by code elsewhere. For example, every role    #
-# listens on the "transition_night_end" event, which is where role messages are     #
-# sent out to the players. There are several of these kinds of events everywhere,   #
-# and roles are expected to make use of the relevant events. For a more in-depth    #
-# look at the event system, please check our wiki at https://werewolf.chat/Events   #
+# listens on the "send_role" event, which is where role messages are sent out to    #
+# the players. There are several of these kinds of events everywhere, and roles     #
+# are expected to make use of the relevant events. For a more in-depth explanation  #
+# of the event system, please check our wiki at https://werewolf.chat/Events        #
 #                                                                                   #
 # To add new totem types in your custom files:                                      #
 # 1. Listen to the "default_totems" event at priority 1 and update                  #

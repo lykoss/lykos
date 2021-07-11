@@ -7,10 +7,14 @@ class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
 
     def __init__(self, source: users.User, target: Union[channels.Channel, users.BotUser]):
-        self.game_state = target.game_state
         self.source = source
         self.target = target
         self.client = source.client
+
+    @property
+    def game_state(self):
+        # lazy evaluation means replacing the target doesn't break things
+        return self.target.game_state
 
     @property
     def private(self):
