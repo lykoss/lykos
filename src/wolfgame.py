@@ -1354,9 +1354,8 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     kill_players(var)
 
 @command("", chan=False, pm=True)
-def relay(wrapper: MessageDispatcher, message: str):
-    """Wolfchat and Deadchat"""
-    var = wrapper.game_state
+def ctcp_handling(wrapper: MessageDispatcher, message: str):
+    """CTCP Handling"""
     if message.startswith("\u0001PING"):
         wrapper.pm(message, notice=True)
         return
@@ -1370,12 +1369,13 @@ def relay(wrapper: MessageDispatcher, message: str):
         return
     if message == "\u0001TIME\u0001":
         wrapper.pm("\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())), notice=True)
-    if not var.in_game:
-        return
 
-    pl = get_players(var)
+@command("", chan=False, pm=True)
+def relay_wolfchat(wrapper: MessageDispatcher, message: str):
+    """Relay wolfchat messages and commands."""
+    var = wrapper.game_state
 
-    if message.startswith(var.CMD_CHAR):
+    if message.startswith(config.Main.get("transports[0].user.command_prefix")):
         return
 
     if "src.roles.helper.wolves" in sys.modules:
@@ -1385,24 +1385,7 @@ def relay(wrapper: MessageDispatcher, message: str):
         badguys = get_players(var, Wolfchat)
     wolves = get_players(var, Wolf)
 
-    if wrapper.source not in pl and config.Main.get("gameplay.deadchat") and wrapper.source in var.DEADCHAT_PLAYERS:
-        to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
-        if to_msg or var.SPECTATING_DEADCHAT:
-            if message.startswith("\u0001ACTION"):
-                message = message[8:-1]
-                for user in to_msg:
-                    user.queue_message(messages["relay_action"].format(wrapper.source, message))
-                for user in var.SPECTATING_DEADCHAT:
-                    user.queue_message(messages["relay_action_deadchat"].format(wrapper.source, message))
-            else:
-                for user in to_msg:
-                    user.queue_message(messages["relay_message"].format(wrapper.source, message))
-                for user in var.SPECTATING_DEADCHAT:
-                    user.queue_message(messages["relay_message_deadchat"].format(wrapper.source, message))
-
-            user.send_messages()
-
-    elif wrapper.source in badguys and len(badguys) > 1:
+    if wrapper.source in badguys and len(badguys) > 1:
         # handle wolfchat toggles
         if not config.Main.get("gameplay.wolfchat.traitor_non_wolf"):
             wolves.extend(var.roles["traitor"])
@@ -1429,6 +1412,22 @@ def relay(wrapper: MessageDispatcher, message: str):
                 player.queue_message(messages["relay_message_wolfchat"].format(wrapper.source, message))
         if badguys or var.SPECTATING_WOLFCHAT:
             player.send_messages()
+
+@command("", chan=False, pm=True)
+def relay_deadchat(wrapper: MessageDispatcher, message: str):
+    """Relay deadchat messages."""
+    if wrapper.source not in get_players(wrapper.game_state) and config.Main.get("gameplay.deadchat") and wrapper.source in var.DEADCHAT_PLAYERS:
+        # relay_message_deadchat and relay_action_deadchat also used here
+        key = "relay_message"
+        if message.startswith("\u0001ACTION"):
+            key = "relay_action"
+            message = message[8:-1]
+        for user in var.DEADCHAT_PLAYERS - {wrapper.source}:
+            user.queue_message(messages[key].format(wrapper.source, message))
+        for user in var.SPECTATING_DEADCHAT:
+            user.queue_message(messages[key + "_deadchat"].format(wrapper.source, message))
+
+        User.send_messages()
 
 @hook("error")
 def on_error(cli, pfx, msg):
