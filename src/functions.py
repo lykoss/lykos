@@ -23,8 +23,10 @@ __all__ = [
     "match_role", "match_mode", "match_totem"
     ]
 
-def get_players(var: Union[GameState, PregameState], roles=None, *, mainroles=None) -> List[User]:
+def get_players(var: Union[GameState, PregameState, None], roles=None, *, mainroles=None) -> List[User]:
     from src.status import is_dying
+    if var is None:
+        return []
     if isinstance(var, PregameState):
         if roles is not None:
             return []
@@ -45,11 +47,13 @@ def get_players(var: Union[GameState, PregameState], roles=None, *, mainroles=No
         return list(pl)
     return [p for p in var.players if p in pl and not is_dying(var, p)]
 
-def get_all_players(var: Union[GameState, PregameState], roles=None, *, rolemap=None) -> Set[User]:
+def get_all_players(var: Union[GameState, PregameState, None], roles=None, *, rolemap=None) -> Set[User]:
     from src.status import is_dying
+    if var is None:
+        return set()
     if isinstance(var, PregameState):
         if roles is not None:
-            return []
+            return set()
         return set(var.players)
 
     if rolemap is None:
@@ -66,7 +70,7 @@ def get_all_players(var: Union[GameState, PregameState], roles=None, *, rolemap=
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants(var: Union[GameState, PregameState]) -> List[User]:
+def get_participants(var: Union[GameState, PregameState, None]) -> List[User]:
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players(var)})
     evt.dispatch(var)

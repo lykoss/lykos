@@ -41,6 +41,7 @@ from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, Callable
 
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame
+from src.channels import Channel
 from src.users import User
 
 from src.debug import handle_error
@@ -690,7 +691,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
     cmodes = []
     if not wrapper.source.is_fake:
         cmodes.append(("+v", wrapper.source))
-    if var.PHASE == "none":
+    if var is None:
         channels.Main.game_state = users.Bot.game_state = var = PregameState()
         if not wrapper.source.is_fake:
             toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
@@ -726,7 +727,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
     elif len(pl) >= var.MAX_PLAYERS:
         who.send(messages["too_many_players"], notice=True)
         return False
-    elif var.PHASE != "join":
+    elif var.in_game:
         who.send(messages["game_already_running"], notice=True)
         return False
     else:
@@ -761,9 +762,6 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                     pregame.CAN_START_TIME = now + timedelta(seconds=config.Main.get("timers.wait.join"))
 
         var.LAST_STATS = None # reset
-        var.LAST_GSTATS = None
-        var.LAST_PSTATS = None
-        var.LAST_RSTATS = None
         var.LAST_TIME = None
 
     with locks.join_timer:
@@ -1225,12 +1223,12 @@ def nick_change(evt, user: User, old_nick): # FIXME: This function needs some wa
                 return
 
 @event_listener("chan_part")
-def left_channel(evt, chan, user, reason): # FIXME: This uses var
-    leave(chan.gamestate, "part", user, chan)
+def left_channel(evt, chan: Channel, user, reason): # FIXME: This uses var
+    leave(chan.game_state, "part", user, chan)
 
 @event_listener("chan_kick") # FIXME: This uses var
-def channel_kicked(evt, chan, actor, user, reason):
-    leave(chan.gamestate, "kick", user, chan)
+def channel_kicked(evt, chan: Channel, actor, user, reason):
+    leave(chan.game_state, "kick", user, chan)
 
 @event_listener("server_quit")
 def quit_server(evt, user, reason): # FIXME: This uses var
@@ -1991,7 +1989,7 @@ def aftergame(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     args = re.split(" +", message)
-    before, prefix, after = args.pop(0).lower().partition(var.CMD_CHAR)
+    before, prefix, after = args.pop(0).lower().partition(config.Main.get("transports[0].user.command_prefix"))
     if not prefix: # the prefix was not in the string
         cmd = before
     elif after and not before: # message was prefixed

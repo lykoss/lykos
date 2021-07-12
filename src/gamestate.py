@@ -34,6 +34,8 @@ def set_gamemode(var: GameState, arg: str) -> bool:
 class PregameState:
     def __init__(self):
         self.players = UserList()
+        # Note: current_mode is None for all but the !start machinery
+        self.current_mode: GameMode = None
 
     @property
     def in_game(self):
@@ -56,8 +58,8 @@ class GameState:
         if self._torndown:
             raise RuntimeError("cannot setup a used-up GameState")
         for role in All:
-            self._roles[role] = UserSet()
-        self._roles[self.default_role] = UserSet()
+            self.roles[role] = UserSet()
+        self.roles[self.default_role] = UserSet()
         self.setup_started = True
 
     def finish_setup(self):
@@ -68,8 +70,8 @@ class GameState:
         self.setup_completed = True
 
     def teardown(self):
-        self._roles.clear()
-        self.del_role_stats()
+        self.roles.clear()
+        self._rolestats.clear()
         self.current_mode.teardown()
         self._torndown = True
 

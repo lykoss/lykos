@@ -316,23 +316,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
 
-    if ingame_state.current_mode.CUSTOM_SETTINGS._overridden and not restart:  # Custom settings
-        need_reset = True
-        wvs = sum(addroles[r] for r in Wolfchat)
-        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in ingame_state.current_mode.SECONDARY_ROLES)):
-            wrapper.send(messages["too_few_players_custom"])
-        elif not wvs:
-            wrapper.send(messages["need_one_wolf"])
-        elif wvs > (len(villagers) / 2):
-            wrapper.send(messages["too_many_wolves"])
-        else:
-            need_reset = False
-
-        if need_reset:
-            wrapper.send(messages["default_reset"])
-            stop_game(ingame_state, abort=True, log=False)
-            return
-
     if var.ADMIN_TO_PING is not None and not restart:
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
