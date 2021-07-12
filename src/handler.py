@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 import threading
+import subprocess
+import platform
 import time
 import functools
 import logging
@@ -199,7 +201,7 @@ def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
         fn.caller(cli, prefix, *args)
 
-def ping_server(cli):
+def ping_server(cli: IRCClient):
     cli.send("PING :{0}".format(time.time()))
 
 @command("latency", pm=True)
@@ -211,6 +213,23 @@ def latency(wrapper, message):
         lat = round(time.time() - float(ts), 3)
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
+
+@command("", chan=False, pm=True)
+def ctcp_handling(wrapper: MessageDispatcher, message: str):
+    """CTCP Handling"""
+    if message.startswith("\u0001PING"):
+        wrapper.pm(message, notice=True)
+        return
+    if message == "\u0001VERSION\u0001":
+        try:
+            ans = subprocess.check_output(["git", "log", "-n", "1", "--pretty=format:%h"])
+            reply = "\u0001VERSION lykos {0}, Python {1} -- https://github.com/lykoss/lykos\u0001".format(str(ans.decode()), platform.python_version())
+        except (OSError, subprocess.CalledProcessError):
+            reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
+        wrapper.pm(reply, notice=True)
+        return
+    if message == "\u0001TIME\u0001":
+        wrapper.pm("\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())), notice=True)
 
 def connect_callback(cli: IRCClient):
     regaincount = 0

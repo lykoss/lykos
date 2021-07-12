@@ -25,7 +25,6 @@ import itertools
 import json
 import logging
 import os
-import platform
 import random
 import re
 import signal
@@ -1352,23 +1351,6 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     kill_players(var)
 
 @command("", chan=False, pm=True)
-def ctcp_handling(wrapper: MessageDispatcher, message: str):
-    """CTCP Handling"""
-    if message.startswith("\u0001PING"):
-        wrapper.pm(message, notice=True)
-        return
-    if message == "\u0001VERSION\u0001":
-        try:
-            ans = subprocess.check_output(["git", "log", "-n", "1", "--pretty=format:%h"])
-            reply = "\u0001VERSION lykos {0}, Python {1} -- https://github.com/lykoss/lykos\u0001".format(str(ans.decode()), platform.python_version())
-        except (OSError, subprocess.CalledProcessError):
-            reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
-        wrapper.pm(reply, notice=True)
-        return
-    if message == "\u0001TIME\u0001":
-        wrapper.pm("\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())), notice=True)
-
-@command("", chan=False, pm=True)
 def relay_wolfchat(wrapper: MessageDispatcher, message: str):
     """Relay wolfchat messages and commands."""
     var = wrapper.game_state
@@ -1397,19 +1379,17 @@ def relay_wolfchat(wrapper: MessageDispatcher, message: str):
             return
 
         badguys.remove(wrapper.source)
+        # relay_message_wolfchat and relay_action_wolfchat also used here
+        key = "relay_message"
         if message.startswith("\u0001ACTION"):
-            message = message[7:-1]
-            for player in badguys:
-                player.queue_message(messages["relay_action"].format(wrapper.source, message))
-            for player in var.SPECTATING_WOLFCHAT:
-                player.queue_message(messages["relay_action_wolfchat"].format(wrapper.source, message))
-        else:
-            for player in badguys:
-                player.queue_message(messages["relay_message"].format(wrapper.source, message))
-            for player in var.SPECTATING_WOLFCHAT:
-                player.queue_message(messages["relay_message_wolfchat"].format(wrapper.source, message))
-        if badguys or var.SPECTATING_WOLFCHAT:
-            player.send_messages()
+            key = "relay_action"
+            message = message[8:-1]
+        for player in badguys:
+            player.queue_message(messages[key].format(wrapper.source, message))
+        for player in var.SPECTATING_WOLFCHAT:
+            player.queue_message(messages[key + "_wolfchat"].format(wrapper.source, message))
+
+        User.send_messages()
 
 @command("", chan=False, pm=True)
 def relay_deadchat(wrapper: MessageDispatcher, message: str):
