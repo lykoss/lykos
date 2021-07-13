@@ -208,8 +208,8 @@ def transition_day(var: GameState, gameid: int = 0):
     # We set the variables here first; listeners should mutate, not replace
     # We don't need to use User containers here, as these don't persist long enough
     # This removes the burden of having to clear them at the end or should an error happen
-    victims = []
-    killers = defaultdict(list)
+    victims: List[User] = []
+    killers: Dict[User, List[User]] = defaultdict(list)
 
     evt = Event("transition_day", {
         "victims": victims,
@@ -670,7 +670,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
     return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner)
 
-def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Union[Dict[User, str], UserDict[User, str]], end_game=True, winner=None):
+def chk_win_conditions(var: GameState, rolemap: Union[Dict[str, Set[User]], UserDict[str, UserSet]], mainroles: Union[Dict[User, str], UserDict[User, str]], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.current_phase == "day":

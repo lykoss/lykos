@@ -4,24 +4,24 @@ import threading
 import traceback
 import urllib.request
 import logging
-from typing import Optional
+from typing import Optional, Dict, Tuple
 from types import TracebackType
 
 from src import config
 
 __all__ = ["handle_error"]
 
-class _local(threading.local):
+class _localcls(threading.local):
     handler = None
     level = 0
 
-_local = _local()
+_local = _localcls()
 
 # This is a mapping of stringified tracebacks to (link, uuid) tuples
 # That way, we don't have to call in to the website every time we have
 # another error.
 
-_tracebacks = {}
+_tracebacks: Dict[str, Tuple[str, str]] = {}
 
 class chain_exceptions:
 

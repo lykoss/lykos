@@ -26,6 +26,7 @@ from src import decorators
 from src import hooks, status, warnings
 from src import pregame
 from src import trans
+from src import gamejoin
 from src import votes
 from src import handler
 from src import wolfgame
