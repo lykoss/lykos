@@ -65,11 +65,12 @@ class MaelstromMode(GameMode):
                 # discard them from all non-secondary roles, we don't have a reliable
                 # means of tracking their previous role (due to traitor turning, exchange
                 # totem, etc.), so we need to iterate through everything.
-                for r in var.ORIGINAL_ROLES.keys():
+                # also this touches the underlying _original_roles mapping... shh
+                for r in var.original_roles:
                     if r in self.SECONDARY_ROLES:
                         continue
-                    var.ORIGINAL_ROLES[r].discard(p)
-                var.ORIGINAL_ROLES[role].add(p)
+                    var._original_roles[r].discard(p)
+                var._original_roles[role].add(p)
                 var.FINAL_ROLES[p] = role
                 var.MAIN_ROLES[p] = role
                 var.ORIGINAL_MAIN_ROLES[p] = role

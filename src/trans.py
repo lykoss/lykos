@@ -467,7 +467,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
     global DAY_TIMEDELTA, NIGHT_TIMEDELTA
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
-    elif not var.ORIGINAL_ROLES: # game already ended
+    elif not var: # game already ended
         return
     if DAY_START_TIME:
         now = datetime.now()
@@ -489,12 +489,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
 
         roles_msg = []
 
-        # squirrel away a copy of our original roleset for stats recording, as the following code
-        # modifies var.ORIGINAL_ROLES and var.ORIGINAL_MAIN_ROLES.
-        rolecounts = {role: len(players) for role, players in var.ORIGINAL_ROLES.items()}
-
-        # save some typing
-        rolemap = var.ORIGINAL_ROLES
+        rolemap = var.original_roles # this returns a different dict than the underlying value, so it's fine to modify
         mainroles = var.ORIGINAL_MAIN_ROLES
         orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
@@ -614,7 +609,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                             "stats": var.stats_type,
                             "abstain": "on" if var.abstain_enabled and not var.limit_abstain else "restricted" if var.abstain_enabled else "off",
                             "roles": {}}
-            for role, pl in var.ORIGINAL_ROLES.items():
+            for role, pl in var.original_roles.items():
                 if len(pl) > 0:
                     game_options["roles"][role] = len(pl)
 
@@ -799,7 +794,6 @@ def old_reset():
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
-    var.ORIGINAL_ROLES.clear()
     var.FINAL_ROLES.clear()
     var.MAIN_ROLES.clear()
     var.ORIGINAL_MAIN_ROLES.clear()

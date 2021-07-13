@@ -24,8 +24,7 @@ ROLES = UserDict()  # type: UserDict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def _get_blacklist(var: GameState):
-    blacklist = var.current_mode.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
-    return blacklist
+    return var.current_mode.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):
@@ -57,7 +56,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 
 @event_listener("role_revealed")
 def on_revealing_totem(evt: Event, var: GameState, user: User, role: str):
-    if role not in _get_blacklist(var) and not config.Main.get("gameplay.hidden.amnesiac") and var.ORIGINAL_ROLES["amnesiac"]:
+    if role not in _get_blacklist(var) and not config.Main.get("gameplay.hidden.amnesiac") and var.original_roles["amnesiac"]:
         global STATS_FLAG
         STATS_FLAG = True
     if role == "amnesiac":

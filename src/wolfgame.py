@@ -37,7 +37,7 @@ import urllib.request
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import FrozenSet, Set, Optional, Callable
+from typing import FrozenSet, Set, Optional, Callable, List
 
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame
 from src.channels import Channel
@@ -79,7 +79,6 @@ var.ADMIN_TO_PING = None  # type: ignore
 var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
 
-var.ORIGINAL_ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
 var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.ORIGINAL_MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
@@ -991,8 +990,8 @@ def stats(wrapper: MessageDispatcher, message: str):
 
     # Show everything as-is, with no hidden information
     elif var.stats_type == "accurate":
-        l1 = [k for k in var.roles.keys() if var.roles[k]]
-        l2 = [k for k in var.ORIGINAL_ROLES.keys() if var.ORIGINAL_ROLES[k]]
+        l1 = [k for k in var.roles if var.roles[k]]
+        l2 = [k for k in var.original_roles if var.original_roles[k]]
         rs = set(l1+l2)
         rs = [role for role in role_order() if role in rs]
 
@@ -2304,11 +2303,11 @@ def revealroles(wrapper: MessageDispatcher, message: str):
             for user in users:
                 evt = Event("revealroles_role", {"special_case": []})
                 evt.dispatch(var, user, role)
-                special_case = evt.data["special_case"]
+                special_case: List[str] = evt.data["special_case"]
 
-                if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.current_mode.SECONDARY_ROLES:
+                if not evt.prevent_default and user not in var.original_roles[role] and role not in var.current_mode.SECONDARY_ROLES:
                     for old_role in role_order(): # order doesn't matter here, but oh well
-                        if user in var.ORIGINAL_ROLES[old_role] and user not in var.roles[old_role]:
+                        if user in var.original_roles[old_role] and user not in var.roles[old_role]:
                             special_case.append(messages["revealroles_old_role"].format(old_role))
                             break
                 if special_case:

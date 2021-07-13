@@ -52,7 +52,7 @@ def on_myrole(evt: Event, var: GameState, user: User):
     if user in get_all_players(var, ("minion",)):
         wolves = []
         for wolfrole in Wolf:
-            for player in var.ORIGINAL_ROLES[wolfrole]:
+            for player in var.original_roles[wolfrole]:
                 wolves.append(player)
         evt.data["messages"].append(messages["original_wolves"].format(wolves))
 

@@ -493,12 +493,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         wrapper.send(messages[key].format(villagers, gamemode, options))
         wrapper.target.mode("+m")
 
-    var.ORIGINAL_ROLES.clear()
-    for role, players in ingame_state.ROLES.items():
-        var.ORIGINAL_ROLES[role] = players.copy()
-
-    var.LAST_PING = None
-
     if restart:
         ingame_state.current_phase = "join" # allow transition_* to run properly if game was restarted on first night
     if not ingame_state.start_with_day:

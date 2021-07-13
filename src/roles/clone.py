@@ -47,7 +47,7 @@ def clone(wrapper: MessageDispatcher, message: str):
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt: Event, var: GameState, user):
-    if config.Main.get("gameplay.hidden.clone") and user in var.ORIGINAL_ROLES["clone"]:
+    if config.Main.get("gameplay.hidden.clone") and user in var.original_roles["clone"]:
         evt.data["role"] = "clone"
 
 @event_listener("del_player")

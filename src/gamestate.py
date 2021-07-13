@@ -52,6 +52,7 @@ class GameState:
         self.game_settings: Dict[str, Any] = {}
         self.players = pregame_state.players
         self.roles: UserDict[str, UserSet] = UserDict()
+        self._original_roles: UserDict[Tuple[str, UserSet]] = None
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
         self.current_phase: str = pregame_state.current_phase
         self.next_phase: Optional[str] = None
@@ -71,10 +72,12 @@ class GameState:
             raise RuntimeError("GameState.setup() called while already setup")
         if self._torndown:
             raise RuntimeError("cannot setup a used-up GameState")
+        self._original_roles = UserDict((x, y.copy()) for x, y in self.roles.items())
         self.setup_completed = True
 
     def teardown(self):
         self.roles.clear()
+        self._original_roles.clear()
         self._rolestats.clear()
         self.current_mode.teardown()
         self._torndown = True
@@ -95,6 +98,14 @@ class GameState:
     @property
     def in_phase_transition(self):
         return self.next_phase is not None
+
+    @property
+    def original_roles(self):
+        # we store the data in a UserDict so it gets dynamically updated
+        # but we want to return a regular dict (and a regular underlying set)
+        # since this is meant to be used then discarded
+        # this is also read-only to prevent code from modifying it
+        return {name: set(value) for name, value in self._original_roles.items()}
 
     @property
     def abstain_enabled(self) -> bool:
