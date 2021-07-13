@@ -244,6 +244,8 @@ class User(IRCContext):
     def __new__(cls, cli, nick, ident, host, account):
         self = super().__new__(cls)
         super(__class__, self).__init__(nick, cli)
+        if account in ("0", "*"):
+            account = NotLoggedIn
 
         self._ident = ident
         self._host = host
