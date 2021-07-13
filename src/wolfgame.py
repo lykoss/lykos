@@ -78,7 +78,6 @@ var.ADMIN_PINGING = False  # type: ignore
 var.ADMIN_TO_PING = None  # type: ignore
 var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
-var.PHASE = "none"  # type: ignore
 
 var.ORIGINAL_ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
 var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
@@ -202,7 +201,7 @@ def sync_modes():
         pl = get_players(game_state)
 
         for user in channels.Main.users:
-            if config.Main.get("gameplay.nightchat") and game_state.PHASE == "night":
+            if config.Main.get("gameplay.nightchat") and game_state.current_phase == "night":
                 if mode in user.channels[channels.Main]:
                     voices.append(("-" + mode, user))
             elif user in pl and mode not in user.channels[channels.Main]:
@@ -244,7 +243,7 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
         message = " ".join(args[1:])
 
     if var.in_game:
-        if var.PHASE == "join" or force or wrapper.source.nick == "<console>":
+        if var.current_phase == "join" or force or wrapper.source.nick == "<console>":
             stop_game(var, log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
@@ -294,7 +293,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
         message = " ".join(args[1:])
 
     if var.in_game:
-        if var.PHASE == "join" or force:
+        if var.current_phase == "join" or force:
             stop_game(var, log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
@@ -410,7 +409,7 @@ def replace(wrapper: MessageDispatcher, message: str):
 
         cmodes = []
 
-        if config.Main.get("gameplay.nightchat") or var.PHASE != "night":
+        if config.Main.get("gameplay.nightchat") or var.current_phase != "night":
             cmodes += [("-v", target), ("+v", wrapper.source)]
 
         toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
@@ -623,7 +622,7 @@ def join(wrapper: MessageDispatcher, message: str):
         })
     if not evt.dispatch(wrapper, message, forced=False):
         return
-    if var.PHASE in ("none", "join"):
+    if not var.in_game:
         if wrapper.private:
             return
 
@@ -699,7 +698,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 channels.Main.old_modes[wrapper.source].add(mode)
         var.MAIN_ROLES[wrapper.source] = "person"
         var.players.append(wrapper.source)
-        var.PHASE = "join"
+        var.current_phase = "join"
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
@@ -879,7 +878,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
             msg = [messages["fquit_success"].format(wrapper.source, target)]
             if var.in_game and var.role_reveal in ("on", "team"):
                 msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
-            if var.PHASE == "join":
+            if var.current_phase == "join":
                 player_count = len(get_players(var)) - 1
                 to_say = "new_player_count"
                 if not player_count:
@@ -888,7 +887,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
 
             wrapper.send(*msg)
 
-            if var.PHASE != "join":
+            if var.current_phase != "join":
                 reaper.DCED_LOSERS.add(target)
 
             add_dying(var, target, "bot", "fquit", death_triggers=False)
@@ -922,7 +921,7 @@ def stats(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
     pl = get_players(var)
 
-    if wrapper.public and (wrapper.source in pl or var.PHASE == "join"):
+    if wrapper.public and (wrapper.source in pl or var.current_phase == "join"):
         # only do this rate-limiting stuff if the person is in game
         if var.LAST_STATS and var.LAST_STATS + timedelta(seconds=config.Main.get("ratelimits.stats")) > datetime.now():
             wrapper.pm(messages["command_ratelimited"])
@@ -939,7 +938,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
     wrapper.reply(msg)
 
-    if var.PHASE == "join" or var.stats_type == "disabled":
+    if var.current_phase == "join" or var.stats_type == "disabled":
         return
 
     entries = []
@@ -1056,7 +1055,7 @@ def stats(wrapper: MessageDispatcher, message: str):
         else:
             entries.append(messages["stats_reply_entry_single"].format("neutral player", neutral))
 
-    wrapper.reply(messages["stats_reply"].format(var.PHASE, first_count, entries))
+    wrapper.reply(messages["stats_reply"].format(var.current_phase, first_count, entries))
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
@@ -1090,7 +1089,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
                 newstats.add(frozenset(d.items()))
     var.set_role_stats(newstats)
 
-    if var.PHASE == "join":
+    if var.current_phase == "join":
         if player in var.GAMEMODE_VOTES:
             del var.GAMEMODE_VOTES[player]
 
@@ -1106,14 +1105,14 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
 
     for player in players:
         if not player.is_fake:
-            if var.PHASE != "night" or config.Main.get("gameplay.nightchat"):
+            if var.current_phase != "night" or config.Main.get("gameplay.nightchat"):
                 cmode.append(("-v", player.nick))
             if var.in_game and config.Main.get("gameplay.quiet_dead_players"):
                 # Died during the game, so quiet!
                 ircd = get_ircd()
                 if ircd.supports_quiet():
                     cmode.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{player.nick}!*@*"))
-            if var.PHASE == "join":
+            if var.current_phase == "join":
                 for mode in channels.Main.old_modes[player]:
                     cmode.append(("+" + mode, player.nick))
                 del channels.Main.old_modes[player]
@@ -1137,12 +1136,13 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
         # if game isn't about to end, join people to deadchat
         join_deadchat(var, *deadchat)
 
-        if var.PHASE == "day" and var.GAMEPHASE == "day":
-            # PHASE is day but GAMEPHASE is night during transition_day; ensure we only induce lynch during actual daytime
-            chk_decision(var)
-        elif var.PHASE == "night" and var.GAMEPHASE == "night":
-            # PHASE is night but GAMEPHASE is day during transition_night; ensure we only try to end night during actual nighttime
-            chk_nightdone(var)
+        if not var.in_phase_transition:
+            if var.current_phase == "day":
+                # ensure we only induce lynch during actual daytime
+                chk_decision(var)
+            elif var.current_phase == "night":
+                # ensure we only try to end night during actual nighttime
+                chk_nightdone(var)
     else:
         # HACK: notify kill_players that game is ending so it can pass it to its caller
         evt.prevent_default = True
@@ -1199,7 +1199,7 @@ def account_change(evt, user, old_account): # FIXME: This uses var
     pl = get_participants(var)
     if user in pl and user.account not in var.ORIGINAL_ACCS.values() and user not in reaper.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
-        if var.PHASE != "join":
+        if var.current_phase != "join":
             channels.Main.mode(["-v", user.nick])
     elif (user not in pl or user in reaper.DISCONNECTED) and user.account in var.ORIGINAL_ACCS.values():
         # if they were gone, maybe mark them as back
@@ -1238,7 +1238,7 @@ def leave(var: GameState, what, user, why=None):
         return
     if why and why == var.CHANGING_HOST_QUIT_MESSAGE:
         return
-    if var.PHASE == "none":
+    if var.current_phase == "none":
         return
 
     ps = get_players(var)
@@ -1258,7 +1258,7 @@ def leave(var: GameState, what, user, why=None):
 
     population = ""
 
-    if var.PHASE == "join":
+    if var.current_phase == "join":
         lpl = len(ps) - 1
         if lpl < var.MIN_PLAYERS:
             with locks.join_timer:
@@ -1286,7 +1286,7 @@ def leave(var: GameState, what, user, why=None):
     if reason == "kick":
         reason = "leave"
 
-    if reason in grace_times and (grace_times[reason] <= 0 or var.PHASE == "join"):
+    if reason in grace_times and (grace_times[reason] <= 0 or var.current_phase == "join"):
         # possible message keys (for easy grep):
         # "quit_death", "quit_death_no_reveal", "leave_death", "leave_death_no_reveal", "account_death", "account_death_no_reveal"
         msg = messages["{0}_death{1}".format(reason, reveal)]
@@ -1317,7 +1317,7 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     if wrapper.target is channels.Main:
         if wrapper.source not in get_players(var):
             return
-        if var.PHASE == "join":
+        if var.current_phase == "join":
             lpl = len(get_players(var)) - 1
             if lpl == 0:
                 population = " " + messages["no_players_remaining"]
@@ -1341,7 +1341,7 @@ def leave_game(wrapper: MessageDispatcher, message: str):
         channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
         channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
-    if var.PHASE != "join":
+    if var.current_phase != "join":
         reaper.DCED_LOSERS.add(wrapper.source)
         if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled"):
             reaper.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
@@ -1369,9 +1369,9 @@ def relay_wolfchat(wrapper: MessageDispatcher, message: str):
         # handle wolfchat toggles
         if not config.Main.get("gameplay.wolfchat.traitor_non_wolf"):
             wolves.extend(var.roles["traitor"])
-        if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
+        if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
-        elif var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
+        elif var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             return
         elif wrapper.source not in wolves and config.Main.get("gameplay.wolfchat.wolves_only_chat"):
             return
@@ -1793,7 +1793,7 @@ def timeleft(wrapper: MessageDispatcher, message: str):
     if wrapper.public:
         var.LAST_TIME = datetime.now()
 
-    if var.PHASE == "join":
+    if var.current_phase == "join":
         dur = int((pregame.CAN_START_TIME - datetime.now()).total_seconds())
         msg = None
         if dur > 0:
@@ -1802,21 +1802,21 @@ def timeleft(wrapper: MessageDispatcher, message: str):
         if msg is not None:
             wrapper.reply(msg)
 
-    if var.PHASE in trans.TIMERS or f"{var.PHASE}_limit" in trans.TIMERS:
-        if var.PHASE == "day":
+    if var.current_phase in trans.TIMERS or f"{var.current_phase}_limit" in trans.TIMERS:
+        if var.current_phase == "day":
             what = "sunset" # FIXME: hardcoded english
             name = "day_limit"
-        elif var.PHASE == "night":
+        elif var.current_phase == "night":
             what = "sunrise"
             name = "night_limit"
-        elif var.PHASE == "join":
+        elif var.current_phase == "join":
             what = "the game is canceled if it's not started"
             name = "join"
 
         remaining = int((trans.TIMERS[name][1] + trans.TIMERS[name][2]) - time.time())
         msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)
     else:
-        msg = messages["timers_disabled"].format(var.PHASE.capitalize())
+        msg = messages["timers_disabled"].format(var.current_phase.capitalize())
 
     wrapper.reply(msg)
 
@@ -1988,7 +1988,7 @@ def aftergame(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["command_not_found"])
         return
 
-    if var.PHASE == "none":
+    if var is None:
         do_action()
         return
 
@@ -2144,7 +2144,7 @@ def update(wrapper: MessageDispatcher, message: str):
     force = (message.strip() == "-force")
 
     if var.in_game:
-        if var.PHASE == "join" or force:
+        if var.current_phase == "join" or force:
             stop_game(var, log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="update"))

@@ -116,7 +116,7 @@ def retract(wrapper: MessageDispatcher, message: str):
         return
 
     with locks.reaper, locks.join_timer:
-        if var.PHASE == "join":
+        if var.current_phase == "join":
             if wrapper.source not in START_VOTES:
                 wrapper.pm(messages["start_novote"])
             else:
@@ -129,7 +129,7 @@ def retract(wrapper: MessageDispatcher, message: str):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
-    if var.PHASE == "join":
+    if var.current_phase == "join":
         for role in FORCE_ROLES:
             FORCE_ROLES[role].discard(player)
         with locks.join_timer:
@@ -502,10 +502,9 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     var.LAST_PING = None
 
     if restart:
-        var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
+        ingame_state.current_phase = "join" # allow transition_* to run properly if game was restarted on first night
     if not ingame_state.start_with_day:
         from src.trans import transition_night
-        var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night(ingame_state)
     elif start_event.data["custom_game_callback"]:
         start_event.data["custom_game_callback"](ingame_state)
@@ -514,7 +513,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         evt = Event("send_role", {})
         evt.dispatch(ingame_state)
         from src.trans import transition_day
-        var.GAMEPHASE = "night"
         transition_day(ingame_state)
 
     decrement_stasis()
@@ -535,7 +533,7 @@ def _command_disabled(wrapper: MessageDispatcher, message: str):
 @handle_error
 def expire_start_votes(var: GameState, channel: Channel):
     # Should never happen as the timer is removed on game start, but just to be safe
-    if var.PHASE != "join":
+    if var.current_phase != "join":
         return
 
     with locks.join_timer:

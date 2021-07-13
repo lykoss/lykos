@@ -111,7 +111,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
     if old_role == "alpha wolf" and evt.data["role"] != "alpha wolf":
         BITTEN.pop(player, None)
         ALPHAS.discard(player)
-    elif evt.data["role"] == "alpha wolf" and ENABLED and var.PHASE == "night":
+    elif evt.data["role"] == "alpha wolf" and ENABLED and var.current_phase == "night":
         evt.data["messages"].append(messages["wolf_bite"])
 
 @event_listener("wolf_notify")

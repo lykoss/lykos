@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import List, Optional, Set, TYPE_CHECKING
+from typing import List, Optional, Set, Iterable, TYPE_CHECKING
 
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import command
@@ -218,7 +218,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 
         evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player)))
 
-        if var.PHASE == "night" and evt.data["role"] in Wolf & Killer:
+        if var.current_phase == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
             nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
             nevt.dispatch(var, player)
@@ -349,20 +349,20 @@ def is_known_wolf_ally(var, actor, target):
     wolves = get_wolfchat_roles()
     return actor_role in wolves and target_role in wolves
 
-def send_wolfchat_message(var, user, message, roles, *, role=None, command=None):
+def send_wolfchat_message(var: GameState, user: User, message: str, roles: Iterable[str], *, role=None, command: Optional[str] = None):
     if command not in _kill_cmds and config.Main.get("gameplay.wolfchat.only_kill_command"):
-        if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
+        if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
-        if var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
+        if var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             return
     if not is_known_wolf_ally(var, user, user):
         return
 
     wcroles = get_wolfchat_roles()
     if config.Main.get("gameplay.wolfchat.only_same_command"):
-        if var.PHASE == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
+        if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             wcroles = roles
-        if var.PHASE == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
+        if var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             wcroles = roles
 
     wcwolves = get_players(var, wcroles)

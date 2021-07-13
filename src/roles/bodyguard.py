@@ -59,7 +59,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
-    if var.PHASE == "night" and player in GUARDED:
+    if var.current_phase == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for k,v in list(GUARDED.items()):
         if player in (k, v):
@@ -130,7 +130,7 @@ def on_player_protected(evt: Event, var: GameState, target: User, attacker: User
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
         add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
-        if var.PHASE == "night" and var.GAMEPHASE == "day": # currently transitioning
+        if var.current_phase == "night" and var.in_phase_transition: # currently transitioning
             DYING.add(protector)
 
 @event_listener("remove_protection")

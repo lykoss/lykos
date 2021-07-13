@@ -104,7 +104,7 @@ class command:
             self.func(wrapper, message)
             return
 
-        if self.phases and var.PHASE not in self.phases:
+        if self.phases and wrapper.game_state.current_phase not in self.phases:
             return
 
         wrapper.source.update_account_data(self.key, functools.partial(self._thunk, wrapper, message))
@@ -139,7 +139,7 @@ class command:
         if self.playing or self.roles or self.users:
             self.func(wrapper, message) # don't check restrictions for game commands
             # Role commands might end the night if it's nighttime
-            if var.PHASE == "night":
+            if var.current_phase == "night":
                 from src.wolfgame import chk_nightdone
                 chk_nightdone(var)
             return

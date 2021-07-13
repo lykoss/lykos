@@ -8,7 +8,7 @@ from src import channels, config
 
 if typing.TYPE_CHECKING:
     from src.gamemodes import GameMode
-    from typing import FrozenSet, Set, Tuple, Any, Dict
+    from typing import FrozenSet, Set, Tuple, Any, Dict, Optional
 
 __all__ = ["GameState", "PregameState", "IngameState", "set_gamemode"]
 
@@ -34,6 +34,8 @@ def set_gamemode(var: GameState, arg: str) -> bool:
 class PregameState:
     def __init__(self):
         self.players = UserList()
+        self.current_phase: str = "join"
+        self.next_phase: Optional[str] = None
         # Note: current_mode is None for all but the !start machinery
         self.current_mode: GameMode = None
 
@@ -51,6 +53,8 @@ class GameState:
         self.players = pregame_state.players
         self.roles: UserDict[str, UserSet] = UserDict()
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
+        self.current_phase: str = pregame_state.current_phase
+        self.next_phase: Optional[str] = None
 
     def begin_setup(self):
         if self.setup_completed:
@@ -87,6 +91,10 @@ class GameState:
     @property
     def in_game(self):
         return self.setup_completed and not self._torndown
+
+    @property
+    def in_phase_transition(self):
+        return self.next_phase is not None
 
     @property
     def abstain_enabled(self) -> bool:

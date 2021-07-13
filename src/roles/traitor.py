@@ -62,7 +62,7 @@ def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, re
         # luck/misdirection totems are in play, a wolf kill could have bounced to traitor anyway
         return
 
-    if var.PHASE == "day" and var.GAMEPHASE == "night":
+    if var.current_phase == "day" and var.in_phase_transition:
         mevt = Event("get_role_metadata", {})
         mevt.dispatch(var, "night_kills")
         nonwolf = 0

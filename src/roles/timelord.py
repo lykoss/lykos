@@ -43,7 +43,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
     channels.Main.send(messages["time_lord_dead"].format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
 
     from src.trans import hurry_up, night_warn, night_timeout, DAY_ID, NIGHT_ID, TIMERS
-    if var.GAMEPHASE == "day":
+    if var.current_phase == "day":
         time_limit = var.day_time_limit
         limit_cb = hurry_up
         limit_args = [var, DAY_ID, True]
@@ -51,7 +51,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
         warn_cb = hurry_up
         warn_args = [var, DAY_ID, False]
         timer_name = "day_warn"
-    elif var.GAMEPHASE == "night":
+    elif var.current_phase == "night":
         time_limit = var.night_time_limit
         limit_cb = night_timeout
         limit_args = [var, NIGHT_ID]
@@ -62,12 +62,12 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
     else:
         return
 
-    if f"{var.GAMEPHASE}_limit" in TIMERS:
-        time_left = int((TIMERS[f"{var.GAMEPHASE}_limit"][1] + TIMERS[f"{var.GAMEPHASE}_limit"][2]) - time.time())
+    if f"{var.current_phase}_limit" in TIMERS:
+        time_left = int((TIMERS[f"{var.current_phase}_limit"][1] + TIMERS[f"{var.current_phase}_limit"][2]) - time.time())
 
         if time_left > time_limit > 0:
             t = threading.Timer(time_limit, limit_cb, limit_args)
-            TIMERS[f"{var.GAMEPHASE}_limit"] = (t, time.time(), time_limit)
+            TIMERS[f"{var.current_phase}_limit"] = (t, time.time(), time_limit)
             t.daemon = True
             t.start()
 

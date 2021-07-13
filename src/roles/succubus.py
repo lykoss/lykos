@@ -111,10 +111,10 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
 def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len([x for x in ENTRANCED if x not in var.DEAD])
-    if var.PHASE == "day" and lsuccubi and lpl - lsuccubi == lentranced:
+    if var.current_phase == "day" and lsuccubi and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(lsuccubi)
-    elif not lsuccubi and lentranced and var.PHASE == "day" and lpl == lentranced:
+    elif not lsuccubi and lentranced and var.current_phase == "day" and lpl == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["entranced_win"]
 
@@ -136,7 +136,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
         return
     if player in VISITED:
         # if it's night, also unentrance the person they visited
-        if var.PHASE == "night" and var.GAMEPHASE == "night":
+        if var.current_phase == "night" and not var.in_phase_transition:
             if VISITED[player] in ENTRANCED:
                 ENTRANCED.discard(VISITED[player])
                 VISITED[player].send(messages["entranced_revert_win"])

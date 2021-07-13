@@ -45,7 +45,7 @@ class MessageDispatcher:
             self.source.send(*messages, **kwargs)
         elif (self.target is channels.Main and self.game_state is not None and 
                 (self.source not in get_players(self.game_state) or
-                (config.Main.get("gameplay.nightchat") and self.game_state.PHASE == "night"))):
+                (config.Main.get("gameplay.nightchat") and self.game_state.current_phase == "night"))):
             # TODO: ideally the above check would be handled in game logic somehow
             # (perhaps via an event) rather than adding game logic to the transport layer
             kwargs.setdefault("notice", True)

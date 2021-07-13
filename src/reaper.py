@@ -38,18 +38,18 @@ def reaper(var: GameState, gameid: int):
             # Terminate reaper when game ends
             if not var.in_game:
                 return
-            if var.PHASE != var.GAMEPHASE:
+            if var.in_phase_transition:
                 # in a phase transition, so don't run the reaper here or else things may break
                 # flag to re-run sooner than usual though
                 short = True
                 continue
             elif not config.Main.get("gameplay.nightchat"):
-                if var.PHASE == "night":
+                if var.current_phase == "night":
                     # don't count nighttime towards idling
                     # this doesn't do an exact count, but is good enough
                     num_night_iters += 1
                     skip = True
-                elif var.PHASE == "day" and var.DAY_COUNT != last_day_id:
+                elif var.current_phase == "day" and var.DAY_COUNT != last_day_id:
                     last_day_id = var.DAY_COUNT
                     num_night_iters += 1
                     for user in LAST_SAID_TIME:
@@ -111,7 +111,7 @@ def reaper(var: GameState, gameid: int):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
-                    if var.PHASE != "join":
+                    if var.current_phase != "join":
                         NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, config.Main.get("reaper.quit.points"), users.Bot, messages["quit_warning"], expires=config.Main.get("reaper.quit.expiration"))
                     if var.in_game:
@@ -124,7 +124,7 @@ def reaper(var: GameState, gameid: int):
                         channels.Main.send(messages["part_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
-                    if var.PHASE != "join":
+                    if var.current_phase != "join":
                         NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, config.Main.get("reaper.part.points"), users.Bot, messages["part_warning"], expires=config.Main.get("reaper.part.expiration"))
                     if var.in_game:
@@ -137,7 +137,7 @@ def reaper(var: GameState, gameid: int):
                         channels.Main.send(messages["account_death"].format(dcedplayer, revealrole))
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
-                    if var.PHASE != "join":
+                    if var.current_phase != "join":
                         NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, config.Main.get("reaper.account.points"), users.Bot, messages["acc_warning"], expires=config.Main.get("reaper.account.expiration"))
                     if var.in_game:
@@ -147,13 +147,13 @@ def reaper(var: GameState, gameid: int):
 
 @command("")  # update last said
 def update_last_said(wrapper: MessageDispatcher, message: str):
-    if wrapper.target is not channels.Main:
+    if wrapper.target is not channels.Main or wrapper.game_state is None:
         return
 
     if not config.Main.get("reaper.enabled"):
         return
 
-    if wrapper.game_state.PHASE not in ("join", "none"):
+    if wrapper.game_state.in_game:
         LAST_SAID_TIME[wrapper.source] = datetime.now()
 
     if wrapper.source in get_players(wrapper.game_state) and wrapper.source in IDLE_WARNED_PM:
@@ -182,7 +182,7 @@ def return_to_village(var: GameState, target: User, *, show_message: bool, new_u
                 target.swap(new_user)
 
             if show_message:
-                if config.Main.get("gameplay.nightchat") or var.PHASE != "night":
+                if config.Main.get("gameplay.nightchat") or var.current_phase != "night":
                     channels.Main.mode(("+v", new_user))
                 if target.nick == new_user.nick:
                     channels.Main.send(messages["player_return"].format(new_user))

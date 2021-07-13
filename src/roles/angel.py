@@ -68,7 +68,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
-    if var.PHASE == "night" and player in GUARDED:
+    if var.current_phase == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):
         for k,v in list(dictvar.items()):

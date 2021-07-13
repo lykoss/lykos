@@ -126,7 +126,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
     # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
     # as we don't want to insert bogus command keys into the dict.
     cmds: List[command] = []
-    phase = context.game_state.PHASE
+    phase = context.game_state.current_phase
     if context.source in get_participants(context.game_state):
         roles = get_all_roles(context.game_state, context.source)
         common_roles = set(roles)  # roles shared by every eligible role command
@@ -193,9 +193,8 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
                 context.target = channels.Main
             else:
                 context.target = users.Bot
-        if phase == context.game_state.PHASE:  # don't call any more commands if one we just called executed a phase transition
+        if phase == context.game_state.current_phase: # don't call any more commands if one we just called executed a phase transition
             fn.caller(context, message)
-
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
@@ -365,7 +364,7 @@ def connect_callback(cli: IRCClient):
     selected_sasl = None
 
     @hook("cap")
-    def on_cap(cli: IRCClient, svr, mynick, cmd, *caps):
+    def on_cap(cli: IRCClient, svr, mynick, cmd: str, *caps: str):
         nonlocal supported_sasl, selected_sasl
         # caps is a star because we might receive multiline in LS
         if cmd == "LS":
@@ -461,14 +460,14 @@ def connect_callback(cli: IRCClient):
                     cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("saslsuccess")
-        def on_successful_auth(cli, blah, blahh, blahhh):
+        def on_successful_auth(cli: IRCClient, blah, blahh, blahhh):
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
         @hook("saslfail")
         @hook("sasltoolong")
         @hook("saslaborted")
-        def on_failure_auth(cli, *etc):
+        def on_failure_auth(cli: IRCClient, *etc):
             nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet

@@ -98,7 +98,7 @@ def no_lynch(wrapper: MessageDispatcher, message: str):
 def retract(wrapper: MessageDispatcher, message: str):
     """Takes back your vote during the day (for whom to lynch)."""
     var = wrapper.game_state
-    if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED or var.PHASE != "day":
+    if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED or var.current_phase != "day":
         return
 
     global LAST_VOTES
@@ -125,7 +125,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
     """Show the current votes."""
     var = wrapper.game_state
     pl = get_players(var)
-    if var.PHASE == "join":
+    if var.current_phase == "join":
         # get gamemode votes in a dict of {mode: number of votes}
         gm_votes = list(Counter(var.GAMEMODE_VOTES.values()).items())
         gm_votes.sort(key=lambda x: x[1], reverse=True) # sort from highest to lowest
@@ -157,7 +157,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
         wrapper.send(msg)
         return
 
-    if var.PHASE == "night":
+    if var.current_phase == "night":
         wrapper.pm(messages["voting_daytime_only"])
         return
 
@@ -202,7 +202,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
 def vote(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if message:
-        if wrapper.game_state.PHASE == "join" and wrapper.public:
+        if wrapper.game_state.current_phase == "join" and wrapper.public:
             from src.wolfgame import game
             return game.caller(wrapper, message)
         return lynch.caller(wrapper, message)
@@ -314,7 +314,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
-    if var.PHASE == "day":
+    if var.current_phase == "day":
         if player in VOTES:
             del VOTES[player] # Delete other people's votes on the player
         for k in list(VOTES):

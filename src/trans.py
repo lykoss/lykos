@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Dict, Set, Optional, Union
+from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Union
 import threading
 import time
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from src.users import User
 
 NIGHT_IDLE_EXEMPT = UserSet()
-TIMERS = {}
+TIMERS: Dict[str, Tuple[threading.Timer, Union[float, int], int]] = {}
 
 DAY_ID: Union[float, int] = 0
 DAY_START_TIME: Optional[datetime] = None
@@ -34,7 +34,7 @@ NIGHT_START_TIME: Optional[datetime] = None
 
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
-    if var.PHASE != "day":
+    if var.current_phase != "day" or var.in_phase_transition:
         return
     if gameid and gameid != DAY_ID:
         return
@@ -52,7 +52,7 @@ def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = 
 @command("fnight", flag="N")
 def fnight(wrapper: MessageDispatcher, message: str):
     """Force the day to end and night to begin."""
-    if wrapper.game_state.PHASE != "day":
+    if wrapper.game_state.current_phase != "day":
         wrapper.pm(messages["not_daytime"])
     else:
         hurry_up(wrapper.game_state, 0, True, admin_forced=True)
@@ -60,14 +60,15 @@ def fnight(wrapper: MessageDispatcher, message: str):
 @command("fday", flag="N")
 def fday(wrapper: MessageDispatcher, message: str):
     """Force the night to end and the next day to begin."""
-    if wrapper.game_state.PHASE != "night":
+    if wrapper.game_state.current_phase != "night":
         wrapper.pm(messages["not_nighttime"])
     else:
         transition_day(wrapper.game_state)
 
 def begin_day(var: GameState):
     # Reset nighttime variables
-    var.GAMEPHASE = "day"
+    var.current_phase = "day"
+    var.next_phase = None
     var.LAST_GOAT.clear() # FIXME: Move this with !goat when it has its own module (and put it in an event listener)
     msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
@@ -102,7 +103,7 @@ def begin_day(var: GameState):
 
 @handle_error
 def night_warn(var: GameState, gameid: int):
-    if gameid != NIGHT_ID or var.PHASE != "night":
+    if gameid != NIGHT_ID or var.current_phase != "night" or var.in_phase_transition:
         return
 
     channels.Main.send(messages["twilight_warning"])
@@ -126,7 +127,7 @@ def night_warn(var: GameState, gameid: int):
 
 @handle_error
 def night_timeout(var: GameState, gameid: int):
-    if gameid != NIGHT_ID or var.PHASE != "night":
+    if gameid != NIGHT_ID or var.current_phase != "night" or var.in_phase_transition:
         return
 
     # determine which roles idled out night and give them warnings
@@ -169,10 +170,10 @@ def transition_day(var: GameState, gameid: int = 0):
 
     NIGHT_ID = 0
 
-    if var.PHASE not in ("night", "join"):
+    if var.current_phase == "day":
         return
 
-    var.PHASE = "day"
+    var.next_phase = "day"
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
     DAY_START_TIME = datetime.now()
@@ -363,10 +364,10 @@ def transition_day(var: GameState, gameid: int = 0):
 
 @handle_error
 def transition_night(var: GameState):
-    if var.PHASE not in ("day", "join"):
+    if var.current_phase == "night":
         return
     global NIGHT_ID, DAY_START_TIME
-    var.PHASE = "night"
+    var.next_phase = "night"
 
     NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
@@ -424,7 +425,8 @@ def transition_night(var: GameState):
     channels.Main.send(*dmsg, sep=" ")
 
     # it's now officially nighttime
-    var.GAMEPHASE = "night"
+    var.current_phase = "night"
+    var.next_phase = None
 
     event_night = Event("begin_night", {"messages": []})
     event_night.dispatch(var)
@@ -441,7 +443,7 @@ def on_transition_day_resolve_end(evt: Event, var: GameState, victims):
         evt.data["message"]["*"].append(messages["new_wolf"])
 
 def chk_nightdone(var: GameState):
-    if var.PHASE != "night":
+    if var.current_phase != "night":
         return
 
     event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
@@ -451,12 +453,12 @@ def chk_nightdone(var: GameState):
     # remove all instances of them if they are silenced (makes implementing the event easier)
     nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
 
-    if var.PHASE == "night" and actedcount >= len(nightroles):
+    if var.current_phase == "night" and actedcount >= len(nightroles):
         for x, t in TIMERS.items():
             t[0].cancel()
 
         TIMERS.clear()
-        if var.PHASE == "night":  # Double check
+        if var.current_phase == "night":  # Double check
             event.data["transition_day"](var)
 
 def stop_game(var: GameState, winner="", abort=False, additional_winners=None, log=True):
@@ -650,7 +652,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
     """ Returns True if someone won """
     lpl = len(get_players(var))
 
-    if var.PHASE == "join":
+    if var.current_phase == "join":
         if not lpl:
             reset(var)
 
@@ -672,7 +674,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
-        if var.PHASE == "day":
+        if var.current_phase == "day":
             pl = set(get_players(var)) - get_absent(var)
             lpl = len(pl)
         else:
@@ -721,13 +723,13 @@ def reset_game(wrapper: MessageDispatcher, message: str):
     """Forces the game to stop."""
     wrapper.send(messages["fstop_success"].format(wrapper.source))
     var = wrapper.game_state
-    if var.PHASE != "join":
-        stop_game(var, log=False)
-    else:
+    if var.current_phase == "join":
         pl = [p for p in get_players(var) if not p.is_fake]
         reset(var)
         if pl:
             wrapper.send(messages["fstop_ping"].format(pl))
+    else:
+        stop_game(var, log=False)
 
 def reset(var: Optional[GameState]):
     # Reset game timers
@@ -777,7 +779,6 @@ def on_reset(evt: Event, var: GameState):
     NIGHT_IDLE_EXEMPT.clear()
 
 def old_reset():
-    var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
     var.RESTART_TRIES = 0
     var.DEAD.clear()

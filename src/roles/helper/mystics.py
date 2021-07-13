@@ -47,7 +47,7 @@ def register_mystic(rolename: str, *, send_role: bool, types: Tuple[str]):
         if evt.params.inherit_from in LAST_COUNT and old_role != rolename and evt.data["role"] == rolename:
             values = LAST_COUNT.pop(evt.params.inherit_from)
             LAST_COUNT[player] = values
-            key = "mystic_info_{0}".format(var.PHASE)
+            key = "mystic_info_{0}".format(var.current_phase)
             msg = messages[key].format(values[0][0], [messages["mystic_join"].format(c, t) for c, t in values])
             evt.data["messages"].append(msg)
 
@@ -59,6 +59,6 @@ def register_mystic(rolename: str, *, send_role: bool, types: Tuple[str]):
     def on_myrole(evt: Event, var: GameState, user: User):
         if user in get_all_players(var, (rolename,)):
             values = LAST_COUNT[user]
-            key = "mystic_info_{0}".format(var.PHASE)
+            key = "mystic_info_{0}".format(var.current_phase)
             msg = messages[key].format(values[0][0], [messages["mystic_join"].format(c, t) for c, t in values])
             evt.data["messages"].append(msg)

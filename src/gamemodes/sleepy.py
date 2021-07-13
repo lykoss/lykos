@@ -96,8 +96,8 @@ class SleepyMode(GameMode):
                     t.start()
 
     @handle_error
-    def do_nightmare(self, var, target, night):
-        if var.PHASE != "night" or var.NIGHT_COUNT != night:
+    def do_nightmare(self, var: GameState, target, night):
+        if var.current_phase != "night" or var.NIGHT_COUNT != night:
             return
         if target not in get_players(var):
             return

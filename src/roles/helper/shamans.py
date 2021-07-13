@@ -129,7 +129,7 @@ def setup_variables(rolename, *, knows_totem):
     @event_listener("revealroles_role", listener_id="shamans.<{}>.revealroles_role".format(rolename))
     def on_revealroles(evt: Event, var: GameState, user, role):
         if role == rolename and user in TOTEMS:
-            if var.PHASE == "night":
+            if var.current_phase == "night":
                 evt.data["special_case"].append(messages["shaman_revealroles_night"].format(
                     (messages["shaman_revealroles_night_totem"].format(num, totem)
                         for num, totem in TOTEMS[user].items()),
@@ -267,7 +267,7 @@ def setup_variables(rolename, *, knows_totem):
     if knows_totem:
         @event_listener("myrole", listener_id="shamans.<{}>.on_myrole".format(rolename))
         def on_myrole(evt: Event, var: GameState, user):
-            if evt.data["role"] == rolename and var.PHASE == "night" and user not in SHAMANS:
+            if evt.data["role"] == rolename and var.current_phase == "night" and user not in SHAMANS:
                 evt.data["messages"].append(totem_message(TOTEMS[user]))
 
     return (TOTEMS, LASTGIVEN, SHAMANS, RETARGET)
