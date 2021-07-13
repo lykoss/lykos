@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Union
 import threading
 import time
@@ -27,9 +27,11 @@ NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS: Dict[str, Tuple[threading.Timer, Union[float, int], int]] = {}
 
 DAY_ID: Union[float, int] = 0
+DAY_TIMEDELTA: Optional[timedelta] = None
 DAY_START_TIME: Optional[datetime] = None
 
 NIGHT_ID: Union[float, int] = 0
+NIGHT_TIMEDELTA: Optional[timedelta] = None
 NIGHT_START_TIME: Optional[datetime] = None
 
 @handle_error
@@ -164,7 +166,7 @@ def on_night_idled(evt: Event, var: GameState, player):
 
 @handle_error
 def transition_day(var: GameState, gameid: int = 0):
-    global DAY_START_TIME, NIGHT_ID, NIGHT_START_TIME
+    global DAY_START_TIME, NIGHT_ID, NIGHT_TIMEDELTA, NIGHT_START_TIME
     if gameid and gameid != NIGHT_ID:
         return
 
@@ -189,7 +191,7 @@ def transition_day(var: GameState, gameid: int = 0):
 
     td = DAY_START_TIME - NIGHT_START_TIME
     NIGHT_START_TIME = None
-    var.NIGHT_TIMEDELTA += td
+    NIGHT_TIMEDELTA += td
     minimum, sec = td.seconds // 60, td.seconds % 60
 
     # built-in logic runs at the following priorities:
@@ -366,7 +368,7 @@ def transition_day(var: GameState, gameid: int = 0):
 def transition_night(var: GameState):
     if var.current_phase == "night":
         return
-    global NIGHT_ID, DAY_START_TIME
+    global NIGHT_ID, DAY_START_TIME, DAY_TIMEDELTA
     var.next_phase = "night"
 
     NIGHT_START_TIME = datetime.now()
@@ -389,10 +391,10 @@ def transition_night(var: GameState):
     dmsg = []
 
     NIGHT_ID = time.time()
-    if var.NIGHT_TIMEDELTA or var.start_with_day:  #  transition from day
+    if NIGHT_TIMEDELTA or var.start_with_day:  #  transition from day
         td = NIGHT_START_TIME - DAY_START_TIME
         DAY_START_TIME = None
-        var.DAY_TIMEDELTA += td
+        DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         dmsg.append(messages["day_lasted"].format(min, sec))
 
@@ -462,6 +464,7 @@ def chk_nightdone(var: GameState):
             event.data["transition_day"](var)
 
 def stop_game(var: GameState, winner="", abort=False, additional_winners=None, log=True):
+    global DAY_TIMEDELTA, NIGHT_TIMEDELTA
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
     elif not var.ORIGINAL_ROLES: # game already ended
@@ -469,15 +472,15 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
     if DAY_START_TIME:
         now = datetime.now()
         td = now - DAY_START_TIME
-        var.DAY_TIMEDELTA += td
+        DAY_TIMEDELTA += td
     if NIGHT_START_TIME:
         now = datetime.now()
         td = now - NIGHT_START_TIME
-        var.NIGHT_TIMEDELTA += td
+        NIGHT_TIMEDELTA += td
 
-    daymin, daysec = var.DAY_TIMEDELTA.seconds // 60, var.DAY_TIMEDELTA.seconds % 60
-    nitemin, nitesec = var.NIGHT_TIMEDELTA.seconds // 60, var.NIGHT_TIMEDELTA.seconds % 60
-    total = var.DAY_TIMEDELTA + var.NIGHT_TIMEDELTA
+    daymin, daysec = DAY_TIMEDELTA.seconds // 60, DAY_TIMEDELTA.seconds % 60
+    nitemin, nitesec = NIGHT_TIMEDELTA.seconds // 60, NIGHT_TIMEDELTA.seconds % 60
+    total: timedelta = DAY_TIMEDELTA + NIGHT_TIMEDELTA
     tmin, tsec = total.seconds // 60, total.seconds % 60
     gameend_msg = messages["endgame_stats"].format(tmin, tsec, daymin, daysec, nitemin, nitesec)
 
@@ -771,10 +774,12 @@ def on_transition_night_begin(evt: Event, var: GameState):
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
-    global  DAY_ID, DAY_START_TIME, NIGHT_ID, NIGHT_START_TIME
+    global  DAY_ID, DAY_TIMEDELTA, DAY_START_TIME, NIGHT_ID, NIGHT_TIMEDELTA, NIGHT_START_TIME
     DAY_ID = 0
+    DAY_TIMEDELTA = None
     DAY_START_TIME = None
     NIGHT_ID = 0
+    NIGHT_TIMEDELTA = None
     NIGHT_START_TIME = None
     NIGHT_IDLE_EXEMPT.clear()
 

@@ -497,8 +497,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     for role, players in ingame_state.ROLES.items():
         var.ORIGINAL_ROLES[role] = players.copy()
 
-    var.DAY_TIMEDELTA = timedelta(0)
-    var.NIGHT_TIMEDELTA = timedelta(0)
     var.LAST_PING = None
 
     if restart:
