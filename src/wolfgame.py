@@ -79,7 +79,6 @@ var.ADMIN_TO_PING = None  # type: ignore
 var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
 
-var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
 var.DEAD = UserSet() # type: ignore

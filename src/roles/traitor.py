@@ -91,7 +91,7 @@ def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainro
             mainroles[traitor] = "wolf"
             did_something = True
             if var.in_game:
-                var.FINAL_ROLES[traitor] = "wolf"
+                var.final_roles[traitor] = "wolf"
                 traitor.send(messages["traitor_turn"])
     if did_something:
         if var.in_game:

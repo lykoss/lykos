@@ -135,10 +135,10 @@ def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inh
 
     var.roles[oldrole].remove(player)
     var.roles[newrole].add(player)
-    # only adjust main_roles/FINAL_ROLES if we're changing the player's actual role
+    # only adjust main_roles/final_roles if we're changing the player's actual role
     if var.main_roles[player] == oldrole:
         var.main_roles[player] = newrole
-        var.FINAL_ROLES[player] = newrole
+        var.final_roles[player] = newrole
 
     # if giving the player a new role during night, don't warn them for not acting
     from src.trans import NIGHT_IDLE_EXEMPT

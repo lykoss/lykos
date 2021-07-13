@@ -494,7 +494,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
         orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
         for player, role in mainroles.items():
-            evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player, role)})
+            evt = Event("get_final_role", {"role": var.final_roles.get(player, role)})
             evt.dispatch(var, player, role)
             if role != evt.data["role"]:
                 rolemap[role].remove(player)
@@ -793,8 +793,6 @@ def old_reset():
     var.LAST_GOAT.clear()
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
-
-    var.FINAL_ROLES.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)

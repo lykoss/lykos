@@ -56,6 +56,7 @@ class GameState:
         self._original_roles: UserDict[Tuple[str, UserSet]] = None
         self.main_roles: UserDict[User, str] = UserDict()
         self._original_main_roles: UserDict[User, str] = None
+        self.final_roles: UserDict[User, str] = UserDict()
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
         self.current_phase: str = pregame_state.current_phase
         self.next_phase: Optional[str] = None

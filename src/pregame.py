@@ -322,7 +322,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.FINAL_ROLES.clear()
 
     var.DEADCHAT_PLAYERS.clear()
     var.SPECTATING_WOLFCHAT.clear()

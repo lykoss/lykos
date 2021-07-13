@@ -71,7 +71,7 @@ class MaelstromMode(GameMode):
                         continue
                     var._original_roles[r].discard(p)
                 var._original_roles[role].add(p)
-                var.FINAL_ROLES[p] = role
+                var.final_roles[p] = role
                 var.main_roles[p] = role
                 var._original_main_roles[p] = role
 
