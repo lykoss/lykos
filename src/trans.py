@@ -8,7 +8,7 @@ import time
 
 from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
-from src.containers import UserSet
+from src.containers import UserSet, UserDict
 from src.functions import get_players, get_main_role, get_reveal_role
 from src.warnings import add_warning, expire_tempbans
 from src.messages import messages
@@ -605,6 +605,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                     player_list.append(entry)
 
         if log:
+            from src.status.dying import DEAD
             game_options = {"role reveal": var.role_reveal,
                             "stats": var.stats_type,
                             "abstain": "on" if var.abstain_enabled and not var.limit_abstain else "restricted" if var.abstain_enabled else "off",
@@ -614,7 +615,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                     game_options["roles"][role] = len(pl)
 
             db.add_game(var.current_mode.name,
-                        len(get_players(var)) + len(var.DEAD),
+                        len(get_players(var)) + len(DEAD),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                         winner,
@@ -623,8 +624,8 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
 
             # spit out the list of winners
             if winners:
-                winners = sorted(winners, key=lambda u: u.nick)
-                channels.Main.send(messages["winners"].format(winners))
+                sorted_winners = sorted(winners, key=lambda u: u.nick)
+                channels.Main.send(messages["winners"].format(sorted_winners))
             else:
                 channels.Main.send(messages["no_winners"])
 
@@ -633,7 +634,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
         for user in var.DEADCHAT_PLAYERS:
             user.queue_message(messages["endgame_deadchat"].format(channels.Main))
 
-        user.send_messages()
+    User.send_messages()
 
     reset(var)
     expire_tempbans()
@@ -669,7 +670,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
     return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner)
 
-def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], end_game=True, winner=None):
+def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Union[Dict[User, str], UserDict[User, str]], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.current_phase == "day":
@@ -733,8 +734,8 @@ def reset(var: Optional[GameState]):
     # Reset game timers
     if var is not None:
         with locks.join_timer: # make sure it isn't being used by the ping join handler
-            for x, timr in TIMERS.items():
-                timr[0].cancel()
+            for timers in TIMERS.values():
+                timers[0].cancel()
             TIMERS.clear()
 
         # Reset modes
@@ -749,7 +750,8 @@ def reset(var: Optional[GameState]):
         if config.Main.get("gameplay.quiet_dead_players"):
             ircd = get_ircd()
             if ircd.supports_quiet():
-                for deadguy in var.DEAD:
+                from src.status.dying import DEAD
+                for deadguy in DEAD:
                     if not deadguy.is_fake:
                         cmodes.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{deadguy.nick}!*@*"))
         channels.Main.mode("-m", *cmodes)
@@ -780,15 +782,11 @@ def on_reset(evt: Event, var: GameState):
 
 def old_reset():
     var.GAME_ID = 0
-    var.RESTART_TRIES = 0
-    var.DEAD.clear()
     var.ORIGINAL_ACCS.clear()
     var.PINGED_ALREADY = set()
     var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
     var.GAMEMODE_VOTES.clear()
-
-    reset_settings()
 
     var.LAST_GOAT.clear()
     var.SPECTATING_WOLFCHAT.clear()

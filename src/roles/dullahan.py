@@ -12,7 +12,7 @@ from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event, event_listener
-from src.status import try_misdirection, try_exchange, try_protection, add_dying
+from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_dead
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -94,7 +94,7 @@ def on_transition_day(evt: Event, var: GameState):
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if player in TARGETS and old_role == "dullahan" and evt.data["role"] != "dullahan":
-        del KILLS[:player:]
+        del KILLS[:player:] # type: ignore
         del TARGETS[player]
 
     if player not in TARGETS and evt.data["role"] == "dullahan":
@@ -139,7 +139,7 @@ def on_transition_night_end(evt: Event, var: GameState):
     for dullahan in get_all_players(var, ("dullahan",)):
         targets = list(TARGETS[dullahan])
         for target in targets[:]:
-            if target in var.DEAD:
+            if is_dead(var, target):
                 targets.remove(target)
         if not targets: # already all dead
             continue
@@ -163,7 +163,7 @@ def on_myrole(evt: Event, var: GameState, user):
     if user in var.roles["dullahan"]:
         targets = list(TARGETS[user])
         for target in list(targets):
-            if target in var.DEAD:
+            if is_dead(var, target):
                 targets.remove(target)
         random.shuffle(targets)
         if targets:
@@ -177,7 +177,7 @@ def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
     if role == "dullahan" and user in TARGETS:
         targets = set(TARGETS[user])
         for target in TARGETS[user]:
-            if target in var.DEAD:
+            if is_dead(var, target):
                 targets.remove(target)
         if targets:
             evt.data["special_case"].append(messages["dullahan_to_kill"].format(targets))
@@ -199,7 +199,7 @@ def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
         num = 0
         for dull in var.roles["dullahan"]:
             for target in TARGETS[dull]:
-                if target not in var.DEAD:
+                if not is_dead(var, target):
                     num += 1
                     break
         evt.data["dullahan"] = num

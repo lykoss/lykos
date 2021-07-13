@@ -2,7 +2,7 @@ import time
 from collections import Counter
 from typing import Tuple, List
 
-from src.containers import UserDict
+from src.containers import UserDict, UserSet
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
 from src.gamestate import GameState
@@ -10,11 +10,12 @@ from src.events import Event, event_listener
 from src.users import User
 from src import locks
 
-__all__ = ["add_dying", "is_dying", "kill_players"]
+__all__ = ["add_dying", "is_dying", "is_dead", "kill_players"]
 
 DyingEntry = Tuple[str, str, bool]
 
-DYING = UserDict() # type: UserDict[User, DyingEntry]
+DYING: UserDict[User, DyingEntry] = UserDict()
+DEAD: UserSet[User] = UserSet()
 
 def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
     """
@@ -52,6 +53,9 @@ def is_dying(var: GameState, player: User) -> bool:
     """
     return player in DYING
 
+def is_dead(var: GameState, player: User) -> bool:
+    return player in DEAD
+
 def kill_players(var: GameState, *, end_game: bool = True) -> bool:
     """
     Kill all players marked as dying.
@@ -84,7 +88,7 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
             dead.add(player)
             # Don't track players that quit before the game started
             if var.current_phase != "join":
-                var.DEAD.add(player)
+                DEAD.add(player)
             # notify listeners that the player died for possibility of chained deaths
             evt = Event("del_player", {},
                         killer_role=killer_role,

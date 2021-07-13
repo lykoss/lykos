@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 __all__ = ["add_protection", "try_protection", "remove_all_protections"]
 
-PROTECTIONS: UserDict[User, UserDict[Optional[User], List[Tuple[Category, str]]]] = UserDict()
+PROTECTIONS: UserDict[User, UserDict[Optional[User], List[Tuple[Union[Category, Set[str]], str]]]] = UserDict()
 
 def add_protection(var: GameState, target: User, protector: User, protector_role: str, scope: Union[Category, Set[str]]=All):
     """Add a protection to the target affecting the relevant scope."""
@@ -27,7 +27,7 @@ def add_protection(var: GameState, target: User, protector: User, protector_role
     prot_entry = (scope, protector_role)
     PROTECTIONS[target][protector].append(prot_entry)
 
-def try_protection(var: GameState, target: User, attacker: User, attacker_role: str, reason: str):
+def try_protection(var: GameState, target: User, attacker: Optional[User], attacker_role: str, reason: str):
     """Attempt to protect the player, and return a list of messages or None."""
     prots = []
     for protector, entries in PROTECTIONS.get(target, {}).items():

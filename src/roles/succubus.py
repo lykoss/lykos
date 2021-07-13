@@ -12,7 +12,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import try_misdirection, try_exchange, is_dead
 from src.events import Event, event_listener
 
 if typing.TYPE_CHECKING:
@@ -110,7 +110,7 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     lsuccubi = len(rolemap.get("succubus", ()))
-    lentranced = len([x for x in ENTRANCED if x not in var.DEAD])
+    lentranced = len([x for x in ENTRANCED if not is_dead(x)])
     if var.current_phase == "day" and lsuccubi and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(lsuccubi)

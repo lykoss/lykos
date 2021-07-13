@@ -81,8 +81,6 @@ var.PINGING_IFS = False  # type: ignore
 
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
-var.DEAD = UserSet() # type: ignore
-
 var.DEADCHAT_PLAYERS = UserSet() # type: ignore
 
 var.SPECTATING_WOLFCHAT = UserSet() # type: ignore
