@@ -122,7 +122,7 @@ class BorealMode(GameMode):
                 evt.data["totems"] = {"retribution": 1}
 
     def on_transition_night_begin(self, evt: Event, var: GameState):
-        num_s = len(get_players(var, ("shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
+        num_s = len(get_players(var, ("shaman",), mainroles=var.original_main_roles))
         num_ws = len(get_players(var, ("wolf shaman",)))
         # as wolf shamans die, we want to pass some extras onto the remaining ones; each ws caps at 2 totems though
         self.ws_extra_totem = int(num_s * self.ws_num_totem_percent) - num_ws

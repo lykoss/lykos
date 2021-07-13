@@ -65,7 +65,7 @@ def on_revealing_totem(evt: Event, var: GameState, user: User, role: str):
 
 @event_listener("get_reveal_role")
 def on_reveal_role(evt: Event, var: GameState, user: User):
-    if config.Main.get("gameplay.hidden.amnesiac") and var.ORIGINAL_MAIN_ROLES[user] == "amnesiac":
+    if config.Main.get("gameplay.hidden.amnesiac") and var.original_main_roles[user] == "amnesiac":
         evt.data["role"] = "amnesiac"
 
 @event_listener("get_endgame_message")

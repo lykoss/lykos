@@ -78,7 +78,7 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
             reveal_role = get_reveal_role(var, player)
             all_roles = get_all_roles(var, player)
             # kill them off
-            del var.MAIN_ROLES[player]
+            del var.main_roles[player]
             for role in all_roles:
                 var.roles[role].remove(player)
             dead.add(player)

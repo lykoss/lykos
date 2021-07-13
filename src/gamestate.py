@@ -8,6 +8,7 @@ from src import channels, config
 
 if typing.TYPE_CHECKING:
     from src.gamemodes import GameMode
+    from src.users import User
     from typing import FrozenSet, Set, Tuple, Any, Dict, Optional
 
 __all__ = ["GameState", "PregameState", "IngameState", "set_gamemode"]
@@ -53,6 +54,8 @@ class GameState:
         self.players = pregame_state.players
         self.roles: UserDict[str, UserSet] = UserDict()
         self._original_roles: UserDict[Tuple[str, UserSet]] = None
+        self.main_roles: UserDict[User, str] = UserDict()
+        self._original_main_roles: UserDict[User, str] = None
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
         self.current_phase: str = pregame_state.current_phase
         self.next_phase: Optional[str] = None
@@ -73,6 +76,7 @@ class GameState:
         if self._torndown:
             raise RuntimeError("cannot setup a used-up GameState")
         self._original_roles = UserDict((x, y.copy()) for x, y in self.roles.items())
+        self._original_main_roles = self.main_roles.copy()
         self.setup_completed = True
 
     def teardown(self):
@@ -105,7 +109,15 @@ class GameState:
         # but we want to return a regular dict (and a regular underlying set)
         # since this is meant to be used then discarded
         # this is also read-only to prevent code from modifying it
+        if not self.setup_completed:
+            raise RuntimeError("Current game state has not finished setup")
         return {name: set(value) for name, value in self._original_roles.items()}
+
+    @property
+    def original_main_roles(self):
+        if not self.setup_completed:
+            raise RuntimeError("Current game state has not finished setup")
+        return dict(self._original_main_roles)
 
     @property
     def abstain_enabled(self) -> bool:

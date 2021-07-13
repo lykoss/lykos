@@ -79,8 +79,6 @@ var.ADMIN_TO_PING = None  # type: ignore
 var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
 
-var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
-var.ORIGINAL_MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
@@ -695,7 +693,6 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
-        var.MAIN_ROLES[wrapper.source] = "person"
         var.players.append(wrapper.source)
         var.current_phase = "join"
         var.GAME_ID = time.time()
@@ -745,7 +742,6 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 channels.Main.old_modes[wrapper.source].add(mode)
             wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
 
-        var.MAIN_ROLES[wrapper.source] = "person"
         # ORIGINAL_ACCS is only cleared on reset(), so can be used to determine if a player has previously joined
         # The logic in this if statement should only run once per account
         if not wrapper.source.is_fake and wrapper.source.account not in var.ORIGINAL_ACCS.values():
@@ -943,7 +939,6 @@ def stats(wrapper: MessageDispatcher, message: str):
     entries = []
     first_count = 0
 
-    start_roles = set(var.ORIGINAL_MAIN_ROLES.values())
     for roleset, amount in var.current_mode.ACTIVE_ROLE_SETS.items():
         if amount == 0:
             continue

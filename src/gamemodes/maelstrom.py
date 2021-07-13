@@ -46,15 +46,15 @@ class MaelstromMode(GameMode):
             rs.clear()
         # prevent wolf.py from sending messages about a new wolf to soon-to-be former wolves
         # (note that None doesn't work, so "player" works fine)
-        for player in var.MAIN_ROLES:
-            var.MAIN_ROLES[player] = "player"
+        for player in var.main_roles:
+            var.main_roles[player] = "player"
         new_evt = Event("new_role", {"messages": [], "role": None, "in_wolfchat": False}, inherit_from=None)
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
             for x in selected:
                 villagers.remove(x)
                 new_evt.data["role"] = role
-                new_evt.dispatch(var, x, var.ORIGINAL_MAIN_ROLES[x])
+                new_evt.dispatch(var, x, var._original_main_roles[x])
                 var.roles[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
@@ -65,15 +65,15 @@ class MaelstromMode(GameMode):
                 # discard them from all non-secondary roles, we don't have a reliable
                 # means of tracking their previous role (due to traitor turning, exchange
                 # totem, etc.), so we need to iterate through everything.
-                # also this touches the underlying _original_roles mapping... shh
+                # also this touches the underlying _original_[main_]roles mappings... shh
                 for r in var.original_roles:
                     if r in self.SECONDARY_ROLES:
                         continue
                     var._original_roles[r].discard(p)
                 var._original_roles[role].add(p)
                 var.FINAL_ROLES[p] = role
-                var.MAIN_ROLES[p] = role
-                var.ORIGINAL_MAIN_ROLES[p] = role
+                var.main_roles[p] = role
+                var._original_main_roles[p] = role
 
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers)

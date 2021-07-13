@@ -320,7 +320,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
-    var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
     var.FINAL_ROLES.clear()
@@ -344,11 +343,10 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             if count == 0:
                 break
             # If multiple main roles were forced, only honor one of them
-            if user in var.MAIN_ROLES:
+            if user in ingame_state.main_roles:
                 continue
             ingame_state.roles[role].add(user)
-            var.MAIN_ROLES[user] = role
-            var.ORIGINAL_MAIN_ROLES[user] = role
+            ingame_state.main_roles[user] = role
             vils.remove(user)
             to_add.add(user)
             count -= 1
@@ -365,16 +363,14 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
         selected = random.sample(vils, count)
         for x in selected:
-            var.MAIN_ROLES[x] = role
-            var.ORIGINAL_MAIN_ROLES[x] = role
+            ingame_state.main_roles[x] = role
             vils.remove(x)
         ingame_state.roles[role].update(selected)
         addroles[role] = 0
 
     ingame_state.roles[ingame_state.default_role].update(vils)
     for x in vils:
-        var.MAIN_ROLES[x] = ingame_state.default_role
-        var.ORIGINAL_MAIN_ROLES[x] = ingame_state.default_role
+        ingame_state.main_roles[x] = ingame_state.default_role
     if vils:
         for pr in possible_rolesets:
             pr[ingame_state.default_role] += len(vils)
@@ -416,36 +412,34 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     # Give game modes the ability to customize who was assigned which role after everything's been set
     # The listener can add the following tuples into the "actions" dict to specify modifications
-    # Directly modifying var.MAIN_ROLES, var.roles, etc. is **NOT SUPPORTED**
+    # Directly modifying var.main_roles, var.roles, etc. is **NOT SUPPORTED**
     # ("swap", User, User) -- swaps the main role of the two given users
     # ("add", User, str) -- adds a secondary role to the user (no-op if user already has that role)
     # ("remove", User, str) -- removes a secondary role from the user (no-op if it's not a secondary role for user)
     # Actions are applied in order
     event = Event("role_attribution_end", {"actions": []})
-    event.dispatch(ingame_state, var.MAIN_ROLES, ingame_state.roles)
+    event.dispatch(ingame_state, ingame_state.main_roles, ingame_state.roles)
     for tup in event.data["actions"]:
         if tup[0] == "swap":
-            if tup[1] not in var.MAIN_ROLES or tup[2] not in var.MAIN_ROLES:
+            if tup[1] not in ingame_state.main_roles or tup[2] not in ingame_state.main_roles:
                 raise KeyError("Users in role_attribution_end:swap action must be playing")
-            onerole = var.MAIN_ROLES[tup[1]]
-            tworole = var.MAIN_ROLES[tup[2]]
-            var.MAIN_ROLES[tup[1]] = tworole
-            var.ORIGINAL_MAIN_ROLES[tup[1]] = tworole
+            onerole = ingame_state.main_roles[tup[1]]
+            tworole = ingame_state.main_roles[tup[2]]
+            ingame_state.main_roles[tup[1]] = tworole
             ingame_state.roles[onerole].discard(tup[1])
             ingame_state.roles[tworole].add(tup[1])
 
-            var.MAIN_ROLES[tup[2]] = onerole
-            var.ORIGINAL_MAIN_ROLES[tup[2]] = onerole
+            ingame_state.main_roles[tup[2]] = onerole
             ingame_state.roles[tworole].discard(tup[2])
             ingame_state.roles[onerole].add(tup[2])
         elif tup[0] == "add":
-            if tup[1] not in var.MAIN_ROLES or tup[2] not in All:
+            if tup[1] not in ingame_state.main_roles or tup[2] not in All:
                 raise KeyError("Invalid user or role in role_attribution_end:add action")
             ingame_state.roles[tup[2]].add(tup[1])
         elif tup[0] == "remove":
-            if tup[1] not in var.MAIN_ROLES or tup[2] not in All:
+            if tup[1] not in ingame_state.main_roles or tup[2] not in All:
                 raise KeyError("Invalid user or role in role_attribution_end:remove action")
-            if var.MAIN_ROLES[tup[1]] == tup[2]:
+            if ingame_state.main_roles[tup[1]] == tup[2]:
                 raise ValueError("Cannot remove a user's main role in role_attribution_end:remove action")
             ingame_state.roles[tup[2]].discard(tup[1])
         else:

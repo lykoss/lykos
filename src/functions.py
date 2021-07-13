@@ -33,7 +33,7 @@ def get_players(var: Union[GameState, PregameState, None], roles=None, *, mainro
         return list(var.players)
 
     if mainroles is None:
-        mainroles = var.MAIN_ROLES
+        mainroles = var.main_roles
     if roles is None:
         roles = set(mainroles.values())
     pl = set()
@@ -41,7 +41,7 @@ def get_players(var: Union[GameState, PregameState, None], roles=None, *, mainro
         if role in roles:
             pl.add(user)
 
-    if mainroles is not var.MAIN_ROLES:
+    if mainroles is not var.main_roles:
         # we weren't given an actual player list (possibly),
         # so the elements of pl are not necessarily in var.players
         return list(pl)
@@ -135,9 +135,9 @@ def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inh
 
     var.roles[oldrole].remove(player)
     var.roles[newrole].add(player)
-    # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the player's actual role
-    if var.MAIN_ROLES[player] == oldrole:
-        var.MAIN_ROLES[player] = newrole
+    # only adjust main_roles/FINAL_ROLES if we're changing the player's actual role
+    if var.main_roles[player] == oldrole:
+        var.main_roles[player] = newrole
         var.FINAL_ROLES[player] = newrole
 
     # if giving the player a new role during night, don't warn them for not acting
@@ -155,7 +155,7 @@ def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inh
     return newrole
 
 def get_main_role(var: GameState, user):
-    role = var.MAIN_ROLES.get(user)
+    role = var.main_roles.get(user)
     if role is not None:
         return role
     # not found in player list, see if they're a special participant

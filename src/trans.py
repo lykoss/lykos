@@ -490,7 +490,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
         roles_msg = []
 
         rolemap = var.original_roles # this returns a different dict than the underlying value, so it's fine to modify
-        mainroles = var.ORIGINAL_MAIN_ROLES
+        mainroles = var.original_main_roles
         orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
         for player, role in mainroles.items():
@@ -667,7 +667,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
     if var.setup_completed and not var.in_game:
         return False # some other thread already ended game probably
 
-    return chk_win_conditions(var, var.roles, var.MAIN_ROLES, end_game, winner)
+    return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner)
 
 def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
@@ -795,8 +795,6 @@ def old_reset():
     var.SPECTATING_DEADCHAT.clear()
 
     var.FINAL_ROLES.clear()
-    var.MAIN_ROLES.clear()
-    var.ORIGINAL_MAIN_ROLES.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)
