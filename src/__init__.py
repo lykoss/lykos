@@ -23,7 +23,7 @@ from src import users
 from src import channels, containers
 from src import dispatcher
 from src import decorators
-from src import hooks, status, warnings
+from src import hooks, status, warnings, relay
 from src import pregame
 from src import trans
 from src import gamejoin

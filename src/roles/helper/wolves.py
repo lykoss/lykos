@@ -14,7 +14,7 @@ from src.messages import messages, LocalRole
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event, event_listener
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
-from src import users, config
+from src import users, config, relay
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -371,7 +371,7 @@ def send_wolfchat_message(var: GameState, user: User, message: str, roles: Itera
     player = None
     for player in wcwolves:
         player.queue_message(message)
-    for player in var.SPECTATING_WOLFCHAT:
+    for player in relay.WOLFCHAT_SPECTATE:
         player.queue_message(messages["relay_command_wolfchat"].format(message))
     if player is not None:
         player.send_messages()

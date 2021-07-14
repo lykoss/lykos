@@ -5,16 +5,17 @@ import threading
 import time
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import TYPE_CHECKING, Optional, Callable, List, Union
 
 from src.decorators import command
-from src.functions import get_players
+from src.functions import get_players, get_reveal_role
 from src.gamestate import PregameState, GameState
-from src.warnings import expire_tempbans, decrement_stasis
+from src.warnings import expire_tempbans, decrement_stasis, add_warning
 from src.messages import messages
-from src.events import Event, EventListener
+from src.status import add_dying, kill_players
+from src.events import EventListener
 from src.debug import handle_error
-from src import db, users, channels, locks, pregame, config, trans, context
+from src import db, users, channels, locks, pregame, config, trans, context, reaper, relay
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -23,28 +24,21 @@ if TYPE_CHECKING:
 @command("join", pm=True, allow_alt=False)
 def join(wrapper: MessageDispatcher, message: str):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
-    # keep this and the event in fjoin() in sync
-    from src.wolfgame import join_deadchat, vote_gamemode
+    from src.wolfgame import vote_gamemode
     var = wrapper.game_state
-    evt = Event("join", {
-        "join_player": join_player,
-        "join_deadchat": join_deadchat,
-        "vote_gamemode": vote_gamemode
-        })
-    if not evt.dispatch(wrapper, message, forced=False):
-        return
+
     if not var.in_game:
         if wrapper.private:
             return
 
         def _cb():
             if message:
-                evt.data["vote_gamemode"](wrapper, message.lower().split()[0], doreply=False)
-        evt.data["join_player"](wrapper, callback=_cb)
+                vote_gamemode(wrapper, message.lower().split()[0], doreply=False)
+        join_player(wrapper, callback=_cb)
 
     else: # join deadchat
         if wrapper.private and wrapper.source is not wrapper.target:
-            evt.data["join_deadchat"](var, wrapper.source)
+            relay.join_deadchat(var, wrapper.source)
 
 def join_player(wrapper: MessageDispatcher,
                 who: Optional[User] = None,
@@ -207,24 +201,15 @@ def fjoin(wrapper: MessageDispatcher, message: str):
     :param wrapper: Dispatcher
     :param message: Command text. If empty, we join ourselves
     """
-    # keep this and the event in def join() in sync
-    from src.wolfgame import join_deadchat, vote_gamemode
     var = wrapper.game_state
-    evt = Event("join", {
-        "join_player": join_player,
-        "join_deadchat": join_deadchat,
-        "vote_gamemode": vote_gamemode
-        })
 
-    if not evt.dispatch(wrapper, message, forced=True):
-        return
     success = False
     if not message.strip():
-        evt.data["join_player"](wrapper, forced=True)
+        join_player(wrapper, forced=True)
         return
 
     parts = re.split(" +", message)
-    to_join = []
+    to_join: List[Union[User, str]] = []
     debug_mode = config.Main.get("debug.enabled")
     if not debug_mode:
         match = users.complete_match(parts[0], wrapper.target.users)
@@ -243,12 +228,12 @@ def fjoin(wrapper: MessageDispatcher, message: str):
             if tojoin is users.Bot:
                 wrapper.pm(messages["not_allowed"])
             else:
-                evt.data["join_player"](type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
+                join_player(type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
                 success = True
         # Allow joining single number fake users in debug mode
         elif users.predicate(tojoin) and debug_mode:
             user = users.add(wrapper.client, nick=tojoin)
-            evt.data["join_player"](type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+            join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
             success = True
         # Allow joining ranges of numbers as fake users in debug mode
         elif "-" in tojoin and debug_mode:
@@ -260,10 +245,9 @@ def fjoin(wrapper: MessageDispatcher, message: str):
                 success = True
                 for i in range(int(first), int(last)+1):
                     user = users.add(wrapper.client, nick=str(i))
-                    evt.data["join_player"](type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+                    join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
     if success:
         wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(var))))
-
 
 @command("pingif", pm=True)
 def altpinger(wrapper: MessageDispatcher, message: str):
@@ -376,3 +360,91 @@ def join_timer_handler(var):
 
         channels.Main.who()
 
+@command("leave", pm=True, phases=("join", "day", "night"))
+def leave_game(wrapper: MessageDispatcher, message: str):
+    """Quits the game."""
+    var = wrapper.game_state
+    if wrapper.target is channels.Main:
+        if wrapper.source not in get_players(var):
+            return
+        if var.current_phase == "join":
+            lpl = len(get_players(var)) - 1
+            if lpl == 0:
+                population = " " + messages["no_players_remaining"]
+            else:
+                population = " " + messages["new_player_count"].format(lpl)
+        else:
+            args = re.split(" +", message)
+            if args[0] not in messages.raw("_commands", "leave opt force"):
+                wrapper.pm(messages["leave_game_ingame_safeguard"])
+                return
+            population = ""
+    elif wrapper.private:
+        if var.in_game and wrapper.source not in get_players(var) and wrapper.source in relay.DEADCHAT_PLAYERS:
+            relay.leave_deadchat(var, wrapper.source)
+        return
+    else:
+        return
+
+    if var.in_game and var.role_reveal in ("on", "team"):
+        role = get_reveal_role(var, wrapper.source)
+        channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
+    else:
+        channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
+    if var.current_phase != "join":
+        reaper.DCED_LOSERS.add(wrapper.source)
+        if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled"):
+            reaper.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
+            add_warning(wrapper.source, config.Main.get("reaper.leave.points"), users.Bot, messages["leave_warning"], expires=config.Main.get("reaper.leave.expiration"))
+
+    add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
+    kill_players(var)
+
+@command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
+def fleave(wrapper: MessageDispatcher, message: str):
+    """Force someone to leave the game."""
+
+    var = wrapper.game_state
+
+    for person in re.split(" +", message):
+        person = person.strip()
+        if not person:
+            continue
+
+        target = users.complete_match(person, get_players(var))
+        dead_target = None
+        if var.in_game:
+            dead_target = users.complete_match(person, relay.DEADCHAT_PLAYERS)
+        if target:
+            target = target.get()
+            if wrapper.target is not channels.Main:
+                wrapper.pm(messages["fquit_fail"])
+                return
+
+            msg = [messages["fquit_success"].format(wrapper.source, target)]
+            if var.in_game and var.role_reveal in ("on", "team"):
+                msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
+            if var.current_phase == "join":
+                player_count = len(get_players(var)) - 1
+                to_say = "new_player_count"
+                if not player_count:
+                    to_say = "no_players_remaining"
+                msg.append(messages[to_say].format(player_count))
+
+            wrapper.send(*msg)
+
+            if var.current_phase != "join":
+                reaper.DCED_LOSERS.add(target)
+
+            add_dying(var, target, "bot", "fquit", death_triggers=False)
+            kill_players(var)
+
+        elif dead_target:
+            dead_target = dead_target.get()
+            relay.leave_deadchat(var, dead_target, force=wrapper.source)
+            if wrapper.source not in relay.DEADCHAT_PLAYERS:
+                wrapper.pm(messages["admin_fleave_deadchat"].format(dead_target))
+
+        else:
+            wrapper.send(messages["not_playing"].format(person))
+            return

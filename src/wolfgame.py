@@ -39,7 +39,7 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, Callable, List
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay
 from src.channels import Channel
 from src.users import User
 
@@ -80,11 +80,6 @@ var.AFTER_FLASTGAME = None  # type: ignore
 var.PINGING_IFS = False  # type: ignore
 
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
-
-var.DEADCHAT_PLAYERS = UserSet() # type: ignore
-
-var.SPECTATING_WOLFCHAT = UserSet() # type: ignore
-var.SPECTATING_DEADCHAT = UserSet() # type: ignore
 
 var.GAMEMODE_VOTES = UserDict() # type: ignore
 
@@ -420,128 +415,6 @@ def replace(wrapper: MessageDispatcher, message: str):
         if var.in_game:
             myrole.func(wrapper, "")
 
-def join_deadchat(var: GameState, *all_users: User):
-    if not config.Main.get("gameplay.deadchat") or not var.in_game:
-        return
-
-    to_join = []
-    pl = get_participants(var)
-
-    for user in all_users:
-        if user.stasis_count() or user in pl or user in var.DEADCHAT_PLAYERS or user not in channels.Main.users:
-            continue
-        to_join.append(user)
-
-    if not to_join:
-        return
-
-    msg = messages["player_joined_deadchat"].format(to_join)
-    
-    people = var.DEADCHAT_PLAYERS.union(to_join)
-
-    for user in var.DEADCHAT_PLAYERS:
-        user.queue_message(msg)
-    for user in var.SPECTATING_DEADCHAT:
-        user.queue_message("[deadchat] " + msg)
-    for user in to_join:
-        user.queue_message(messages["joined_deadchat"])
-        user.queue_message(messages["players_list"].format(list(people)))
-
-    var.DEADCHAT_PLAYERS.update(to_join)
-    var.SPECTATING_DEADCHAT.difference_update(to_join)
-
-    user.send_messages() # send all messages at once
-
-def leave_deadchat(var: GameState, user: User, *, force=None):
-    if not config.Main.get("gameplay.deadchat") or not var.in_game or user not in var.DEADCHAT_PLAYERS:
-        return
-
-    var.DEADCHAT_PLAYERS.remove(user)
-    if force is None:
-        user.send(messages["leave_deadchat"])
-        msg = messages["player_left_deadchat"].format(user)
-    else:
-        user.send(messages["force_leave_deadchat"].format(force))
-        msg = messages["player_force_leave_deadchat"].format(user, force)
-
-    if var.DEADCHAT_PLAYERS or var.SPECTATING_DEADCHAT:
-        for user in var.DEADCHAT_PLAYERS:
-            user.queue_message(msg)
-        for user in var.SPECTATING_DEADCHAT:
-            user.queue_message("[deadchat] " + msg)
-
-        user.send_messages()
-
-@command("deadchat", pm=True)
-def deadchat_pref(wrapper: MessageDispatcher, message: str):
-    """Toggles auto joining deadchat on death."""
-    if not config.Main.get("gameplay.deadchat"):
-        return
-
-    temp = wrapper.source.lower()
-
-    if not wrapper.source.account:
-        wrapper.pm(messages["not_logged_in"])
-        return
-
-    if temp.account in db.DEADCHAT_PREFS:
-        wrapper.pm(messages["chat_on_death"])
-        db.DEADCHAT_PREFS.remove(temp.account)
-    else:
-        wrapper.pm(messages["no_chat_on_death"])
-        db.DEADCHAT_PREFS.add(temp.account)
-
-    db.toggle_deadchat(temp.account)
-
-@command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
-def fleave(wrapper: MessageDispatcher, message: str):
-    """Force someone to leave the game."""
-
-    var = wrapper.game_state
-
-    for person in re.split(" +", message):
-        person = person.strip()
-        if not person:
-            continue
-
-        target = users.complete_match(person, get_players(var))
-        dead_target = None
-        if var.in_game:
-            dead_target = users.complete_match(person, var.DEADCHAT_PLAYERS)
-        if target:
-            target = target.get()
-            if wrapper.target is not channels.Main:
-                wrapper.pm(messages["fquit_fail"])
-                return
-
-            msg = [messages["fquit_success"].format(wrapper.source, target)]
-            if var.in_game and var.role_reveal in ("on", "team"):
-                msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
-            if var.current_phase == "join":
-                player_count = len(get_players(var)) - 1
-                to_say = "new_player_count"
-                if not player_count:
-                    to_say = "no_players_remaining"
-                msg.append(messages[to_say].format(player_count))
-
-            wrapper.send(*msg)
-
-            if var.current_phase != "join":
-                reaper.DCED_LOSERS.add(target)
-
-            add_dying(var, target, "bot", "fquit", death_triggers=False)
-            kill_players(var)
-
-        elif dead_target:
-            dead_target = dead_target.get()
-            leave_deadchat(var, dead_target, force=wrapper.source)
-            if wrapper.source not in var.DEADCHAT_PLAYERS:
-                wrapper.pm(messages["admin_fleave_deadchat"].format(dead_target))
-
-        else:
-            wrapper.send(messages["not_playing"].format(person))
-            return
-
 @event_listener("chan_kick")
 def kicked_modes(evt, chan, actor, target, reason): # FIXME: This uses var
     if target is users.Bot and chan is channels.Main:
@@ -764,7 +637,7 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
         channels.Main.mode(*cmode)
 
     if not evt.params.end_game:
-        join_deadchat(var, *deadchat)
+        relay.join_deadchat(var, *deadchat)
         return
 
     # see if we need to end the game or transition phases
@@ -773,7 +646,7 @@ def on_kill_players(evt: Event, var: GameState, players: Set[User]):
 
     if not game_ending:
         # if game isn't about to end, join people to deadchat
-        join_deadchat(var, *deadchat)
+        relay.join_deadchat(var, *deadchat)
 
         if not var.in_phase_transition:
             if var.current_phase == "day":
@@ -886,8 +759,8 @@ def leave(var: GameState, what, user, why=None):
         reaper.DCED_LOSERS.add(user)
 
     # leaving the game channel means you leave deadchat
-    if user in var.DEADCHAT_PLAYERS:
-        leave_deadchat(var, user)
+    if user in relay.DEADCHAT_PLAYERS:
+        relay.leave_deadchat(var, user)
 
     if user not in ps or user in reaper.DISCONNECTED:
         return
@@ -939,112 +812,15 @@ def leave(var: GameState, what, user, why=None):
         killplayer = False
 
     channels.Main.send(msg.format(user, get_reveal_role(var, user)) + population)
-    var.SPECTATING_WOLFCHAT.discard(user)
-    var.SPECTATING_DEADCHAT.discard(user)
-    leave_deadchat(var, user)
+    relay.WOLFCHAT_SPECTATE.discard(user)
+    relay.DEADCHAT_SPECTATE.discard(user)
+    relay.leave_deadchat(var, user)
 
     if killplayer:
         add_dying(var, user, "bot", what, death_triggers=False)
         kill_players(var)
     else:
         reaper.DISCONNECTED[user] = (datetime.now(), what)
-
-@command("leave", pm=True, phases=("join", "day", "night"))
-def leave_game(wrapper: MessageDispatcher, message: str):
-    """Quits the game."""
-    var = wrapper.game_state
-    if wrapper.target is channels.Main:
-        if wrapper.source not in get_players(var):
-            return
-        if var.current_phase == "join":
-            lpl = len(get_players(var)) - 1
-            if lpl == 0:
-                population = " " + messages["no_players_remaining"]
-            else:
-                population = " " + messages["new_player_count"].format(lpl)
-        else:
-            args = re.split(" +", message)
-            if args[0] not in messages.raw("_commands", "leave opt force"):
-                wrapper.pm(messages["leave_game_ingame_safeguard"])
-                return
-            population = ""
-    elif wrapper.private:
-        if var.in_game and wrapper.source not in get_players(var) and wrapper.source in var.DEADCHAT_PLAYERS:
-            leave_deadchat(var, wrapper.source)
-        return
-    else:
-        return
-
-    if var.in_game and var.role_reveal in ("on", "team"):
-        role = get_reveal_role(var, wrapper.source)
-        channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
-    else:
-        channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
-    if var.current_phase != "join":
-        reaper.DCED_LOSERS.add(wrapper.source)
-        if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled"):
-            reaper.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
-            add_warning(wrapper.source, config.Main.get("reaper.leave.points"), users.Bot, messages["leave_warning"], expires=config.Main.get("reaper.leave.expiration"))
-
-    add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
-    kill_players(var)
-
-@command("", chan=False, pm=True)
-def relay_wolfchat(wrapper: MessageDispatcher, message: str):
-    """Relay wolfchat messages and commands."""
-    var = wrapper.game_state
-
-    if message.startswith(config.Main.get("transports[0].user.command_prefix")):
-        return
-
-    if "src.roles.helper.wolves" in sys.modules:
-        from src.roles.helper.wolves import get_talking_roles
-        badguys = get_players(var, get_talking_roles())
-    else:
-        badguys = get_players(var, Wolfchat)
-    wolves = get_players(var, Wolf)
-
-    if wrapper.source in badguys and len(badguys) > 1:
-        # handle wolfchat toggles
-        if not config.Main.get("gameplay.wolfchat.traitor_non_wolf"):
-            wolves.extend(var.roles["traitor"])
-        if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
-            return
-        elif var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
-            return
-        elif wrapper.source not in wolves and config.Main.get("gameplay.wolfchat.wolves_only_chat"):
-            return
-        elif wrapper.source not in wolves and config.Main.get("gameplay.wolfchat.remove_non_wolves"):
-            return
-
-        badguys.remove(wrapper.source)
-        # relay_message_wolfchat and relay_action_wolfchat also used here
-        key = "relay_message"
-        if message.startswith("\u0001ACTION"):
-            key = "relay_action"
-            message = message[8:-1]
-        for player in badguys:
-            player.queue_message(messages[key].format(wrapper.source, message))
-        for player in var.SPECTATING_WOLFCHAT:
-            player.queue_message(messages[key + "_wolfchat"].format(wrapper.source, message))
-
-        User.send_messages()
-
-@command("", chan=False, pm=True)
-def relay_deadchat(wrapper: MessageDispatcher, message: str):
-    """Relay deadchat messages."""
-    if wrapper.source not in get_players(wrapper.game_state) and config.Main.get("gameplay.deadchat") and wrapper.source in var.DEADCHAT_PLAYERS:
-        # relay_message_deadchat and relay_action_deadchat also used here
-        key = "relay_message"
-        if message.startswith("\u0001ACTION"):
-            key = "relay_action"
-            message = message[8:-1]
-        for user in var.DEADCHAT_PLAYERS - {wrapper.source}:
-            user.queue_message(messages[key].format(wrapper.source, message))
-        for user in var.SPECTATING_DEADCHAT:
-            user.queue_message(messages[key + "_deadchat"].format(wrapper.source, message))
-
-        User.send_messages()
 
 @hook("error")
 def on_error(cli, pfx, msg):
@@ -1841,129 +1617,6 @@ def fsay(wrapper: MessageDispatcher, message: str):
 def fdo(wrapper: MessageDispatcher, message: str):
     """Act through the bot as an action."""
     _say(wrapper, message, "fdo", action=True)
-
-def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
-    # if allowed in normal games, restrict it so that it can only be used by dead players and
-    # non-players (don't allow active vengeful ghosts either).
-    # also don't allow in-channel (e.g. make it pm only)
-
-    if config.Main.get("debug.enabled"):
-        return True
-
-    pl = get_participants(wrapper.game_state)
-
-    if wrapper.source in pl:
-        wrapper.pm(messages[key])
-        return False
-
-    if wrapper.source.account in {player.account for player in pl}:
-        wrapper.pm(messages[key])
-        return False
-
-    return True
-
-def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: bool):
-    if not try_restricted_cmd(wrapper, "fspectate_restricted"):
-        return
-
-    var = wrapper.game_state
-
-    params = message.split(" ")
-    on = "on"
-    if not len(params):
-        wrapper.pm(messages["fspectate_help"])
-        return
-    elif len(params) > 1:
-        on = params[1].lower()
-    what = params[0].lower()
-    allowed = ("wolfchat", "deadchat") if is_fspectate else ("wolfchat",)
-    if what not in allowed or on not in ("on", "off"):
-        wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
-        return
-
-    if on == "off":
-        if what == "wolfchat":
-            var.SPECTATING_WOLFCHAT.discard(wrapper.source)
-        else:
-            var.SPECTATING_DEADCHAT.discard(wrapper.source)
-        wrapper.pm(messages["fspectate_off"].format(what))
-    else:
-        players = []
-        if what == "wolfchat":
-            already_spectating = wrapper.source in var.SPECTATING_WOLFCHAT
-            var.SPECTATING_WOLFCHAT.add(wrapper.source)
-            players = list(get_players(var, Wolfchat))
-            if "src.roles.helper.wolves" in sys.modules:
-                from src.roles.helper.wolves import is_known_wolf_ally
-                players = [p for p in players if is_known_wolf_ally(var, p, p)]
-            if not is_fspectate and not already_spectating and var.SPECTATE_NOTICE:
-                spectator = wrapper.source.nick if var.SPECTATE_NOTICE_USER else "Someone"
-                for player in players:
-                    player.queue_message(messages["fspectate_notice"].format(spectator, what))
-                if players:
-                    player.send_messages()
-        elif config.Main.get("gameplay.deadchat"):
-            if wrapper.source in var.DEADCHAT_PLAYERS:
-                wrapper.pm(messages["fspectate_in_deadchat"])
-                return
-            var.SPECTATING_DEADCHAT.add(wrapper.source)
-            players = var.DEADCHAT_PLAYERS
-        else:
-            wrapper.pm(messages["fspectate_deadchat_disabled"])
-            return
-        wrapper.pm(messages["fspectate_on"].format(what))
-        wrapper.pm("People in {0}: {1}".format(what, ", ".join([player.nick for player in players])))
-
-@command("spectate", flag="p", pm=True, phases=("day", "night"))
-def spectate(wrapper: MessageDispatcher, message: str):
-    """Spectate wolfchat or deadchat."""
-    spectate_chat(wrapper, message, is_fspectate=False)
-
-@command("fspectate", flag="F", pm=True, phases=("day", "night"))
-def fspectate(wrapper: MessageDispatcher, message: str):
-    """Spectate wolfchat or deadchat."""
-    spectate_chat(wrapper, message, is_fspectate=True)
-
-@command("revealroles", flag="a", pm=True, phases=("day", "night"))
-def revealroles(wrapper: MessageDispatcher, message: str):
-    """Reveal role information."""
-
-    if not try_restricted_cmd(wrapper, "temp_invalid_perms"):
-        return
-
-    var = wrapper.game_state
-
-    output = []
-    for role in role_order():
-        if var.roles.get(role):
-            # make a copy since this list is modified
-            users = list(var.roles[role])
-            out = []
-            # go through each nickname, adding extra info if necessary
-            for user in users:
-                evt = Event("revealroles_role", {"special_case": []})
-                evt.dispatch(var, user, role)
-                special_case: List[str] = evt.data["special_case"]
-
-                if not evt.prevent_default and user not in var.original_roles[role] and role not in var.current_mode.SECONDARY_ROLES:
-                    for old_role in role_order(): # order doesn't matter here, but oh well
-                        if user in var.original_roles[old_role] and user not in var.roles[old_role]:
-                            special_case.append(messages["revealroles_old_role"].format(old_role))
-                            break
-                if special_case:
-                    out.append(messages["revealroles_special"].format(user, special_case))
-                else:
-                    out.append(user)
-
-            output.append(messages["revealroles_output"].format(role, out))
-
-    evt = Event("revealroles", {"output": output})
-    evt.dispatch(var)
-
-    if config.Main.get("debug.enabled"):
-        wrapper.send(*output, sep=" | ")
-    else:
-        wrapper.pm(*output, sep=" | ")
 
 @command("fgame", flag="g", phases=("join",))
 def fgame(wrapper: MessageDispatcher, message: str):

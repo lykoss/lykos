@@ -323,10 +323,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
 
-    var.DEADCHAT_PLAYERS.clear()
-    var.SPECTATING_WOLFCHAT.clear()
-    var.SPECTATING_DEADCHAT.clear()
-
     # Second round of check is done: Initialize the various variables that we need
     ingame_state.begin_setup()
 

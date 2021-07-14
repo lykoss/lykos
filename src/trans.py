@@ -16,7 +16,7 @@ from src.status import is_silent, is_dying, try_protection, add_dying, kill_play
 from src.events import Event, event_listener
 from src.votes import chk_decision
 from src.cats import Wolfteam, Hidden, Village, Win_Stealer, Wolf_Objective, Village_Objective, role_order
-from src import channels, users, locks, config, db, reaper
+from src import channels, users, locks, config, db, reaper, relay
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -630,9 +630,8 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                 channels.Main.send(messages["no_winners"])
 
     # Message players in deadchat letting them know that the game has ended
-    if var.DEADCHAT_PLAYERS:
-        for user in var.DEADCHAT_PLAYERS:
-            user.queue_message(messages["endgame_deadchat"].format(channels.Main))
+    for user in relay.DEADCHAT_PLAYERS:
+        user.queue_message(messages["endgame_deadchat"].format(channels.Main))
 
     User.send_messages()
 
@@ -789,8 +788,6 @@ def old_reset():
     var.GAMEMODE_VOTES.clear()
 
     var.LAST_GOAT.clear()
-    var.SPECTATING_WOLFCHAT.clear()
-    var.SPECTATING_DEADCHAT.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)
