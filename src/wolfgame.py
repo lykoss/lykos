@@ -1443,8 +1443,7 @@ def setdisplay(wrapper: MessageDispatcher, message: str):
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(wrapper: MessageDispatcher, gamemode, doreply): # FIXME: remove var
     from src.gamemodes import GAME_MODES
-    game_state = wrapper.game_state
-    if var.FGAMED:
+    if wrapper.game_state.current_mode is not None:
         if doreply:
             wrapper.pm(messages["admin_forced_game"])
         return
@@ -1634,9 +1633,9 @@ def fgame(wrapper: MessageDispatcher, message: str):
 
         _fr = messages.raw("_commands", "fgame opt reset")
         if gamemode in _fr:
-            reset_settings()
+            var.current_mode.teardown()
+            var.current_mode = None
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
-            var.FGAMED = False
             return
 
         allowed = GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes"))
@@ -1653,7 +1652,6 @@ def fgame(wrapper: MessageDispatcher, message: str):
         from src.gamestate import set_gamemode
         if set_gamemode(var, "=".join(parts)):
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
-            var.FGAMED = True
     else:
         wrapper.pm(fgame_help())
 

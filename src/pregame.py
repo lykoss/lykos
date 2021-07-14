@@ -212,7 +212,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                         t.start()
                     return
 
-        if not var.FGAMED:
+        if pregame_state.current_mode is None:
             from src.gamemodes import GAME_MODES
             votes = {} #key = gamemode, not hostmask
             for gamemode in var.GAMEMODE_VOTES.values():
