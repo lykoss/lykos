@@ -782,8 +782,6 @@ def on_reset(evt: Event, var: GameState):
 def old_reset():
     var.GAME_ID = 0
     var.ORIGINAL_ACCS.clear()
-    var.PINGED_ALREADY = set()
-    var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
     var.GAMEMODE_VOTES.clear()
 

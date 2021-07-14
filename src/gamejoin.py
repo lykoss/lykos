@@ -5,7 +5,7 @@ import threading
 import time
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Callable, List, Union
+from typing import TYPE_CHECKING, Optional, Callable, List, Union, Set
 
 from src.decorators import command
 from src.functions import get_players, get_reveal_role
@@ -13,13 +13,17 @@ from src.gamestate import PregameState, GameState
 from src.warnings import expire_tempbans, decrement_stasis, add_warning
 from src.messages import messages
 from src.status import add_dying, kill_players
-from src.events import EventListener
+from src.events import Event, EventListener, event_listener
 from src.debug import handle_error
 from src import db, users, channels, locks, pregame, config, trans, context, reaper, relay
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
+    from src.channels import Channel
     from src.users import User
+
+PINGED_ALREADY: Set[str] = set()
+PINGING_PLAYERS: bool = False
 
 @command("join", pm=True, allow_alt=False)
 def join(wrapper: MessageDispatcher, message: str):
@@ -104,8 +108,6 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
         var.players.append(wrapper.source)
         var.current_phase = "join"
         var.GAME_ID = time.time()
-        var.PINGED_ALREADY_ACCS = set()
-        var.PINGED_ALREADY = set()
         if wrapper.source.account:
             var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
         if config.Main.get("timers.wait.enabled"):
@@ -301,47 +303,49 @@ def altpinger(wrapper: MessageDispatcher, message: str):
 
 @handle_error
 def join_timer_handler(var):
+    global PINGING_PLAYERS
     with locks.join_timer:
-        var.PINGING_IFS = True
-        to_ping = []
+        PINGING_PLAYERS = True
+        to_ping: List[User] = []
         pl = get_players(var)
 
         chk_acc = set()
 
         # Add accounts/hosts to the list of possible players to ping
-        for num in var.PING_IF_NUMS_ACCS:
+        for num in db.PING_IF_NUMS:
             if num <= len(pl):
-                for acc in var.PING_IF_NUMS_ACCS[num]:
+                for acc in db.PING_IF_NUMS[num]:
                     if db.has_unacknowledged_warnings(acc):
                         continue
                     chk_acc.add(users.lower(acc))
 
         # Don't ping alt connections of users that have already joined
         for player in pl:
-            var.PINGED_ALREADY_ACCS.add(users.lower(player.account))
+            PINGED_ALREADY.add(users.lower(player.account))
 
         # Remove players who have already been pinged from the list of possible players to ping
-        chk_acc -= var.PINGED_ALREADY_ACCS
+        chk_acc -= PINGED_ALREADY
 
         # If there is nobody to ping, do nothing
         if not chk_acc:
-            var.PINGING_IFS = False
+            PINGING_PLAYERS = False
             return
 
-        def get_altpingers(event, chan, user):
-            if (event.params.away or user.stasis_count() or not var.PINGING_IFS or
+        def get_altpingers(event: Event, chan: Channel, user: User):
+            if (event.params.away or user.stasis_count() or not PINGING_PLAYERS or
                 chan is not channels.Main or user is users.Bot or user in pl):
                 return
 
             temp = user.lower()
             if temp.account in chk_acc:
                 to_ping.append(temp)
-                var.PINGED_ALREADY_ACCS.add(temp.account)
+                PINGED_ALREADY.add(temp.account)
                 return
 
         def ping_altpingers(event, request):
             if request is channels.Main:
-                var.PINGING_IFS = False
+                global PINGING_PLAYERS
+                PINGING_PLAYERS = False
                 if to_ping:
                     to_ping.sort(key=lambda x: x.nick)
                     user_list = [(user.ref or user).nick for user in to_ping]
@@ -448,3 +452,9 @@ def fleave(wrapper: MessageDispatcher, message: str):
         else:
             wrapper.send(messages["not_playing"].format(person))
             return
+
+@event_listener("reset")
+def on_reset(evt: Event, var: GameState):
+    global PINGING_PLAYERS
+    PINGED_ALREADY.clear()
+    PINGING_PLAYERS = False
