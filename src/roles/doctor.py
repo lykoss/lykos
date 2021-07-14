@@ -7,7 +7,7 @@ import typing
 import math
 from collections import defaultdict
 
-from src import channels, users
+from src import config, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -81,7 +81,7 @@ def on_revealroles(evt: Event, var: GameState):
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if evt.data["role"] == "doctor" and old_role != "doctor":
-        DOCTORS[player] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players(var)))
+        DOCTORS[player] = math.ceil(config.Main.get("gameplay.safes.doctor_shots") * len(get_players(var)))
     if evt.data["role"] != "doctor" and old_role == "doctor":
         del DOCTORS[player]
 

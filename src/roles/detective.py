@@ -5,7 +5,6 @@ import re
 import random
 import typing
 
-from src import users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -13,6 +12,7 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event, event_listener
 from src.cats import Safe, Wolfteam
+from src import config
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
@@ -50,7 +50,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
     INVESTIGATED.add(wrapper.source)
     wrapper.send(messages["investigate_success"].format(target, targrole))
 
-    if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
+    if (random.random() * 100) < config.Main.get("gameplay.safes.detective_reveal"):  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised! Let the opposing team know
         if get_main_role(var, wrapper.source) in Wolfteam:
             to_notify = get_players(var, Safe)
@@ -78,7 +78,7 @@ def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(dttv)
-        chance = math.floor(var.DETECTIVE_REVEALED_CHANCE * 100)
+        chance = config.Main.get("gameplay.safes.detective_reveal")
 
         dttv.send(messages["detective_notify"])
         if chance > 0:

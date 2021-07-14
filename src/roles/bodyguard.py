@@ -7,7 +7,6 @@ import math
 from collections import defaultdict
 from typing import Set, Optional, List, TYPE_CHECKING
 
-from src import channels
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -16,6 +15,7 @@ from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.events import Event, event_listener
 from src.cats import Wolf
 from src.users import User
+from src import config
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -86,8 +86,8 @@ def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User
     DYING.clear()
     for bodyguard in get_all_players(var, ("bodyguard",)):
         if GUARDED.get(bodyguard) in get_players(var, Wolf) and bodyguard not in evt.data["dead"]:
-            r = random.random()
-            if r < var.BODYGUARD_DIES_CHANCE:
+            r = random.random() * 100
+            if r < config.Main.get("gameplay.safes.bodyguard_dies"):
                 if var.role_reveal == "on":
                     evt.data["message"][bodyguard].append(messages["bodyguard_protected_wolf"].format(bodyguard))
                 else: # off and team
@@ -107,7 +107,7 @@ def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(bg)
-        chance = math.floor(var.BODYGUARD_DIES_CHANCE * 100)
+        chance = config.Main.get("gameplay.safes.bodyguard_dies")
 
         bg.send(messages["bodyguard_notify"])
         if var.NIGHT_COUNT == 0:

@@ -108,7 +108,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
     def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
-                if random.random() < config.Main.get("gameplay.gunner_wolf.kills_attacker"):
+                if (random.random() * 100) < config.Main.get("gameplay.gunner_wolf.kills_attacker"):
                     # pick a random wolf to be shot
                     wolves = [wolf for wolf in get_players(var, Wolf & Killer) if wolf not in evt.data["dead"]]
                     if wolves:

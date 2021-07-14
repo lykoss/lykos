@@ -15,6 +15,7 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.events import Event, event_listener
 from src.cats import Wolf
+from src import config
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -34,7 +35,7 @@ def guard(wrapper: MessageDispatcher, message: str):
         return
 
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], allow_self=var.GUARDIAN_ANGEL_CAN_GUARD_SELF, not_self_message="cannot_guard_self")
+    target = get_target(wrapper, re.split(" +", message)[0], allow_self=config.Main.get("gameplay.safes.guard_self"), not_self_message="cannot_guard_self")
     if not target:
         return
 
@@ -94,8 +95,8 @@ def on_chk_nightdone(evt: Event, var: GameState):
 def on_transition_day_resolve_end(evt: Event, var: GameState, victims):
     for gangel in get_all_players(var, ("guardian angel",)):
         if GUARDED.get(gangel) in get_players(var, Wolf) and gangel not in evt.data["dead"]:
-            r = random.random()
-            if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
+            r = random.random() * 100
+            if r < config.Main.get("gameplay.safes.angel_dies"):
                 to_send = "guardian_angel_protected_wolf_no_reveal"
                 if var.role_reveal == "on":
                     to_send = "guardian_angel_protected_wolf"
@@ -117,14 +118,14 @@ def on_send_role(evt: Event, var: GameState):
         if gangel in LASTGUARDED:
             if LASTGUARDED[gangel] in pl:
                 pl.remove(LASTGUARDED[gangel])
-        chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
+        chance = config.Main.get("gameplay.safes.angel_dies")
 
         gangel.send(messages["guardian_angel_notify"])
         if var.NIGHT_COUNT == 0:
             return
         if chance > 0:
             gangel.send(messages["bodyguard_death_chance"].format(chance))
-        if var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
+        if config.Main.get("gameplay.safes.guard_self"):
             gangel.send(messages["guardian_self_notification"])
         else:
             pl.remove(gangel)
@@ -142,7 +143,7 @@ def on_remove_protection(evt: Event, var: GameState, target: User, attacker: Use
         if protector is not target:
             protector.send(messages[reason + "_success"].format(target))
         target.send(messages[reason + "_deprotect"])
-        if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
+        if (random.random() * 100) < config.Main.get("gameplay.safes.fallen_kills"):
             add_dying(var, protector, killer_role="fallen angel", reason=reason)
 
 @event_listener("begin_day")

@@ -673,13 +673,45 @@ gameplay: &gameplay
       _type: dict
       _default:
         kills_attacker:
-          _desc: Determines the chance of gunner killing a wolf when targeted at night.
-          _type: float
-          _default: 0.25
+          _desc: Determines the chance out of 100 that a gunner will kill a wolf when targeted at night.
+          _type: int
+          _default: 25
         steals_gun:
           _desc: Determines whether a wolf will steal a loaded gun from dead gunner.
           _type: bool
           _default: true
+    safes:
+      _desc: Defines the behaviour of safe roles, such as guardian angel, bodyguard, detective, and doctor.
+      _type: dict
+      _default:
+        guard_self:
+          _desc: Whether or not guardian angels can guard themselves.
+          _type: bool
+          _default: true
+        angel_dies:
+          _desc: Determines the chance out of 100 that a guardian angel will die when guarding a wolf.
+          _type: int
+          _default: 0
+        bodyguard_dies:
+          _desc: Determines the chance out of 100 that a bodyguard will die when guarding a wolf.
+          _type: int
+          _default: 0
+        fallen_kills:
+          _desc: |
+            Determines the chance out of 100 that, when the wolves target someone guarded by a guardian angel,
+            the fallen angel, if present, will kill the guardian angel.
+          _type: int
+          _default: 50
+        detective_reveal:
+          _desc: Determines the chance out of 100 that a detective will reveal their identity to wolves when investigating.
+          _type: int
+          _default: 40
+        doctor_shots:
+          _desc: |
+            Determines how many shots the doctor gets. This floating point number will be multiplied with the number of
+            alive players when the player gets the role, rounded up.
+          _type: float
+          _default: 0.135
     nightchat:
       _desc: |
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel

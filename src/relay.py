@@ -131,8 +131,8 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
             if "src.roles.helper.wolves" in sys.modules:
                 from src.roles.helper.wolves import is_known_wolf_ally
                 players = [p for p in players if is_known_wolf_ally(var, p, p)]
-            if not is_fspectate and not already_spectating and var.SPECTATE_NOTICE:
-                spectator = wrapper.source.nick if var.SPECTATE_NOTICE_USER else "Someone"
+            if not is_fspectate and not already_spectating and config.Main.get("gameplay.spectate.notice"):
+                spectator = wrapper.source.nick if config.Main.get("gameplay.spectate.include_user") else "Someone"
                 for player in players:
                     player.queue_message(messages["fspectate_notice"].format(spectator, what))
                 if players:
