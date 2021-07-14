@@ -128,7 +128,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
         key = "you_already_playing" if who is wrapper.source else "other_already_playing"
         who.send(messages[key], notice=True)
         return True # returning True lets them use !j mode to vote for a gamemode while already joined
-    elif len(pl) >= var.MAX_PLAYERS:
+    elif len(pl) >= config.Main.get("gameplay.player_limits.maximum"):
         who.send(messages["too_many_players"], notice=True)
         return False
     elif var.in_game:
@@ -241,7 +241,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
         elif "-" in tojoin and debug_mode:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
-                if int(last)+1 - int(first) > var.MAX_PLAYERS - len(get_players(var)):
+                if int(last)+1 - int(first) > config.Main.get("gameplay.player_limits.maximum") - len(get_players(var)):
                     wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
                     break
                 success = True

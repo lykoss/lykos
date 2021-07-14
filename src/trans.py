@@ -236,7 +236,7 @@ def transition_day(var: GameState, gameid: int = 0):
             vappend.append(v)
         else:
             victims.append(v)
-    prevlen = var.MAX_PLAYERS + 10
+    prevlen = config.Main.get("gameplay.player_limits.maximum") + 10
     while len(vappend) > 0:
         if len(vappend) == prevlen:
             # have a circular dependency, try to break it by appending the next value

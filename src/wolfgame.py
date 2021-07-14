@@ -24,6 +24,7 @@ from __future__ import annotations
 import itertools
 import json
 import logging
+from lykos.src.gamemodes import GameMode
 import os
 import random
 import re
@@ -771,7 +772,7 @@ def leave(var: GameState, what, user, why=None):
 
     if var.current_phase == "join":
         lpl = len(ps) - 1
-        if lpl < var.MIN_PLAYERS:
+        if lpl < config.Main.get("gameplay.player_limits.minimum"):
             with locks.join_timer:
                 from src.pregame import START_VOTES
                 START_VOTES.clear()
@@ -1248,7 +1249,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
     gamemode = var.current_mode
 
     if (not pieces[0] or pieces[0].isdigit()) and not gamemode.ROLE_GUIDE:
-        minp = max(GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
+        minp = max(GAME_MODES[gamemode.name][1], config.Main.get("gameplay.player_limits.minimum"))
         msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
         wrapper.reply(msg, prefix_nick=True)
         return
@@ -1275,10 +1276,10 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
         mode = matches.get().key
 
-        gamemode = GAME_MODES[mode][0]()
+        gamemode: GameMode = GAME_MODES[mode][0]()
 
         if not gamemode.ROLE_GUIDE:
-            minp = max(GAME_MODES[mode][1], var.MIN_PLAYERS)
+            minp = max(GAME_MODES[mode][1], config.Main.get("gameplay.player_limits.minimum"))
             wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
@@ -1299,7 +1300,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
                 append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
                 new.append(role + append)
 
-        if new and var.MIN_PLAYERS <= specific <= var.MAX_PLAYERS:
+        if new and config.Main.get("gameplay.player_limits.minimum") <= specific <= config.Main.get("gameplay.player_limits.maximum"):
             msg.append("[{0}]".format(specific))
             msg.append(", ".join(new))
         else:
@@ -1315,8 +1316,8 @@ def list_roles(wrapper: MessageDispatcher, message: str):
         roles_dict_final = roles_dict.copy()
 
         for num, role_num in reversed(list(roles_dict.items())):
-            if num < var.MIN_PLAYERS:
-                roles_dict_final[var.MIN_PLAYERS] = list(role_num) + list(roles_dict_final[var.MIN_PLAYERS])
+            if num < config.Main.get("gameplay.player_limits.minimum"):
+                roles_dict_final[config.Main.get("gameplay.player_limits.minimum")] = list(role_num) + list(roles_dict_final[config.Main.get("gameplay.player_limits.maximum")])
                 del roles_dict_final[num]
 
         for num, role_num in roles_dict_final.items():

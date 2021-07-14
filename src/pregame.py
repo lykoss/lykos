@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
+from lykos.src import gamestate
 from typing import TYPE_CHECKING, List, Union, Set
 
 import threading
@@ -181,12 +182,12 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             wrapper.send(messages["please_wait"].format(dur))
             return
 
-        if len(villagers) < var.MIN_PLAYERS:
-            wrapper.send(messages["not_enough_players"].format(wrapper.source, var.MIN_PLAYERS))
+        if len(villagers) < config.Main.get("gameplay.player_limits.minimum"):
+            wrapper.send(messages["not_enough_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.minimum")))
             return
 
-        if len(villagers) > var.MAX_PLAYERS:
-            wrapper.send.send(messages["max_players"].format(wrapper.source, var.MAX_PLAYERS))
+        if len(villagers) > config.Main.get("gameplay.player_limits.maximum"):
+            wrapper.send.send(messages["max_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.maximum")))
             return
 
         with locks.join_timer:
@@ -214,9 +215,15 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
         if pregame_state.current_mode is None:
             from src.gamemodes import GAME_MODES
-            votes = {} #key = gamemode, not hostmask
+            def _isvalid(gamemode, allow_vote_only):
+                x = GAME_MODES[gamemode]
+                if not x[3] and not allow_vote_only:
+                    return False
+                return (len(villagers) >= x[1] and len(villagers) >= config.Main.get("gameplay.player_limits.minimum") and
+                        len(villagers) <= x[2] and len(villagers) <= config.Main.get("gameplay.player_limits.maximum"))
+            votes = {} # key = gamemode, not hostmask
             for gamemode in var.GAMEMODE_VOTES.values():
-                if len(villagers) >= GAME_MODES[gamemode][1] and len(villagers) <= GAME_MODES[gamemode][2]:
+                if _isvalid(gamemode, True):
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
             if voted:
@@ -225,7 +232,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 possiblegamemodes = []
                 numvotes = 0
                 for gamemode, num in votes.items():
-                    if len(villagers) < GAME_MODES[gamemode][1] or len(villagers) > GAME_MODES[gamemode][2] or GAME_MODES[gamemode][3] == 0:
+                    if not _isvalid(gamemode, False):
                         continue
                     possiblegamemodes += [gamemode] * num
                     numvotes += num
@@ -236,7 +243,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 if gamemode is None:
                     possiblegamemodes = []
                     for gamemode in GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")):
-                        if len(villagers) >= GAME_MODES[gamemode][1] and len(villagers) <= GAME_MODES[gamemode][2] and GAME_MODES[gamemode][3] > 0:
+                        if _isvalid(gamemode, False):
                             possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
                     gamemode = random.choice(possiblegamemodes)
                 set_gamemode(pregame_state, gamemode)

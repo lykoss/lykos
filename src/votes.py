@@ -147,7 +147,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
             votelist.append("{0}: {1}".format(gamemode, num_votes))
 
         msg = ", ".join(votelist)
-        if len(pl) >= var.MIN_PLAYERS:
+        if len(pl) >= config.Main.get("gameplay.player_limits.minimum"):
             msg += messages["majority_votes"].format("; " if votelist else "", math.ceil(len(pl) / 2))
 
         with locks.join_timer:

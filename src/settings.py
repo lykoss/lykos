@@ -1,7 +1,5 @@
 raise RuntimeError("src.settings incorrectly loaded")
 
-MIN_PLAYERS = 6
-MAX_PLAYERS = 24
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
 
 START_VOTES_SCALE = 0.3

@@ -652,6 +652,20 @@ gameplay: &gameplay
         - str
         - "null"
       _default: null
+    player_limits:
+      _desc: |
+        The lower and upper bounds of player counts for games. Note that most game modes do not support
+        all player counts.
+      _type: dict
+      _default:
+        minimum:
+          _desc: The minimum player count for games to start.
+          _type: int
+          _default: 6
+        maximum:
+          _desc: The maximum player count for players to join.
+          _type: int
+          _default: 35
     hidden:
       _desc: The roles here will hide their true identity upon dying.
       _type: dict
