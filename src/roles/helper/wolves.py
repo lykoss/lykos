@@ -31,7 +31,7 @@ def register_wolf(rolename):
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
             wolf.send(messages[msg])
             wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
-            if var.NIGHT_COUNT > 0:
+            if var.next_phase != "night":
                 nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
                 nevt.dispatch(var, wolf)
                 if rolename in Killer and not nevt.data["numkills"] and nevt.data["message"]:

@@ -128,7 +128,7 @@ def on_send_role(evt: Event, var: GameState):
         random.shuffle(pl)
         pl.remove(harlot)
         harlot.send(messages["harlot_notify"])
-        if var.NIGHT_COUNT > 0:
+        if var.next_phase != "night":
             harlot.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")

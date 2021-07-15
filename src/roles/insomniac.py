@@ -34,7 +34,7 @@ def on_send_role(evt: Event, var: GameState):
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt: Event, var: GameState):
-    if var.NIGHT_COUNT == 0: # starting with day
+    if var.night_count == 0 and var.start_with_day: # starting with day
         return
     pl = get_players(var)
     for insomniac in get_all_players(var, ("insomniac",)):

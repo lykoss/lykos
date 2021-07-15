@@ -33,7 +33,7 @@ class MaelstromMode(GameMode):
 
     def transition_night_begin(self, evt: Event, var: GameState):
         # don't do this n1
-        if var.NIGHT_COUNT == 1:
+        if var.night_count == 0:
             return
         villagers = get_players(var)
         lpl = len(villagers)

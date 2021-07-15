@@ -91,13 +91,13 @@ class SleepyMode(GameMode):
                 with locks.join_timer:
                     target = random.choice(pl)
                     pl.remove(target)
-                    t = threading.Timer(60, self.do_nightmare, (var, target, var.NIGHT_COUNT))
+                    t = threading.Timer(60, self.do_nightmare, (var, target, var.night_count))
                     t.daemon = True
                     t.start()
 
     @handle_error
     def do_nightmare(self, var: GameState, target, night):
-        if var.current_phase != "night" or var.NIGHT_COUNT != night:
+        if var.current_phase != "night" or var.night_count != night:
             return
         if target not in get_players(var):
             return

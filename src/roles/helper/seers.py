@@ -39,7 +39,7 @@ def setup_variables(rolename):
             pl.remove(seer)  # remove self from list
 
             seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
-            if var.NIGHT_COUNT > 0:
+            if var.next_phase != "night":
                 seer.send(messages["players_list"].format(pl))
 
     @event_listener("begin_day", listener_id="<{}>.on_begin_day".format(rolename))

@@ -103,7 +103,7 @@ def on_transition_night_end(evt: Event, var: GameState):
     shamans = list(shamans)
     random.shuffle(shamans)
     for shaman in shamans:
-        if var.NIGHT_COUNT == 0:
+        if var.next_phase != "night":
             shaman.send(messages["shaman_notify"].format("wolf shaman"))
             continue
         pl = ps[:]

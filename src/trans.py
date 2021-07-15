@@ -72,8 +72,7 @@ def fday(wrapper: MessageDispatcher, message: str):
 
 def begin_day(var: GameState):
     # Reset nighttime variables
-    var.current_phase = "day"
-    var.next_phase = None
+    var.end_phase_transition()
     var.LAST_GOAT.clear() # FIXME: Move this with !goat when it has its own module (and put it in an event listener)
     msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
@@ -178,15 +177,13 @@ def transition_day(var: GameState, gameid: int = 0):
     if var.current_phase == "day":
         return
 
-    var.next_phase = "day"
-    var.DAY_COUNT += 1
-    var.FIRST_DAY = (var.DAY_COUNT == 1)
+    var.begin_phase_transition("day")
     DAY_START_TIME = datetime.now()
 
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
 
-    if var.start_with_day and var.FIRST_DAY:
+    if var.start_with_day and not var.day_count:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
         # but this is good enough for now to prevent it from crashing
         begin_day(var)
@@ -372,10 +369,9 @@ def transition_night(var: GameState):
     if var.current_phase == "night":
         return
     global NIGHT_ID, DAY_START_TIME, DAY_TIMEDELTA
-    var.next_phase = "night"
+    var.begin_phase_transition("night")
 
     NIGHT_START_TIME = datetime.now()
-    var.NIGHT_COUNT += 1
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
@@ -425,13 +421,12 @@ def transition_night(var: GameState):
 
     dmsg.append(messages["night_begin"])
 
-    if var.NIGHT_COUNT > 1:
+    if var.night_count:
         dmsg.append(messages["first_night_begin"])
     channels.Main.send(*dmsg, sep=" ")
 
     # it's now officially nighttime
-    var.current_phase = "night"
-    var.next_phase = None
+    var.end_phase_transition()
 
     event_night = Event("begin_night", {"messages": []})
     event_night.dispatch(var)

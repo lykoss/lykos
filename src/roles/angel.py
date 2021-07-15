@@ -121,7 +121,7 @@ def on_send_role(evt: Event, var: GameState):
         chance = config.Main.get("gameplay.safes.angel_dies")
 
         gangel.send(messages["guardian_angel_notify"])
-        if var.NIGHT_COUNT == 0:
+        if var.next_phase != "night":
             return
         if chance > 0:
             gangel.send(messages["bodyguard_death_chance"].format(chance))

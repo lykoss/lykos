@@ -110,7 +110,7 @@ def on_send_role(evt: Event, var: GameState):
         chance = config.Main.get("gameplay.safes.bodyguard_dies")
 
         bg.send(messages["bodyguard_notify"])
-        if var.NIGHT_COUNT == 0:
+        if var.next_phase != "night":
             return
         if chance > 0:
             bg.send(messages["bodyguard_death_chance"].format(chance))

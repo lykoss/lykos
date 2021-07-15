@@ -255,7 +255,7 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt: Event, var: GameState):
-        if var.NIGHT_COUNT == 0 or not get_all_players(var, (rolename,)):
+        if var.next_phase != "night" or not get_all_players(var, (rolename,)):
             return
         if var.current_mode.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)

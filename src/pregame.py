@@ -327,9 +327,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
-    var.NIGHT_COUNT = 0
-    var.DAY_COUNT = 0
-
     # Second round of check is done: Initialize the various variables that we need
     ingame_state.begin_setup()
 

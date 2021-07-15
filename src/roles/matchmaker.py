@@ -119,7 +119,7 @@ def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         mm.send(messages["matchmaker_notify"])
-        if var.NIGHT_COUNT > 0:
+        if var.next_phase != "night":
             mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")

@@ -146,7 +146,7 @@ def on_transition_night_end(evt: Event, var: GameState):
         random.shuffle(targets)
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
         dullahan.send(messages["dullahan_notify"])
-        if var.NIGHT_COUNT > 0:
+        if var.next_phase != "night":
             dullahan.send(t.format(targets))
 
 @event_listener("visit")

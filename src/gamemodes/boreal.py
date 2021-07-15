@@ -187,7 +187,7 @@ class BorealMode(GameMode):
             self.village_starve += 1
             evt.data["message"]["*"].append(messages["boreal_village_hungry"])
         # say how many days remaining
-        remain = self.max_nights - var.NIGHT_COUNT
+        remain = self.max_nights - var.night_count
         if remain > 0:
             evt.data["message"]["*"].append(messages["boreal_day_count"].format(remain))
 
@@ -227,7 +227,7 @@ class BorealMode(GameMode):
             # this overrides built-in win conds (such as all wolves being dead)
             evt.data["winner"] = "wolves"
             evt.data["message"] = messages["boreal_village_starve"]
-        elif var.NIGHT_COUNT == self.max_nights and var.current_phase == "day":
+        elif var.night_count == self.max_nights and var.current_phase == "day":
             # if village survived for N nights without losing, they outlast the storm and win
             # this overrides built-in win conds (such as same number of wolves as villagers)
             evt.data["winner"] = "villagers"

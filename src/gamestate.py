@@ -60,6 +60,8 @@ class GameState:
         self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
         self.current_phase: str = pregame_state.current_phase
         self.next_phase: Optional[str] = None
+        self.night_count: int = 0
+        self.day_count: int = 0
 
     def begin_setup(self):
         if self.setup_completed:
@@ -99,6 +101,20 @@ class GameState:
     @property
     def in_game(self):
         return self.setup_completed and not self._torndown
+
+    def begin_phase_transition(self, phase: str):
+        if self.next_phase is not None:
+            raise RuntimeError("already in phase transition")
+        self.next_phase = phase
+
+    def end_phase_transition(self):
+        if self.next_phase is None:
+            raise RuntimeError("not in phase transition")
+        # this is a bit convoluted, but this lets external code plug in their own phases
+        setattr(self, f"{self.next_phase}_count", getattr(self, f"{self.next_phase}_count") + 1)
+
+        self.current_phase = self.next_phase
+        self.next_phase = None
 
     @property
     def in_phase_transition(self):

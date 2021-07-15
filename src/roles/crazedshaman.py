@@ -100,7 +100,7 @@ def on_send_role(evt: Event, var: GameState):
     shamans = list(shamans)
     random.shuffle(shamans)
     for shaman in shamans:
-        if var.NIGHT_COUNT == 0:
+        if var.next_phase != "night":
             shaman.send(messages["shaman_notify"].format("crazed shaman"))
             continue
 

@@ -117,7 +117,7 @@ def on_transition_night_end(evt: Event, var: GameState):
             pl.remove(child)
             random.shuffle(pl)
             child.send(messages["wild_child_notify"])
-            if var.NIGHT_COUNT > 0:
+            if var.next_phase != "night":
                 child.send(messages["players_list"].format(pl))
 
 @event_listener("revealroles_role")

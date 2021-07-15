@@ -26,7 +26,7 @@ NIGHT_IDLED = UserSet()
 def reaper(var: GameState, gameid: int):
     # check to see if idlers need to be killed.
     game_start_time = datetime.now()
-    last_day_id = var.DAY_COUNT
+    last_day_id = var.day_count
     num_night_iters = 0
     short = False
 
@@ -49,8 +49,8 @@ def reaper(var: GameState, gameid: int):
                     # this doesn't do an exact count, but is good enough
                     num_night_iters += 1
                     skip = True
-                elif var.current_phase == "day" and var.DAY_COUNT != last_day_id:
-                    last_day_id = var.DAY_COUNT
+                elif var.current_phase == "day" and var.day_count != last_day_id:
+                    last_day_id = var.day_count
                     num_night_iters += 1
                     for user in LAST_SAID_TIME:
                         LAST_SAID_TIME[user] += timedelta(seconds=10 * num_night_iters)

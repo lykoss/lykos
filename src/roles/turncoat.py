@@ -26,7 +26,7 @@ PASSED = UserSet()
 @command("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
 def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is sendmsg useful at all?
     var = wrapper.game_state
-    if TURNCOATS[wrapper.source][1] == var.NIGHT_COUNT - 1:
+    if TURNCOATS[wrapper.source][1] == var.night_count - 1:
         wrapper.pm(messages["turncoat_already_turned"])
         return
 
@@ -39,21 +39,21 @@ def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is s
     team = team.get().key
 
     wrapper.pm(messages["turncoat_success"].format(team))
-    TURNCOATS[wrapper.source] = (team, var.NIGHT_COUNT)
+    TURNCOATS[wrapper.source] = (team, var.night_count)
     PASSED.discard(wrapper.source)
 
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
     var = wrapper.game_state
-    if TURNCOATS[wrapper.source][1] == var.NIGHT_COUNT:
+    if TURNCOATS[wrapper.source][1] == var.night_count:
         # theoretically passing would revert them to how they were before, but
         # we aren't tracking that, so just tell them to change it back themselves.
         wrapper.pm(messages["turncoat_fail"])
         return
 
     wrapper.pm(messages["turncoat_pass"])
-    if TURNCOATS[wrapper.source][1] == var.NIGHT_COUNT - 1:
+    if TURNCOATS[wrapper.source][1] == var.night_count - 1:
         # don't add to PASSED since we aren't counting them anyway for nightdone
         # let them still use !pass though to make them feel better or something
         return
@@ -71,7 +71,7 @@ def on_send_role(evt: Event, var: GameState):
         else:
             message = messages["turncoat_no_team"]
 
-        if TURNCOATS[turncoat][1] < var.NIGHT_COUNT - 1 or var.NIGHT_COUNT == 0:
+        if TURNCOATS[turncoat][1] < var.night_count - 1 or var.night_count == 0:
             # they can act tonight
             turncoat.send(messages["turncoat_notify"], message)
         else:
@@ -87,10 +87,10 @@ def on_chk_nightdone(evt: Event, var: GameState):
     for turncoat, (team, night) in TURNCOATS.items():
         if turncoat not in pl:
             continue
-        if night == var.NIGHT_COUNT:
+        if night == var.night_count:
             evt.data["nightroles"].append(turncoat)
             evt.data["acted"].append(turncoat)
-        elif night < var.NIGHT_COUNT - 1:
+        elif night < var.night_count - 1:
             evt.data["nightroles"].append(turncoat)
 
 @event_listener("team_win")

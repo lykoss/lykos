@@ -86,7 +86,7 @@ def on_send_role(evt: Event, var: GameState):
             PREV_ACTED.add(ass)
         else:
             ass.send(messages["assassin_notify"])
-            if var.NIGHT_COUNT > 0:
+            if var.next_phase != "night":
                 ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")

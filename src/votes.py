@@ -79,7 +79,7 @@ def no_lynch(wrapper: MessageDispatcher, message: str):
     elif var.limit_abstain and ABSTAINED:
         wrapper.pm(messages["exhausted_abstain"])
         return
-    elif var.limit_abstain and var.FIRST_DAY:
+    elif var.limit_abstain and not var.day_count:
         wrapper.pm(messages["no_abstain_day_one"])
         return
     elif try_absent(var, wrapper.source):

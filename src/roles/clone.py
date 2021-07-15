@@ -89,7 +89,7 @@ def on_send_role(evt: Event, var: GameState):
         random.shuffle(pl)
         pl.remove(clone)
         clone.send(messages["clone_notify"])
-        if var.NIGHT_COUNT > 0:
+        if var.next_phase != "night":
             clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")
