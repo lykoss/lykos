@@ -68,8 +68,6 @@ from src.functions import (
 
 # Game Logic Begins:
 
-var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
-
 var.GAMEMODE_VOTES = UserDict() # type: ignore
 
 var.RESTARTING = False # type: ignore
@@ -511,18 +509,18 @@ def on_join(evt, chan, user: User):
     user.update_account_data("<chan_join>", lambda new_user: reaper.return_to_village(channels.Main.game_state, new_user, show_message=True))
 
 @event_listener("account_change")
-def account_change(evt, user, old_account): # FIXME: This uses var
+def account_change(evt, user: User, old_account): # FIXME: This uses var
     if user not in channels.Main.users or not channels.Main.game_state:
         return # We only care about game-related changes in this function
 
     var = channels.Main.game_state
 
     pl = get_participants(var)
-    if user in pl and user.account not in var.ORIGINAL_ACCS.values() and user not in reaper.DISCONNECTED:
+    if user in pl and user.account not in trans.ORIGINAL_ACCOUNTS.values() and user not in reaper.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.current_phase != "join":
             channels.Main.mode(["-v", user.nick])
-    elif (user not in pl or user in reaper.DISCONNECTED) and user.account in var.ORIGINAL_ACCS.values():
+    elif (user not in pl or user in reaper.DISCONNECTED) and user.account in trans.ORIGINAL_ACCOUNTS.values():
         # if they were gone, maybe mark them as back
         reaper.return_to_village(var, user, show_message=True)
 
@@ -540,8 +538,6 @@ def quit_server(evt, user, reason): # FIXME: This uses var
 
 def leave(var: GameState, what, user, why=None):
     if what in ("part", "kick") and why is not channels.Main:
-        return
-    if why and why == var.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var is None:
         return

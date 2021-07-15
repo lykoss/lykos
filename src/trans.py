@@ -37,6 +37,8 @@ NIGHT_START_TIME: Optional[datetime] = None
 ENDGAME_COMMAND: Optional[Callable] = None
 ADMIN_STOPPED: UserList[User] = UserList() # this shouldn't hold more than one user at any point, but we need to keep track of it
 
+ORIGINAL_ACCOUNTS: UserDict[User, str] = UserDict()
+
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
     if var.current_phase != "day" or var.in_phase_transition:
@@ -572,8 +574,8 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                          "dced": player in reaper.DCED_LOSERS
                          }
                 # player.account could be None if they disconnected during the game. Use original tracked account name
-                if entry["account"] is None and player in var.ORIGINAL_ACCS:
-                    entry["account"] = var.ORIGINAL_ACCS[player]
+                if entry["account"] is None and player in ORIGINAL_ACCOUNTS:
+                    entry["account"] = ORIGINAL_ACCOUNTS[player]
 
                 survived = player in get_players()
                 if not entry["dced"] and winner != "":
@@ -776,9 +778,9 @@ def on_reset(evt: Event, var: GameState):
     NIGHT_TIMEDELTA = None
     NIGHT_START_TIME = None
     NIGHT_IDLE_EXEMPT.clear()
+    ORIGINAL_ACCOUNTS.clear()
 
 def old_reset():
-    var.ORIGINAL_ACCS.clear()
     var.GAMEMODE_VOTES.clear()
 
     evt = Event("reset", {})

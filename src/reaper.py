@@ -162,11 +162,12 @@ def update_last_said(wrapper: MessageDispatcher, message: str):
 @handle_error
 def return_to_village(var: GameState, target: User, *, show_message: bool, new_user: Optional[User]=None):
     with locks.reaper:
+        from src.trans import ORIGINAL_ACCOUNTS
         if channels.Main not in target.channels:
             # managed to leave the channel in between the time return_to_village was scheduled and called
             return
 
-        if target.account not in var.ORIGINAL_ACCS.values():
+        if target.account not in ORIGINAL_ACCOUNTS.values():
             return
 
         if target in DISCONNECTED:

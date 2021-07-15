@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Callable, List, Union, Set
 
 from src.decorators import command
+from src.containers import UserDict
 from src.functions import get_players, get_reveal_role
 from src.gamestate import PregameState, GameState
 from src.warnings import expire_tempbans, decrement_stasis, add_warning
@@ -107,7 +108,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 channels.Main.old_modes[wrapper.source].add(mode)
         var.players.append(wrapper.source)
         if wrapper.source.account:
-            var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
+            trans.ORIGINAL_ACCOUNTS[wrapper.source] = wrapper.source.account
         if config.Main.get("timers.wait.enabled"):
             pregame.CAN_START_TIME = datetime.now() + timedelta(seconds=config.Main.get("timers.wait.initial"))
             with locks.wait:
@@ -150,11 +151,11 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 channels.Main.old_modes[wrapper.source].add(mode)
             wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
 
-        # ORIGINAL_ACCS is only cleared on reset(), so can be used to determine if a player has previously joined
+        # ORIGINAL_ACCOUNTS is only cleared on reset(), so can be used to determine if a player has previously joined
         # The logic in this if statement should only run once per account
-        if not wrapper.source.is_fake and wrapper.source.account not in var.ORIGINAL_ACCS.values():
+        if not wrapper.source.is_fake and wrapper.source.account not in trans.ORIGINAL_ACCOUNTS.values():
             if wrapper.source.account:
-                var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
+                trans.ORIGINAL_ACCOUNTS[wrapper.source] = wrapper.source.account
             now = datetime.now()
 
             if config.Main.get("timers.wait.enabled"):
