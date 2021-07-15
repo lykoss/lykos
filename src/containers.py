@@ -38,12 +38,22 @@ files to get an idea of how those containers should be used.
 
 """
 
-class Container(ABC, Iterable):
+class Container(ABC):
     """Base container class for all containers."""
+
+    __slots__ = ()
 
     @abstractmethod
     def __init__(self, iterable: Iterable = ()):
-        pass
+        # We require subclasses to accept an iterable but we don't implicitly populate the
+        # base class with it since that would lead to potentially forgotten tracking.
+        # Instead the subclass should iterate over iterable and add each element to the parent container
+        # with its own add/append/etc. method that implements proper user tracking.
+        super(Container, self).__init__()
+
+    def __iter__(self):
+        # noinspection PyUnresolvedReferences
+        return super(Container, self).__iter__()
 
     def __enter__(self):
         return self
@@ -52,10 +62,11 @@ class Container(ABC, Iterable):
         self.clear()
 
     def __format__(self, format_spec=""):
-        vars = [format(x, format_spec) for x in self]
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
+        args = [format(x, format_spec) for x in self]
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(args))
 
-    __str__ = __format__
+    def __str__(self):
+        return self.__format__()
 
     def __eq__(self, other):
         return self is other
@@ -71,7 +82,8 @@ class Container(ABC, Iterable):
 
     @abstractmethod
     def clear(self):
-        pass
+        # noinspection PyUnresolvedReferences
+        super(Container, self).clear()
 
 class UserList(Container, List[User]):
     def __init__(self, iterable=()):
@@ -265,25 +277,25 @@ class UserSet(Container, Set[User]):
                 self.add(item)
 
 class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
-    def __init__(_self, _it=(), **kwargs):
+    def __init__(self, _it=(), **kwargs):
         super().__init__()
         if hasattr(_it, "items"):
             _it = _it.items()
         try:
             for key, value in _it:
-                _self[key] = value
+                self[key] = value
             for key, value in kwargs.items():
-                _self[key] = value
+                self[key] = value
         except:
-            while _self:
-                _self.popitem() # don't clear, as it's recursive (we might not want that)
+            while self:
+                self.popitem() # don't clear, as it's recursive (we might not want that)
             raise
 
     def __str__(self):
         vars = ["{0}: {1}".format(x, y) for x, y in self.items()]
         return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
 
-    def __format__(self, format_spec):
+    def __format__(self, format_spec=""):
         if format_spec == "for_tb":
             # we don't know if the keys, the values, or both are Users or other user containers, so try all 3...
             try:
@@ -385,8 +397,8 @@ class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
             self[key] = value
 
 class DefaultUserDict(UserDict[KT, VT], Generic[KT, VT]):
-    def __init__(_self, _factory, _it=(), **kwargs):
-        _self.factory = _factory
+    def __init__(self, _factory, _it=(), **kwargs):
+        self.factory = _factory
         super().__init__(_it, **kwargs)
 
     def __missing__(self, key):

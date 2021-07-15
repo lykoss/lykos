@@ -15,7 +15,7 @@ __all__ = ["add_dying", "is_dying", "is_dead", "kill_players"]
 DyingEntry = Tuple[str, str, bool]
 
 DYING: UserDict[User, DyingEntry] = UserDict()
-DEAD: UserSet[User] = UserSet()
+DEAD: UserSet = UserSet()
 
 def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
     """
