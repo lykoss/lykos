@@ -17,7 +17,6 @@ if TYPE_CHECKING:
 
 Main: Channel = None # type: ignore[assignment]
 Dummy: Channel = None # type: ignore[assignment]
-Dev: Optional[Channel] = None # dev channel
 
 _channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 
@@ -122,8 +121,6 @@ class Channel(IRCContext):
                     value = "Main"
                 elif self is Dummy:
                     value = "Dummy"
-                elif self is Dev:
-                    value = "Dev"
                 else:
                     value = format(id(self), "x")
                 return "{self.__class__.__name__}({0})".format(value, self=self)

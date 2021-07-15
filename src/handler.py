@@ -265,27 +265,6 @@ def connect_callback(cli: IRCClient):
         channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
         channels.Dummy = channels.add("*", cli)
 
-        alt_channels = config.Main.get("transports[0].channels.alternate")
-        transport_name = config.Main.get("transports[0].name")
-        debug_chan = None
-        log_chan = None
-        for log in config.Main.get("logging.logs"):
-            if log["transport"] != transport_name:
-                continue
-            if log["group"] == "debug":
-                debug_chan = log["destination"]
-            elif log["group"] == "warnings":
-                log_chan = log["destination"]
-        for chan in alt_channels:
-            if isinstance(chan, str):
-                chan = {"name": chan, "prefix": "", "key": ""}
-            c = channels.add(chan["name"], cli, key=chan["key"])
-            if chan == debug_chan: # TODO: Add a prefix to a channel object so we know to use it to send
-                channels.Dev = c
-                var.DEV_PREFIX = chan["prefix"]
-            if chan == log_chan:
-                var.LOG_PREFIX = chan["prefix"]
-
         users.Bot.change_nick(nick)
 
         if config.Main.get("transports[0].server_ping"):

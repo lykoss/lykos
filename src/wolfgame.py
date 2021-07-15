@@ -24,7 +24,6 @@ from __future__ import annotations
 import itertools
 import json
 import logging
-from lykos.src.gamemodes import GameMode
 import os
 import random
 import re
@@ -32,29 +31,28 @@ import signal
 import socket
 import subprocess
 import sys
-import threading
 import time
 import urllib.request
 
-from collections import defaultdict, Counter
+from collections import Counter
 from datetime import datetime, timedelta
-from typing import FrozenSet, Set, Optional, Callable, List
+from typing import FrozenSet, Set, Optional, List
 
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay
 from src.channels import Channel
 from src.users import User
 
-from src.debug import handle_error
 from src.events import Event, EventListener, event_listener
 from src.transport.irc import get_ircd
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.gamestate import GameState, PregameState
+from src.gamestate import GameState
+from src.gamemodes import GameMode
 from src.messages import messages, LocalMode
-from src.warnings import *
+from src.warnings import expire_tempbans
 from src.context import IRCContext
-from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
+from src.status import add_dying, kill_players
 from src.votes import chk_decision
 from src.trans import chk_win, chk_nightdone, reset, stop_game
 from src.cats import (

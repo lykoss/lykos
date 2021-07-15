@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Union, List, Optional, TYPE_CHECKING
+import logging
 import re
 
 from src import config, channels, db, users
@@ -393,16 +394,15 @@ def fwarn_add(wrapper: MessageDispatcher, args):
 
     wrapper.reply(messages["fwarn_added"].format(warn_id))
     # Log to ops/log channel (even if the warning was placed in that channel)
-    if var.LOG_CHANNEL: # FIXME: Need to convert this into a proper config fetch
-        log_reason = reason
-        if notes is not None:
-            log_reason += " | " + notes
-        if expires is None:
-            log_exp = messages["fwarn_log_add_noexpiry"]
-        else:
-            log_exp = messages["fwarn_log_add_expiry"].format(expires)
-        log_msg = messages["fwarn_log_add"].format(warn_id, target, wrapper.source, log_reason, args.points, log_exp)
-        channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
+    logger = logging.getLogger("commands.fwarn.add")
+    log_reason = reason
+    if notes is not None:
+        log_reason += " | " + notes
+    if expires is None:
+        log_exp = messages["fwarn_log_add_noexpiry"]
+    else:
+        log_exp = messages["fwarn_log_add_expiry"].format(expires)
+    logger.info(messages["fwarn_log_add"].format(warn_id, target, wrapper.source, log_reason, args.points, log_exp))
 
 def fwarn_del(wrapper: MessageDispatcher, args):
     if args.help:
@@ -419,9 +419,10 @@ def fwarn_del(wrapper: MessageDispatcher, args):
     db.init_vars()
     wrapper.reply(messages["fwarn_done"])
 
-    if var.LOG_CHANNEL:
-        msg = messages["fwarn_log_del"].format(**warning)
-        channels.get(var.LOG_CHANNEL).send(msg, prefix=var.LOG_PREFIX)
+
+    logger = logging.getLogger("commands.fwarn.del")
+    msg = messages["fwarn_log_del"].format(**warning)
+    logger.info(messages["fwarn_log_del"].format(**warning))
 
 def fwarn_help(wrapper: MessageDispatcher, args):
     if args.command in _fa:

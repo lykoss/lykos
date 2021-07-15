@@ -18,6 +18,10 @@ transports.irc.channel: &transports.irc.channel
       _desc: Channel key, if the channel is password protected (channel mode +k).
       _type: str
       _default: ""
+    prefix:
+      _desc: All messages to this channel will be using this message prefix, if specified.
+      _type: str
+      _default: ""
     auto_mode_toggle:
       _desc: |
         The channel modes which will be automatically toggled for the duration of the game.
@@ -506,7 +510,7 @@ logging.log.handler.transport: &logging.log.handler.transport
       _desc: |
         An optional location in the transport to write the log. Each transport interprets this differently.
         * For the irc transport, this should be a channel name (remember to surround it in quotes). If the
-        irc server supports STATUSMSG, you may add a prefix to the channel name, e.g. "+#werewolf-ops".
+        irc server supports STATUSMSG, you may add a prefix to the channel object.
       _type:
         - str
         - "null"
