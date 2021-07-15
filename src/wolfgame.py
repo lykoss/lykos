@@ -38,7 +38,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 from typing import FrozenSet, Set, Optional, List
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay, votes
 from src.channels import Channel
 from src.users import User
 
@@ -67,8 +67,6 @@ from src.functions import (
    )
 
 # Game Logic Begins:
-
-var.GAMEMODE_VOTES = UserDict() # type: ignore
 
 var.RESTARTING = False # type: ignore
 
@@ -443,8 +441,8 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
     var.set_role_stats(newstats)
 
     if var.current_phase == "join":
-        if player in var.GAMEMODE_VOTES:
-            del var.GAMEMODE_VOTES[player]
+        if player in votes.GAMEMODE_VOTES:
+            del votes.GAMEMODE_VOTES[player]
 
         # Died during the joining process as a person
         var.players.remove(player)
@@ -1162,10 +1160,10 @@ def vote_gamemode(wrapper: MessageDispatcher, gamemode, doreply): # FIXME: remov
         return
 
     gamemode = matches.get().key
-    if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
+    if votes.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
         wrapper.pm(messages["already_voted_game"].format(gamemode))
     else:
-        var.GAMEMODE_VOTES[wrapper.source] = gamemode
+        votes.GAMEMODE_VOTES[wrapper.source] = gamemode
         wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
 
 def _get_gamemodes(var):

@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
 
 VOTES: UserDict[User, UserList] = UserDict()
+GAMEMODE_VOTES: UserDict[User, str] = UserDict()
 ABSTAINS: UserSet = UserSet()
 ABSTAINED = False
 LAST_VOTES = None
@@ -127,7 +128,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
     pl = get_players(var)
     if var.current_phase == "join":
         # get gamemode votes in a dict of {mode: number of votes}
-        gm_votes = list(Counter(var.GAMEMODE_VOTES.values()).items())
+        gm_votes = list(Counter(GAMEMODE_VOTES.values()).items())
         gm_votes.sort(key=lambda x: x[1], reverse=True) # sort from highest to lowest
 
         votelist = []
@@ -343,3 +344,4 @@ def on_reset(evt: Event, var: GameState):
     LYNCHED = 0
     ABSTAINS.clear()
     VOTES.clear()
+    GAMEMODE_VOTES.clear()

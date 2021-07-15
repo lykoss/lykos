@@ -779,9 +779,3 @@ def on_reset(evt: Event, var: GameState):
     NIGHT_START_TIME = None
     NIGHT_IDLE_EXEMPT.clear()
     ORIGINAL_ACCOUNTS.clear()
-
-def old_reset():
-    var.GAMEMODE_VOTES.clear()
-
-    evt = Event("reset", {})
-    evt.dispatch(var)

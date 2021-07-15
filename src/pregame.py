@@ -211,6 +211,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
         if pregame_state.current_mode is None:
             from src.gamemodes import GAME_MODES
+            from src.votes import GAMEMODE_VOTES
             def _isvalid(gamemode, allow_vote_only):
                 x = GAME_MODES[gamemode]
                 if not x[3] and not allow_vote_only:
@@ -218,7 +219,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 return (len(villagers) >= x[1] and len(villagers) >= config.Main.get("gameplay.player_limits.minimum") and
                         len(villagers) <= x[2] and len(villagers) <= config.Main.get("gameplay.player_limits.maximum"))
             votes = {} # key = gamemode, not hostmask
-            for gamemode in var.GAMEMODE_VOTES.values():
+            for gamemode in GAMEMODE_VOTES.values():
                 if _isvalid(gamemode, True):
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
