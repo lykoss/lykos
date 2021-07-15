@@ -7,7 +7,7 @@ import math
 from collections import defaultdict
 from typing import Optional, Set, TYPE_CHECKING
 
-from src import channels, users, config
+from src import users, config
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -29,7 +29,7 @@ def _get_blacklist(var: GameState):
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):
     global STATS_FLAG
-    if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
+    if var.NIGHT_COUNT == config.Main.get("gameplay.safes.amnesiac_night"):
         amnesiacs = get_all_players(var, ("amnesiac",))
         if amnesiacs and not config.Main.get("gameplay.hidden.amnesiac"):
             STATS_FLAG = True

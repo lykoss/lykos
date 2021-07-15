@@ -709,7 +709,7 @@ gameplay: &gameplay
           _type: bool
           _default: true
     safes:
-      _desc: Defines the behaviour of safe roles, such as guardian angel, bodyguard, detective, and doctor.
+      _desc: Defines the behaviour of safe roles, such as guardian angel, bodyguard, detective, doctor, and amnesiac.
       _type: dict
       _default:
         guard_self:
@@ -740,6 +740,10 @@ gameplay: &gameplay
             alive players when the player gets the role, rounded up.
           _type: float
           _default: 0.135
+        amnesiac_night:
+          _desc: The amnesiac will get reminded of their true identity on this night.
+          _type: int
+          _default: 3
     nightchat:
       _desc: |
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel
