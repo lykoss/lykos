@@ -2,9 +2,6 @@ raise RuntimeError("src.settings incorrectly loaded")
 
 ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
 
-START_VOTES_SCALE = 0.3
-START_VOTES_MAX = 4
-
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 
 GUEST_NICK_PATTERN = r"^Guest\d+$|^\d|away.+|.+away"

@@ -195,7 +195,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 wrapper.pm(messages["start_already_voted"])
                 return
 
-            start_votes_required = min(math.ceil(len(villagers) * var.START_VOTES_SCALE), var.START_VOTES_MAX)
+            start_votes_required = min(math.ceil(len(villagers) * config.Main.get("gameplay.start.scale")), config.Main.get("gameplay.start.maximum"))
             if not forced and len(START_VOTES) < start_votes_required:
                 # If there's only one more vote required, start the game immediately.
                 # Checked here to make sure that a player that has already voted can't

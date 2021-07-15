@@ -280,7 +280,7 @@ def connect_callback(cli: IRCClient):
             if isinstance(chan, str):
                 chan = {"name": chan, "prefix": "", "key": ""}
             c = channels.add(chan["name"], cli, key=chan["key"])
-            if chan == debug_chan:
+            if chan == debug_chan: # TODO: Add a prefix to a channel object so we know to use it to send
                 channels.Dev = c
                 var.DEV_PREFIX = chan["prefix"]
             if chan == log_chan:

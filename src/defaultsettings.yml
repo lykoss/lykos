@@ -666,6 +666,20 @@ gameplay: &gameplay
           _desc: The maximum player count for players to join.
           _type: int
           _default: 35
+    start:
+      _desc: The settings defining how many players must do !start for the game to start.
+      _type: dict
+      _default:
+        scale:
+          _desc: |
+            Determines the scaling for the number of !start votes needed. This floating point number will
+            be multiplied with the number of players, rounded up. This will not exceed the maximum below.
+          _type: float
+          _default: 0.3
+        maximum:
+          _desc: The maximum number of !start votes that the bot can require.
+          _type: int
+          _default: 4
     hidden:
       _desc: The roles here will hide their true identity upon dying.
       _type: dict

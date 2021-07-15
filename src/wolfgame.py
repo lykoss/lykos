@@ -133,7 +133,7 @@ def connect_callback():
 
             who_end_listener.remove("who_end")
 
-    def end_listmode(event, chan, mode):
+    def end_listmode(event, chan: Channel, mode: str):
         if chan is channels.Main and mode == get_ircd().quiet_mode:
             pending = []
             for quiet in chan.modes.get(mode, ()):
@@ -229,14 +229,11 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
         force = True
         message = " ".join(args[1:])
 
-    if var.in_game:
-        if var.current_phase == "join" or force or wrapper.source.nick == "<console>":
-            stop_game(var, log=False)
-        else:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
-            return
-
-    reset(var)
+    if var.current_phase == "join" or force or wrapper.source.nick == "<console>":
+        stop_game(var, log=False)
+    else:
+        wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
+        return
 
     msg = "{0} quit from {1}"
 
@@ -262,7 +259,6 @@ def _restart_program(mode=None):
         if config.Main.get("debug.enabled"):
             args.append("--debug")
         os.execl(python, python, sys.argv[0], *args)
-
 
 @command("frestart", flag="D", pm=True)
 def restart_program(wrapper: MessageDispatcher, message: str):
