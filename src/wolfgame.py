@@ -543,7 +543,7 @@ def leave(var: GameState, what, user, why=None):
         return
     if why and why == var.CHANGING_HOST_QUIT_MESSAGE:
         return
-    if var.current_phase == "none":
+    if var is None:
         return
 
     ps = get_players(var)

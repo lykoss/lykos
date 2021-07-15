@@ -96,7 +96,7 @@ def fwait(wrapper: MessageDispatcher, message: str):
     else:
         wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra)))
 
-@command("start", phases=("none", "join"))
+@command("start", phases=("join",))
 def start_cmd(wrapper: MessageDispatcher, message: str):
     """Start a game of Werewolf."""
     if wrapper.target is channels.Main:
@@ -163,10 +163,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     if not restart:
         LAST_START[wrapper.source] = [datetime.now(), 1]
 
-    if not restart:
-        if pregame_state is None:
-            wrapper.source.send(messages["no_game_running"])
-            return
         if pregame_state.in_game:
             wrapper.source.send(messages["werewolf_already_running"])
             return
