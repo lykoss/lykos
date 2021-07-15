@@ -517,24 +517,24 @@ def fwarn_set(wrapper: MessageDispatcher, args):
     db.set_warning(args.id, expires, reason, notes)
     wrapper.reply(messages["fwarn_done"])
 
-    if var.LOG_CHANNEL:
-        changes = []
-        if expires != warning["expires"]:
-            oldexpiry = warning["expires"] if warning["expires"] else messages["fwarn_log_set_noexpiry"]
-            newexpiry = expires if expires else messages["fwarn_log_set_noexpiry"]
-            changes.append(messages["fwarn_log_set_expiry"].format(oldexpiry, newexpiry))
-        if reason != warning["reason"]:
-            changes.append(messages["fwarn_log_set_reason"].format(warning["reason"], reason))
-        if notes != warning["notes"]:
-            if warning["notes"]:
-                changes.append(messages["fwarn_log_set_notes"].format(warning["notes"], notes))
-            else:
-                changes.append(messages["fwarn_log_set_notes_new"].format(notes))
-        warning["changed_by"] = wrapper.source
-        warning["changes"] = changes
-        if changes:
-            log_msg = messages["fwarn_log_set"].format(**warning)
-            channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
+    logger = logging.getLogger("commands.fwarn.set")
+
+    changes = []
+    if expires != warning["expires"]:
+        oldexpiry = warning["expires"] if warning["expires"] else messages["fwarn_log_set_noexpiry"]
+        newexpiry = expires if expires else messages["fwarn_log_set_noexpiry"]
+        changes.append(messages["fwarn_log_set_expiry"].format(oldexpiry, newexpiry))
+    if reason != warning["reason"]:
+        changes.append(messages["fwarn_log_set_reason"].format(warning["reason"], reason))
+    if notes != warning["notes"]:
+        if warning["notes"]:
+            changes.append(messages["fwarn_log_set_notes"].format(warning["notes"], notes))
+        else:
+            changes.append(messages["fwarn_log_set_notes_new"].format(notes))
+    warning["changed_by"] = wrapper.source
+    warning["changes"] = changes
+    if changes:
+        logger.info(messages["fwarn_log_set"].format(**warning))
 
 def fwarn_view(wrapper: MessageDispatcher, args):
     if args.help:
