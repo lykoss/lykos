@@ -40,7 +40,8 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
     var.game_settings.update(TIME_ATTRIBUTES)
 
     TRIGGERED = True
-    channels.Main.send(messages["time_lord_dead"].format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
+    values = dict(TIME_ATTRIBUTES)
+    channels.Main.send(messages["time_lord_dead"].format(values["day_time_limit"], values["night_time_limit"]))
 
     from src.trans import hurry_up, night_warn, night_timeout, DAY_ID, NIGHT_ID, TIMERS
     if var.current_phase == "day":

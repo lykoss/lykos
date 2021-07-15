@@ -450,9 +450,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 trans.TIMERS[name][0].cancel()
                 del trans.TIMERS[name]
 
-    var.LAST_STATS = None
-    var.LAST_TIME = None
-
     for role, players in ingame_state.roles.items():
         for player in players:
             evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)

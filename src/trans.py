@@ -73,7 +73,6 @@ def fday(wrapper: MessageDispatcher, message: str):
 def begin_day(var: GameState):
     # Reset nighttime variables
     var.end_phase_transition()
-    var.LAST_GOAT.clear() # FIXME: Move this with !goat when it has its own module (and put it in an event listener)
     msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
 
@@ -781,8 +780,6 @@ def on_reset(evt: Event, var: GameState):
 def old_reset():
     var.ORIGINAL_ACCS.clear()
     var.GAMEMODE_VOTES.clear()
-
-    var.LAST_GOAT.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)

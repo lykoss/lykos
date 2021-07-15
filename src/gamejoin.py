@@ -163,9 +163,6 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 if now + timedelta(seconds=config.Main.get("timers.wait.join")) > pregame.CAN_START_TIME:
                     pregame.CAN_START_TIME = now + timedelta(seconds=config.Main.get("timers.wait.join"))
 
-        var.LAST_STATS = None # reset
-        var.LAST_TIME = None
-
     with locks.join_timer:
         if "join_pinger" in trans.TIMERS:
             trans.TIMERS["join_pinger"][0].cancel()

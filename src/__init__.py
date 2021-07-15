@@ -30,6 +30,7 @@ from src import gamejoin
 from src import votes
 from src import handler
 from src import wolfgame
+from src import gamecmds
 from src import game_stats
 
 # Import the user-defined game modes

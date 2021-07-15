@@ -97,7 +97,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt: Event, var: GameState):
-    if not var.start_with_day or not var.FIRST_DAY:
+    if not var.start_with_day or var.day_count > 0:
         for child in get_all_players(var, ("wild child",)):
             if child not in IDOLS:
                 players = get_players(var)
