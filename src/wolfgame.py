@@ -77,7 +77,6 @@ var.LAST_GOAT = UserDict() # type: ignore # actually UserDict[users.User, dateti
 
 var.ADMIN_PINGING = False  # type: ignore
 var.ADMIN_TO_PING = None  # type: ignore
-var.AFTER_FLASTGAME = None  # type: ignore
 
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
@@ -1408,7 +1407,7 @@ def aftergame(wrapper: MessageDispatcher, message: str):
         return
 
     channels.Main.send(messages["command_scheduled"].format(" ".join([cmd] + args), wrapper.source))
-    var.AFTER_FLASTGAME = do_action
+    trans.ENDGAME_COMMAND = do_action
 
 def _command_disabled(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["command_disabled_admin"])

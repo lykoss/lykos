@@ -192,9 +192,9 @@ def kill_join(var: GameState, wrapper: MessageDispatcher):
     db.expire_stasis()
     db.init_vars()
     expire_tempbans()
-    if var.AFTER_FLASTGAME is not None:
-        var.AFTER_FLASTGAME()
-        var.AFTER_FLASTGAME = None
+    if trans.ENDGAME_COMMAND is not None:
+        trans.ENDGAME_COMMAND()
+        trans.ENDGAME_COMMAND = None
 
 @command("fjoin", flag="A")
 def fjoin(wrapper: MessageDispatcher, message: str):

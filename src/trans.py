@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Union
+from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Union, Callable
 import threading
 import time
 
@@ -33,6 +33,8 @@ DAY_START_TIME: Optional[datetime] = None
 NIGHT_ID: Union[float, int] = 0
 NIGHT_TIMEDELTA: Optional[timedelta] = None
 NIGHT_START_TIME: Optional[datetime] = None
+
+ENDGAME_COMMAND: Optional[Callable] = None
 
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
@@ -464,7 +466,7 @@ def chk_nightdone(var: GameState):
             event.data["transition_day"](var)
 
 def stop_game(var: GameState, winner="", abort=False, additional_winners=None, log=True):
-    global DAY_TIMEDELTA, NIGHT_TIMEDELTA
+    global DAY_TIMEDELTA, NIGHT_TIMEDELTA, ENDGAME_COMMAND
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
     elif not var: # game already ended
@@ -639,15 +641,16 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
     expire_tempbans()
 
     # This must be after reset()
-    if var.AFTER_FLASTGAME is not None:
-        var.AFTER_FLASTGAME()
-        var.AFTER_FLASTGAME = None
+    if ENDGAME_COMMAND is not None:
+        ENDGAME_COMMAND()
+        ENDGAME_COMMAND = None
     if var.ADMIN_TO_PING is not None:  # It was an flastgame
         channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
         var.ADMIN_TO_PING = None
 
 def chk_win(var: GameState, *, end_game=True, winner=None):
     """ Returns True if someone won """
+    global ENDGAME_COMMAND
     lpl = len(get_players(var))
 
     if var.current_phase == "join":
@@ -655,9 +658,9 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
             reset(var)
 
             # This must be after reset()
-            if var.AFTER_FLASTGAME is not None:
-                var.AFTER_FLASTGAME()
-                var.AFTER_FLASTGAME = None
+            if ENDGAME_COMMAND is not None:
+                ENDGAME_COMMAND()
+                ENDGAME_COMMAND = None
             if var.ADMIN_TO_PING is not None:  # It was an flastgame
                 channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
                 var.ADMIN_TO_PING = None
