@@ -76,7 +76,6 @@ var.LAST_TIME = None  # type: ignore
 var.LAST_GOAT = UserDict() # type: ignore # actually UserDict[users.User, datetime]
 
 var.ADMIN_PINGING = False  # type: ignore
-var.ADMIN_TO_PING = None  # type: ignore
 
 var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
@@ -1419,7 +1418,7 @@ def flastgame(wrapper: MessageDispatcher, message: str):
         cmdcls.func = _command_disabled
 
     channels.Main.send(messages["disable_new_games"].format(wrapper.source))
-    wrapper.game_state.ADMIN_TO_PING = wrapper.source
+    trans.ADMIN_STOPPED.append(wrapper.source)
 
     if message.strip():
         aftergame.func(wrapper, message)

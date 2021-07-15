@@ -323,7 +323,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
 
-    if var.ADMIN_TO_PING is not None and not restart:
+    if trans.ADMIN_STOPPED and not restart:
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 

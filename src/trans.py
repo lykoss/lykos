@@ -8,7 +8,7 @@ import time
 
 from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
-from src.containers import UserSet, UserDict
+from src.containers import UserSet, UserDict, UserList
 from src.functions import get_players, get_main_role, get_reveal_role
 from src.warnings import add_warning, expire_tempbans
 from src.messages import messages
@@ -35,6 +35,7 @@ NIGHT_TIMEDELTA: Optional[timedelta] = None
 NIGHT_START_TIME: Optional[datetime] = None
 
 ENDGAME_COMMAND: Optional[Callable] = None
+ADMIN_STOPPED: UserList[User] = UserList() # this shouldn't hold more than one user at any point, but we need to keep track of it
 
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
@@ -644,9 +645,9 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
     if ENDGAME_COMMAND is not None:
         ENDGAME_COMMAND()
         ENDGAME_COMMAND = None
-    if var.ADMIN_TO_PING is not None:  # It was an flastgame
-        channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
-        var.ADMIN_TO_PING = None
+    if ADMIN_STOPPED: # It was an flastgame
+        channels.Main.send(messages["fstop_ping"].format(ADMIN_STOPPED))
+        ADMIN_STOPPED.clear()
 
 def chk_win(var: GameState, *, end_game=True, winner=None):
     """ Returns True if someone won """
@@ -661,9 +662,9 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
             if ENDGAME_COMMAND is not None:
                 ENDGAME_COMMAND()
                 ENDGAME_COMMAND = None
-            if var.ADMIN_TO_PING is not None:  # It was an flastgame
-                channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
-                var.ADMIN_TO_PING = None
+            if ADMIN_STOPPED:  # It was an flastgame
+                channels.Main.send(messages["fstop_ping"].format(ADMIN_STOPPED))
+                ADMIN_STOPPED.clear()
 
             return True
         return False
