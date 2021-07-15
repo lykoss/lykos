@@ -66,10 +66,6 @@ from src.functions import (
     get_target, change_role, match_role, match_mode
    )
 
-# Game Logic Begins:
-
-var.RESTARTING = False # type: ignore
-
 def connect_callback():
     db.init_vars()
     SIGUSR1 = getattr(signal, "SIGUSR1", None)
@@ -309,7 +305,9 @@ def restart_program(wrapper: MessageDispatcher, message: str):
     # This is checked in the on_error handler. Some IRCds, such as InspIRCd, don't send the bot
     # its own QUIT message, so we need to use ERROR. Ideally, we shouldn't even need the above
     # handler now, but I'm keeping it for now just in case.
-    var.RESTARTING = True
+    restart_program.restarting = True
+
+restart_program.restarting = False
 
 @command("ping", pm=True)
 def pinger(wrapper: MessageDispatcher, message: str):
@@ -610,8 +608,8 @@ def leave(var: GameState, what, user, why=None):
         reaper.DISCONNECTED[user] = (datetime.now(), what)
 
 @hook("error")
-def on_error(cli, pfx, msg):
-    if var.RESTARTING or msg.lower().endswith("(excess flood)"):
+def on_error(cli, pfx, msg: str):
+    if restart_program.restarting or msg.lower().endswith("(excess flood)"):
         _restart_program()
     elif msg.lower().startswith("closing link:"):
         sys.exit()
