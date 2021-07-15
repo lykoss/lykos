@@ -38,15 +38,18 @@ class IRCD_Base:
     name = ""
     quiet_mode = ""
     quiet_prefix = ""
+    account_prefix = ""
 
     def supports_quiet(self):
         return False
 
 class IRCD_Hybrid(IRCD_Base):
     name = "hybrid"
+    account_prefix = "$a:"
 
 class IRCD_Inspire(IRCD_Base):
     name = "inspircd"
+    account_prefix = "R:"
 
 class IRCD_Generic(IRCD_Base):
     name = "generic"
@@ -54,12 +57,14 @@ class IRCD_Generic(IRCD_Base):
 class IRCD_Solanum(IRCD_Base):
     name = "solanum"
     quiet_mode = "q"
+    account_prefix = "$a:"
 
     def supports_quiet(self):
         return True
 
 class IRCD_Unreal(IRCD_Base):
     name = "unrealircd"
+    account_prefix = "~a:"
 
 # Services
 

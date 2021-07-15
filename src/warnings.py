@@ -6,6 +6,7 @@ import logging
 import re
 
 from src import config, channels, db, users
+from src.transport.irc import get_ircd
 from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.decorators import command, COMMANDS
 from src.messages import messages
@@ -30,7 +31,7 @@ def expire_tempbans():
     acclist = db.expire_tempbans()
     cmodes = []
     for acc in acclist:
-        cmodes.append(("-b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
+        cmodes.append(("-b", "{0}{1}".format(get_ircd().account_prefix, acc)))
     channels.Main.mode(*cmodes)
 
 def _get_auto_sanctions(sanctions, prev, cur):
@@ -122,7 +123,7 @@ def add_warning(target: Union[str, users.User], amount: int, actor: users.User, 
         (acclist, hmlist) = db.add_warning_sanction(sid, "tempban", sanctions["tempban"])
         cmodes = []
         for acc in acclist:
-            cmodes.append(("+b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
+            cmodes.append(("+b", "{0}{1}".format(get_ircd().account_prefix, acc)))
         channels.Main.mode(*cmodes)
         for user in channels.Main.users:
             if user.account in acclist:

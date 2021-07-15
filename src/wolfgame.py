@@ -526,22 +526,6 @@ def account_change(evt, user, old_account): # FIXME: This uses var
         # if they were gone, maybe mark them as back
         reaper.return_to_village(var, user, show_message=True)
 
-@event_listener("nick_change")
-def nick_change(evt, user: User, old_nick): # FIXME: This function needs some way to have var
-    if user not in channels.Main.users:
-        return
-
-    var = channels.Main.game_state
-    pl = get_participants(var)
-    if user.account in var.ORIGINAL_ACCS.values() and user not in pl:
-        for other in pl:
-            if context.equals(user.account, other.account):
-                if re.search(var.GUEST_NICK_PATTERN, other.nick):
-                    # The user joined to the game is using a Guest nick, which is usually due to a connection issue.
-                    # Automatically swap in this user for that old one.
-                    replace(MessageDispatcher(user, users.Bot), "")
-                return
-
 @event_listener("chan_part")
 def left_channel(evt, chan: Channel, user, reason): # FIXME: This uses var
     leave(chan.game_state, "part", user, chan)
