@@ -336,8 +336,15 @@ def on_loggedin(cli, server, nick, rawnick, account, message):
 
     """
 
-    users.Bot.rawnick = rawnick
-    users.Bot.account = account
+    if users.Bot is None:
+        from src import handler
+        data = users.parse_rawnick_as_dict(rawnick)
+        handler._temp_ident = data["ident"]
+        handler._temp_host = data["host"]
+        handler._temp_account = account
+    else:
+        users.Bot.rawnick = rawnick
+        users.Bot.account = account
 
 ### Server PING handling
 

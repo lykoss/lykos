@@ -36,7 +36,7 @@ def predicate(name):
     return not name.startswith(tuple(Features["CHANTYPES"]))
 
 def _normalize(x: str):
-    return lower(x.lstrip(Features.STATUSMSG))
+    return lower(x.lstrip("".join(Features.STATUSMSG)))
 
 def get(name: str, *, allow_none: bool = False) -> Optional[Channel]:
     try:

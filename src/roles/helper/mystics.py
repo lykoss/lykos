@@ -6,10 +6,10 @@ from typing import List, Tuple, TYPE_CHECKING
 
 from src import users, channels, cats
 from src.functions import get_players, get_all_players
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 
 if TYPE_CHECKING:
     from src.gamestate import GameState

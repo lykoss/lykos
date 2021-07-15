@@ -67,7 +67,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     if wrapper.public and not key.startswith(config.Main.get("transports[0].user.command_prefix")):
         return  # channel message but no prefix; ignore
-    parse_and_dispatch(target.game_state, wrapper, key, message)
+    parse_and_dispatch(wrapper, key, message)
 
 def parse_and_dispatch(wrapper: MessageDispatcher,
                        key: str,
@@ -126,7 +126,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
     # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
     # as we don't want to insert bogus command keys into the dict.
     cmds: List[command] = []
-    phase = context.game_state.current_phase
+    phase = context.game_state.current_phase if context.game_state else "none"
     if context.source in get_participants(context.game_state):
         roles = get_all_roles(context.game_state, context.source)
         common_roles = set(roles)  # roles shared by every eligible role command
@@ -193,7 +193,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
                 context.target = channels.Main
             else:
                 context.target = users.Bot
-        if phase == context.game_state.current_phase: # don't call any more commands if one we just called executed a phase transition
+        if phase == (context.game_state.current_phase if context.game_state else "none"): # don't call any more commands if one we just called executed a phase transition
             fn.caller(context, message)
 
 def unhandled(cli, prefix, cmd, *args):
@@ -459,4 +459,8 @@ def connect_callback(cli: IRCClient):
                 cli.quit()
                 sys.exit(1)
 
-    users.Bot = users.BotUser(cli, config.Main.get("transports[0].user.nick"))
+    users.Bot = users.BotUser(cli, config.Main.get("transports[0].user.nick"), _temp_ident, _temp_host, _temp_account)
+
+_temp_ident = None
+_temp_host = None
+_temp_account = None

@@ -10,11 +10,12 @@ from src import config, db
 from src.events import EventListener
 from src.debug import CheckedDict, CheckedSet, handle_error
 from src.match import Match
-from src.gamestate import GameState
 
 if TYPE_CHECKING:
     from src.containers import UserSet, UserDict, UserList
+    from src.gamestate import GameState
     from src.channels import Channel
+    from oyoyo.client import IRCClient
 
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
@@ -691,7 +692,7 @@ class FakeUser(User):
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
-    def __init__(self, *rest):
+    def __init__(self, *stuff):
         self.modes = set()
         self.game_state = None
 

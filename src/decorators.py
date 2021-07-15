@@ -104,7 +104,7 @@ class command:
             self.func(wrapper, message)
             return
 
-        if self.phases and wrapper.game_state is None or wrapper.game_state.current_phase not in self.phases:
+        if self.phases and (wrapper.game_state is None or wrapper.game_state.current_phase not in self.phases):
             return
 
         wrapper.source.update_account_data(self.key, functools.partial(self._thunk, wrapper, message))

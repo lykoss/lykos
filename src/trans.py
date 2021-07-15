@@ -41,6 +41,7 @@ ORIGINAL_ACCOUNTS: UserDict[User, str] = UserDict()
 
 @handle_error
 def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = False):
+    global DAY_ID
     if var.current_phase != "day" or var.in_phase_transition:
         return
     if gameid and gameid != DAY_ID:
@@ -52,7 +53,6 @@ def hurry_up(var: GameState, gameid: int, change: bool, *, admin_forced: bool = 
         channels.Main.send(messages[event.data["message"]])
         return
 
-    global DAY_ID
     DAY_ID = 0
     chk_decision(var, timeout=True, admin_forced=admin_forced)
 

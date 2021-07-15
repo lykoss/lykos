@@ -32,7 +32,7 @@ def join(wrapper: MessageDispatcher, message: str):
     from src.wolfgame import vote_gamemode
     var = wrapper.game_state
 
-    if not var.in_game:
+    if var is None or not var.in_game:
         if wrapper.private:
             return
 

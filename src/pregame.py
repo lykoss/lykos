@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from lykos.src import gamestate
 from typing import TYPE_CHECKING, List, Union, Set
 
 import threading

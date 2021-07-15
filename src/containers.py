@@ -51,16 +51,11 @@ class Container(ABC, Iterable):
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
 
-    def __str__(self):
-        vars = [format(x) for x in self]
+    def __format__(self, format_spec=""):
+        vars = [format(x, format_spec) for x in self]
         return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
 
-    def __format__(self, format_spec):
-        if format_spec == "for_tb":
-            vars = [format(x, "for_tb") for x in self]
-            return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
-
-        return super().__format__(format_spec)
+    __str__ = __format__
 
     def __eq__(self, other):
         return self is other

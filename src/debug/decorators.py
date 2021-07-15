@@ -140,7 +140,8 @@ class print_traceback:
                 # strip filenames out of module printouts
                 variables[i] = re.sub(r"<(module .*?) from .*?>", r"<\1>", variables[i])
 
-        channels.Main.send(messages["error_log"])
+        if channels.Main:
+            channels.Main.send(messages["error_log"])
         message = [str(messages["error_log"])]
 
         link = _tracebacks.get("\n".join(variables))

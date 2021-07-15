@@ -12,7 +12,6 @@ from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event, event_listener
-from src.trans import chk_win
 from src import channels, pregame, reaper, locks, config
 
 if TYPE_CHECKING:
@@ -212,6 +211,7 @@ def vote(wrapper: MessageDispatcher, message: str):
 # Specify timeout=True to force a lynch and end of day even if there is no majority
 # admin_forced=True will make it not count towards village's abstain limit if nobody is voted
 def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
+    from src.trans import chk_win
     with locks.reaper:
         players = set(get_players(var)) - get_absent(var)
         avail = len(players)
