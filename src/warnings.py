@@ -159,10 +159,10 @@ def fstasis(wrapper: MessageDispatcher, message: str):
         if not acc:
             wrapper.reply(messages["account_not_logged_in"].format(m))
             return
-        cur = var.STASISED_ACCS[irc_lower(acc)]
+        cur = db.STASISED[irc_lower(acc)]
 
         if len(data) == 1:
-            if var.STASISED_ACCS[irc_lower(acc)] == cur and cur > 0:
+            if db.STASISED[irc_lower(acc)] == cur and cur > 0:
                 wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
             else:
                 wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
@@ -191,9 +191,9 @@ def fstasis(wrapper: MessageDispatcher, message: str):
                 wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
     else:
         stasised = {}
-        for acc in var.STASISED_ACCS:
-            if var.STASISED_ACCS[acc] > 0:
-                stasised[acc] = var.STASISED_ACCS[acc]
+        for acc in db.STASISED:
+            if db.STASISED[acc] > 0:
+                stasised[acc] = db.STASISED[acc]
 
         if stasised:
             msg = messages["currently_stasised"].format(", ".join(
