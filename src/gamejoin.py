@@ -107,7 +107,6 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
                 channels.Main.old_modes[wrapper.source].add(mode)
         var.players.append(wrapper.source)
         var.current_phase = "join"
-        var.GAME_ID = time.time()
         if wrapper.source.account:
             var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
         if config.Main.get("timers.wait.enabled"):

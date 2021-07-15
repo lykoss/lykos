@@ -250,7 +250,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     else:
         set_gamemode(pregame_state, restart)
-        var.GAME_ID = time.time() # restart reaper timer
+        pregame_state.game_id = time.time() # restart reaper timer
 
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state
@@ -508,7 +508,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
     if config.Main.get("reaper.enabled"):
         # DEATH TO IDLERS!
         from src.reaper import reaper
-        reapertimer = threading.Thread(None, reaper, args=(ingame_state, var.GAME_ID))
+        reapertimer = threading.Thread(None, reaper, args=(ingame_state, ingame_state.game_id))
         reapertimer.daemon = True
         reapertimer.start()
 

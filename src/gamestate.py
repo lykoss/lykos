@@ -1,5 +1,6 @@
 from __future__ import annotations
 import typing
+import time
 
 from src.containers import UserSet, UserDict, UserList
 from src.messages import messages
@@ -36,6 +37,7 @@ class PregameState:
     def __init__(self):
         self.players = UserList()
         self.current_phase: str = "join"
+        self.game_id: float = time.time()
         self.next_phase: Optional[str] = None
         # Note: current_mode is None for all but the !start machinery
         self.current_mode: GameMode = None
@@ -51,6 +53,7 @@ class GameState:
         self._torndown: bool = False
         self.current_mode: GameMode = pregame_state.current_mode
         self.game_settings: Dict[str, Any] = {}
+        self.game_id: float = pregame_state.game_id
         self.players = pregame_state.players
         self.roles: UserDict[str, UserSet] = UserDict()
         self._original_roles: UserDict[Tuple[str, UserSet]] = None

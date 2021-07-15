@@ -33,7 +33,7 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
     # ensure that the reaper thread doesn't smash things against the gameplay thread when running this
     # (eventually the reaper thread will just pass messages to the main thread via the asyncio event loop and these locks would therefore be unnecessary)
     with locks.reaper: # FIXME
-        if not var.GAME_ID or var.GAME_ID > t:
+        if not var or var.game_id > t:
             #  either game ended, or a new game has started
             return False
 
@@ -70,7 +70,7 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
     t = time.time()
 
     with locks.reaper: # FIXME
-        if not var.GAME_ID or var.GAME_ID > t:
+        if not var or var.game_id > t:
             #  either game ended, or a new game has started
             return True
 

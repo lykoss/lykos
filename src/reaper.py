@@ -30,7 +30,7 @@ def reaper(var: GameState, gameid: int):
     num_night_iters = 0
     short = False
 
-    while not var._torndown and gameid == var.GAME_ID:
+    while not var._torndown and gameid == var.game_id:
         skip = False
         time.sleep(1 if short else 10)
         short = False

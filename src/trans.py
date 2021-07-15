@@ -614,7 +614,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
 
             db.add_game(var.current_mode.name,
                         len(get_players(var)) + len(DEAD),
-                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.game_id)),
                         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                         winner,
                         player_list,
@@ -779,7 +779,6 @@ def on_reset(evt: Event, var: GameState):
     NIGHT_IDLE_EXEMPT.clear()
 
 def old_reset():
-    var.GAME_ID = 0
     var.ORIGINAL_ACCS.clear()
     var.GAMEMODE_VOTES.clear()
 
