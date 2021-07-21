@@ -274,8 +274,8 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             ABSTAINED = True
             channels.Main.send(messages["village_abstain"])
 
-            from src.wolfgame import transition_night
-            transition_night()
+            from src.trans import transition_night
+            transition_night(var)
 
         if to_vote:
             global LYNCHED
@@ -310,8 +310,8 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             return # game ended, just exit out
 
         if timeout or LYNCHED >= num_lynches:
-            from src.wolfgame import transition_night
-            transition_night()
+            from src.trans import transition_night
+            transition_night(var)
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):

@@ -199,7 +199,6 @@ def fjoin(wrapper: MessageDispatcher, message: str):
     :param wrapper: Dispatcher
     :param message: Command text. If empty, we join ourselves
     """
-    var = wrapper.game_state
 
     success = False
     if not message.strip():
@@ -237,7 +236,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
         elif "-" in tojoin and debug_mode:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
-                if int(last)+1 - int(first) > config.Main.get("gameplay.player_limits.maximum") - len(get_players(var)):
+                if int(last)+1 - int(first) > config.Main.get("gameplay.player_limits.maximum") - len(get_players(wrapper.game_state)):
                     wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
                     break
                 success = True
@@ -245,7 +244,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
                     user = users.add(wrapper.client, nick=str(i))
                     join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
     if success:
-        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(var))))
+        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(wrapper.game_state))))
 
 @command("pingif", pm=True)
 def altpinger(wrapper: MessageDispatcher, message: str):

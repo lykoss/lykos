@@ -27,11 +27,11 @@ NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS: Dict[str, Tuple[threading.Timer, Union[float, int], int]] = {}
 
 DAY_ID: Union[float, int] = 0
-DAY_TIMEDELTA: Optional[timedelta] = None
+DAY_TIMEDELTA: timedelta = timedelta(0)
 DAY_START_TIME: Optional[datetime] = None
 
 NIGHT_ID: Union[float, int] = 0
-NIGHT_TIMEDELTA: Optional[timedelta] = None
+NIGHT_TIMEDELTA: timedelta = timedelta(0)
 NIGHT_START_TIME: Optional[datetime] = None
 
 ENDGAME_COMMAND: Optional[Callable] = None
@@ -369,7 +369,7 @@ def transition_day(var: GameState, gameid: int = 0):
 def transition_night(var: GameState):
     if var.current_phase == "night":
         return
-    global NIGHT_ID, DAY_START_TIME, DAY_TIMEDELTA
+    global NIGHT_ID, NIGHT_START_TIME, DAY_START_TIME, DAY_TIMEDELTA
     var.begin_phase_transition("night")
 
     NIGHT_START_TIME = datetime.now()
@@ -772,10 +772,10 @@ def on_transition_night_begin(evt: Event, var: GameState):
 def on_reset(evt: Event, var: GameState):
     global  DAY_ID, DAY_TIMEDELTA, DAY_START_TIME, NIGHT_ID, NIGHT_TIMEDELTA, NIGHT_START_TIME
     DAY_ID = 0
-    DAY_TIMEDELTA = None
+    DAY_TIMEDELTA = timedelta(0)
     DAY_START_TIME = None
     NIGHT_ID = 0
-    NIGHT_TIMEDELTA = None
+    NIGHT_TIMEDELTA = timedelta(0)
     NIGHT_START_TIME = None
     NIGHT_IDLE_EXEMPT.clear()
     ORIGINAL_ACCOUNTS.clear()

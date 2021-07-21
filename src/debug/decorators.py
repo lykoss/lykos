@@ -159,7 +159,7 @@ class print_traceback:
                 data = json.loads(resp.read().decode("utf-8"))
 
             if data is None:  # couldn't fetch the link
-                message.append(messages["error_pastebin"])
+                message.append(messages["error_pastebin"].format())
                 extra_data["paste_error"] = _local.handler.traceback
             else:
                 link = _tracebacks["\n".join(variables)] = data["url"]

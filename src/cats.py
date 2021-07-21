@@ -163,6 +163,7 @@ class Category:
         values = set()
         for role in self:
             values.add(_interal_en.raw("_roles", role)[1])
+        return values
 
     def __invert__(self):
         new = self.from_combination(All, self, "", set.difference_update)

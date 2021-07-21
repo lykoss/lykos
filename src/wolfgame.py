@@ -535,7 +535,7 @@ def quit_server(evt, user, reason): # FIXME: This uses var
 def leave(var: GameState, what, user, why=None):
     if what in ("part", "kick") and why is not channels.Main:
         return
-    if var is None:
+    if var is None or not var.in_game:
         return
 
     ps = get_players(var)

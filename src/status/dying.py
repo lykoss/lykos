@@ -1,11 +1,11 @@
 import time
 from collections import Counter
-from typing import Tuple, List
+from typing import Tuple, List, Union
 
 from src.containers import UserDict, UserSet
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
-from src.gamestate import GameState
+from src.gamestate import GameState, PregameState
 from src.events import Event, event_listener
 from src.users import User
 from src import locks
@@ -56,7 +56,7 @@ def is_dying(var: GameState, player: User) -> bool:
 def is_dead(var: GameState, player: User) -> bool:
     return player in DEAD
 
-def kill_players(var: GameState, *, end_game: bool = True) -> bool:
+def kill_players(var: Union[GameState, PregameState, None], *, end_game: bool = True) -> bool:
     """
     Kill all players marked as dying.
 
@@ -70,7 +70,7 @@ def kill_players(var: GameState, *, end_game: bool = True) -> bool:
     t = time.time()
 
     with locks.reaper: # FIXME
-        if not var or var.game_id > t:
+        if not var or not var.in_game or var.game_id > t:
             #  either game ended, or a new game has started
             return True
 

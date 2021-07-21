@@ -127,7 +127,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
     # as we don't want to insert bogus command keys into the dict.
     cmds: List[command] = []
     phase = context.game_state.current_phase if context.game_state else "none"
-    if context.source in get_participants(context.game_state):
+    if phase not in ("none", "join") and context.source in get_participants(context.game_state):
         roles = get_all_roles(context.game_state, context.source)
         common_roles = set(roles)  # roles shared by every eligible role command
         # A user can be a participant but not have a role, for example, dead vengeful ghost
