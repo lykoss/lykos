@@ -26,7 +26,7 @@ transports:
     # defined here.
     name: mynetwork
     # What IRCd the remote is running. Configuring this wrong will have disastrous consequences.
-    module: ircd-seven
+    module: solanum
     user:
       nick: mywolfbot
       # We only respond to commands in-channel if they begin with this prefix.

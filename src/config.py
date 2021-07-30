@@ -120,15 +120,35 @@ class Config:
                 key_part = part
                 idx_part = None
             if key_part not in cur:
-                raise KeyError("configuration key not found")
+                raise KeyError("configuration key not found: {}".format(key))
             cur = cur[key_part]
             meta = meta["_default"][key_part]
+            meta_type = meta["_type"]
             if idx_part is not None:
                 if idx_part >= len(cur):
-                    raise KeyError("configuration key not found")
+                    raise KeyError("configuration key not found: {}".format(key))
                 cur = cur[idx_part]
                 meta = meta["_items"]
-            if meta["_type"] == "tagged":
+                meta_type = meta["_type"]
+                if isinstance(meta_type, dict):
+                    # complex meta_type, obtain the actual type metadata
+                    meta = meta["_type"]
+                    meta_type = meta["_type"]
+            if isinstance(meta_type, list) and isinstance(cur, dict):
+                # union type and cur is a complex type; determine exactly which type it is
+                # a union can contain at most one untagged complex type
+                if "type" in cur:
+                    # cur is tagged, handle that below
+                    meta_type = "tagged"
+                else:
+                    # take the first untagged type in the list and use that
+                    untagged = [t for t in meta_type if isinstance(t, dict)]
+                    # this assert may be better off in merge() to enforce that a union
+                    # has at most one untagged complex type
+                    assert len(untagged) == 1
+                    meta = untagged[0]
+                    meta_type = meta["_type"]
+            if meta_type == "tagged":
                 new_meta = copy.deepcopy(meta["_tags"][cur["type"]])
                 new_meta["_default"]["type"] = {"_type": "enum", "_values": list(meta["_tags"].keys())}
                 meta = new_meta
@@ -189,9 +209,9 @@ class Config:
         """
         assert self._settings is not Empty
         cur, meta = self._resolve_key(key)
-        new = merge(meta, cur, value, key, strategy_override=merge_strategy)
-        cur = self._settings
         parts = key.split(".")
+        new = merge(meta, cur, value, *parts, strategy_override=merge_strategy)
+        cur = self._settings
         for i, part in enumerate(parts):
             set_value = i == len(parts) - 1
             if "[" in part:
