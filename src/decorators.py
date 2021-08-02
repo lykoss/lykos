@@ -123,7 +123,7 @@ class command:
         if self.playing and (wrapper.source not in get_players(wrapper.game_state) or wrapper.source in reaper.DISCONNECTED):
             return
 
-        logger = logging.getLogger("command.{}".format(self.key))
+        logger = logging.getLogger("command.{}".format(self.name))
 
         for role in self.roles:
             if wrapper.source in var.roles[role]:

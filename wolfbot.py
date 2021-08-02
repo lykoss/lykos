@@ -108,7 +108,8 @@ def main():
 
     transport_name = config.Main.get("transports[0].name")
     transport_logger = logging.getLogger("transport.{}".format(transport_name))
-    transport_logger.info("Connecting to {0}:{1}{2}".format(host, "+" if use_ssl else "", port))
+    # this uses %-style formatting to ensure that our logger is capable of handling both styles
+    transport_logger.info("Connecting to %s:%s%d", host, "+" if use_ssl else "", port)
     cmd_handler = {
         "privmsg": lambda *s: None,
         "notice": lambda *s: None,

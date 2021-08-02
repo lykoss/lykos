@@ -3,15 +3,16 @@ import time
 import json
 import logging
 import logging.handlers
+import string
 import sys
 import importlib
-from typing import Union, Callable
+from typing import Union, Callable, Sequence, Any, Mapping
 from pathlib import Path
 
 from src import config
 
 __all__ = ["UnionFilterMixin", "StreamHandler", "FileHandler", "RotatingFileHandler", "TimedRotatingFileHandler",
-           "IRCTransportHandler", "StringFormatter", "StructuredFormatter", "init"]
+           "IRCTransportHandler", "StringFormatter", "StructuredFormatter", "LogRecord", "init"]
 
 class UnionFilterMixin(logging.Filterer):
     # Change filter logic so that we log as long as one of the provided filters succeeds.
@@ -48,7 +49,7 @@ class IRCTransportHandler(UnionFilterMixin, logging.Handler):
             if STATUSMSG is supported by the irc server. The bot must have been
             configured to join this channel in the transport definition.
         """
-        logging.Handler.__init__(self)
+        super().__init__()
         # TODO: make use of transport; right now we only support a single transport
         self.transport = transport
         self.destination = destination
@@ -70,7 +71,7 @@ class StringFormatter(logging.Formatter):
             fmt = "[{asctime}] {message}"
         else:
             fmt = "{message}"
-        logging.Formatter.__init__(self, fmt, datefmt=tsconfig["format"], style="{")
+        super().__init__(fmt, datefmt=tsconfig["format"], style="{")
         if tsconfig["utc"]:
             self.converter = time.gmtime
 
@@ -96,6 +97,37 @@ class StructuredFormatter(StringFormatter):
             obj["stack"] = self.formatStack(record.stack_info)
 
         return json.dumps(obj)
+
+class LogRecord(logging.LogRecord):
+    def __init__(self, name, level, pathname, lineno, msg, args, exc_info, func=None, sinfo=None, **kwargs):
+        super().__init__(name, level, pathname, lineno, msg, args, exc_info, func=func, sinfo=sinfo)
+        self.kwargs = kwargs
+
+    def getMessage(self) -> str:
+        msg = str(self.msg)
+        # Internal packages (urllib3, other dependencies we may pull in) still use %-style formatting
+        # So try {-style first and fall back to %-style if that fails. In both cases we assume that
+        # all arguments being passed in are consumed in the format string.
+        if self.args or self.kwargs:
+            brace_formatter = _ThrowingFormatter()
+            try:
+                msg = brace_formatter.vformat(msg, self.args, self.kwargs)
+            except TypeError:
+                msg = msg % self.args
+
+        return msg
+
+class _ThrowingFormatter(string.Formatter):
+    def check_unused_args(self,
+                          used_args: Sequence[Union[int, str]],
+                          args: Sequence[Any],
+                          kwargs: Mapping[str, Any]) -> None:
+        expected_args = set(range(len(args)))
+        found_args = {a for a in used_args if isinstance(a, int)}
+        expected_kwargs = set(kwargs.keys())
+        found_kwargs = {a for a in used_args if isinstance(a, str)}
+        if expected_args - found_args or expected_kwargs - found_kwargs:
+            raise TypeError("not all arguments converted during string formatting")
 
 def init():
     gl = config.Main.get("logging.groups")
@@ -174,3 +206,6 @@ def init():
         # Ensure that the root logger handles every message;
         # our handlers will filter appropriately based on level
         root_logger.setLevel(logging.NOTSET)
+
+        # Configure the record factory so that we support str.format formatting of log messages
+        logging.setLogRecordFactory(LogRecord)

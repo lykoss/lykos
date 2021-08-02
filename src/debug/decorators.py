@@ -145,9 +145,8 @@ class print_traceback:
         message = [str(messages["error_log"])]
 
         link = _tracebacks.get("\n".join(variables))
-        if link is None:
+        if link is None and not config.Main.get("debug.enabled"):
             api_url = "https://ww.chat/submit"
-            data = None
             with _local.handler:
                 req = urllib.request.Request(api_url, json.dumps({
                         "c": "\n".join(variables),  # contents

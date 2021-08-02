@@ -238,7 +238,7 @@ def connect_callback(cli: IRCClient):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli: IRCClient, prefix: str, *args: str):
-        logger.info("Received end of MOTD from {0}".format(prefix))
+        logger.info("Received end of MOTD from {0}", prefix)
 
         # This callback only sets up event listeners
         from src import wolfgame
@@ -389,7 +389,7 @@ def connect_callback(cli: IRCClient):
                 if supported_sasl is None or mech in supported_sasl:
                     cli.send("AUTHENTICATE {0}".format(mech))
                 else:
-                    logger.error("Server does not support the SASL {0} mechanism".format(mech))
+                    logger.error("Server does not support the SASL {0} mechanism", mech)
                     cli.quit()
                     sys.exit(1)
             else:
@@ -397,7 +397,7 @@ def connect_callback(cli: IRCClient):
         elif cmd == "NAK":
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
-            logger.warning("Server refused capabilities: {0}".format(" ".join(caps[0])))
+            logger.warning("Server refused capabilities: {0}", " ".join(caps[0]))
 
         elif cmd == "NEW":
             # New capability advertised by the server, see if we want to enable it
