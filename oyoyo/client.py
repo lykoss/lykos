@@ -157,7 +157,7 @@ class IRCClient:
 
             msg = bytes(" ", "utf_8").join(bargs)
             logmsg = kwargs.get("log") or str(msg)[1:]
-            self.stream_handler('---> send {0}'.format(logmsg))
+            self.stream_handler('---> send {0}'.format(logmsg), level="debug")
 
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)

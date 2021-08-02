@@ -114,6 +114,16 @@ def main():
         "notice": lambda *s: None,
         "": handler.unhandled
     }
+
+    def stream_handler(msg, level="info"):
+        level_map = {
+            "debug": logging.DEBUG,
+            "info": logging.INFO,
+            "warning": logging.WARNING,
+            "error": logging.ERROR
+        }
+        transport_logger.log(level_map[level], msg)
+
     cli = IRCClient(
         cmd_handler,
         host=host,
@@ -137,7 +147,7 @@ def main():
             config.Main.get("transports[0].flood.sustained_rate"),
             init=config.Main.get("transports[0].flood.initial_burst")),
         connect_cb=handler.connect_callback,
-        stream_handler=transport_logger.info,
+        stream_handler=stream_handler,
     )
     cli.mainLoop()
 

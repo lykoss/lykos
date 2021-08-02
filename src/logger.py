@@ -170,3 +170,7 @@ def init():
 
         # Register the handler
         root_logger.addHandler(handler)
+
+        # Ensure that the root logger handles every message;
+        # our handlers will filter appropriately based on level
+        root_logger.setLevel(logging.NOTSET)
