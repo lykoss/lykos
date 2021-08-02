@@ -212,11 +212,12 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
         force = True
         message = " ".join(args[1:])
 
-    if var and var.current_phase == "join" or force or wrapper.source.nick == "<console>":
-        stop_game(var, log=False)
-    elif var and var.in_game:
-        wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
-        return
+    if var:
+        if var.current_phase == "join" or force or wrapper.source.nick == "<console>":
+            stop_game(var, log=False)
+        elif var.in_game:
+            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
+            return
 
     msg = "{0} quit from {1}"
 
