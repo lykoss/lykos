@@ -3,7 +3,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import event_listener, command
@@ -207,7 +207,7 @@ def on_new_role(evt, var, player, old_role):
         else:
             return # no other wolves, nothing else to do
 
-        evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player)))
+        evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player, role=evt.data["role"])))
 
         if var.PHASE == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
@@ -369,13 +369,19 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
     if player is not None:
         player.send_messages()
 
-def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player: bool = True) -> List[str]:
+def get_wolflist(var,
+                 player: users.User,
+                 *,
+                 shuffle: bool = True,
+                 remove_player: bool = True,
+                 role: Optional[str] = None) -> List[str]:
     """ Retrieve the list of players annotated for displaying to wolfteam members.
 
     :param var: Game state
     :param player: Player the wolf list will be displayed to
     :param shuffle: Whether or not to randomize the player list being displayed
     :param remove_player: Whether or not to exclude ``player`` from the returned list
+    :param role: Treat ``player`` as if they had this role as their main role, to customize list display
     :returns: List of localized message strings to pass into either players_list or players_list_count
     """
 
@@ -392,8 +398,7 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
         else:
             badguys = Wolf | {"traitor"}
 
-    role = None
-    if player in get_players():
+    if role is None and player in get_players():
         role = get_main_role(player)
 
     if role in badguys | {"warlock"}:
