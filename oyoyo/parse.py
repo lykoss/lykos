@@ -19,7 +19,7 @@ from oyoyo.ircevents import numeric_events
 
 
 # avoiding regex
-def parse_raw_irc_command(element):
+def parse_raw_irc_command(line):
     """
     This function parses a raw irc command and returns a tuple
     of (prefix, command, args).
@@ -38,31 +38,22 @@ def parse_raw_irc_command(element):
 
     <crlf>     ::= CR LF
     """
-    parts = element.strip().split(bytes(" ", "utf_8"))
-    if parts[0].startswith(bytes(':', 'utf_8')):
-        prefix = parts[0][1:]
-        command = parts[1]
-        args = parts[2:]
-    else:
-        prefix = None
-        command = parts[0]
-        args = parts[1:]
 
-    if command.isdigit():
-        try:
-            command = numeric_events[command]
-        except KeyError:
-            pass
-    command = command.lower()
-    if isinstance(command, bytes): command = command.decode("utf_8")
+    prefix = None
+    if line.startswith(b":"):
+        prefix, _, line = line[1:].partition(b" ")
 
-    if args[0].startswith(bytes(':', 'utf_8')):
-        args = [bytes(" ", "utf_8").join(args)[1:]]
-    else:
-        for idx, arg in enumerate(args):
-            if arg.startswith(bytes(':', 'utf_8')):
-                args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
-                break
+    trailing = None
+    if b" :" in line:
+        line, _, trailing = line.partition(b" :")
+
+    args = list(filter(None, line.split(b" ")))
+    command = args.pop(0).decode("utf8").lower()
+    if trailing is not None:
+        args.append(trailing)
+
+    if command in numeric_events:
+        command = numeric_events[command]
 
     return (prefix, command, args)
 
