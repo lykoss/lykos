@@ -32,7 +32,8 @@ class AleatoireMode(GameMode):
 
         self.ROLE_GUIDE = {
             8:  ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
-            10: ["wolf(2)", "vengeful ghost", "gunner"],
+            9:  ["vengeful ghost"],
+            10: ["wolf(2)", "gunner"],
             12: ["hag", "guardian angel", "amnesiac"],
             13: ["assassin"],
             14: ["turncoat"],
