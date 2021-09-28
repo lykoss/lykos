@@ -2952,7 +2952,7 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if not pieces[0] or pieces[0].isdigit():
-        if gamemode is None:
+        if var.PHASE not in var.GAME_PHASES:
             wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
             return
         if not hasattr(gamemode, "ROLE_GUIDE"):

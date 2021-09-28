@@ -2,6 +2,7 @@ import re
 import random
 import itertools
 import math
+import sys
 from collections import defaultdict
 
 from src import debuglog, errlog, plog, users, channels
@@ -104,6 +105,16 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
                     d["wolf"] = d.get("wolf", 0) + d["traitor"]
                     d["traitor"] = 0
                     newstats.add(frozenset(d.items()))
+                # if amnesiac is loaded and they have turned, there may be extra traitors not normally accounted for
+                if "src.roles.amnesiac" in sys.modules:
+                    from src.roles.amnesiac import get_blacklist, get_stats_flag
+                    if get_stats_flag(var) and "traitor" not in get_blacklist(var) and d["amnesiac"] >= 1:
+                        iter_end = d["amnesiac"] + 1
+                        for i in range(1, iter_end):
+                            d["wolf"] = d.get("wolf", 0) + 1
+                            d["amnesiac"] -= 1
+                            newstats.add(frozenset(d.items()))
+
             var.ROLE_STATS = frozenset(newstats)
 
         evt.prevent_default = True

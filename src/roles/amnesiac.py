@@ -4,7 +4,6 @@ import itertools
 import math
 from collections import defaultdict
 
-from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command, event_listener
@@ -13,12 +12,17 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import role_order, Win_Stealer
 
+__all__ = ["get_blacklist", "get_stats_flag"]
+
 ROLES = UserDict()  # type: UserDict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
-def _get_blacklist(var):
+def get_blacklist(var):
     blacklist = var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
     return blacklist
+
+def get_stats_flag(var):
+    return STATS_FLAG
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):
@@ -45,12 +49,12 @@ def update_amnesiac(evt, var, user, old_role):
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if evt.params.inherit_from is None and evt.data["role"] == "amnesiac":
-        roles = set(role_order()) - _get_blacklist(var)
+        roles = set(role_order()) - get_blacklist(var)
         ROLES[user] = random.choice(list(roles))
 
 @event_listener("role_revealed")
 def on_revealing_totem(evt, var, user, role):
-    if role not in _get_blacklist(var) and not var.HIDDEN_AMNESIAC and var.ORIGINAL_ROLES["amnesiac"]:
+    if role not in get_blacklist(var) and not var.HIDDEN_AMNESIAC and var.ORIGINAL_ROLES["amnesiac"]:
         global STATS_FLAG
         STATS_FLAG = True
     if role == "amnesiac":
@@ -74,7 +78,7 @@ def on_revealroles_role(evt, var, user, role):
 
 @event_listener("update_stats")
 def on_update_stats(evt, var, player, mainrole, revealrole, allroles):
-    if STATS_FLAG and not _get_blacklist(var) & {mainrole, revealrole}:
+    if STATS_FLAG and not get_blacklist(var) & {mainrole, revealrole}:
         evt.data["possible"].add("amnesiac")
 
 @event_listener("reset")
