@@ -20,11 +20,16 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
     from src.users import User
 
+__all__ = ["get_blacklist", "get_stats_flag"]
+
 ROLES = UserDict()  # type: UserDict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
-def _get_blacklist(var: GameState):
+def get_blacklist(var: GameState):
     return var.current_mode.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
+
+def get_stats_flag(var):
+    return STATS_FLAG
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):
@@ -51,12 +56,12 @@ def update_amnesiac(evt: Event, var: GameState, player: User, old_role: Optional
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if evt.params.inherit_from is None and evt.data["role"] == "amnesiac":
-        roles = set(role_order()) - _get_blacklist(var)
+        roles = set(role_order()) - get_blacklist(var)
         ROLES[player] = random.choice(list(roles))
 
 @event_listener("role_revealed")
 def on_revealing_totem(evt: Event, var: GameState, user: User, role: str):
-    if role not in _get_blacklist(var) and not config.Main.get("gameplay.hidden.amnesiac") and var.original_roles["amnesiac"]:
+    if role not in get_blacklist(var) and not config.Main.get("gameplay.hidden.amnesiac") and var.original_roles["amnesiac"]:
         global STATS_FLAG
         STATS_FLAG = True
     if role == "amnesiac":
@@ -80,7 +85,7 @@ def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
 
 @event_listener("update_stats")
 def on_update_stats(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
-    if STATS_FLAG and not _get_blacklist(var) & {mainrole, revealrole}:
+    if STATS_FLAG and not get_blacklist(var) & {mainrole, revealrole}:
         evt.data["possible"].add("amnesiac")
 
 @event_listener("reset")

@@ -946,11 +946,15 @@ def list_roles(wrapper: MessageDispatcher, message: str):
     pieces = re.split(" +", message.strip())
     gamemode = var.current_mode
 
-    if (not pieces[0] or pieces[0].isdigit()) and not gamemode.ROLE_GUIDE:
-        minp = max(GAME_MODES[gamemode.name][1], config.Main.get("gameplay.player_limits.minimum"))
-        msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
-        wrapper.reply(msg, prefix_nick=True)
-        return
+    if not pieces[0] or pieces[0].isdigit():
+        if not var.in_game:
+            wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
+            return
+        if not gamemode.ROLE_GUIDE:
+            minp = max(GAME_MODES[gamemode.name][1], config.Main.get("gameplay.player_limits.minimum"))
+            msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
+            wrapper.reply(msg, prefix_nick=True)
+            return
 
     msg = []
 

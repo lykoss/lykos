@@ -216,7 +216,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         else:
             return # no other wolves, nothing else to do
 
-        evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player)))
+        evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player, role=evt.data["role"])))
 
         if var.current_phase == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
@@ -376,13 +376,19 @@ def send_wolfchat_message(var: GameState, user: User, message: str, roles: Itera
     if player is not None:
         player.send_messages()
 
-def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player: bool = True) -> List[str]:
+def get_wolflist(var,
+                 player: users.User,
+                 *,
+                 shuffle: bool = True,
+                 remove_player: bool = True,
+                 role: Optional[str] = None) -> List[str]:
     """ Retrieve the list of players annotated for displaying to wolfteam members.
 
     :param var: Game state
     :param player: Player the wolf list will be displayed to
     :param shuffle: Whether or not to randomize the player list being displayed
     :param remove_player: Whether or not to exclude ``player`` from the returned list
+    :param role: Treat ``player`` as if they had this role as their main role, to customize list display
     :returns: List of localized message strings to pass into either players_list or players_list_count
     """
 
@@ -399,8 +405,7 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
         else:
             badguys = Wolf | {"traitor"}
 
-    role = None
-    if player in get_players(var):
+    if role is None and player in get_players(var):
         role = get_main_role(var, player)
 
     if role in badguys | {"warlock"}:

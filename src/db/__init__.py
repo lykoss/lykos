@@ -409,7 +409,7 @@ def get_game_stats(mode, size):
                      ORDER BY ord ASC, team ASC""", (mode, size))
 
     key = "db_gstats_specific"
-    if mode == "all":
+    if mode == "*":
         key = "db_gstats_all"
 
     bits = []

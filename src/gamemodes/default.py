@@ -3,7 +3,7 @@ from src.messages import messages
 from src.events import EventListener
 from src import channels, users
 
-@game_mode("default", minp=4, maxp=24, likelihood=40)
+@game_mode("default", minp=6, maxp=24, likelihood=40)
 class DefaultMode(GameMode):
     """Default game mode."""
     def __init__(self, arg=""):
@@ -13,7 +13,7 @@ class DefaultMode(GameMode):
             7:  ["cultist", "shaman"],
             8:  ["harlot", "traitor", "-cultist"],
             9:  ["crazed shaman"],
-            10: ["wolf cub"],
+            10: ["wolf(2)"],
             11: ["matchmaker"],
             12: ["-wolf", "werecrow"],
             13: ["detective"],
@@ -22,7 +22,7 @@ class DefaultMode(GameMode):
             16: ["monster"],
             18: ["bodyguard"],
             20: ["sorcerer", "augur", "cursed villager(2)"],
-            21: ["wolf", "wolf(2)", "gunner/sharpshooter"],
+            21: ["wolf(2)", "wolf cub", "gunner/sharpshooter"],
             23: ["amnesiac", "mayor"],
             24: ["hag"],
         }
