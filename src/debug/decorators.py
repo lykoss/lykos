@@ -164,7 +164,7 @@ class print_traceback:
                 link = _tracebacks["\n".join(variables)] = data["url"]
                 message.append(link)
 
-        else:
+        elif link is not None:
             message.append(link)
 
         exc_log.error(" ".join(message), exc_info=(exc_type, exc_value, tb), extra=extra_data)

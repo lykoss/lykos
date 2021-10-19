@@ -8,7 +8,7 @@ from src.messages import messages
 from src.gamestate import GameState, PregameState
 from src.events import Event, event_listener
 from src.users import User
-from src import locks
+from src import locks, channels
 
 __all__ = ["add_dying", "is_dying", "is_dead", "kill_players"]
 
@@ -40,6 +40,10 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
         if player in DYING or player not in get_players(var):
             return False
 
+        if var.current_phase == "join":
+            var.players.remove(player)
+            channels.Main.mode(("-v", player.nick))
+            return
         DYING[player] = (killer_role, reason, death_triggers)
         return True
 

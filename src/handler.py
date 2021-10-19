@@ -123,8 +123,6 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
             wrapper.pm(messages["no_such_role"].format(role_prefix))
             return
 
-    # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
-    # as we don't want to insert bogus command keys into the dict.
     cmds: List[command] = []
     phase = context.game_state.current_phase if context.game_state else "none"
     if phase not in ("none", "join") and context.source in get_participants(context.game_state):
@@ -148,6 +146,8 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
         if i == 1 and role_prefix is not None:
             roles &= {role_prefix}
 
+        # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
+        # as we don't want to insert bogus command keys into the dict.
         for fn in decorators.COMMANDS.get(key, []):
             if not fn.roles:
                 cmds.append(fn)

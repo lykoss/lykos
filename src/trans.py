@@ -13,6 +13,7 @@ from src.functions import get_players, get_main_role, get_reveal_role
 from src.warnings import add_warning, expire_tempbans
 from src.messages import messages
 from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent
+from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
 from src.cats import Wolfteam, Hidden, Village, Win_Stealer, Wolf_Objective, Village_Objective, role_order
@@ -21,7 +22,6 @@ from src import channels, users, locks, config, db, reaper, relay
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
-    from src.users import User
 
 NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS: Dict[str, Tuple[threading.Timer, Union[float, int], int]] = {}
@@ -577,7 +577,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
                 if entry["account"] is None and player in ORIGINAL_ACCOUNTS:
                     entry["account"] = ORIGINAL_ACCOUNTS[player]
 
-                survived = player in get_players()
+                survived = player in get_players(var)
                 if not entry["dced"] and winner != "":
                     # by default, get an individual win if the team won and they survived
                     won = entry["team_win"] and survived
