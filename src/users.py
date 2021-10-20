@@ -208,6 +208,8 @@ def _cleanup_user(evt, var: GameState, user: User):
     # if user is in-game, keep them around so that other players can act on them
     # and so that they can return to the village. If they aren't in game, erase
     # all memory of them from the bot.
+    if not var:
+        return
     if var.in_game and user in var.players:
         user.disconnected = True
     else:

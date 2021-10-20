@@ -83,13 +83,14 @@ class GameState:
             raise RuntimeError("GameState.setup() called while already setup")
         if self._torndown:
             raise RuntimeError("cannot setup a used-up GameState")
-        self._original_roles = UserDict((x, y.copy()) for x, y in self.roles.items())
+        self._original_roles: UserDict[str, UserSet] = UserDict((x, y.copy()) for x, y in self.roles.items())
         self._original_main_roles = self.main_roles.copy()
         self.setup_completed = True
 
     def teardown(self):
         self.roles.clear()
         self._original_roles.clear()
+        self._original_main_roles.clear()
         self._rolestats.clear()
         self.current_mode.teardown()
         self._torndown = True
@@ -132,15 +133,18 @@ class GameState:
         # but we want to return a regular dict (and a regular underlying set)
         # since this is meant to be used then discarded
         # this is also read-only to prevent code from modifying it
+        mapping = self._original_roles
         if not self.setup_completed:
-            raise RuntimeError("Current game state has not finished setup")
-        return {name: set(value) for name, value in self._original_roles.items()}
+            # if setup is not completed, then this is functionally identical
+            mapping = self.roles
+        return {name: set(value) for name, value in mapping.items()}
 
     @property
     def original_main_roles(self):
+        mapping = self._original_main_roles
         if not self.setup_completed:
-            raise RuntimeError("Current game state has not finished setup")
-        return dict(self._original_main_roles)
+            mapping = self.main_roles
+        return dict(mapping)
 
     @property
     def abstain_enabled(self) -> bool:
