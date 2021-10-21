@@ -328,6 +328,8 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     # handle forced main roles
     for role, count in addroles.items():
+        if role == ingame_state.default_role:
+            continue
         if role in ingame_state.current_mode.SECONDARY_ROLES or role not in FORCE_ROLES:
             continue
         to_add = set()
@@ -535,7 +537,7 @@ def frole(wrapper: MessageDispatcher, message: str):
         role = None
         if rmatch:
             role = rmatch.get().key
-        if not umatch or not rmatch or role == wrapper.game_state.default_role:
+        if not umatch or not rmatch:
             wrapper.send(messages["frole_incorrect"].format(part))
             return
         FORCE_ROLES[role].add(umatch.get())
