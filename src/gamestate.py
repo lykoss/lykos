@@ -43,6 +43,10 @@ class PregameState:
         self.current_mode: GameMode = None
 
     @property
+    def default_role(self):
+        return "villager"
+
+    @property
     def in_game(self):
         return False
 

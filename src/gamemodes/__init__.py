@@ -288,7 +288,7 @@ class GameMode:
 
     def custom_gun_chances(self, evt: Event, var: GameState, player: User, role: str):
         if role in self.GUN_CHANCES:
-            for key, value in self.GUN_CHANCES[role]:
+            for key, value in self.GUN_CHANCES[role].items():
                 evt.data[key] += value
 
 GAME_MODES: Dict[str, Tuple[GameMode, int, int, int]] = {}

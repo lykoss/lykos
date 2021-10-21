@@ -41,6 +41,7 @@ from typing import FrozenSet, Set, Optional, List
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay, votes
 from src.channels import Channel
 from src.users import User
+import src
 
 from src.events import Event, EventListener, event_listener
 from src.transport.irc import get_ircd
@@ -940,17 +941,17 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    lpl = len(var.players)
+    lpl = len(var.players) if var else 0
     specific = 0
 
     pieces = re.split(" +", message.strip())
-    gamemode = var.current_mode
+    gamemode = var.current_mode if var else None
 
     if not pieces[0] or pieces[0].isdigit():
-        if not var.in_game:
+        if not var or not var.in_game:
             wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
             return
-        if not gamemode.ROLE_GUIDE:
+        if gamemode and not gamemode.ROLE_GUIDE:
             minp = max(GAME_MODES[gamemode.name][1], config.Main.get("gameplay.player_limits.minimum"))
             msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
             wrapper.reply(msg, prefix_nick=True)
@@ -958,7 +959,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
     msg = []
 
-    if not pieces[0] and lpl:
+    if gamemode and (not pieces[0] and lpl):
         msg.append(messages["roles_players"].format(lpl))
         if var.in_game:
             msg.append(messages["roles_gamemode"].format(gamemode.name))

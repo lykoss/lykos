@@ -276,6 +276,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
 
             from src.trans import transition_night
             transition_night(var)
+            return
 
         if to_vote:
             global LYNCHED
