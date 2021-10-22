@@ -47,7 +47,8 @@ class PregameState:
         return False
 
     def teardown(self):
-        pass
+        if self.current_mode is not None:
+            self.current_mode.teardown()
 
 class GameState:
     def __init__(self, pregame_state: PregameState):

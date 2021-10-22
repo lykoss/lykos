@@ -51,4 +51,3 @@ def setup_variables(rolename):
         SEEN.clear()
 
     return SEEN
-

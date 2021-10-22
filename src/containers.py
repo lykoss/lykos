@@ -141,6 +141,8 @@ class UserList(Container, List[User]):
             if self in item.lists:
                 item.lists.remove(self)
 
+        super().clear()
+
     def extend(self, iterable):
         for item in iterable:
             self.append(item)

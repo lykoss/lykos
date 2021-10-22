@@ -40,7 +40,6 @@ def see(wrapper: MessageDispatcher, message: str):
         return
 
     targrole = get_main_role(var, target)
-    trole = targrole # keep a copy for logging
 
     if targrole in Cursed:
         targrole = "wolf"
