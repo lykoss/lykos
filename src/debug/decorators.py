@@ -67,6 +67,7 @@ class print_traceback:
         from src import channels
         from src.messages import messages
         exc_log = logging.getLogger("exception.{}".format(exc_type.__name__))
+        exc_tb = tb
         variables = ["", None]
 
         if _local.handler is None:
@@ -167,7 +168,7 @@ class print_traceback:
         elif link is not None:
             message.append(link)
 
-        exc_log.error(" ".join(message), exc_info=(exc_type, exc_value, tb), extra=extra_data)
+        exc_log.error(" ".join(message), exc_info=(exc_type, exc_value, exc_tb), extra=extra_data)
 
         _local.level -= 1
         if not _local.level: # outermost caller; we're done here

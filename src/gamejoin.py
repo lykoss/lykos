@@ -100,7 +100,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=Fa
     if not wrapper.source.is_fake:
         cmodes.append(("+v", wrapper.source))
     if var is None:
-        channels.Main.game_state = users.Bot.game_state = var = PregameState()
+        channels.Main.game_state = var = PregameState()
         if not wrapper.source.is_fake:
             toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:

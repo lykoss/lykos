@@ -243,24 +243,26 @@ class User(IRCContext):
 
     is_user = True
 
+    _ident: str
+    _host: str
+    _account: str
+
+    channels: CheckedDict[Channel, Set[str]]
+    timestamp: float
     account_timestamp: float
+
+    sets: List[UserSet]
+    lists: List[UserList]
+    dict_keys: List[UserDict]
+    dict_values: List[UserDict]
 
     def __init__(self, cli, nick, ident, host, account):
         """Make linters happy."""
-        self._ident: str
-        self._host: str
-        self._account: str
-        self.name: str
-        self.channels: CheckedDict[Channel, Set[str]]
-        self.timestamp: float
-        self.sets: List[UserSet]
-        self.lists: List[UserList]
-        self.dict_keys: List[UserDict]
-        self.dict_values: List[UserDict]
+        super().__init__(nick, cli)
 
     def __new__(cls, cli, nick, ident, host, account):
         self: User = super().__new__(cls)
-        super(__class__, self).__init__(nick, cli)
+        self.__init__(cli, nick, ident, host, account)
         if account in ("0", "*"):
             account = NotLoggedIn
 
@@ -447,10 +449,10 @@ class User(IRCContext):
                     if self in channel.modes.get(mode, ()):
                         channel.modes[mode].discard(self)
                         channel.modes[mode].add(self)
+
             if not isinstance(new, BotUser):
                 _users.add(new)
-            else:
-                new.game_state = self.game_state
+
             if self is Bot:
                 Bot = new
 
@@ -660,6 +662,15 @@ class User(IRCContext):
             if not self.channels:
                 _users.discard(self)
 
+    @property
+    def game_state(self):
+        # There's only ever one game for now, but if/when the bot supports
+        # running multiple games simultaneously, we can use this to fetch
+        # which game the user is currently playing in (assuming that a
+        # user can only belong to one game at a time)
+        from src import channels
+        return channels.Main.game_state
+
 class FakeUser(User):
 
     is_fake = True
@@ -696,9 +707,10 @@ class FakeUser(User):
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
-    def __init__(self, *stuff):
-        self.modes = set()
-        self.game_state = None
+    def __init__(self, cli, nick, ident, host, account):
+        if not self._initialized:
+            self.modes = set()
+        super().__init__(cli, nick, ident, host, account)
 
     def change_nick(self, nick=None):
         if nick is None:
@@ -768,3 +780,8 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
     @disconnected.setter
     def disconnected(self, value):
         pass # no-op
+
+    @property
+    def game_state(self):
+        # PMs to the bot should use the source's game state for disambiguation
+        return None

@@ -762,7 +762,6 @@ def reset(var: Optional[GameState]):
         var.teardown()
 
     channels.Main.game_state = None
-    users.Bot.game_state = None
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):

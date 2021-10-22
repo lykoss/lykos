@@ -1371,8 +1371,8 @@ debug: &debug
   _default:
     enabled:
       _desc: |
-        Whether or not debug mode is enabled. This will print more data to stdout and enable a variety
-        of commands that aid in debugging. If disabled, none of the other options in this section have any effect.
+        Whether or not debug mode is enabled. This will enable a variety of commands that aid in debugging.
+        If disabled, none of the other options in this section have any effect.
       _type: bool
       _default: false
     messages:

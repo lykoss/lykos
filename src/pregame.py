@@ -250,7 +250,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
 
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state
-    channels.Main.game_state = users.Bot.game_state = ingame_state = GameState(pregame_state)
+    channels.Main.game_state = ingame_state = GameState(pregame_state)
 
     event = Event("role_attribution", {"addroles": Counter()})
     if event.dispatch(ingame_state, villagers):

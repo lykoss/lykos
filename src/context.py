@@ -127,12 +127,22 @@ class IRCContext:
     is_channel = False
     is_user = False
 
+    name: str
+    client: IRCClient
+    ref: Optional[IRCContext]
+
     _messages = defaultdict(list)
+    _initialized = False
 
     def __init__(self, name: str, client: IRCClient):
-        self.name = name
-        self.client = client
-        self.ref = None
+        # __init__ is called twice during the construction of a new User;
+        # once explicitly during __new__ and once implicitly after __new__.
+        # We don't want the implicit run to modify anything, so no-op during it.
+        if not self._initialized:
+            self.name = name
+            self.client = client
+            self.ref = None
+            self._initialized = True
 
     def __format__(self, format_spec):
         if not format_spec:

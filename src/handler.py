@@ -107,9 +107,9 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
         return
 
     if force:
-        context = MessageDispatcher(force, wrapper.target)
+        dispatch = MessageDispatcher(force, wrapper.target)
     else:
-        context = wrapper
+        dispatch = wrapper
 
     if role_prefix is not None:
         # match a role prefix to a role. Multi-word roles are supported by stripping the spaces
@@ -124,9 +124,9 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
             return
 
     cmds: List[command] = []
-    phase = context.game_state.current_phase if context.game_state else "none"
-    if phase not in ("none", "join") and context.source in get_participants(context.game_state):
-        roles = get_all_roles(context.game_state, context.source)
+    phase = dispatch.game_state.current_phase if dispatch.game_state else "none"
+    if phase not in ("none", "join") and dispatch.source in get_participants(dispatch.game_state):
+        roles = get_all_roles(dispatch.game_state, dispatch.source)
         common_roles = set(roles)  # roles shared by every eligible role command
         # A user can be a participant but not have a role, for example, dead vengeful ghost
         has_roles = len(roles) != 0
@@ -190,11 +190,12 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
                 wrapper.pm(messages["no_force_admin"])
                 return
             if fn.chan:
-                context.target = channels.Main
+                dispatch.target = channels.Main
             else:
-                context.target = users.Bot
-        if phase == (context.game_state.current_phase if context.game_state else "none"): # don't call any more commands if one we just called executed a phase transition
-            fn.caller(context, message)
+                dispatch.target = users.Bot
+        cur_phase = dispatch.game_state.current_phase if dispatch.game_state else "none"
+        if phase == cur_phase: # don't call any more commands if one we just called executed a phase transition
+            fn.caller(dispatch, message)
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
@@ -434,8 +435,8 @@ def connect_callback(cli: IRCClient):
                     cli.send("AUTHENTICATE +")
                 elif selected_sasl == "PLAIN":
                     account = username.encode("utf-8")
-                    password = password.encode("utf-8")
-                    auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
+                    pwd = password.encode("utf-8")
+                    auth_token = base64.b64encode(b"\0".join((account, account, pwd))).decode("utf-8")
                     cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("saslsuccess")

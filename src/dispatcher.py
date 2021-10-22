@@ -13,8 +13,8 @@ class MessageDispatcher:
 
     @property
     def game_state(self):
-        # lazy evaluation means replacing the target doesn't break things
-        return self.target.game_state
+        # lazy evaluation means replacing the source/target doesn't break things
+        return self.target.game_state if self.target.game_state else self.source.game_state
 
     @property
     def private(self):
