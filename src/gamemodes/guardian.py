@@ -49,7 +49,8 @@ class GuardianMode(GameMode):
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lguardians = len(get_players(["guardian angel", "bodyguard"], mainroles=mainroles))
-
+        lpl_with_absent = len(get_players)
+        
         if lpl < 1:
             # handled by default win cond checking
             return
@@ -65,7 +66,7 @@ class GuardianMode(GameMode):
         elif not lrealwolves and not lguardians:
             evt.data["winner"] = "villagers"
             evt.data["message"] = messages["guardian_lose_no_guards"]
-        elif lwolves == lguardians and lpl - lwolves - lguardians == 0:
+        elif lwolves == lguardians and lpl_with_absent - lwolves - lguardians == 0:
             evt.data["winner"] = "wolves"
             evt.data["message"] = messages["guardian_lose_with_guards"]
         else:
