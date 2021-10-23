@@ -37,13 +37,14 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
             #  either game ended, or a new game has started
             return False
 
-        if player in DYING or player not in get_players(var):
+        if player in DYING or player in DEAD:
             return False
 
         if var.current_phase == "join":
             var.players.remove(player)
             channels.Main.mode(("-v", player.nick))
-            return
+            return False
+
         DYING[player] = (killer_role, reason, death_triggers)
         return True
 
@@ -58,6 +59,13 @@ def is_dying(var: GameState, player: User) -> bool:
     return player in DYING
 
 def is_dead(var: GameState, player: User) -> bool:
+    """
+    Determine if the player is dead.
+
+    :param var: The game state
+    :param player: Player to check
+    :returns: True if the player is dead, False otherwise (including if the player is not playing)
+    """
     return player in DEAD
 
 def kill_players(var: Union[GameState, PregameState, None], *, end_game: bool = True) -> bool:
@@ -132,3 +140,8 @@ def kill_off_dying_players(evt: Event, var: GameState, victims: List[User]):
             if var.role_reveal in ("on", "team"):
                 to_send = "death"
             evt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(var, victim)))
+
+@event_listener("reset")
+def on_reset(evt: Event, var: GameState):
+    DEAD.clear()
+    DYING.clear()
