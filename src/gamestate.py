@@ -114,12 +114,12 @@ class GameState:
         if self.next_phase is not None:
             raise RuntimeError("already in phase transition")
         self.next_phase = phase
+        # this is a bit convoluted, but this lets external code plug in their own phases
+        setattr(self, f"{self.next_phase}_count", getattr(self, f"{self.next_phase}_count") + 1)
 
     def end_phase_transition(self):
         if self.next_phase is None:
             raise RuntimeError("not in phase transition")
-        # this is a bit convoluted, but this lets external code plug in their own phases
-        setattr(self, f"{self.next_phase}_count", getattr(self, f"{self.next_phase}_count") + 1)
 
         self.current_phase = self.next_phase
         self.next_phase = None

@@ -34,7 +34,7 @@ def get_stats_flag(var):
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):
     global STATS_FLAG
-    if var.night_count + 1 == config.Main.get("gameplay.safes.amnesiac_night"):
+    if var.night_count == config.Main.get("gameplay.safes.amnesiac_night"):
         amnesiacs = get_all_players(var, ("amnesiac",))
         if amnesiacs and not config.Main.get("gameplay.hidden.amnesiac"):
             STATS_FLAG = True
