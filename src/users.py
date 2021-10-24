@@ -395,7 +395,10 @@ class User(IRCContext):
         :param other: Object to compare with
         :returns: True if `other` is a User object and the non-None properties match our non-None properties.
         """
-        return self._compare(other, __class__, "nick", "ident", "host", "account")
+        val = self._compare(other, __class__, "nick", "ident", "host", "account")
+        if val is NotImplemented:
+            raise TypeError(f"{other.__class__.__name__} is not a subclass of {__class__.__name__}")
+        return val
 
     # User objects are not copyable - this is a deliberate design decision
     # Therefore, those two functions here only return the object itself

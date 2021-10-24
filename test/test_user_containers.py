@@ -1,8 +1,14 @@
 from unittest import TestCase
 from src.containers import UserSet, UserDict, UserList, DefaultUserDict
-from src.users import FakeUser
+from src import users
+from src.users import FakeUser, BotUser
 
 class TestUserContainers(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # set up a mock BotUser
+        users.Bot = BotUser(None, "bot", "bot", "bot.user", "bot")
+
     def test_set_init_exist(self):
         user = FakeUser.from_nick("1")
         self.assertEqual(str(UserSet()), "UserSet()")
@@ -27,7 +33,7 @@ class TestUserContainers(TestCase):
         user = FakeUser.from_nick("1")
         value = UserSet()
         value.add(user)
-        self.assertEquals(str(value), "UserSet(1)")
+        self.assertEqual(str(value), "UserSet(1)")
 
     def test_set_add_appear(self):
         user = FakeUser.from_nick("1")
@@ -45,9 +51,9 @@ class TestUserContainers(TestCase):
         user = FakeUser.from_nick("1")
         value = UserSet()
         value.add(user)
-        self.assertEquals(str(value), "UserSet(1)")
+        self.assertEqual(str(value), "UserSet(1)")
         value.add(user)
-        self.assertEquals(str(value), "UserSet(1)")
+        self.assertEqual(str(value), "UserSet(1)")
 
     def test_set_clear(self):
         user = FakeUser.from_nick("1")
