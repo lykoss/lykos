@@ -179,6 +179,7 @@ def transition_day(var: GameState, gameid: int = 0):
         return
 
     var.begin_phase_transition("day")
+    # var.day_count gets increased by 1 in begin_phase_transition
     DAY_START_TIME = datetime.now()
 
     event_begin = Event("transition_day_begin", {})
@@ -371,6 +372,7 @@ def transition_night(var: GameState):
         return
     global NIGHT_ID, NIGHT_START_TIME, DAY_START_TIME, DAY_TIMEDELTA
     var.begin_phase_transition("night")
+    # var.night_count gets increased by 1 in begin_phase_transition
 
     NIGHT_START_TIME = datetime.now()
 
