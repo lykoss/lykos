@@ -182,6 +182,11 @@ class UserSet(Container, Set[User]):
             self.clear()
             raise
 
+    def __format__(self, format_spec=""):
+        # sort the args so we have a stable result regardless of our hash key for unit testing
+        args = sorted([format(x, format_spec) for x in self])
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(args))
+
     # Operators are not overloaded - 'user_set & other_set' will return a regular set
     # This is a deliberate design decision. To get a UserSet out of them, use the named ones
 
@@ -301,15 +306,19 @@ class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
         if format_spec == "for_tb":
             # we don't know if the keys, the values, or both are Users or other user containers, so try all 3...
             try:
-                vars = ["{0:for_tb}: {1:for_tb}".format(x, y) for x, y in self.items()]
+                args = ["{0:for_tb}: {1:for_tb}".format(x, y) for x, y in self.items()]
             except TypeError:
                 try:
-                    vars = ["{0:for_tb}: {1}".format(x, y) for x, y in self.items()]
+                    args = ["{0:for_tb}: {1}".format(x, y) for x, y in self.items()]
                 except TypeError:
-                    vars = ["{0}: {1:for_tb}".format(x, y) for x, y in self.items()]
-            return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
+                    args = ["{0}: {1:for_tb}".format(x, y) for x, y in self.items()]
+        elif format_spec == "":
+            # maintain a stable ordering for unit testing regardless of hash key
+            args = sorted(["{0}: {1}".format(x, y) for x, y in self.items()])
+        else:
+            return super().__format__(format_spec)
 
-        return super().__format__(format_spec)
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(args))
 
     def __deepcopy__(self, memo):
         new = type(self)()
