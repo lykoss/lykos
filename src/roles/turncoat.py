@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
     from src.users import User
 
-TURNCOATS = UserDict() # type: UserDict[users.User, Tuple[str, int]]
+TURNCOATS: UserDict[users.User, Tuple[str, int]] = UserDict()
 PASSED = UserSet()
 
 @command("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))

@@ -49,10 +49,10 @@ def init():
 
 class Config:
     def __init__(self):
-        self._metadata = None # type: Optional[Dict[str, Any]]
-        self._metadata_file = None # type: Optional[str | Path]
-        self._settings = Empty # type: Any
-        self._files = [] # type: List[str | Path]
+        self._metadata: Optional[Dict[str, Any]] = None
+        self._metadata_file: Optional[str | Path] = None
+        self._settings: Any = Empty
+        self._files: List[str | Path] = []
 
     def load_metadata(self, file: str | Path) -> None:
         """Load metadata into the current Config instance.

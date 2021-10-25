@@ -6,7 +6,7 @@ from src import config
 
 __all__ = ["History", "enable_history", "disable_history"]
 
-ENABLED_NAMES = set() # type: Set[str]
+ENABLED_NAMES: Set[str] = set()
 
 def enable_history(name: str) -> None:
     ENABLED_NAMES.add(name)
@@ -20,8 +20,7 @@ HISTORY_LIMIT = config.Main.get("debug.containers.limit") # type: int
 class History:
     def __init__(self, name: str):
         self.name = name
-        self.history = [] # type: List[Tuple[str, List[str], Dict[str,str], traceback.StackSummary]]
-
+        self.history: List[Tuple[str, List[str], Dict[str,str], traceback.StackSummary]] = []
     def __str__(self) -> str:
         return self.list(-5)
 

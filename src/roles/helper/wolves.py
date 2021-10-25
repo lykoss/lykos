@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
     from src.users import User
 
-KILLS = UserDict() # type: UserDict[users.User, UserList]
+KILLS: UserDict[users.User, UserList] = UserDict()
 
 def register_wolf(rolename):
     @event_listener("send_role", listener_id="wolves.<{}>.on_send_role".format(rolename))

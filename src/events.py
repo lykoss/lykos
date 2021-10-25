@@ -58,9 +58,9 @@ class event_listener:
     def __init__(self, event, priority=5, listener_id=None):
         self.event = event
         self.priority = priority
-        self.func = None # type: Optional[Callable]
+        self.func: Optional[Callable] = None
         self.listener_id = listener_id
-        self.listener = None # type: Optional[EventListener]
+        self.listener: Optional[EventListener] = None
 
     def __call__(self, *args, **kwargs):
         if self.func is None:

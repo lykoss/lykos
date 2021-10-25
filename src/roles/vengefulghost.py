@@ -20,11 +20,11 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Set, Optional
 
-KILLS = UserDict() # type: UserDict[users.User, users.User]
-GHOSTS = UserDict() # type: UserDict[users.User, str]
+KILLS: UserDict[users.User, users.User] = UserDict()
+GHOSTS: UserDict[users.User, users.User] = UserDict()
 
 # temporary holding variable, only non-empty during transition_day
-drivenoff = UserDict() # type: UserDict[users.User, str]
+drivenoff: UserDict[users.User, str] = UserDict()
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
 def vg_kill(wrapper: MessageDispatcher, message: str):

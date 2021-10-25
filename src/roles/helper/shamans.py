@@ -65,7 +65,7 @@ if TYPE_CHECKING:
 # It is generally unneeded to modify this file to add new totems or shaman roles    #
 #####################################################################################
 
-DEATH = UserDict() # type: UserDict[users.User, UserList]
+DEATH: UserDict[users.User, UserList] = UserDict()
 PROTECTION = UserList()
 REVEALING = UserSet()
 NARCOLEPSY = UserSet()
@@ -84,12 +84,12 @@ DECEIT = UserSet()
 
 # holding vars that don't persist long enough to need special attention in
 # reset/exchange/nickchange
-havetotem = []              # type: List[users.User]
-brokentotem = set()         # type: Set[users.User]
+havetotem: List[users.User] = []
+brokentotem: Set[users.User] = set()
 
 # holds mapping of shaman roles to their state vars, for debugging
 # and unit testing purposes
-_rolestate = {}             # type: Dict[str, Dict[str, Any]]
+_rolestate: Dict[str, Dict[str, Any]] = {}
 
 # Generated message keys used across all shaman files:
 # death_totem, protection_totem, revealing_totem, narcolepsy_totem,
@@ -103,10 +103,10 @@ def setup_variables(rolename, *, knows_totem):
         # Factory method to create a DefaultUserDict[*, UserList]
         # this can be passed into a DefaultUserDict constructor so we can make nested defaultdicts easily
         return DefaultUserDict(UserList)
-    TOTEMS = DefaultUserDict(dict)       # type: DefaultUserDict[users.User, Dict[str, int]]
-    LASTGIVEN = DefaultUserDict(ulf)     # type: DefaultUserDict[users.User, DefaultUserDict[str, UserList]]
-    SHAMANS = DefaultUserDict(ulf)       # type: DefaultUserDict[users.User, DefaultUserDict[str, UserList]]
-    RETARGET = DefaultUserDict(UserDict) # type: DefaultUserDict[users.User, UserDict[users.User, users.User]]
+    TOTEMS: DefaultUserDict[users.User, Dict[str, int]] = DefaultUserDict(dict)
+    LASTGIVEN: DefaultUserDict[users.User, DefaultUserDict[str, UserList]] = DefaultUserDict(ulf)
+    SHAMANS: DefaultUserDict[users.User, DefaultUserDict[str, UserList]] = DefaultUserDict(ulf)
+    RETARGET: DefaultUserDict[users.User, UserDict[users.User, users.User]] = DefaultUserDict(UserDict)
     _rolestate[rolename] = {
         "TOTEMS": TOTEMS,
         "LASTGIVEN": LASTGIVEN,

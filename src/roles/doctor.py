@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     from typing import Optional
 
 IMMUNIZED = UserSet()
-DOCTORS = UserDict() # type: UserDict[users.User, int]
+DOCTORS: UserDict[users.User, int] = UserDict()
 
 @command("immunize", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 def immunize(wrapper: MessageDispatcher, message: str):

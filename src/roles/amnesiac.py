@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 __all__ = ["get_blacklist", "get_stats_flag"]
 
-ROLES = UserDict()  # type: UserDict[users.User, str]
+ROLES: UserDict[users.User, str] = UserDict()
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def get_blacklist(var: GameState):

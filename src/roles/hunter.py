@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Optional, Set
 
-KILLS = UserDict() # type: UserDict[users.User, users.User]
+KILLS: UserDict[users.User, users.User] = UserDict()
 HUNTERS = UserSet()
 PASSED = UserSet()
 

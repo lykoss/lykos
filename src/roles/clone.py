@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Optional, Set
 
-CLONED = UserDict() # type: UserDict[users.User, users.User]
+CLONED: UserDict[users.User, users.User] = UserDict()
 CAN_ACT = UserSet()
 ACTED = UserSet()
 CLONE_ENABLED = False # becomes True if at least one person died and there are clones

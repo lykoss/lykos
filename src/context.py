@@ -245,7 +245,7 @@ class IRCContext:
 
         # check if bot is opped in any channels shared with this user
         from src import users
-        cprivmsg_eligible = None # type: Optional[IRCContext]
+        cprivmsg_eligible: Optional[IRCContext] = None
         op_modes = set()
         for status, mode in Features.PREFIX.items():
             op_modes.add(mode)
@@ -293,7 +293,7 @@ class IRCFeatures:
     # even if we don't have a property that directly exposes it. A bot operator writing custom code can use
     # the generic get() and set() methods to retrieve and manipulate those values.
     # Note: we store whatever the ircd tells us, but normalize return values to what the bot expects
-    _features = {} # type: Dict[str, Any]
+    _features: Dict[str, Any] = {}
 
     # RPL_ISUPPORT tokens
 
@@ -608,7 +608,7 @@ class IRCFeatures:
 class IRCTargMaxFeature:
     def __init__(self, features: IRCFeatures, value: Optional[str] = None):
         self._features = features
-        self._commands = {} # type: Dict[str, int]
+        self._commands: Dict[str, int] = {}
 
     def __getitem__(self, item: str) -> int:
         item = item.lower()

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 Main: Channel = None # type: ignore[assignment]
 Dummy: Channel = None # type: ignore[assignment]
 
-_channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
+_channels: CheckedDict[str, Channel] = CheckedDict("channels._channels")
 
 class _States(Enum):
     NotJoined = "not yet joined"

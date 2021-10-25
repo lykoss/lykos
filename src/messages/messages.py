@@ -53,7 +53,7 @@ class Messages:
         def maybe_remove_spaces(x: str) -> str:
             return x.replace(" ", "") if remove_spaces else x
 
-        roles = {}  # type: Dict[str, str]
+        roles: Dict[str, str] = {}
         for key, role in self.messages["_roles"].items():
             if key.startswith("*"):
                 continue
@@ -89,7 +89,7 @@ class Messages:
         def maybe_remove_spaces(x: str) -> str:
             return x.replace(" ", "") if remove_spaces else x
 
-        modes = {} # type: Dict[str, str]
+        modes: Dict[str, str] = {}
         for internal, local in self.messages["_gamemodes"].items():
             if internal.startswith("*"):
                 continue
@@ -112,7 +112,7 @@ class Messages:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        totems = {}  # type: Dict[str, str]
+        totems: Dict[str, str] = {}
         for internal, local in self.messages["_totems"].items():
             if internal.startswith("*"):
                 continue

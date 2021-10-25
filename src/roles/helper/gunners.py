@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
     from src.users import User
 
-_rolestate = {} # type: Dict[str, Dict[str, Any]]
+_rolestate: Dict[str, Dict[str, Any]] = {}
 
 def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
     GUNNERS: UserDict[User, int] = UserDict()

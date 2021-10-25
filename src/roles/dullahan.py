@@ -20,8 +20,8 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Optional, Set
 
-KILLS = UserDict() # type: UserDict[users.User, users.User]
-TARGETS = UserDict() # type: UserDict[users.User, UserSet]
+KILLS: UserDict[users.User, users.User] = UserDict()
+TARGETS: UserDict[users.User, UserSet] = UserDict()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
 def dullahan_kill(wrapper: MessageDispatcher, message: str):

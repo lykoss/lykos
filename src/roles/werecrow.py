@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
 
 register_wolf("werecrow")
 
-OBSERVED = UserDict() # type: UserDict[users.User, users.User]
+OBSERVED: UserDict[users.User, users.User] = UserDict()
 
 @command("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow",))
 def observe(wrapper: MessageDispatcher, message: str):

@@ -16,7 +16,7 @@ from src.events import Event, event_listener
 from src.trans import chk_win
 from src.users import User
 
-VOTED = None # type: Optional[users.User]
+VOTED: Optional[users.User] = None
 
 @event_listener("lynch")
 def on_lynch(evt: Event, var: GameState, votee, voters):

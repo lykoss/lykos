@@ -21,7 +21,7 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Optional, Dict, Set
 
-TOBECHARMED = UserDict() # type: UserDict[users.User, UserSet]
+TOBECHARMED: UserDict[users.User, UserSet] = UserDict()
 CHARMED = UserSet()
 PASSED = UserSet()
 

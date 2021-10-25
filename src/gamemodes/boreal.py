@@ -86,7 +86,7 @@ class BorealMode(GameMode):
         self.village_starve = 0
         self.max_village_starve = 3
         self.num_retribution = 0
-        self.saved_messages = {} # type: Dict[str, str]
+        self.saved_messages: Dict[str, str] = {}
         kwargs = dict(chan=False, pm=True, playing=True, silenced=True, phases=("night",),
                       roles=("shaman", "wolf shaman"), register=False)
         self.feed_command = command("feed", **kwargs)(self.feed)

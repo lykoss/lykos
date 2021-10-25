@@ -25,8 +25,8 @@ if typing.TYPE_CHECKING:
 
 register_wolf("hag")
 
-HEXED = UserDict() # type: UserDict[users.User, users.User]
-LASTHEXED = UserDict() # type: UserDict[users.User, users.User]
+HEXED: UserDict[users.User, users.User] = UserDict()
+LASTHEXED: UserDict[users.User, users.User] = UserDict()
 
 @command("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
 def hex_cmd(wrapper: MessageDispatcher, message: str):

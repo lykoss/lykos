@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Optional, Set
 
-KILLS = UserDict() # type: UserDict[users.User, users.User]
+KILLS: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))

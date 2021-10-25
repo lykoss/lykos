@@ -22,7 +22,7 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Optional, Set, List
 
-VISITED = UserDict() # type: UserDict[users.User, users.User]
+VISITED: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()
 FORCE_PASSED = UserSet()
 

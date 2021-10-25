@@ -23,8 +23,8 @@ if typing.TYPE_CHECKING:
     from typing import Optional, Set
     from src.users import User
 
-GUARDED = UserDict() # type: UserDict[users.User, users.User]
-LASTGUARDED = UserDict() # type: UserDict[users.User, users.User]
+GUARDED: UserDict[users.User, users.User] = UserDict()
+LASTGUARDED: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()
 
 @command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
