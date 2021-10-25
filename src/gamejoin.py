@@ -5,7 +5,7 @@ import threading
 import time
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Callable, List, Union, Set
+from typing import TYPE_CHECKING, Optional, Callable, List, Set
 
 from src.decorators import command
 from src.containers import UserDict
@@ -206,7 +206,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
         return
 
     parts = re.split(" +", message)
-    to_join: List[Union[User, str]] = []
+    to_join: List[User | str] = []
     debug_mode = config.Main.get("debug.enabled")
     if not debug_mode:
         match = users.complete_match(parts[0], wrapper.target.users)

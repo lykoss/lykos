@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Union, Set
+from typing import TYPE_CHECKING, List, Set
 
 import threading
 import itertools
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 WAIT_TOKENS = 0
 WAIT_LAST = 0
 
-LAST_START: UserDict[User, List[Union[datetime, int]]] = UserDict()
+LAST_START: UserDict[User, List[datetime | int]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
 CAN_START_TIME: int = 0

@@ -1,4 +1,4 @@
-from typing import Union
+from __future__ import annotations
 
 from src import channels, config, users
 from src.functions import get_players
@@ -6,7 +6,7 @@ from src.functions import get_players
 class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
 
-    def __init__(self, source: users.User, target: Union[channels.Channel, users.BotUser]):
+    def __init__(self, source: users.User, target: channels.Channel | users.BotUser):
         self.source = source
         self.target = target
         self.client = source.client

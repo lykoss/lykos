@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, Set, Iterable, List, Union
+from typing import TYPE_CHECKING, Set, Iterable, List
 
 from src.containers import UserDict
 from src.functions import get_players, get_main_role, change_role
@@ -33,7 +33,7 @@ def remove_lycanthropy(var: GameState, target: User):
     """Remove the lycanthropy effect from the target."""
     del LYCANTHROPES[:target:]
 
-def add_lycanthropy_scope(var: GameState, scope: Union[Category, Set[str]]):
+def add_lycanthropy_scope(var: GameState, scope: Category | Set[str]):
     """Add a scope for roles that can effect lycanthropy, for stats."""
     SCOPE.update(scope)
 

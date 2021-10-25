@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Union, Callable
+from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Callable
 import threading
 import time
 
@@ -24,13 +24,13 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
 
 NIGHT_IDLE_EXEMPT = UserSet()
-TIMERS: Dict[str, Tuple[threading.Timer, Union[float, int], int]] = {}
+TIMERS: Dict[str, Tuple[threading.Timer, float | int, int]] = {}
 
-DAY_ID: Union[float, int] = 0
+DAY_ID: float | int = 0
 DAY_TIMEDELTA: timedelta = timedelta(0)
 DAY_START_TIME: Optional[datetime] = None
 
-NIGHT_ID: Union[float, int] = 0
+NIGHT_ID: float | int = 0
 NIGHT_TIMEDELTA: timedelta = timedelta(0)
 NIGHT_START_TIME: Optional[datetime] = None
 
@@ -671,7 +671,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
     return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner)
 
-def chk_win_conditions(var: GameState, rolemap: Union[Dict[str, Set[User]], UserDict[str, UserSet]], mainroles: Union[Dict[User, str], UserDict[User, str]], end_game=True, winner=None):
+def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]] | UserDict[str, UserSet], mainroles: Dict[User, str] | UserDict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.current_phase == "day":

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import random
-from typing import Set, Iterable, Union
+from typing import Set, Iterable
 
 from src.events import Event, event_listener
 from src.containers import UserSet
@@ -42,13 +44,13 @@ def try_misdirection(var: GameState, actor: User, target: User):
             target = _get_target(var, target)
     return target
 
-def add_misdirection_scope(var: GameState, scope: Union[Category, Set[str]], *, as_actor: bool = False, as_target: bool = False):
+def add_misdirection_scope(var: GameState, scope: Category | Set[str], *, as_actor: bool = False, as_target: bool = False):
     if as_actor:
         ACTOR_SCOPE.update(scope)
     if as_target:
         TARGET_SCOPE.update(scope)
 
-def in_misdirection_scope(var: GameState, roles: Union[Union[Category, Set[str]], str], *, as_actor: bool = False, as_target: bool = False):
+def in_misdirection_scope(var: GameState, roles: Category | Set[str] | str, *, as_actor: bool = False, as_target: bool = False):
     assert as_actor or as_target, "in_misdirection_scope requires specifying which scope to check"
     if isinstance(roles, str):
         roles = {roles}

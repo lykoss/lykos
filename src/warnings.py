@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Union, List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 import logging
 import re
 
@@ -89,7 +89,7 @@ def _get_auto_sanctions(sanctions, prev, cur):
                     sanctions["tempban"] = exp
     
 
-def add_warning(target: Union[str, users.User], amount: int, actor: users.User, reason: str, notes: str = None, expires=None, sanctions=None):
+def add_warning(target: str | users.User, amount: int, actor: users.User, reason: str, notes: str = None, expires=None, sanctions=None):
     if isinstance(target, users.User):
         tacc = target.account
         if not tacc:

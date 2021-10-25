@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Tuple, Set, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Set
 
 from src.containers import UserDict, DefaultUserDict
 from src.functions import get_players
@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 
 __all__ = ["add_protection", "try_protection", "remove_all_protections"]
 
-PROTECTIONS: UserDict[User, UserDict[Optional[User], List[Tuple[Union[Category, Set[str]], str]]]] = UserDict()
+PROTECTIONS: UserDict[User, UserDict[Optional[User], List[Tuple[Category | Set[str], str]]]] = UserDict()
 
-def add_protection(var: GameState, target: User, protector: User, protector_role: str, scope: Union[Category, Set[str]]=All):
+def add_protection(var: GameState, target: User, protector: User, protector_role: str, scope: Category | Set[str]=All):
     """Add a protection to the target affecting the relevant scope."""
     if target not in get_players(var):
         return
@@ -49,7 +49,7 @@ def try_protection(var: GameState, target: User, attacker: Optional[User], attac
 
     return prot_evt.data["messages"]
 
-def remove_all_protections(var: GameState, target: User, attacker: User, attacker_role: str, reason: str, scope: Union[Category, Set[str]]=All):
+def remove_all_protections(var: GameState, target: User, attacker: User, attacker_role: str, reason: str, scope: Category | Set[str]=All):
     """Remove all protections from a player."""
     if target not in PROTECTIONS:
         return

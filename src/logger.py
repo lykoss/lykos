@@ -6,7 +6,7 @@ import logging.handlers
 import string
 import sys
 import importlib
-from typing import Union, Callable, Sequence, Any, Mapping
+from typing import Callable, Sequence, Any, Mapping
 from pathlib import Path
 
 from src import config
@@ -18,7 +18,7 @@ class UnionFilterMixin(logging.Filterer):
     # Change filter logic so that we log as long as one of the provided filters succeeds.
     # Default is to require all attached filters to succeed in order to log.
     def filter(self, record: logging.LogRecord) -> bool:
-        for f in self.filters: # type: Union[logging.Filter, Callable]
+        for f in self.filters: # type: logging.Filter | Callable
             if hasattr(f, "filter"):
                 val = f.filter(record)
             else:
@@ -119,7 +119,7 @@ class LogRecord(logging.LogRecord):
 
 class _ThrowingFormatter(string.Formatter):
     def check_unused_args(self,
-                          used_args: Sequence[Union[int, str]],
+                          used_args: Sequence[int | str],
                           args: Sequence[Any],
                           kwargs: Mapping[str, Any]) -> None:
         expected_args = set(range(len(args)))

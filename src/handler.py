@@ -9,7 +9,7 @@ import functools
 import logging
 import typing
 import sys
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from src import channels, config, context, decorators, users
 from src.messages import messages
@@ -166,7 +166,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
         # is executed. In this event, display a helpful error message instructing
         # the user to resolve the ambiguity.
         common_roles = set(roles)
-        info: List[Union[str, int]] = [0, 0]
+        info: List[str | int] = [0, 0]
         role_map = messages.get_role_mapping()
         for fn in cmds:
             fn_roles = roles.intersection(fn.roles)
@@ -280,7 +280,7 @@ def connect_callback(cli: IRCClient):
 
         hook.unhook(294)
 
-    def setup_handler(evt, target: Union[User, Channel]):
+    def setup_handler(evt, target: User | Channel):
         target.client.command_handler["privmsg"] = on_privmsg
         target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
         who_end.remove("who_end")
