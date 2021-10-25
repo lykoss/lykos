@@ -95,7 +95,7 @@ def _send(data, first, sep, client, send_type, name, chan=None):
             extra, line = line[:length], line[length:]
             client.send("{0} {1} {4}:{2}{3}".format(send_type, name, first, extra, chan))
 
-def lower(nick: None | str | IRCContext, *, casemapping: Optional[str] = None):
+def lower(nick: Optional[str | IRCContext], *, casemapping: Optional[str] = None):
     if nick is None or nick is NotLoggedIn:
         return nick
     if isinstance(nick, IRCContext):
@@ -117,7 +117,7 @@ def lower(nick: None | str | IRCContext, *, casemapping: Optional[str] = None):
 
     return nick.lower().translate(str.maketrans(mapping))
 
-def equals(nick1: None | str | IRCContext, nick2: None | str | IRCContext):
+def equals(nick1: Optional[str | IRCContext], nick2: Optional[str | IRCContext]):
     return nick1 is not None and nick2 is not None and lower(nick1) == lower(nick2)
 
 class IRCContext:
