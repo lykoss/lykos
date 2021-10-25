@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 from abc import ABC, abstractmethod
-from typing import Generic, Iterable, TypeVar
+from typing import Dict, Generic, Iterable, List, Set, TypeVar
 
 from src.users import User
 
@@ -85,7 +85,7 @@ class Container(ABC):
         # noinspection PyUnresolvedReferences
         super(Container, self).clear()
 
-class UserList(Container, list[User]):
+class UserList(Container, List[User]):
     def __init__(self, iterable=()):
         super().__init__()
         try:
@@ -172,7 +172,7 @@ class UserList(Container, list[User]):
         if item not in self:
             item.lists.remove(self)
 
-class UserSet(Container, set[User]):
+class UserSet(Container, Set[User]):
     def __init__(self, iterable=()):
         super().__init__()
         try:
@@ -283,7 +283,7 @@ class UserSet(Container, set[User]):
             if item not in self:
                 self.add(item)
 
-class UserDict(Container, dict[KT, VT], Generic[KT, VT]):
+class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
     def __init__(self, _it=(), **kwargs):
         super().__init__()
         if hasattr(_it, "items"):
