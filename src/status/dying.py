@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from collections import Counter
+from typing import Tuple
 
 from src.containers import UserDict, UserSet
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
@@ -13,7 +14,7 @@ from src import locks, channels
 
 __all__ = ["add_dying", "is_dying", "is_dead", "kill_players"]
 
-DyingEntry = tuple[str, str, bool]
+DyingEntry = Tuple[str, str, bool]
 
 DYING: UserDict[User, DyingEntry] = UserDict()
 DEAD: UserSet = UserSet()
