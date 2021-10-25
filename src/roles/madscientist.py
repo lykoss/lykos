@@ -3,7 +3,7 @@ import random
 import itertools
 import math
 from collections import defaultdict, deque
-from typing import Optional, Set
+from typing import Optional
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
@@ -15,7 +15,7 @@ from src.status import try_misdirection, try_exchange, try_protection, add_dying
 from src.events import Event, event_listener
 from src.users import User
 
-def _get_targets(var: GameState, pl: Set[User], user: User):
+def _get_targets(var: GameState, pl: set[User], user: User):
     """Gets the mad scientist's targets.
 
     var - settings module
@@ -44,7 +44,7 @@ def _get_targets(var: GameState, pl: Set[User], user: User):
     return (target1, target2)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if not death_triggers or "mad scientist" not in all_roles:
         return
 

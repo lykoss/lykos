@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict
 
 from src import config
 from src.messages.message import Message
@@ -31,7 +32,7 @@ class Messages:
 
         return m
 
-    def get_role_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> Dict[str, str]:
+    def get_role_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> dict[str, str]:
         """ Retrieve a mapping between internal role names and localized role names.
 
         :param reverse: If True, maps localized role names and aliases to internal role names.
@@ -53,7 +54,7 @@ class Messages:
         def maybe_remove_spaces(x: str) -> str:
             return x.replace(" ", "") if remove_spaces else x
 
-        roles: Dict[str, str] = {}
+        roles: dict[str, str] = {}
         for key, role in self.messages["_roles"].items():
             if key.startswith("*"):
                 continue
@@ -74,7 +75,7 @@ class Messages:
         self.cache[cache_key] = roles
         return roles
 
-    def get_mode_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> Dict[str, str]:
+    def get_mode_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> dict[str, str]:
         """ Retrieve a mapping between internal mode names and localized mode names.
 
         :param reverse: If True, maps localized mode names to internal mode names.
@@ -89,7 +90,7 @@ class Messages:
         def maybe_remove_spaces(x: str) -> str:
             return x.replace(" ", "") if remove_spaces else x
 
-        modes: Dict[str, str] = {}
+        modes: dict[str, str] = {}
         for internal, local in self.messages["_gamemodes"].items():
             if internal.startswith("*"):
                 continue
@@ -101,7 +102,7 @@ class Messages:
         self.cache[cache_key] = modes
         return modes
 
-    def get_totem_mapping(self, reverse: bool = False) -> Dict[str, str]:
+    def get_totem_mapping(self, reverse: bool = False) -> dict[str, str]:
         """ Retrieve a mapping between internal totem names and localized totem names.
 
         :param reverse: If True, maps localized totem names to internal totem names.
@@ -112,7 +113,7 @@ class Messages:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        totems: Dict[str, str] = {}
+        totems: dict[str, str] = {}
         for internal, local in self.messages["_totems"].items():
             if internal.startswith("*"):
                 continue

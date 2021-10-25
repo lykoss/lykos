@@ -4,7 +4,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 import math
 import re
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING
 
 from src.containers import UserDict, UserList, UserSet
 from src.decorators import command
@@ -315,7 +315,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             transition_night(var)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     if var.current_phase == "day":
         if player in VOTES:
             del VOTES[player] # Delete other people's votes on the player

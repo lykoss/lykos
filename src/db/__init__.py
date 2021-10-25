@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sqlite3
 import os
 import json
@@ -7,7 +9,6 @@ import time
 import threading
 from collections import defaultdict
 from datetime import datetime
-from typing import DefaultDict, Set
 
 from src import users
 from src.utilities import singular
@@ -49,13 +50,13 @@ ALL_FLAGS = {
 # variables accessible outside of the module that hold current db state
 # These track accounts by string account name instead of User instances because the latter can only track online users
 
-PREFER_NOTICE: Set[str] = set()
-STASISED: DefaultDict[str, int] = defaultdict(int)
-PING_IF_PREFS: DefaultDict[str, int] = defaultdict(int)
-PING_IF_NUMS: DefaultDict[int, Set[str]] = defaultdict(set)
-DEADCHAT_PREFS: Set[str] = set()
-FLAGS: DefaultDict[str, str] = defaultdict(str)
-DENY: DefaultDict[str, Set[str]] = defaultdict(set)
+PREFER_NOTICE: set[str] = set()
+STASISED: defaultdict[str, int] = defaultdict(int)
+PING_IF_PREFS: defaultdict[str, int] = defaultdict(int)
+PING_IF_NUMS: defaultdict[int, set[str]] = defaultdict(set)
+DEADCHAT_PREFS: set[str] = set()
+FLAGS: defaultdict[str, str] = defaultdict(str)
+DENY: defaultdict[str, set[str]] = defaultdict(set)
 
 _ts = threading.local()
 

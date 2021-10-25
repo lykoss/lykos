@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import List, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 import logging
 import re
 
@@ -568,36 +568,36 @@ def fwarn_view(wrapper: MessageDispatcher, args):
 
 warn_parser = LineParser(prog="warn")
 warn_subparsers = warn_parser.add_subparsers()
-_waccount: List[str] = messages.raw("_commands", "warn opt account")
-_wall: List[str] = messages.raw("_commands", "warn opt all")
-_wban: List[str] = messages.raw("_commands", "warn opt ban")
-_wdeny: List[str] = messages.raw("_commands", "warn opt deny")
-_wexpires: List[str] = messages.raw("_commands", "warn opt expires")
-_whelp: List[str] = messages.raw("_commands", "warn opt help")
-_wnotes: List[str] = messages.raw("_commands", "warn opt notes")
-_wreason: List[str] = messages.raw("_commands", "warn opt reason")
-_wstasis: List[str] = messages.raw("_commands", "warn opt stasis")
+_waccount: list[str] = messages.raw("_commands", "warn opt account")
+_wall: list[str] = messages.raw("_commands", "warn opt all")
+_wban: list[str] = messages.raw("_commands", "warn opt ban")
+_wdeny: list[str] = messages.raw("_commands", "warn opt deny")
+_wexpires: list[str] = messages.raw("_commands", "warn opt expires")
+_whelp: list[str] = messages.raw("_commands", "warn opt help")
+_wnotes: list[str] = messages.raw("_commands", "warn opt notes")
+_wreason: list[str] = messages.raw("_commands", "warn opt reason")
+_wstasis: list[str] = messages.raw("_commands", "warn opt stasis")
 
-_wl: List[str] = messages.raw("_commands", "warn list")
+_wl: list[str] = messages.raw("_commands", "warn list")
 _warn_list = warn_subparsers.add_parser(_wl[0], aliases=_wl[1:])
 _warn_list.add_argument(*_wall, dest="all", action="store_true")
 _warn_list.add_argument(*_whelp, dest="help", action="help")
 _warn_list.add_argument("page", type=int, nargs="?", default=1)
 _warn_list.set_defaults(func=warn_list)
 
-_wv: List[str] = messages.raw("_commands", "warn view")
+_wv: list[str] = messages.raw("_commands", "warn view")
 _warn_view = warn_subparsers.add_parser(_wv[0], aliases=_wv[1:])
 _warn_view.add_argument(*_whelp, dest="help", action="help")
 _warn_view.add_argument("id", type=int)
 _warn_view.set_defaults(func=warn_view)
 
-_wa: List[str] = messages.raw("_commands", "warn ack")
+_wa: list[str] = messages.raw("_commands", "warn ack")
 _warn_ack = warn_subparsers.add_parser(_wa[0], aliases=_wa[1:])
 _warn_ack.add_argument(*_whelp, dest="help", action="help")
 _warn_ack.add_argument("id", type=int)
 _warn_ack.set_defaults(func=warn_ack)
 
-_wh: List[str] = messages.raw("_commands", "warn help")
+_wh: list[str] = messages.raw("_commands", "warn help")
 _warn_help = warn_subparsers.add_parser(_wh[0], aliases=_wh[1:])
 _warn_help.add_argument("command", nargs="?", default="help")
 _warn_help.set_defaults(func=warn_help)
@@ -605,7 +605,7 @@ _warn_help.set_defaults(func=warn_help)
 fwarn_parser = LineParser(prog="fwarn")
 fwarn_subparsers = fwarn_parser.add_subparsers()
 
-_fa: List[str] = messages.raw("_commands", "warn add")
+_fa: list[str] = messages.raw("_commands", "warn add")
 _fwarn_add = fwarn_subparsers.add_parser(_fa[0], aliases=_fa[1:])
 _fwarn_add.add_argument(*_whelp, dest="help", action="help")
 _fwarn_add.add_argument(*_waccount, dest="account", action="store_true")
@@ -619,13 +619,13 @@ _fwarn_add.add_argument("points", type=int)
 _fwarn_add.add_argument("reason", nargs="+")
 _fwarn_add.set_defaults(func=fwarn_add)
 
-_fd: List[str] = messages.raw("_commands", "warn del")
+_fd: list[str] = messages.raw("_commands", "warn del")
 _fwarn_del = fwarn_subparsers.add_parser(_fd[0], aliases=_fd[1:])
 _fwarn_del.add_argument(*_whelp, dest="help", action="help")
 _fwarn_del.add_argument("id", type=int)
 _fwarn_del.set_defaults(func=fwarn_del)
 
-_fs: List[str] = messages.raw("_commands", "warn set")
+_fs: list[str] = messages.raw("_commands", "warn set")
 _fwarn_set = fwarn_subparsers.add_parser(_fs[0], aliases=_fs[1:])
 _fwarn_set.add_argument(*_whelp, dest="help", action="help")
 _fwarn_set.add_argument(*_wexpires, dest="expires")
@@ -634,13 +634,13 @@ _fwarn_set.add_argument(*_wnotes, dest="notes", nargs="*")
 _fwarn_set.add_argument("id", type=int)
 _fwarn_set.set_defaults(func=fwarn_set)
 
-_fv: List[str] = messages.raw("_commands", "warn view")
+_fv: list[str] = messages.raw("_commands", "warn view")
 _fwarn_view = fwarn_subparsers.add_parser(_fv[0], aliases=_fv[1:])
 _fwarn_view.add_argument(*_whelp, dest="help", action="help")
 _fwarn_view.add_argument("id", type=int)
 _fwarn_view.set_defaults(func=fwarn_view)
 
-_fl: List[str] = messages.raw("_commands", "warn list")
+_fl: list[str] = messages.raw("_commands", "warn list")
 _fwarn_list = fwarn_subparsers.add_parser(_fl[0], aliases=_fl[1:])
 _fwarn_list.add_argument(*_whelp, dest="help", action="help")
 _fwarn_list.add_argument(*_waccount, dest="account", action="store_true")
@@ -649,7 +649,7 @@ _fwarn_list.add_argument("nick")
 _fwarn_list.add_argument("page", type=int, nargs="?", default=1)
 _fwarn_list.set_defaults(func=fwarn_list)
 
-_fh: List[str] = messages.raw("_commands", "warn help")
+_fh: list[str] = messages.raw("_commands", "warn help")
 _fwarn_help = fwarn_subparsers.add_parser(_fh[0], aliases=_fh[1:])
 _fwarn_help.add_argument("command", nargs="?", default="help")
 _fwarn_help.set_defaults(func=fwarn_help)

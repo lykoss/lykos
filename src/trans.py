@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Dict, Set, Tuple, Optional, Callable
+from typing import TYPE_CHECKING, Optional, Callable
 import threading
 import time
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
 
 NIGHT_IDLE_EXEMPT = UserSet()
-TIMERS: Dict[str, Tuple[threading.Timer, float | int, int]] = {}
+TIMERS: dict[str, tuple[threading.Timer, float | int, int]] = {}
 
 DAY_ID: float | int = 0
 DAY_TIMEDELTA: timedelta = timedelta(0)
@@ -118,7 +118,7 @@ def night_warn(var: GameState, gameid: int):
     event.dispatch(var)
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
-    nightroles: List[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
+    nightroles: list[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
     idling = Counter(nightroles) - Counter(event.data["acted"])
     if not idling:
         return
@@ -145,7 +145,7 @@ def night_timeout(var: GameState, gameid: int):
         return
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
-    nightroles: List[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
+    nightroles: list[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
     idled = Counter(nightroles) - Counter(event.data["acted"])
     for player, count in idled.items():
         if player.is_fake or count == 0:
@@ -210,8 +210,8 @@ def transition_day(var: GameState, gameid: int = 0):
     # We set the variables here first; listeners should mutate, not replace
     # We don't need to use User containers here, as these don't persist long enough
     # This removes the burden of having to clear them at the end or should an error happen
-    victims: List[User] = []
-    killers: Dict[User, List[User]] = defaultdict(list)
+    victims: list[User] = []
+    killers: dict[User, list[User]] = defaultdict(list)
 
     evt = Event("transition_day", {
         "victims": victims,
@@ -671,7 +671,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 
     return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner)
 
-def chk_win_conditions(var: GameState, rolemap: Dict[str, Set[User]] | UserDict[str, UserSet], mainroles: Dict[User, str] | UserDict[User, str], end_game=True, winner=None):
+def chk_win_conditions(var: GameState, rolemap: dict[str, set[User]] | UserDict[str, UserSet], mainroles: dict[User, str] | UserDict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.current_phase == "day":

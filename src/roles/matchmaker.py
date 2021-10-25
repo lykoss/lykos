@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import TYPE_CHECKING, Set, Optional
+from typing import TYPE_CHECKING, Optional
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -161,7 +161,7 @@ def on_team_win(evt: Event, var: GameState, player, main_role, allroles, winner)
         evt.data["team_win"] = True
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if player in LOVERS:
         evt.data["special"].append("lover")
     pl = get_players(var)

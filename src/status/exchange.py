@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING
 
 from src.containers import UserSet
 from src.functions import get_main_role, change_role, get_players
@@ -43,7 +43,7 @@ def try_exchange(var: GameState, actor: User, target: User):
     return True
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     EXCHANGE.discard(player)
 
 @event_listener("revealroles")

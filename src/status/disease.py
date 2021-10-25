@@ -1,4 +1,4 @@
-from typing import List
+from __future__ import annotations
 
 from src.containers import UserSet
 from src.gamestate import GameState
@@ -28,7 +28,7 @@ def wolves_diseased(var: GameState):
     return DISEASED_WOLVES
 
 @event_listener("transition_day_resolve_end")
-def on_transition_day_resolve(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve(evt: Event, var: GameState, victims: list[User]):
     global DISEASED_WOLVES
     for victim in evt.data["dead"]:
         if "@wolves" in evt.data["killers"][victim] and victim in DISEASED: # Silly wolves, eating a sick person... tsk tsk

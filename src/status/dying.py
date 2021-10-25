@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import time
 from collections import Counter
-from typing import Tuple, List
 
 from src.containers import UserDict, UserSet
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
@@ -12,7 +13,7 @@ from src import locks, channels
 
 __all__ = ["add_dying", "is_dying", "is_dead", "kill_players"]
 
-DyingEntry = Tuple[str, str, bool]
+DyingEntry = tuple[str, str, bool]
 
 DYING: UserDict[User, DyingEntry] = UserDict()
 DEAD: UserSet = UserSet()
@@ -130,7 +131,7 @@ def kill_players(var: GameState | PregameState | None, *, end_game: bool = True)
         return not evt.dispatch(var, dead)
 
 @event_listener("transition_day_resolve_end", priority=1)
-def kill_off_dying_players(evt: Event, var: GameState, victims: List[User]):
+def kill_off_dying_players(evt: Event, var: GameState, victims: list[User]):
     for victim in DYING:
         if victim not in evt.data["dead"]:
             evt.data["novictmsg"] = False

@@ -4,7 +4,7 @@ from __future__ import annotations
 import os.path
 import glob
 import importlib
-from typing import Dict, Tuple, Optional
+from typing import Optional
 from src.messages import messages
 from src.gamestate import GameState
 from src.events import Event, EventListener
@@ -291,7 +291,7 @@ class GameMode:
             for key, value in self.GUN_CHANCES[role].items():
                 evt.data[key] += value
 
-GAME_MODES: Dict[str, Tuple[GameMode, int, int, int]] = {}
+GAME_MODES: dict[str, tuple[GameMode, int, int, int]] = {}
 
 def game_mode(name: str, minp: int, maxp: int, likelihood: int = 0):
     def decor(c: GameMode):

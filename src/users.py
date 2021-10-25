@@ -3,7 +3,7 @@ from __future__ import annotations
 import fnmatch
 import time
 import re
-from typing import Callable, List, Optional, Iterable, Set, TYPE_CHECKING
+from typing import Callable, Optional, Iterable, TYPE_CHECKING
 
 from src.context import IRCContext, Features, NotLoggedIn, lower
 from src import config, db
@@ -152,7 +152,7 @@ def complete_match(pattern: str, scope: Optional[Iterable[User]] = None):
     """
     if scope is None:
         scope = _users
-    matches: List[User] = []
+    matches: list[User] = []
     nick_search, _, acct_search = lower(pattern).partition(":")
     if not nick_search and not acct_search:
         return Match([])
@@ -247,14 +247,14 @@ class User(IRCContext):
     _host: str
     _account: str
 
-    channels: CheckedDict[Channel, Set[str]]
+    channels: CheckedDict[Channel, set[str]]
     timestamp: float
     account_timestamp: float
 
-    sets: List[UserSet]
-    lists: List[UserList]
-    dict_keys: List[UserDict]
-    dict_values: List[UserDict]
+    sets: list[UserSet]
+    lists: list[UserList]
+    dict_keys: list[UserDict]
+    dict_values: list[UserDict]
 
     def __init__(self, cli, nick, ident, host, account):
         """Make linters happy."""

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from src.decorators import command
 from src.containers import UserSet
@@ -178,7 +178,7 @@ def revealroles(wrapper: MessageDispatcher, message: str):
             for user in users:
                 evt = Event("revealroles_role", {"special_case": []})
                 evt.dispatch(var, user, role)
-                special_case: List[str] = evt.data["special_case"]
+                special_case: list[str] = evt.data["special_case"]
 
                 if not evt.prevent_default and user not in var.original_roles[role] and role not in var.current_mode.SECONDARY_ROLES:
                     for old_role in role_order(): # order doesn't matter here, but oh well
@@ -204,7 +204,7 @@ def join_deadchat(var: GameState, *all_users: User):
     if not config.Main.get("gameplay.deadchat") or not var.in_game:
         return
 
-    to_join: List[User] = []
+    to_join: list[User] = []
     pl = get_participants(var)
 
     for user in all_users:

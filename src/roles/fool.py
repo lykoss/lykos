@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Optional, Dict, Set
+from typing import Optional
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -34,7 +36,7 @@ def on_lynch(evt: Event, var: GameState, votee, voters):
         evt.stop_processing = True
 
 @event_listener("chk_win", priority=0)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     if evt.data["winner"] == "fool":
         evt.data["message"] = messages["fool_win"]
 
@@ -45,7 +47,7 @@ def on_team_win(evt: Event, var: GameState, player, main_role, all_roles, winner
         evt.data["team_win"] = True
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if winner == "fool" and player is VOTED:
         evt.data["individual_win"] = True
 

@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Set, Optional
+    from typing import Optional
 
 KILLS: UserDict[users.User, users.User] = UserDict()
 GHOSTS: UserDict[users.User, users.User] = UserDict()
@@ -86,7 +86,7 @@ def on_gun_shoot(evt: Event, var: GameState, user: User, target: User, role: str
 # needs to happen after regular team win is determined, but before succubus
 # FIXME: I hate priorities, did I mention that?
 @event_listener("team_win", priority=6)
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
     if player in GHOSTS:
         against = GHOSTS[player].lstrip("!")
         if against == "villager" and winner == "wolves":
@@ -97,7 +97,7 @@ def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_ro
             evt.data["team_win"] = False
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if player in GHOSTS:
         evt.data["special"].append("vg activated")
         if GHOSTS[player][0] == "!":
@@ -107,7 +107,7 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
             evt.data["individual_win"] = True
 
 @event_listener("del_player", priority=6)
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     for h, v in list(KILLS.items()):
         if player is v:
             h.send(messages["hunter_discard"])

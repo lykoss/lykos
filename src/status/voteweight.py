@@ -1,4 +1,4 @@
-from typing import Set
+from __future__ import annotations
 
 from src.events import Event, event_listener
 from src.containers import UserDict
@@ -31,7 +31,7 @@ def get_vote_weight(var: GameState, target: User) -> int:
     return max(WEIGHT.get(target, 1), 0)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     del WEIGHT[:player:]
 
 @event_listener("revealroles")

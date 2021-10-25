@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Tuple, Optional, Set, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import channels, users
 from src.functions import get_players, get_all_players, match_role
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
     from src.users import User
 
-TURNCOATS: UserDict[users.User, Tuple[str, int]] = UserDict()
+TURNCOATS: UserDict[users.User, tuple[str, int]] = UserDict()
 PASSED = UserSet()
 
 @command("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
@@ -94,7 +94,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
             evt.data["nightroles"].append(turncoat)
 
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
     if main_role == "turncoat" and player in TURNCOATS and TURNCOATS[player][0] != "none":
         team = "villagers" if TURNCOATS[player][0] == "villager" else "wolves"
         evt.data["team_win"] = (winner == team)

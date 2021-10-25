@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 import sys
 from collections import defaultdict
-from typing import Optional, Dict, Set
+from typing import Optional
 
 from src import users, channels, trans, config
 from src.decorators import command
@@ -36,12 +38,12 @@ def on_get_final_role(evt: Event, var: GameState, user: User, role: str):
         evt.data["role"] = "traitor"
 
 @event_listener("update_stats", priority=1)
-def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
+def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
     if mainrole == var.hidden_role and config.Main.get("gameplay.hidden.traitor"):
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)
-def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
+def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
     wolfchat = get_wolfchat_roles()
@@ -80,7 +82,7 @@ def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, re
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
 @event_listener("chk_win", priority=1.1)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     did_something = False
     if lrealwolves == 0:
         for traitor in list(rolemap["traitor"]):

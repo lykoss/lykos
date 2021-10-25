@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import random
-from typing import Set, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -18,7 +18,7 @@ def setup_variables(rolename):
     SEEN = UserSet()
 
     @event_listener("del_player", listener_id="<{}>.on_del_player".format(rolename))
-    def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+    def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
         SEEN.discard(player)
 
     @event_listener("new_role", listener_id="<{}>.on_new_role".format(rolename))

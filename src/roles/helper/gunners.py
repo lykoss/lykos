@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import re
 import math
-from typing import Dict, Any, List, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from src import users, config
 from src.decorators import command
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from src.gamestate import GameState
     from src.users import User
 
-_rolestate: Dict[str, Dict[str, Any]] = {}
+_rolestate: dict[str, dict[str, Any]] = {}
 
 def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
     GUNNERS: UserDict[User, int] = UserDict()
@@ -105,7 +105,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("transition_day_resolve_end", priority=4, listener_id="gunners.<{}>.on_transition_day_resolve_end".format(rolename))
-    def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
+    def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
                 if (random.random() * 100) < config.Main.get("gameplay.gunner_wolf.kills_attacker"):

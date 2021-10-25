@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, Set, Iterable, List
+from typing import TYPE_CHECKING, Iterable
 
 from src.containers import UserDict
 from src.functions import get_players, get_main_role, change_role
@@ -33,7 +33,7 @@ def remove_lycanthropy(var: GameState, target: User):
     """Remove the lycanthropy effect from the target."""
     del LYCANTHROPES[:target:]
 
-def add_lycanthropy_scope(var: GameState, scope: Category | Set[str]):
+def add_lycanthropy_scope(var: GameState, scope: Category | set[str]):
     """Add a scope for roles that can effect lycanthropy, for stats."""
     SCOPE.update(scope)
 
@@ -67,11 +67,11 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
         evt.data["new"].append(rs)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     remove_lycanthropy(var, player)
 
 @event_listener("transition_day_resolve_end", priority=2)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
     evt2 = Event("get_role_metadata", {})
     evt2.dispatch(var, "lycanthropy_role")
     for victim in victims:

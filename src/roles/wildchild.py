@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_all_roles, get_target, change_role
@@ -77,7 +77,7 @@ def on_myrole(evt: Event, var: GameState, user: User):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     del IDOLS[:player:]
     CAN_ACT.discard(player)
     ACTED.discard(player)
@@ -134,7 +134,7 @@ def on_get_reveal_role(evt: Event, var: GameState, user: User):
         evt.data["role"] = "wild child"
 
 @event_listener("update_stats")
-def on_update_stats(evt: Event, var: GameState, player: User, main_role: str, reveal_role: str, all_roles: Set[str]):
+def on_update_stats(evt: Event, var: GameState, player: User, main_role: str, reveal_role: str, all_roles: set[str]):
     if reveal_role == "wild child":
         # wild children always die as such even if their main_role is a wolf role
         evt.data["possible"] = {"wild child"}

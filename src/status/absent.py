@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING
 
 from src.events import Event, event_listener
 from src.containers import UserDict
@@ -39,7 +39,7 @@ def get_absent(var: GameState):
     return set(ABSENT)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     del ABSENT[:player:]
 
 @event_listener("revealroles")

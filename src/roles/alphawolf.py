@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import random
-from typing import Set, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import users, channels
 from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role, change_role
@@ -60,7 +60,7 @@ def retract(wrapper: MessageDispatcher, message: str):
         send_wolfchat_message(wrapper.game_state, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     global ENABLED
     if death_triggers and evt.params.main_role in Wolf:
         ENABLED = True

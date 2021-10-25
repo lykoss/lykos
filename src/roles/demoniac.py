@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Dict, Set, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -26,7 +26,7 @@ def on_send_role(evt: Event, var: GameState):
 
 # monster is at priority 4, and we want demoniac to take precedence
 @event_listener("chk_win", priority=4.1) # FIXME: Kill the priorities
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     demoniacs = len(rolemap.get("demoniac", ()))
     traitors = len(rolemap.get("traitor", ()))
     cubs = len(rolemap.get("wolf cub", ()))

@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from types import SimpleNamespace
-from typing import Callable, Dict, Optional, List, Any
+from typing import Callable, Optional, Any
 from src.debug import handle_error
 
 __all__ = ["find_listener", "event_listener", "Event", "EventListener"]
-EVENT_CALLBACKS: Dict[str, List[EventListener]] = defaultdict(list)
+EVENT_CALLBACKS: dict[str, list[EventListener]] = defaultdict(list)
 
 class EventListener:
     def __init__(self, callback: Callable, *, listener_id: Optional[str] = None, priority: float = 5):
@@ -84,7 +84,7 @@ class event_listener:
         self.listener.remove(self.event)
 
 class Event:
-    def __init__(self, _name: str, _data: Dict[str, Any], **kwargs):
+    def __init__(self, _name: str, _data: dict[str, Any], **kwargs):
         self.stop_processing = False
         self.prevent_default = False
         self.name = _name

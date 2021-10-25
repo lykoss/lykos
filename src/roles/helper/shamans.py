@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import random
 import re
-from typing import Dict, List, Set, Any, Tuple, Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 from collections import deque
 
 from src import channels, users, status
@@ -84,12 +84,12 @@ DECEIT = UserSet()
 
 # holding vars that don't persist long enough to need special attention in
 # reset/exchange/nickchange
-havetotem: List[users.User] = []
-brokentotem: Set[users.User] = set()
+havetotem: list[users.User] = []
+brokentotem: set[users.User] = set()
 
 # holds mapping of shaman roles to their state vars, for debugging
 # and unit testing purposes
-_rolestate: Dict[str, Dict[str, Any]] = {}
+_rolestate: dict[str, dict[str, Any]] = {}
 
 # Generated message keys used across all shaman files:
 # death_totem, protection_totem, revealing_totem, narcolepsy_totem,
@@ -103,7 +103,7 @@ def setup_variables(rolename, *, knows_totem):
         # Factory method to create a DefaultUserDict[*, UserList]
         # this can be passed into a DefaultUserDict constructor so we can make nested defaultdicts easily
         return DefaultUserDict(UserList)
-    TOTEMS: DefaultUserDict[users.User, Dict[str, int]] = DefaultUserDict(dict)
+    TOTEMS: DefaultUserDict[users.User, dict[str, int]] = DefaultUserDict(dict)
     LASTGIVEN: DefaultUserDict[users.User, DefaultUserDict[str, UserList]] = DefaultUserDict(ulf)
     SHAMANS: DefaultUserDict[users.User, DefaultUserDict[str, UserList]] = DefaultUserDict(ulf)
     RETARGET: DefaultUserDict[users.User, UserDict[users.User, users.User]] = DefaultUserDict(UserDict)
@@ -194,7 +194,7 @@ def setup_variables(rolename, *, knows_totem):
                     havetotem.append(victim)
 
     @event_listener("del_player", listener_id="shamans.<{}>.del_player".format(rolename))
-    def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+    def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
         for a, b in list(SHAMANS.items()):
             if player is a:
                 del SHAMANS[a]
@@ -250,7 +250,7 @@ def setup_variables(rolename, *, knows_totem):
                 evt.data["target_messages"].append(totem_message(TOTEMS[target]))
 
     @event_listener("default_totems", priority=3, listener_id="shamans.<{}>.default_totems".format(rolename))
-    def add_shaman(evt: Event, chances: Dict[str, Dict[str, int]]):
+    def add_shaman(evt: Event, chances: dict[str, dict[str, int]]):
         evt.data["shaman_roles"].add(rolename)
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
@@ -283,7 +283,7 @@ def totem_message(totems, count_only=False):
         pieces = [messages["shaman_totem_piece"].format(num, totem) for totem, num in totems.items()]
         return messages["shaman_totem_multiple_known"].format(pieces)
 
-def get_totem_target(var: GameState, wrapper: MessageDispatcher, message, lastgiven, totems) -> Tuple[Optional[str], Optional[users.User]]:
+def get_totem_target(var: GameState, wrapper: MessageDispatcher, message, lastgiven, totems) -> tuple[Optional[str], Optional[users.User]]:
     """Get the totem target."""
     pieces = re.split(" +", message)
     totem = None
@@ -309,7 +309,7 @@ def get_totem_target(var: GameState, wrapper: MessageDispatcher, message, lastgi
 
     return totem, target
 
-def give_totem(var: GameState, wrapper: MessageDispatcher, target: User, totem: str, *, key, role) -> Optional[Tuple[users.User, users.User]]:
+def give_totem(var: GameState, wrapper: MessageDispatcher, target: User, totem: str, *, key, role) -> Optional[tuple[users.User, users.User]]:
     """Give a totem to a player."""
 
     orig_target = target
@@ -458,7 +458,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
     havetotem.clear()
 
 @event_listener("transition_day_resolve_end", priority=4)
-def on_transition_day_resolve6(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve6(evt: Event, var: GameState, victims: list[User]):
     for victim in victims:
         if victim in RETRIBUTION:
             killers = list(evt.data["killers"].get(victim, []))
@@ -563,7 +563,7 @@ def on_reset(evt: Event, var: GameState):
     havetotem.clear()
 
 @event_listener("default_totems", priority=1)
-def set_all_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
+def set_all_totems(evt: Event, chances: dict[str, dict[str, int]]):
     chances.update({
         "death"         : {},
         "protection"    : {},

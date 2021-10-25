@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Set, List
+    from typing import Optional
 
 VISITED: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()
@@ -86,7 +86,7 @@ def on_transition_day_resolve(evt: Event, var: GameState, victim: User):
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
     for victim in victims:
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for hlt in VISITED:
@@ -100,7 +100,7 @@ def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User
                     evt.data["killers"][hlt].append("@wolves")
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end3(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve_end3(evt: Event, var: GameState, victims: list[User]):
     for harlot in get_all_players(var, ("harlot",)):
         if VISITED.get(harlot) in get_players(var, Wolf) and harlot not in evt.data["dead"]:
             evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
@@ -138,7 +138,7 @@ def on_begin_day(evt: Event, var: GameState):
     FORCE_PASSED.clear()
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if "harlot" not in all_roles:
         return
     del VISITED[:player:]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Set, Iterable
+from typing import Iterable
 
 from src.events import Event, event_listener
 from src.containers import UserSet
@@ -44,13 +44,13 @@ def try_misdirection(var: GameState, actor: User, target: User):
             target = _get_target(var, target)
     return target
 
-def add_misdirection_scope(var: GameState, scope: Category | Set[str], *, as_actor: bool = False, as_target: bool = False):
+def add_misdirection_scope(var: GameState, scope: Category | set[str], *, as_actor: bool = False, as_target: bool = False):
     if as_actor:
         ACTOR_SCOPE.update(scope)
     if as_target:
         TARGET_SCOPE.update(scope)
 
-def in_misdirection_scope(var: GameState, roles: Category | Set[str] | str, *, as_actor: bool = False, as_target: bool = False):
+def in_misdirection_scope(var: GameState, roles: Category | set[str] | str, *, as_actor: bool = False, as_target: bool = False):
     assert as_actor or as_target, "in_misdirection_scope requires specifying which scope to check"
     if isinstance(roles, str):
         roles = {roles}
@@ -61,7 +61,7 @@ def in_misdirection_scope(var: GameState, roles: Category | Set[str] | str, *, a
     return True
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     # don't clear AS_ACTOR here; we want dead players to still be misdirected (e.g. vengeful ghost)
     AS_TARGET.discard(player)
 

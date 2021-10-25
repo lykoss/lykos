@@ -21,7 +21,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Set
+    from typing import Optional
 
 register_wolf("sorcerer")
 
@@ -66,7 +66,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("sorcerer",)))
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     OBSERVED.discard(player)
 
 @event_listener("new_role")

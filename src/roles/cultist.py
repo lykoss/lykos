@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Optional, Dict, Set
+from typing import Optional
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -29,7 +31,7 @@ def on_send_role(evt: Event, var: GameState):
             cultist.send_messages()
 
 @event_listener("chk_win", priority=3)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     if evt.data["winner"] is not None:
         return
     if lwolves == lpl / 2:

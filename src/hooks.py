@@ -6,9 +6,11 @@ further in the relevant hook functions.
 
 """
 
+from __future__ import annotations
+
 import logging
 import sys
-from typing import Dict, Any
+from typing import Any
 
 from src.decorators import hook
 from src.context import Features, NotLoggedIn
@@ -18,7 +20,7 @@ from src import config, context, channels, users
 
 ### WHO/WHOX responses handling
 
-_who_old: Dict[str, users.User] = {}
+_who_old: dict[str, users.User] = {}
 
 @hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
@@ -172,7 +174,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
 ### WHOIS Reponse Handling
 
-_whois_pending: Dict[str, Dict[str, Any]] = {}
+_whois_pending: dict[str, dict[str, Any]] = {}
 
 @hook("whoisuser")
 def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, Iterator, TypeVar, Set, Dict, Mapping, Iterable
+from typing import Generic, Iterator, TypeVar, Mapping, Iterable
 import collections.abc
 from src import config
 from src.debug.history import History
@@ -30,7 +30,7 @@ class CheckedDict(collections.abc.MutableMapping, Generic[KT, VT]):
     def __init__(self, name: str, arg: None | Mapping | Iterable = None, **kwargs):
         self._history = History(name)
         if arg is None:
-            self._dict: Dict[KT, VT] = dict(**kwargs)
+            self._dict: dict[KT, VT] = dict(**kwargs)
         else:
             self._dict = dict(arg, **kwargs)
 

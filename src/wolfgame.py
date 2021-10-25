@@ -36,7 +36,7 @@ import urllib.request
 
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import FrozenSet, Set, Optional, List
+from typing import Optional
 
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay, votes
 from src.channels import Channel
@@ -409,7 +409,7 @@ def parted_modes(evt, chan: Channel, user, reason):
     channels.Main.old_modes.pop(user, None)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     # update the role stats
     # Event priorities:
     # 1 = Expanding the possible set (e.g. traitor would add themselves if nickrole is villager)
@@ -449,7 +449,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str],
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)
-def on_kill_players(evt: Event, var: GameState, players: Set[User]):
+def on_kill_players(evt: Event, var: GameState, players: set[User]):
     cmode = []
     deadchat = []
     game_ending = False

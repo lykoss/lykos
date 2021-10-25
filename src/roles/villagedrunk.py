@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Optional, List
+from typing import Optional
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -26,7 +28,7 @@ def on_send_role(evt: Event, var: GameState):
         drunk.send(messages["village_drunk_notify"])
 
 @event_listener("assassin_target")
-def on_assassin_target(evt: Event, var: GameState, assassin: User, players: List[User]):
+def on_assassin_target(evt: Event, var: GameState, assassin: User, players: list[User]):
     if evt.data["target"] is None and assassin in get_all_players(var, ("village drunk",)):
         evt.data["target"] = random.choice(players)
         assassin.send(messages["drunken_assassin_notification"].format(evt.data["target"]))

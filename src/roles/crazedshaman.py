@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 from collections import defaultdict, deque
-from typing import Optional, Dict, Set
+from typing import Optional
 
 from src import users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -57,7 +59,7 @@ def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if main_role == "crazed shaman" and survived and not evt.params.is_win_stealer:
         evt.data["individual_win"] = True
 
@@ -146,6 +148,6 @@ def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
         evt.data["crazed shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
-def set_crazed_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
+def set_crazed_totems(evt: Event, chances: dict[str, dict[str, int]]):
     for chance in chances.values():
         chance["crazed shaman"] = 1

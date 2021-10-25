@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Set
+    from typing import Optional
 
 KILLS: UserDict[users.User, users.User] = UserDict()
 TARGETS: UserDict[users.User, UserSet] = UserDict()
@@ -52,7 +52,7 @@ def dullahan_retract(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["retracted_kill"])
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if main_role != "dullahan":
         return
     alive = set(get_players(var))
@@ -60,7 +60,7 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
         evt.data["individual_win"] = True
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     for h, v in list(KILLS.items()):
         if v is player:
             h.send(messages["hunter_discard"])

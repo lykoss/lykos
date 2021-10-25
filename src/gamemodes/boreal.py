@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import re
 from collections import defaultdict
-from typing import List, Tuple, Dict, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.roles.helper.wolves import send_wolfchat_message
 from src.messages import messages
@@ -86,7 +86,7 @@ class BorealMode(GameMode):
         self.village_starve = 0
         self.max_village_starve = 3
         self.num_retribution = 0
-        self.saved_messages: Dict[str, str] = {}
+        self.saved_messages: dict[str, str] = {}
         kwargs = dict(chan=False, pm=True, playing=True, silenced=True, phases=("night",),
                       roles=("shaman", "wolf shaman"), register=False)
         self.feed_command = command("feed", **kwargs)(self.feed)

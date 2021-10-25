@@ -21,7 +21,7 @@ from src.roles.helper.wolves import register_wolf, send_wolfchat_message
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
-    from typing import Optional, Dict
+    from typing import Optional
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_totem=True)
 
@@ -149,7 +149,7 @@ def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
         evt.data["wolf shaman"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective"}
 
 @event_listener("default_totems")
-def set_wolf_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
+def set_wolf_totems(evt: Event, chances: dict[str, dict[str, int]]):
     chances["protection"]   ["wolf shaman"] = 1
     chances["silence"]      ["wolf shaman"] = 1
     chances["impatience"]   ["wolf shaman"] = 1

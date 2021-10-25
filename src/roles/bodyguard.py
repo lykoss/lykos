@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Set, Optional, List, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command
@@ -58,7 +58,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["guardian_no_protect"])
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if var.current_phase == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for k,v in list(GUARDED.items()):
@@ -80,7 +80,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_players(var, ("bodyguard",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
     for bodyguard in DYING:
         evt.data["message"][bodyguard].clear()
     DYING.clear()

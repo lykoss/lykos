@@ -68,7 +68,7 @@ def stats(wrapper: MessageDispatcher, message: str):
     # Uses events in order to enable roles to modify logic
     # The events are fired off as part of transition_day and del_player, and are not calculated here
     if var.stats_type == "default":
-        # Collapse the role stats into a Dict[str, Tuple[int, int]]
+        # Collapse the role stats into a dict[str, tuple[int, int]]
         role_stats = {}
         for stat_set in var.get_role_stats():
             for r, a in stat_set:

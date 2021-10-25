@@ -16,7 +16,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Set, Optional
+    from typing import Optional
 
 ACTED = UserSet()
 
@@ -55,7 +55,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("master of teleportation",)))
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if main_role == "master of teleportation" and survived and not evt.params.is_win_stealer:
         evt.data["individual_win"] = True
 

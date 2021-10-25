@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import json
 import re
 import threading
 import traceback
 import urllib.request
 import logging
-from typing import Optional, Dict, Tuple
+from typing import Optional
 from types import TracebackType
 
 from src import config
@@ -21,7 +23,7 @@ _local = _localcls()
 # That way, we don't have to call in to the website every time we have
 # another error.
 
-_tracebacks: Dict[str, Tuple[str, str]] = {}
+_tracebacks: dict[str, tuple[str, str]] = {}
 
 class chain_exceptions:
 

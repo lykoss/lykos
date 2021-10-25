@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Set, Dict, List
+    from typing import Optional
 
 ENTRANCED = UserSet()
 VISITED: UserDict[users.User, users.User] = UserDict()
@@ -94,21 +94,21 @@ def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visit
 # entranced logic should run after team wins have already been determined (aka run last)
 # FIXME: I hate event priorities and want them to die in a fire
 @event_listener("team_win", priority=7)
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
     if player in ENTRANCED and winner != "succubi":
         evt.data["team_win"] = False
     if main_role == "succubus" and winner == "succubi":
         evt.data["team_win"] = True
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if player in ENTRANCED:
         evt.data["special"].append("entranced")
         if winner == "succubi":
             evt.data["individual_win"] = True
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len([x for x in ENTRANCED if not is_dead(var, x)])
     if var.current_phase == "day" and lsuccubi and lpl - lsuccubi == lentranced:
@@ -130,7 +130,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         player.send(messages["no_longer_entranced"])
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     global ALL_SUCC_IDLE
     if "succubus" not in all_roles:
         return
@@ -163,7 +163,7 @@ def on_transition_day_resolve(evt: Event, var: GameState, victim: User):
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
     for victim in victims:
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for succubus in VISITED:

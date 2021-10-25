@@ -20,7 +20,7 @@ from src import config
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
-    from typing import Optional, Set
+    from typing import Optional
     from src.users import User
 
 GUARDED: UserDict[users.User, users.User] = UserDict()
@@ -68,7 +68,7 @@ def pass_cmd(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["guardian_no_protect"])
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if var.current_phase == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):

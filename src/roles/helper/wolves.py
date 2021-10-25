@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import List, Optional, Set, Iterable, TYPE_CHECKING
+from typing import Optional, Iterable, TYPE_CHECKING
 
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import command
@@ -108,7 +108,7 @@ def wolf_retract(wrapper: MessageDispatcher, message: str):
         send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role="wolf", command="retract")
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     for killer, targets in list(KILLS.items()):
         for target in targets:
             if player is target:
@@ -381,7 +381,7 @@ def get_wolflist(var,
                  *,
                  shuffle: bool = True,
                  remove_player: bool = True,
-                 role: Optional[str] = None) -> List[str]:
+                 role: Optional[str] = None) -> list[str]:
     """ Retrieve the list of players annotated for displaying to wolfteam members.
 
     :param var: Game state

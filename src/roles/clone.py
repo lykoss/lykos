@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Set
+    from typing import Optional
 
 CLONED: UserDict[users.User, users.User] = UserDict()
 CAN_ACT = UserSet()
@@ -51,7 +51,7 @@ def on_get_reveal_role(evt: Event, var: GameState, user):
         evt.data["role"] = "clone"
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     # clone happens regardless of death_triggers being true or not
     if not var.in_game:
         return
@@ -118,7 +118,7 @@ def on_swap_role_state(evt: Event, var: GameState, actor, target, role):
         evt.data["actor_messages"].append(messages["clone_target"].format(CLONED[actor]))
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     # this means they ended game while being clone and not some other role
     if main_role == "clone" and survived and not evt.params.is_win_stealer:
         evt.data["individual_win"] = True

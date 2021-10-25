@@ -4,7 +4,7 @@ import copy
 from pathlib import Path
 import os
 import sys
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Optional, Any
 from ruamel.yaml import YAML
 
 __all__ = ["Main", "Config", "Empty", "merge", "init"]
@@ -49,10 +49,10 @@ def init():
 
 class Config:
     def __init__(self):
-        self._metadata: Optional[Dict[str, Any]] = None
+        self._metadata: Optional[dict[str, Any]] = None
         self._metadata_file: Optional[str | Path] = None
         self._settings: Any = Empty
-        self._files: List[str | Path] = []
+        self._files: list[str | Path] = []
 
     def load_metadata(self, file: str | Path) -> None:
         """Load metadata into the current Config instance.
@@ -110,7 +110,7 @@ class Config:
         self._metadata = new_config._metadata
         self._settings = new_config._settings
 
-    def _resolve_key(self, key: str) -> Tuple[Any, Dict[str, Any]]:
+    def _resolve_key(self, key: str) -> tuple[Any, dict[str, Any]]:
         parts = key.split(".")
         cur = self._settings
         meta = self._metadata
@@ -234,7 +234,7 @@ class Config:
 
 Main = Config()
 
-def merge(metadata: Dict[str, Any], base, settings, *path: str,
+def merge(metadata: dict[str, Any], base, settings, *path: str,
           type_override: Optional[str] = None,
           strategy_override: Optional[str] = None,
           tagged: bool = False) -> Any:

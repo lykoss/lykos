@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import random
 from collections import defaultdict, Counter
-from typing import Optional, Dict, Set, List, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src.functions import get_players
 from src import users, channels, trans
@@ -29,7 +29,7 @@ def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if death_triggers and "wolf cub" in all_roles:
         global ANGRY_WOLVES
         ANGRY_WOLVES = True
@@ -55,7 +55,7 @@ def on_wolf_notify(evt: Event, var: GameState, role: str):
     users.User.send_messages()
 
 @event_listener("chk_win", priority=1)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):
@@ -86,7 +86,7 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
         roleset["wolf cub"] = 0
 
 @event_listener("transition_day_resolve_end")
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: List[User]):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 

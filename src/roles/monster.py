@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Dict, Set, Optional
+from typing import Optional
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -17,12 +19,12 @@ from src.users import User
 from src.cats import Wolf
 
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
     if winner == "monsters" and main_role == "monster":
         evt.data["team_win"] = True
 
 @event_listener("chk_win", priority=4)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     monsters = rolemap.get("monster", ())
     traitors = rolemap.get("traitor", ())
     lm = len(monsters)

@@ -20,7 +20,7 @@ from src.roles.helper.shamans import setup_variables, get_totem_target, give_tot
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
-    from typing import Optional, Dict
+    from typing import Optional
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("shaman", knows_totem=True)
 
@@ -145,7 +145,7 @@ def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
         evt.data["shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
-def set_shaman_totems(evt: Event, chances: Dict[str, Dict[str, int]]):
+def set_shaman_totems(evt: Event, chances: dict[str, dict[str, int]]):
     chances["death"]        ["shaman"] = 1
     chances["protection"]   ["shaman"] = 1
     chances["silence"]      ["shaman"] = 1

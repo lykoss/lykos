@@ -23,7 +23,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict
 import itertools
 
 from src.messages.messages import Messages as _Messages
@@ -38,7 +37,7 @@ __all__ = [
 _dict_keys = type(dict().keys())  # type: ignore
 
 # Mapping of category names to the categories themselves; populated in Category.__init__
-ROLE_CATS: Dict[str, Category] = {}
+ROLE_CATS: dict[str, Category] = {}
 
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)

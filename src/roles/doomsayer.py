@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import random
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import users, channels, status
 from src.functions import get_players, get_all_players, get_main_role, get_target
@@ -72,7 +72,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
             del mapping[:player:]
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     # only remove from SEEN; keep results of sees intact on death
     # so that we can apply them in begin_day even if doomsayer dies.
     SEEN.discard(player)

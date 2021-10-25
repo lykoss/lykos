@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import users, config
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
@@ -84,7 +84,7 @@ def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
         evt.data["special_case"].append(messages["amnesiac_revealroles"].format(ROLES[user]))
 
 @event_listener("update_stats")
-def on_update_stats(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: Set[str]):
+def on_update_stats(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
     if STATS_FLAG and not get_blacklist(var) & {mainrole, revealrole}:
         evt.data["possible"].add("amnesiac")
 

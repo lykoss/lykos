@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import time
 from datetime import datetime, timedelta
-from typing import Tuple, Set, Optional
+from typing import Optional
 
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -16,7 +18,7 @@ from src.users import User
 from src import config, locks, users, channels
 
 LAST_SAID_TIME = UserDict()
-DISCONNECTED: UserDict[User, Tuple[datetime, str]] = UserDict()
+DISCONNECTED: UserDict[User, tuple[datetime, str]] = UserDict()
 IDLE_WARNED = UserSet()
 IDLE_WARNED_PM = UserSet()
 DCED_LOSERS = UserSet()
@@ -57,9 +59,9 @@ def reaper(var: GameState, gameid: int):
                     num_night_iters = 0
 
             if not skip and config.Main.get("reaper.idle.enabled"):  # only if enabled
-                to_warn:    Set[User] = set()
-                to_warn_pm: Set[User] = set()
-                to_kill:    Set[User] = set()
+                to_warn:    set[User] = set()
+                to_warn_pm: set[User] = set()
+                to_kill:    set[User] = set()
                 for user in get_players(var):
                     if user.is_fake:
                         continue
@@ -200,7 +202,7 @@ def return_to_village(var: GameState, target: User, *, show_message: bool, new_u
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if var.in_game: # remove the player from variables if they're in there
         DISCONNECTED.pop(player, None)
 

@@ -9,7 +9,7 @@ import functools
 import logging
 import typing
 import sys
-from typing import List, Optional
+from typing import Optional
 
 from src import channels, config, context, decorators, users
 from src.messages import messages
@@ -123,7 +123,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
             wrapper.pm(messages["no_such_role"].format(role_prefix))
             return
 
-    cmds: List[command] = []
+    cmds: list[command] = []
     phase = dispatch.game_state.current_phase if dispatch.game_state else "none"
     if phase not in ("none", "join") and dispatch.source in get_participants(dispatch.game_state):
         roles = get_all_roles(dispatch.game_state, dispatch.source)
@@ -166,7 +166,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
         # is executed. In this event, display a helpful error message instructing
         # the user to resolve the ambiguity.
         common_roles = set(roles)
-        info: List[str | int] = [0, 0]
+        info: list[str | int] = [0, 0]
         role_map = messages.get_role_mapping()
         for fn in cmds:
             fn_roles = roles.intersection(fn.roles)

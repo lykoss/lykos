@@ -5,7 +5,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -53,7 +53,7 @@ def on_swap_role_state(evt: Event, var: GameState, actor: User, target: User, ro
 # Update any game state which happens when player dies. If this role does things upon death,
 # ensure that you check death_triggers (it's a bool) before firing it.
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     pass
 
 # Clear all game state. Called whenever the game ends.

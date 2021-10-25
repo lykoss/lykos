@@ -10,7 +10,7 @@ from src import channels, config
 if typing.TYPE_CHECKING:
     from src.gamemodes import GameMode
     from src.users import User
-    from typing import FrozenSet, Set, Tuple, Any, Dict, Optional
+    from typing import Any, Optional
 
 __all__ = ["GameState", "PregameState", "IngameState", "set_gamemode"]
 
@@ -56,15 +56,15 @@ class GameState:
         self.setup_completed: bool = False
         self._torndown: bool = False
         self.current_mode: GameMode = pregame_state.current_mode
-        self.game_settings: Dict[str, Any] = {}
+        self.game_settings: dict[str, Any] = {}
         self.game_id: float = pregame_state.game_id
         self.players = pregame_state.players
         self.roles: UserDict[str, UserSet] = UserDict()
-        self._original_roles: UserDict[Tuple[str, UserSet]] = None
+        self._original_roles: UserDict[tuple[str, UserSet]] = None
         self.main_roles: UserDict[User, str] = UserDict()
         self._original_main_roles: UserDict[User, str] = None
         self.final_roles: UserDict[User, str] = UserDict()
-        self._rolestats: Set[FrozenSet[Tuple[str, int]]] = set()
+        self._rolestats: set[frozenset[tuple[str, int]]] = set()
         self.current_phase: str = pregame_state.current_phase
         self.next_phase: Optional[str] = None
         self.night_count: int = 0
@@ -225,7 +225,7 @@ class GameState:
         except AttributeError:
             return config.Main.get("timers.night.warn")
 
-    def get_role_stats(self) -> FrozenSet[FrozenSet[Tuple[str, int]]]:
+    def get_role_stats(self) -> frozenset[frozenset[tuple[str, int]]]:
         return frozenset(self._rolestats)
 
     def set_role_stats(self, value) -> None:

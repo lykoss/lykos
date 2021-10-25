@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Set
+from typing import TYPE_CHECKING
 
 from src.containers import DefaultUserDict
 from src.functions import get_players
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 __all__ = ["add_lynch_immunity", "try_lynch_immunity"]
 
-IMMUNITY: DefaultUserDict[User, Set[str]] = DefaultUserDict(set)
+IMMUNITY: DefaultUserDict[User, set[str]] = DefaultUserDict(set)
 
 def add_lynch_immunity(var: GameState, user: User, reason: str):
     """Make user immune to lynching for one day."""

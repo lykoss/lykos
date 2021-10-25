@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Set
+    from typing import Optional
 
 KILLS: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()
@@ -60,7 +60,7 @@ def vigilante_pass(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["hunter_pass"])
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     PASSED.discard(player)
     del KILLS[:player:]
     for vigilante, target in list(KILLS.items()):

@@ -5,7 +5,7 @@ import threading
 import time
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Callable, List, Set
+from typing import TYPE_CHECKING, Optional, Callable
 
 from src.decorators import command
 from src.containers import UserDict
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from src.channels import Channel
     from src.users import User
 
-PINGED_ALREADY: Set[str] = set()
+PINGED_ALREADY: set[str] = set()
 PINGING_PLAYERS: bool = False
 
 @command("join", pm=True, allow_alt=False)
@@ -206,7 +206,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
         return
 
     parts = re.split(" +", message)
-    to_join: List[User | str] = []
+    to_join: list[User | str] = []
     debug_mode = config.Main.get("debug.enabled")
     if not debug_mode:
         match = users.complete_match(parts[0], wrapper.target.users)
@@ -301,7 +301,7 @@ def join_timer_handler(var):
     global PINGING_PLAYERS
     with locks.join_timer:
         PINGING_PLAYERS = True
-        to_ping: List[User] = []
+        to_ping: list[User] = []
         pl = get_players(var)
 
         chk_acc = set()

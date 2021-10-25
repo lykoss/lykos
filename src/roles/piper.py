@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.gamestate import GameState
     from src.users import User
-    from typing import Optional, Dict, Set
+    from typing import Optional
 
 TOBECHARMED: UserDict[users.User, UserSet] = UserDict()
 CHARMED = UserSet()
@@ -102,7 +102,7 @@ def retract(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["piper_retract"])
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     # lpl doesn't included wounded/sick people or consecrating priests
     # whereas we want to ensure EVERYONE (even wounded people) are charmed for piper win
     pipers = rolemap.get("piper", set())
@@ -117,12 +117,12 @@ def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainro
         evt.data["message"] = messages["piper_win"].format(lp)
 
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: Set[str], winner: str):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
     if winner == "pipers" and main_role == "piper":
         evt.data["team_win"] = True
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     CHARMED.discard(player)
     del TOBECHARMED[:player:]
 

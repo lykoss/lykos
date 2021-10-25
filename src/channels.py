@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from enum import Enum
-from typing import Optional, Dict, Set, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from collections import defaultdict
 import logging
 
@@ -91,7 +91,7 @@ class Channel(IRCContext):
     def __init__(self, name, client):
         super().__init__(name, client)
         self.users: CheckedSet[User] = CheckedSet("channels.Channel.users")
-        self.modes: Dict[str, Set[User]] = {}
+        self.modes: dict[str, set[User]] = {}
         self.old_modes = defaultdict(set)
         self.timestamp = None
         self.state = _States.NotJoined

@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from collections import defaultdict, OrderedDict
 from operator import attrgetter
-from typing import Dict, Any, Set, Optional, Tuple
+from typing import Any, Optional
 import logging
 
 from src.messages.message import Message
@@ -293,7 +293,7 @@ class IRCFeatures:
     # even if we don't have a property that directly exposes it. A bot operator writing custom code can use
     # the generic get() and set() methods to retrieve and manipulate those values.
     # Note: we store whatever the ircd tells us, but normalize return values to what the bot expects
-    _features: Dict[str, Any] = {}
+    _features: dict[str, Any] = {}
 
     # RPL_ISUPPORT tokens
 
@@ -309,7 +309,7 @@ class IRCFeatures:
         self._features["CASEMAPPING"] = value
 
     @property
-    def CHANLIMIT(self) -> Dict[str, int]:
+    def CHANLIMIT(self) -> dict[str, int]:
         limits = self._features.get("CHANLIMIT", {})
         value = {}
         for t in self.CHANTYPES:
@@ -332,7 +332,7 @@ class IRCFeatures:
                 self._features["CHANLIMIT"][prefix] = limit
 
     @property
-    def CHANMODES(self) -> Tuple[str, str, str, str]:
+    def CHANMODES(self) -> tuple[str, str, str, str]:
         modes = self._features.get("CHANMODES", [])
         while len(modes) < 4:
             modes.append("")
@@ -343,7 +343,7 @@ class IRCFeatures:
         self._features["CHANMODES"] = value.split(",")
 
     @property
-    def CHANTYPES(self) -> Set[str]:
+    def CHANTYPES(self) -> set[str]:
         return self._features.get("CHANTYPES", set())
 
     @CHANTYPES.setter
@@ -385,7 +385,7 @@ class IRCFeatures:
         self._features["EXCEPTS"] = value
 
     @property
-    def EXTBAN(self) -> Tuple[Optional[str], str]:
+    def EXTBAN(self) -> tuple[Optional[str], str]:
         return self._features.get("EXTBAN", (None, ""))
 
     @EXTBAN.setter
@@ -407,7 +407,7 @@ class IRCFeatures:
         self._features["INVEX"] = value
 
     @property
-    def MAXLIST(self) -> Dict[str, int]:
+    def MAXLIST(self) -> dict[str, int]:
         limits = self._features.get("MAXLIST", {})
         value = {}
         for t in self.CHANMODES[0]:
@@ -454,7 +454,7 @@ class IRCFeatures:
             self._features["PREFIX"][prefixes[i]] = modes[i]
 
     @property
-    def STATUSMSG(self) -> Set[str]:
+    def STATUSMSG(self) -> set[str]:
         value = self._features.get("STATUSMSG", set())
         return value & self.PREFIX.keys()
 
@@ -608,7 +608,7 @@ class IRCFeatures:
 class IRCTargMaxFeature:
     def __init__(self, features: IRCFeatures, value: Optional[str] = None):
         self._features = features
-        self._commands: Dict[str, int] = {}
+        self._commands: dict[str, int] = {}
 
     def __getitem__(self, item: str) -> int:
         item = item.lower()

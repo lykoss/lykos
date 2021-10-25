@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, List, Set
+from typing import TYPE_CHECKING
 
 import threading
 import itertools
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 WAIT_TOKENS = 0
 WAIT_LAST = 0
 
-LAST_START: UserDict[User, List[datetime | int]] = UserDict()
+LAST_START: UserDict[User, list[datetime | int]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
 CAN_START_TIME: int = 0
@@ -128,7 +128,7 @@ def retract(wrapper: MessageDispatcher, message: str):
                     del trans.TIMERS["start_votes"]
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if var.current_phase == "join":
         for role in FORCE_ROLES:
             FORCE_ROLES[role].discard(player)
@@ -373,7 +373,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             pr[ingame_state.default_role] += len(vils)
 
     # Collapse possible_rolesets into global role stats
-    # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
+    # which is a frozenset[frozenset[tuple[str, int]]]
     possible_rolesets_set = set()
     event = Event("reconfigure_stats", {"new": []})
     for pr in possible_rolesets:

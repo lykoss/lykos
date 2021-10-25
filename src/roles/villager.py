@@ -1,4 +1,6 @@
-from typing import Dict, Set, Optional
+from __future__ import annotations
+
+from typing import Optional
 
 from src import users, channels
 from src.functions import get_players
@@ -24,7 +26,7 @@ def on_send_role(evt: Event, var: GameState):
             villager.send_messages()
 
 @event_listener("chk_win", priority=3)
-def on_chk_win(evt: Event, var: GameState, rolemap: Dict[str, Set[User]], mainroles: Dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     if evt.data["winner"] is not None:
         return
     if lrealwolves == 0:

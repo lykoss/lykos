@@ -19,7 +19,7 @@ from src.status import try_misdirection, try_exchange, try_protection, add_dying
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.users import User
-    from typing import Optional, Set
+    from typing import Optional
 
 TARGETED: UserDict[users.User, users.User] = UserDict()
 PREV_ACTED = UserSet()
@@ -90,7 +90,7 @@ def on_send_role(evt: Event, var: GameState):
                 ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if player in TARGETED.values():
         for x, y in list(TARGETED.items()):
             if y is player:

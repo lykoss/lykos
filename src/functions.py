@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Set, Iterable
+from typing import Optional, Iterable
 from collections import Counter
 import functools
 import typing
@@ -14,7 +14,6 @@ from src.match import Match, match_all
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
     from src.users import User
-    from typing import List, Set
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -23,7 +22,7 @@ __all__ = [
     "match_role", "match_mode", "match_totem"
     ]
 
-def get_players(var: GameState | PregameState | None, roles=None, *, mainroles=None) -> List[User]:
+def get_players(var: GameState | PregameState | None, roles=None, *, mainroles=None) -> list[User]:
     from src.status import is_dying
     if var is None:
         return []
@@ -47,7 +46,7 @@ def get_players(var: GameState | PregameState | None, roles=None, *, mainroles=N
         return list(pl)
     return [p for p in var.players if p in pl and not is_dying(var, p)]
 
-def get_all_players(var: GameState | PregameState | None, roles=None, *, rolemap=None) -> Set[User]:
+def get_all_players(var: GameState | PregameState | None, roles=None, *, rolemap=None) -> set[User]:
     from src.status import is_dying
     if var is None:
         return set()
@@ -70,7 +69,7 @@ def get_all_players(var: GameState | PregameState | None, roles=None, *, rolemap
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants(var: GameState | PregameState | None) -> List[User]:
+def get_participants(var: GameState | PregameState | None) -> list[User]:
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players(var)})
     evt.dispatch(var)
@@ -167,7 +166,7 @@ def get_main_role(var: GameState, user):
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
 
-def get_all_roles(var: GameState, user: User) -> Set[str]:
+def get_all_roles(var: GameState, user: User) -> set[str]:
     return {role for role, users in var.roles.items() if user in users}
 
 def get_reveal_role(var: GameState, user) -> str:
@@ -205,7 +204,7 @@ def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False
 
     role_map = messages.get_role_mapping(reverse=True, remove_spaces=remove_spaces)
 
-    special_keys: Set[str] = set()
+    special_keys: set[str] = set()
     if scope is None and allow_special:
         evt = Event("get_role_metadata", {})
         evt.dispatch(None, "special_keys")
@@ -214,7 +213,7 @@ def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False
     matches = match_all(role, role_map.keys())
 
     # strip matches that don't refer to actual roles or special keys (i.e. refer to team names)
-    filtered_matches: Set[LocalRole] = set()
+    filtered_matches: set[LocalRole] = set()
     if scope is not None:
         allowed = set(scope)
     elif allow_extra:

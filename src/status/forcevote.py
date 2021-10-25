@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, Set
+from typing import TYPE_CHECKING, Iterable
 
 from src.containers import UserDict, UserSet
 from src.functions import get_players
@@ -56,20 +56,20 @@ def can_abstain(var: GameState, votee: User) -> bool:
     """Check whether the votee can abstain."""
     return FORCED_COUNTS.get(votee, 0) <= 0
 
-def get_forced_votes(var: GameState, target: User) -> Set[User]:
+def get_forced_votes(var: GameState, target: User) -> set[User]:
     """Retrieve the players who are being forced to vote target."""
     return {votee for votee, targets in FORCED_TARGETS.items() if target in targets}
 
-def get_all_forced_votes(var: GameState) -> Set[User]:
+def get_all_forced_votes(var: GameState) -> set[User]:
     """Retrieve the players who are being forced to vote."""
     return {player for player, count in FORCED_COUNTS.items() if count > 0}
 
-def get_forced_abstains(var: GameState) -> Set[User]:
+def get_forced_abstains(var: GameState) -> set[User]:
     """Retrieve the players who are being forced to abstain."""
     return {player for player, count in FORCED_COUNTS.items() if count < 0}
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: Set[str], death_triggers: bool):
+def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     del FORCED_COUNTS[:player:]
     del FORCED_TARGETS[:player:]
     for votee, targets in list(FORCED_TARGETS.items()):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, Iterator, TypeVar, Optional, Set
+from typing import Generic, Iterator, TypeVar, Optional
 import collections.abc
 from src import config
 from src.debug.history import History
@@ -29,7 +29,7 @@ class CheckedSet(collections.abc.MutableSet, Generic[T]):
     def __init__(self, name: str, iterable: Optional[Iterator[T]] = None):
         self._history = History(name)
         if iterable is None:
-            self._set: Set[T] = set()
+            self._set: set[T] = set()
         else:
             self._set = set(iterable)
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 import functools
 import logging
-from typing import Any, Callable, Dict, List, Optional, Iterable
+from typing import Any, Callable, Optional, Iterable
 from collections import defaultdict
 
 import src
@@ -12,8 +12,8 @@ from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.debug import handle_error
 
-COMMANDS: Dict[str, List[command]] = defaultdict(list)
-HOOKS: Dict[str, List[hook]] = defaultdict(list)
+COMMANDS: dict[str, list[command]] = defaultdict(list)
+HOOKS: dict[str, list[hook]] = defaultdict(list)
 
 class command:
     def __init__(self, command: str, *, flag: Optional[str] = None, owner_only: bool = False,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import random
-from typing import List, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from src import users, channels, cats
 from src.functions import get_players, get_all_players
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 # mystic_night_num, mystic_day_num, mystic_info,
 # mystic_notify, wolf_mystic_notify
 
-def register_mystic(rolename: str, *, send_role: bool, types: Tuple[str]):
-    LAST_COUNT: UserDict[User, List[Tuple[str, int]]] = UserDict()
+def register_mystic(rolename: str, *, send_role: bool, types: tuple[str]):
+    LAST_COUNT: UserDict[User, list[tuple[str, int]]] = UserDict()
 
     role = rolename.replace(" ", "_")
 
