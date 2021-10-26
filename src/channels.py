@@ -46,7 +46,7 @@ def get(name: str, *, allow_none: bool = False) -> Optional[Channel]:
             return None
         raise
 
-def add(name, cli, key=""):
+def add(name, cli, key="", prefix=""):
     """Add and return a new channel, or an existing one if it exists."""
 
     # We use add() in a bunch of places where the channel probably (but
@@ -65,9 +65,8 @@ def add(name, cli, key=""):
     if predicate(name):
         cls = FakeChannel
 
-    chan = _channels[_normalize(name)] = cls(name, cli)
-    chan._key = key
-    chan.join()
+    chan = _channels[_normalize(name)] = cls(name, cli, prefix=prefix)
+    chan.join(key=key)
     return chan
 
 def exists(name):
@@ -88,8 +87,8 @@ class Channel(IRCContext):
 
     is_channel = True
 
-    def __init__(self, name, client):
-        super().__init__(name, client)
+    def __init__(self, name, client, prefix=""):
+        super().__init__(name, client, prefix=prefix)
         self.users: CheckedSet[User] = CheckedSet("channels.Channel.users")
         self.modes: dict[str, set[User]] = {}
         self.old_modes = defaultdict(set)
@@ -97,6 +96,7 @@ class Channel(IRCContext):
         self.state = _States.NotJoined
         self.game_state: Optional[GameState] = None
         self._pending = []
+        self._key = ""
 
     def __del__(self):
         self.users.clear()
@@ -151,9 +151,9 @@ class Channel(IRCContext):
                 Event(name, params).dispatch(*args)
             self._pending = None
 
-    def join(self, key=None):
+    def join(self, key=""):
         if self.state in (_States.NotJoined, _States.Left):
-            if key is None:
+            if not key:
                 key = self.key
             self.state = _States.PendingJoin
             self.client.send("JOIN {0} :{1}".format(self.name, key))

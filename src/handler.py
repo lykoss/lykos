@@ -261,10 +261,10 @@ def connect_callback(cli: IRCClient):
         event.dispatch(cli)
 
         main_channel = config.Main.get("transports[0].channels.main")
-        if isinstance(main_channel, str):
-            main_channel = {"name": main_channel, "prefix": "", "key": ""}
-        channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
+        channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"], prefix=main_channel["prefix"])
         channels.Dummy = channels.add("*", cli)
+        for channel in config.Main.get("transports[0].channels.alternate"):
+            channels.add(channel["name"], cli, key=channel["key"], prefix=channel["prefix"])
 
         users.Bot.change_nick(nick)
 

@@ -155,16 +155,16 @@ class TestConfigMerge(TestCase):
             self.assertIs(merge(metadata_true, False, True), True)
             self.assertIs(merge(metadata_true, False, False), True)
 
-    def test_merge_null_replace(self):
-        metadata = {"_type": "null", "_default": None, "_merge": "replace"}
+    def test_merge_nullable_replace(self):
+        metadata = {"_type": "int", "_nullable": True, "_default": 1, "_merge": "replace"}
         with self.subTest("default fallback"):
-            self.assertIs(merge(metadata, Empty, Empty), None)
+            self.assertIs(merge(metadata, Empty, Empty), 1)
         with self.subTest("base fallback"):
             self.assertIs(merge(metadata, None, Empty), None)
         with self.subTest("empty base"):
             self.assertIs(merge(metadata, Empty, None), None)
         with self.subTest("non-empty base"):
-            self.assertIs(merge(metadata, None, None), None)
+            self.assertIs(merge(metadata, 2, None), None)
 
     def test_merge_enum_replace(self):
         metadata = {"_type": "enum", "_default": "foo", "_values": ["foo", "bar", "baz"], "_merge": "replace"}
@@ -320,19 +320,23 @@ class TestConfigMerge(TestCase):
             self.assertEqual(merge(metadata, 2, 3), 3)
 
     def test_merge_union(self):
-        metadata = {"_type": ["int", "null"], "_default": None, "_merge": "replace"}
+        metadata = {"_type": ["int", "str"], "_nullable": True, "_default": None, "_merge": "replace"}
         with self.subTest("default fallback"):
             self.assertIs(merge(metadata, Empty, Empty), None)
         with self.subTest("base fallback"):
             self.assertEqual(merge(metadata, 2, Empty), 2)
+            self.assertEqual(merge(metadata, "2", Empty), "2")
             self.assertIs(merge(metadata, None, Empty), None)
         with self.subTest("empty base"):
             self.assertEqual(merge(metadata, Empty, 3), 3)
+            self.assertEqual(merge(metadata, Empty, "3"), "3")
             self.assertIs(merge(metadata, Empty, None), None)
         with self.subTest("non-empty base"):
             self.assertEqual(merge(metadata, 2, 3), 3)
+            self.assertEqual(merge(metadata, "2", 3), 3)
             self.assertEqual(merge(metadata, None, 3), 3)
             self.assertIs(merge(metadata, 2, None), None)
+            self.assertIs(merge(metadata, "2", None), None)
             self.assertIs(merge(metadata, None, None), None)
 
     def test_invalid_str(self):
@@ -383,12 +387,12 @@ class TestConfigMerge(TestCase):
             self.assertRaises(TypeError, merge, metadata, Empty, "True")
             self.assertRaises(TypeError, merge, metadata, Empty, None)
 
-    def test_invalid_null(self):
-        metadata = {"_type": "null"}
+    def test_invalid_nullable(self):
+        metadata = {"_type": "int", "_nullable": True}
         with self.subTest("value required"):
             self.assertRaises(TypeError, merge, metadata, Empty, Empty)
         with self.subTest("invalid type"):
-            self.assertRaises(TypeError, merge, metadata, Empty, 2)
+            self.assertRaises(TypeError, merge, metadata, Empty, "2")
             self.assertRaises(TypeError, merge, metadata, Empty, 2.0)
             self.assertRaises(TypeError, merge, metadata, Empty, [])
             self.assertRaises(TypeError, merge, metadata, Empty, {})
@@ -490,12 +494,44 @@ class TestConfigMerge(TestCase):
             self.assertRaises(TypeError, merge, metadata, Empty, None)
 
     def test_invalid_union(self):
-        metadata = {"_type": ["int", "null"]}
+        metadata = {"_type": ["int", "str"]}
         with self.subTest("value required"):
             self.assertRaises(TypeError, merge, metadata, Empty, Empty)
         with self.subTest("invalid type"):
-            self.assertRaises(TypeError, merge, metadata, Empty, "2")
             self.assertRaises(TypeError, merge, metadata, Empty, 2.0)
             self.assertRaises(TypeError, merge, metadata, Empty, [])
             self.assertRaises(TypeError, merge, metadata, Empty, {})
             self.assertRaises(TypeError, merge, metadata, Empty, True)
+
+    def test_constructors(self):
+        metadata = {
+            "_type": "dict",
+            "_ctors": [
+                {
+                    "_type": "str",
+                    "_set": "a"
+                },
+                {
+                    "_type": "int",
+                    "_set": "b"
+                }
+            ],
+            "_default": {
+                "a": {
+                    "_type": "str"
+                },
+                "b": {
+                    "_type": "int",
+                    "_default": 3
+                }
+            }
+        }
+        with self.subTest("fully-specified"):
+            self.assertEqual(merge(metadata, Empty, {"a": "foo", "b": 4}), {"a": "foo", "b": 4})
+            self.assertEqual(merge(metadata, Empty, {"a": "foo"}), {"a": "foo", "b": 3})
+        with self.subTest("using constructor"):
+            self.assertEqual(merge(metadata, Empty, "foo"), {"a": "foo", "b": 3})
+        with self.subTest("no matching constructor"):
+            self.assertRaises(TypeError, merge, metadata, Empty, None)
+        with self.subTest("poorly-specified constructor (metadata issue)"):
+            self.assertRaises(TypeError, merge, metadata, Empty, 4)

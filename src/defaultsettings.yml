@@ -4,12 +4,74 @@
 # generated from the documentation specified here, and is much more human-readable than this file.
 # This file has different formatting from botconfig.yml; you cannot expect to copy/paste things over correctly.
 
+connection: &connection
+  _name: connection
+  _desc: Connections represent networks that the bot will connect to in the outbound direction.
+  _type: dict
+  _default:
+    host:
+      _desc: Hostname or IP address to connect to.
+      _type: str
+    port:
+      _desc: Port number to connect to.
+      _type: int
+    source:
+      _desc: >
+        IP address to use as our source IP for the outbound connection.
+        If the empty string, uses the default logic of the OS to determine source IP.
+      _type: str
+      _default: ""
+    ssl:
+      _desc: >
+        Settings controlling whether or not encrypted connections are used, and server-specific
+        options for encrypted connections.
+      _type: dict
+      _default:
+        use_ssl:
+          _desc: Whether or not to use encrypted connections when connecting to the server.
+          _type: bool
+          _default: true
+        verify_peer:
+          _desc: >
+            If set, try to verify the server certificate of the remote side to ensure it is valid and
+            chains to a trusted Certificate Authority (CA). Certificates whose fingerprints are listed in
+            trusted_fingerprints will also verify successfully even if they don't chain to a trusted CA
+            so long as they pass all other validation checks (e.g. not revoked or expired). Disabling
+            this can have disastrous consequences.
+          _type: bool
+          _default: true
+        trusted_fingerprints:
+          _desc: |
+            List of trusted server fingerprints. If the server certificate does not chain to a trusted CA,
+            it is preferable to configure the fingerprints here rather than disabling verification.
+            Fingerprints must be hashed with SHA-256. If configured, it will look like so:
+
+            <pre>
+            trusted_fingerprints:
+              - 74:51:AD:BF:59:B2:47:76:A8:64:97:E8:82:6B:A5:99:C9:CB:E1:64:F5:F2:B4:84:2A:9B:F7:F4:88:21:88:3F
+            </pre>
+
+            To obtain a fingerprint, run the following command, replacing "irc.libera.chat:6697"
+            with correct values for your host and port number.
+
+            <pre>
+            openssl s_client -connect irc.libera.chat:6697 < /dev/null 2>/dev/null | openssl x509 -fingerprint -sha256 -noout -in /dev/stdin
+            </pre>
+          _type: list
+          _default: [ ]
+          _items:
+            _type: str
+
 transports.irc.channel: &transports.irc.channel
   _name: transports.irc.channel
-  _desc: |
+  _desc: >
     Channels can generally be specified as simple strings, but sometimes more advanced configuration is needed
-    under special circumstances. In those cases, you may specify this channel object instead of a string.
+    under special circumstances. You can pass either a string or a full instance of this object anywhere a channel
+    is required.
   _type: dict
+  _ctors:
+    - _type: str
+      _set: name
   _default:
     name:
       _desc: Channel name, be sure to surround with quotes so it is not interpreted as a comment!
@@ -23,7 +85,7 @@ transports.irc.channel: &transports.irc.channel
       _type: str
       _default: ""
     auto_mode_toggle:
-      _desc: |
+      _desc: >
         The channel modes which will be automatically toggled for the duration of the game.
         This is traditionally used to remove op status from players during the game.
       _type: list
@@ -40,7 +102,7 @@ transports.irc: &transports.irc
       _desc: Name of this transport. Can be anything, but must be defined and unique across all transports in this file.
       _type: str
     module:
-      _desc: |
+      _desc: >
         What IRCd the remote is running. Configuring this wrong may have disastrous consequences.
         If you do not see a module for your ircd, please use "generic"; some lykos features may be disabled.
         If you notice bugs with the generic module with your ircd, please contact the lykos developers.
@@ -57,24 +119,22 @@ transports.irc: &transports.irc
       _type: dict
       _default:
         nick:
-          _desc: |
+          _desc: >
             The bot's nickname. If already taken, we may attempt to recover this depending on what services
             module was selected.
           _type: str
         ident:
           _desc: The bot's ident. If unset, defaults to the bot's nickname.
-          _type:
-            - str
-            - "null"
+          _type: str
+          _nullable: true
           _default: null
         realname:
           _desc: The bot's realname (gecos). If unset, defaults to the bot's nickname.
-          _type:
-            - str
-            - "null"
+          _type: str
+          _nullable: true
           _default: null
         command_prefix:
-          _desc: |
+          _desc: >
             We only respond to commands in-channel if they begin with this prefix.
             Commands in private with this prefix are not relayed to other players in wolfchat, deadchat, etc.
             Use quotes around the character to prevent YAML from interpreting it as something special.
@@ -102,82 +162,24 @@ transports.irc: &transports.irc
       _default:
         main:
           _desc: Main game channel. Be sure to use quotes around the name so it is not treated as a comment!
-          _type:
-            - *transports.irc.channel
-            - str
+          _type: *transports.irc.channel
         alternate:
-          _desc: |
+          _desc: >
             Alternate channels. The bot will join these and respond to some commands, but games cannot be played here.
             If you define IRC channels as logging targets, those channels will need to be listed here as well.
           _type: list
           _default: []
           _items:
-            _type:
-              - *transports.irc.channel
-              - str
+            _type: *transports.irc.channel
     connection:
-      _desc: Describes details of how the bot connects to the IRC network.
-      _type: dict
-      _default:
-        host:
-          _desc: Hostname or IP address of the network.
-          _type: str
-        port:
-          _desc: Port number that the server is listening on.
-          _type: int
-          _default: 6697
-        source:
-          _desc: |
-            IP address to use as our source IP for the outbound connection.
-            If the empty string, uses the default logic of the OS to determine source IP.
-          _type: str
-          _default: ""
-        ssl:
-          _desc: |
-            Settings controlling whether or not encrypted connections are used, and server-specific
-            options for encrypted connections.
-          _type: dict
-          _default:
-            use_ssl:
-              _desc: Whether or not to use encrypted connections when connecting to the server.
-              _type: bool
-              _default: true
-            verify_peer:
-              _desc: |
-                If set, try to verify the server certificate of the remote side to ensure it is valid and
-                chains to a trusted Certificate Authority (CA). Certificates whose fingerprints are listed in
-                trusted_fingerprints will also verify successfully even if they don't chain to a trusted CA
-                so long as they pass all other validation checks (e.g. not revoked or expired). Disabling
-                this can have disastrous consequences.
-              _type: bool
-              _default: true
-            trusted_fingerprints:
-              _desc: |
-                List of trusted server fingerprints. If the server certificate does not chain to a trusted CA,
-                it is preferable to configure the fingerprints here rather than disabling verification.
-                Fingerprints must be hashed with SHA-256. If configured, it will look like so:
-
-                <pre>
-                trusted_fingerprints:
-                  - 8E:9C:A8:DA:8C:1A:3A:BC:29:B1:36:57:6B:F6:9C:9D:4E:51:F0:2B:D4:B0:56:C7:14:53:3F:90:D3:0B:71:63
-                </pre>
-
-                To obtain a fingerprint, run the following command, replacing "chat.freenode.net:6697"
-                with correct values for your host and port number.
-
-                <pre>
-                openssl s_client -connect chat.freenode.net:6697 < /dev/null 2>/dev/null | openssl x509 -fingerprint -sha256 -noout -in /dev/stdin
-                </pre>
-              _type: list
-              _default: []
-              _items:
-                _type: str
+      _desc: Describes how the bot connects to the IRC network.
+      _type: *connection
     authentication:
       _desc: Authentication settings for the network or services.
       _type: dict
       _default:
         server:
-          _desc: |
+          _desc: >
             Server authentication via the PASS command, such as if a connection password is required.
             If unset, we may send the services username and password via the PASS command if SASL is disabled,
             depending on the services and ircd modules in use.
@@ -185,18 +187,17 @@ transports.irc: &transports.irc
           _default:
             password:
               _desc: Server connection password.
-              _type:
-                - str
-                - "null"
+              _type: str
+              _nullable: true
               _default: null
         services:
-          _desc: |
+          _desc: >
             Services authentication. We support sending regular IDENTIFY commands to NickServ (or equivalent)
             and support both SASL PLAIN (password-based auth) and SASL EXTERNAL (client certificate auth).
           _type: dict
           _default:
             module:
-              _desc: |
+              _desc: >
                 What services package is in use by the network. We may vary how we send authentication details
                 and how we recover an in-use nickname based on this selection. Configuring this wrong may have
                 disastrous consequences. If none of the modules listed fit your connection, try using
@@ -210,47 +211,43 @@ transports.irc: &transports.irc
                 - none
                 - undernet
             username:
-              _desc: |
+              _desc: >
                 Username to log into services with, if the services module supports usernames different from the
                 current nick. If unset, uses the configured nick in the user settings.
-              _type:
-                - str
-                - "null"
+              _type: str
+              _nullable: true
               _default: null
             password:
               _desc: Password to log into services with. Leave unset if using client certificate authentication.
-              _type:
-                - str
-                - "null"
+              _type: str
+              _nullable: true
               _default: null
             use_sasl:
-              _desc: |
+              _desc: >
                 Whether or not to use SASL to authenticate. It is recommended to enable this if the network
                 supports SASL, to ensure that the bot is fully authenticated before joining any channels.
               _type: bool
               _default: true
             client_certificate:
-              _desc: |
+              _desc: >
                 Client certificate to connect with, in PEM format. You may either have this be a filename containing
                 the certificate or directly embed the certificate in this configuration file (use the "|" multiline format).
                 The private key may be optionally present in PEM format after the certificate. Leave unset if using
                 password authentication.
-              _type:
-                - str
-                - "null"
+              _type: str
+              _nullable: true
               _default: null
             client_key:
-              _desc: |
+              _desc: >
                 Private key to connect with, in PEM format, if it was not already specified in client_certificate.
                 This may be either a filename containing the key or directly embedded in this configuration file
                 (use the "|" multiline format). Leave unset if using password authentication or if the private key
                 is already present as part of the client_certificate configuration value.
-              _type:
-                - str
-                - "null"
+              _type: str
+              _nullable: true
               _default: null
     flood:
-      _desc: |
+      _desc: >
         Settings to control how quickly the bot will send messages to IRC. The bot can send an initial burst
         of messages, but will slow down after a short period. This is represented using a token bucket: each
         message sent consumes 1 token. The bucket starts with some number of tokens (initial burst amount), and
@@ -275,7 +272,7 @@ transports.irc: &transports.irc
       _type: int
       _default: 120
     features:
-      _desc: |
+      _desc: >
         Enables fine-grained control over what ircd features we use. This can be used to further customize
         behavior enabled or disabled by the module selection. Please use with care, as lykos may break if
         you enable things that the ircd does not support.
@@ -283,14 +280,13 @@ transports.irc: &transports.irc
       _default:
         cprivmsg:
           _desc: Whether or not CPRIVMSG is enabled. If null, use the setting determined by the module in use.
-          _type:
-            - bool
-            - "null"
+          _type: bool
+          _nullable: true
           _default: null
 
 transports: &transports
   _name: transports
-  _desc: |
+  _desc: >
     The transports section defines all of the connections your bot will make.
     At least one transport must be defined for the bot to successfully run.
   _type: list
@@ -307,14 +303,14 @@ ssl: &ssl
   _default:
     ca_file:
       _desc: Path to a file containing all trusted Certificate Authorities (CAs). If unset, use system default.
-      _type:
-        - str
-        - "null"
+      _type: str
+      _nullable: true
       _default: null
     ciphers:
-      _desc: |
-        All ciphers that the bot will make use of. By default, we track Mozilla's "intermediate" compatibility list:
-        https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29
+      _desc: >
+        All ciphers that the bot will make use of. By default, we track
+        [https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
+        Mozilla's "intermediate" compatibility list].
       _type: str
       _default: ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384
 
@@ -332,7 +328,7 @@ access.template: &access.template
 
 access.entry: &access.entry
   _name: access.entry
-  _desc: |
+  _desc: >
     An access entry associates an account on a given transport with an access template. Unlike the fflags command,
     access entries in the configuration file must be associated with a template, and cannot be a freeform collection
     of flags.
@@ -350,7 +346,7 @@ access.entry: &access.entry
 
 access: &access
   _name: access
-  _desc: |
+  _desc: >
     The access section defines shorthand notation "templates" for collections of flags as well as allows
     you to define a list of accounts who have access to the bot. In addition to this section, access can be granted
     to accounts via the fflags command. Access granted via the command is stored in the database rather than the
@@ -358,12 +354,17 @@ access: &access
   _type: dict
   _default:
     templates:
-      _desc: |
+      _desc: >
         Templates are a way to associate a friendly name with a collection of flags. By default, three templates
         are defined:
+
         * owner: full access to the bot and can execute every command
-        * admin: access to manage moderators and execute commands which can update the bot's code or cause it to restart
-        * moderator: manage games in progress and warn users, but cannot manage access entries or cause the bot to restart
+
+        * admin: access to manage moderators and execute commands which can update the bot's code
+        or cause it to restart
+
+        * moderator: manage games in progress and warn users, but cannot manage access entries
+        or cause the bot to restart
       _type: list
       _default:
         - name: owner
@@ -390,18 +391,24 @@ logging.group: &logging.group
       _desc: The name of the group, must be unique.
       _type: str
     filters:
-      _desc: |
+      _desc: >
         Only log events whose types match one of the specified filters. Leave empty to log everything.
+
         * command: The commands filter logs restricted commands. Specific commands and sub-commands
         can be used instead via command.commandname (e.g. command.fsay or command.fwarn.add).
+
         * exception: The exception filter logs exceptions. Specific exception types can be used
         via exception.type (e.g. exception.TypeError).
+
         * general: The general filter logs events that do not fit under any more specific filter.
         This is generally used by messages that are expected to be printed to stdout.
+
         * transport: The transport filter logs traffic sent to and received from transports. Specific
         transports can be used via transport.name.
+
         * game: The game filter logs game events, such as all executed commands and other game details.
         Currently unused.
+
         * Additional filters may be defined by Python itself and are outside the scope of this documentation.
       _type: list
       _default: []
@@ -410,9 +417,9 @@ logging.group: &logging.group
 
 logging.log.handler.file.rotate.bytes: &logging.log.handler.file.rotate.bytes
   _name: logging.log.handler.file.rotate.bytes
-  _desc: |
+  _desc: >
     Rotate the file after it reaches a certain size in bytes.
-    See https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler
+    See [https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler the Python documentation]
     for more information.
   _type: dict
   _default:
@@ -425,9 +432,9 @@ logging.log.handler.file.rotate.bytes: &logging.log.handler.file.rotate.bytes
 
 logging.log.handler.file.rotate.timed: &logging.log.handler.file.rotate.timed
   _name: logging.log.handler.file.rotate.timed
-  _desc: |
+  _desc: >
     Rotate the file on timed intervals.
-    See https://docs.python.org/3/library/logging.handlers.html#timedrotatingfilehandler
+    See [https://docs.python.org/3/library/logging.handlers.html#timedrotatingfilehandler the Python documentation]
     for more information.
   _type: dict
   _default:
@@ -448,13 +455,13 @@ logging.log.handler.file.rotate.timed: &logging.log.handler.file.rotate.timed
         - W6
         - midnight
     interval:
-      _desc: |
+      _desc: >
         Combined with when to determine when to rotate the file.
         If when is W0-W6, interval is ignored and can be omitted.
       _type: int
       _default: 1
     at_time:
-      _desc: |
+      _desc: >
         If when is W0-W6 or midnight, this computes the initial rollover time.
         The value specified here should be of the format HH:MM or HH:MM:SS
       _type: str
@@ -472,18 +479,19 @@ logging.log.handler.file: &logging.log.handler.file
   _type: dict
   _default:
     file:
-      _desc: |
+      _desc: >
         The path to the file to write. Can be either a relative or absolute path.
         If a relative path is given, it is relative to the bot root.
       _type: str
     rotate:
-      _desc: |
+      _desc: >
         Whether or not the files should rotate. Files can rotate when they've reached
         a maximum byte count or after a certain time interval has passed (but not both).
-      _type:
-        - *logging.log.handler.file.rotate.bytes
-        - *logging.log.handler.file.rotate.timed
-        - "null"
+      _type: tagged
+      _tags:
+        bytes: *logging.log.handler.file.rotate.bytes
+        timed: *logging.log.handler.file.rotate.timed
+      _nullable: true
       _default: null
 
 logging.log.handler.stream: &logging.log.handler.stream
@@ -507,13 +515,13 @@ logging.log.handler.transport: &logging.log.handler.transport
       _desc: The name of the transport to write the log to.
       _type: str
     destination:
-      _desc: |
+      _desc: >
         An optional location in the transport to write the log. Each transport interprets this differently.
+
         * For the irc transport, this should be a channel name (remember to surround it in quotes). If the
         irc server supports STATUSMSG, you may add a prefix to the channel object.
-      _type:
-        - str
-        - "null"
+      _type: str
+      _nullable: true
       _default: null
 
 logging.log.handler.custom: &logging.log.handler.custom
@@ -525,7 +533,7 @@ logging.log.handler.custom: &logging.log.handler.custom
       _desc: Module name that contains the custom handler class.
       _type: str
     class:
-      _desc: |
+      _desc: >
         Class name of the custom handler class, should derive from src.logger.UnionFilterMixin and
         logging.Handler (or one of its subclasses), in that order. Subclassing one of the built-in
         handlers from src.logger will meet this criteria.
@@ -563,10 +571,12 @@ logging.log: &logging.log
         - info
         - debug
     format:
-      _desc: |
+      _desc: >
         How data sent to the log is formatted.
+
         * The string formatter writes a single log line (ending in newline) to the log,
         optionally with a timestamp in front.
+
         * The structured formatter sends a JSON string to the log representing an object. Exactly which fields
         are present in the object will vary based on the type of thing being logged. This format is useful when
         ingesting logs into something capable of processing the metadata and doing things with it.
@@ -576,7 +586,7 @@ logging.log: &logging.log
         - string
         - structured
     timestamp:
-      _desc: |
+      _desc: >
         How the timestamp is presented in the logs. It will be prepended to string logs and available as a
         "timestamp" field in structured logs.
       _type: dict
@@ -590,8 +600,8 @@ logging.log: &logging.log
           _type: bool
           _default: true
         format:
-          _desc: |
-            See https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+          _desc: >
+            See [https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior the Python documentation]
             for more information on how to configure this. It is recommended to use quotes
             around this field to prevent YAML from interpreting any special characters.
           _type: str
@@ -599,18 +609,22 @@ logging.log: &logging.log
 
 logging: &logging
   _name: logging
-  _desc: |
+  _desc: >
     The logging section defines all logging groups (collections of things to log) as well as where each group
     should be logged to. By default, nothing is logged; you should set up any desired logging in your botconfig.yml.
     Logs can be sent to a file or any defined transport (such as an IRC channel).
   _type: dict
   _default:
     groups:
-      _desc: |
+      _desc: >
         Logging groups. By default, the following groups are defined:
+
         * main: log code issues and restricted commands to stdout
+
         * admin-commands: log all usages of restricted commands
+
         * warnings: log the usages of fwarn add, fwarn set, and fwarn del
+
         * debug: log all exceptions that occur
       _type: list
       _default:
@@ -634,6 +648,7 @@ logging: &logging
       _items:
         _type: *logging.group
     logs:
+      _desc: Which groups should be logged and where those logs should be sent to.
       _type: list
       _default: []
       _items:
@@ -649,15 +664,14 @@ gameplay: &gameplay
       _type: str
       _default: en
     rules:
-      _desc: |
+      _desc: >
         The rules for this bot, either as an embedded string or a URL, returned by the !rules command.
         If null, the !rules command will display that no rules have been configured.
-      _type:
-        - str
-        - "null"
+      _type: str
+      _nullable: true
       _default: null
     player_limits:
-      _desc: |
+      _desc: >
         The lower and upper bounds of player counts for games. Note that most game modes do not support
         all player counts.
       _type: dict
@@ -675,7 +689,7 @@ gameplay: &gameplay
       _type: dict
       _default:
         scale:
-          _desc: |
+          _desc: >
             Determines the scaling for the number of !start votes needed. This floating point number will
             be multiplied with the number of players, rounded up. This will not exceed the maximum below.
           _type: float
@@ -729,7 +743,7 @@ gameplay: &gameplay
           _type: int
           _default: 0
         fallen_kills:
-          _desc: |
+          _desc: >
             Determines the chance out of 100 that, when the wolves target someone guarded by a guardian angel,
             the fallen angel, if present, will kill the guardian angel.
           _type: int
@@ -739,7 +753,7 @@ gameplay: &gameplay
           _type: int
           _default: 40
         doctor_shots:
-          _desc: |
+          _desc: >
             Determines how many shots the doctor gets. This floating point number will be multiplied with the number of
             alive players when the player gets the role, rounded up.
           _type: float
@@ -749,13 +763,13 @@ gameplay: &gameplay
           _type: int
           _default: 3
     nightchat:
-      _desc: |
+      _desc: >
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel
         will be revoked from all players during the night phase.
       _type: bool
       _default: true
     deadchat:
-      _desc: |
+      _desc: >
         Whether or not deadchat is enabled. Dead players and non-players can join deadchat to speak with
         each other during a game. If disabled, they will be unable to speak with each other through the bot.
       _type: bool
@@ -765,71 +779,71 @@ gameplay: &gameplay
       _type: bool
       _default: false
     wolfchat:
-      _desc: |
+      _desc: >
         Many wolf roles have access to wolfchat, which allows them to communicate with each other throughout the
         night and day in private through the bot. This section allows for implementing restrictions on when wolfchat
         may be used and who is able to use it.
       _type: dict
       _default:
         disable_day:
-          _desc: |
+          _desc: >
             If set, disables all wolfchat functionality during the day.
             Commands will still be relayed as applicable.
           _type: bool
           _default: false
         disable_night:
-          _desc: |
+          _desc: >
             If set, disables all wolfchat functionality during the night.
             Commands will still be relayed as applicable.
           _type: bool
           _default: false
         only_kill_command:
-          _desc: |
+          _desc: >
             If set, only the kill command is relayed. All other commands are not.
             This has no effect unless wolfchat is disabled for the player using the command.
           _type: bool
           _default: false
         only_same_command:
-          _desc: |
+          _desc: >
             If set, commands are only relayed to roles who have access to the same command.
             This has no effect unless wolfchat is disabled for the player using the command.
           _type: bool
           _default: false
         wolves_only_chat:
-          _desc: |
+          _desc: >
             If set, only real wolves (those with access to the kill command, wolf cub, and traitor) are able
             to participate in wolfchat. Other roles can observe what is said, but cannot speak; wolfchat is
             disabled for them. Their commands are still relayed as applicable.
           _type: bool
           _default: false
         remove_non_wolves:
-          _desc: |
+          _desc: >
             If set, non-wolves (roles that are not real wolves) are removed from wolfchat entirely. They cannot
             speak or see what was spoken in wolfchat, and no commands are relayed from or to them. Wolves will
             not know that these players are wolfteam, and the wolves can kill them.
           _type: bool
           _default: false
         traitor_non_wolf:
-          _desc: |
+          _desc: >
             If set, traitor is considered a non-wolf. Normally, they are treated as a real wolf for the purposes
             of wolfchat restrictions.
           _type: bool
           _default: false
     spectate:
-      _desc: |
+      _desc: >
         Controls the behavior of the spectate command. This does not control the fspectate command, which never
         notifies the target chat that they are being observed. If you wish to ensure that the target chat is always
         notified, you should disable fspectate via gameplay.disable.commands and configure this appropriately.
       _type: dict
       _default:
         notice:
-          _desc: |
+          _desc: >
             If set, the target chat is notified that they are being observed or no longer observed when a user
             begins or end spectating.
           _type: bool
           _default: true
         include_user:
-          _desc: |
+          _desc: >
             If set, the notification sent to the target chat includes the name of the spectator.
             This has no effect if gameplay.spectate.notice is disabled.
           _type: bool
@@ -839,7 +853,7 @@ gameplay: &gameplay
       _type: dict
       _default:
         roles:
-          _desc: |
+          _desc: >
             Roles to disable. Roles listed here cannot be used in fgame roles, will never be chosen in
             game modes which randomize roles (e.g. random and maelstrom), will never be chosen as what
             an amnesiac will turn into, and will be replaced with the default role if it is encountered in
@@ -850,7 +864,7 @@ gameplay: &gameplay
           _items:
             _type: str
         gamemodes:
-          _desc: |
+          _desc: >
             Game modes to disable. Modes listed here cannot be voted or used in fgame, and will never randomly
             appear when there is no majority vote for a game mode. Use the internal game mode name in this list,
             rather than the localized name for your language.
@@ -859,7 +873,7 @@ gameplay: &gameplay
           _items:
             _type: str
         commands:
-          _desc: |
+          _desc: >
             Commands to disable. Commands listed here cannot be used by anyone, not even admins. Use the internal
             command name in this list, rather than the localized name for your language. Disabling a command also
             disables all aliases for that command.
@@ -870,14 +884,14 @@ gameplay: &gameplay
 
 ratelimits: &ratelimits
   _name: ratelimits
-  _desc: |
+  _desc: >
     The ratelimits section defines the various rate limits in the bot. Some rate limits are global whereas others
     are per-user. See the description of each for more details. All rate limits are in seconds. A rate limit of 0
     means there is no rate limit.
   _type: dict
   _default:
     admins:
-      _desc: |
+      _desc: >
         Global rate limit for using the !admins command in channel to mass-ping all admins.
         This limit does not apply when using the command in private, as that will not ping anyone.
       _type: int
@@ -953,7 +967,7 @@ timers: &timers
           _type: int
           _default: 120
         warn:
-          _desc: |
+          _desc: >
             A warning is printed to channel that night is almost over at this time.
             Must be less than timers.night.limit.
           _type: int
@@ -971,25 +985,25 @@ timers: &timers
           _type: int
           _default: 720
         warn:
-          _desc: |
+          _desc: >
             A warning is printed to channel that day is almost over at this time.
             Must be less than timers.day.limit.
           _type: int
           _default: 600
     shortday:
-      _desc: |
+      _desc: >
         Time limits for short days, which will occur once the number of living players is less than or equal
         to some threshold.
       _type: dict
       _default:
         enabled:
-          _desc: |
+          _desc: >
             Whether or not short day timers are enabled. If disabled, the regular day timer section will apply
             regardless of player count.
           _type: bool
           _default: true
         players:
-          _desc: |
+          _desc: >
             Player threshold for number of alive players. If the number of alive players is less than or equal
             to this number, the timers for short days will be used instead of the normal day timers.
           _type: int
@@ -999,7 +1013,7 @@ timers: &timers
           _type: int
           _default: 520
         warn:
-          _desc: |
+          _desc: >
             A warning is printed to channel that day is almost over at this time.
             Must be less than timers.shortday.limit.
           _type: int
@@ -1017,7 +1031,7 @@ timers: &timers
           _type: int
           _default: 60
         join:
-          _desc: |
+          _desc: >
             Each join that reaches a new maximum player count for this join phase will add this many seconds
             to the wait timer.
           _type: int
@@ -1031,7 +1045,7 @@ timers: &timers
               _type: int
               _default: 30
             tokenbucket:
-              _desc: |
+              _desc: >
                 The !wait command uses a token bucket to determine how often it may be used. Each time the command is
                 used, it will deduct a token from the bucket. If it cannot deduct any tokens, the command fails.
                 The token bucket gains new tokens at a refill rate, and can store a maximum number of tokens.
@@ -1052,7 +1066,7 @@ timers: &timers
 
 reaper: &reaper
   _name: reaper
-  _desc: |
+  _desc: >
     The reaper section defines the grace period for certain events that indicate a player is no longer actively
     participating in the game. If the grace period is exceeded, the reaper will kill that player and give them
     warning points.
@@ -1063,7 +1077,7 @@ reaper: &reaper
       _type: bool
       _default: true
     idle:
-      _desc: |
+      _desc: >
         Idle time is defined as how long it has been since the user has spoken in channel. If gameplay.nightchat
         is disabled, the idle timer is paused during night. Warnings will be given to the user in channel and in
         private at certain thresholds to let them know that they need to speak in the channel.
@@ -1098,7 +1112,7 @@ reaper: &reaper
           _type: str
           _default: 30d
     night_idle:
-      _desc: |
+      _desc: >
         Whether or not to warn users who fail to act at night. All other warning types from the reaper
         will override this, so that they do not stack. A user will get a maximum of one warning per game.
       _type: dict
@@ -1116,7 +1130,7 @@ reaper: &reaper
           _type: str
           _default: 14d
     part:
-      _desc: |
+      _desc: >
         If a user leaves the game channel, this defines the grace time they have to rejoin it.
         Not every transport has the notion of leaving a game channel.
         Kicking the user out of a channel immediately gives them a warning and kills them.
@@ -1139,7 +1153,7 @@ reaper: &reaper
           _type: str
           _default: 30d
     quit:
-      _desc: |
+      _desc: >
         If a user leaves the server, this defines the grace time they have to rejoin it.
         Not every transport has the notion of leaving a server.
         Kicking the user out of a server immediately gives them a warning and kills them.
@@ -1162,7 +1176,7 @@ reaper: &reaper
           _type: str
           _default: 30d
     account:
-      _desc: |
+      _desc: >
         If the user changes what account they are logged into, this defines the grace time they have to
         switch back to their original account. Not every transport has the notion of changing what account
         a user is logged into.
@@ -1185,9 +1199,10 @@ reaper: &reaper
           _type: str
           _default: 30d
     leave:
-      _desc: |
+      _desc: >
         If the user chooses to '!quit -force' during the game, this defines the applied sanctions.
-        Note that, unlike the other entries here, this does not have a grace period, and instead will instantly applies the sanction.
+        Note that, unlike the other entries here, this does not have a grace period, and instead will
+        instantly applies the sanction.
       _type: dict
       _default:
         enabled:
@@ -1205,18 +1220,21 @@ reaper: &reaper
 
 warnings.sanction.scalestasis: &warnings.sanction.scalestasis
   _name: warnings.sanction.scalestasis
-  _desc: |
+  _desc: >
     Adds stasis to the user according to the quadratic expression ax^2 + bx + c, where x is the number of active
     warning points the user has.
   _type: dict
   _default:
     a:
+      _desc: Quadradic scaling factor
       _type: int
       _default: 0
     b:
+      _desc: Linear scaling factor
       _type: int
       _default: 1
     c:
+      _desc: Constant scaling factor
       _type: int
       _default: 0
 
@@ -1233,20 +1251,18 @@ warnings.sanction: &warnings.sanction
       _type: int
     stasis:
       _desc: If defined, adds this many games of stasis to the user.
-      _type:
-        - int
-        - "null"
+      _type: int
+      _nullable: true
       _default: null
     scalestasis:
-      _desc: |
+      _desc: >
         If defined, adds this many games of stasis to the user according to the supplied formula,
         which is passed the total number of active warning points the user has as input.
-      _type:
-        - *warnings.sanction.scalestasis
-        - "null"
+      _type: *warnings.sanction.scalestasis
+      _nullable: true
       _default: null
     tempban:
-      _desc: |
+      _desc: >
         If defined, temporarily bans the user from the channel. It can be an integer x, in which case the user is
         banned until enough warnings expire for them to bring them down to x active warning points or below.
         It can also be a string, which defines a length of time to ban the user for. The string should be a number
@@ -1254,23 +1270,22 @@ warnings.sanction: &warnings.sanction
       _type:
         - int
         - str
-        - "null"
+      _nullable: true
       _default: null
     deny:
-      _desc: |
+      _desc: >
         If defined, prevents the user from using this list of commands. The strings in the list should be the internal
         command names, not a localized version. Denying access to a command also denies access to all aliases of
         that command.
-      _type:
-        - list
-        - "null"
+      _type: list
+      _nullable: true
       _default: null
       _items:
         _type: str
 
 warnings: &warnings
   _name: warnings
-  _desc: |
+  _desc: >
     The warnings section defines the warning track in which users will automatically accumulate sactions.
     Sanctions can be manually applied to warnings as well.
   _type: dict
@@ -1280,7 +1295,7 @@ warnings: &warnings
       _type: str
       _default: 30d
     sanctions:
-      _desc: |
+      _desc: >
         The automatic sanction track. Defining your own track will overwrite the default one.
         Each entry in the track defines a threshold and sanctions, see the warnings.sanction type
         documentation for more information. These must be defined in order.
@@ -1308,54 +1323,62 @@ telemetry: &telemetry
   _type: dict
   _default:
     errors:
-      _desc: |
+      _desc: >
         When an error occurs, we automatically send error details to the developers. You can control
         what data is sent. By default, we respect the privacy of you and your users and send only a bare minimum
         of data that fully anonymizes your users. We do not officially support opting out of sending error telemetry.
       _type: dict
       _default:
         traceback_verbosity:
-          _desc: |
+          _desc: >
             Whether or not information about variable values is sent along with the error details.
             This can be one of the following values:
+
             * 0: Do not send any variable information along with the error message.
+
             * 1: Send variable information for the innermost stack frame along with the error message.
+
             * 2 or higher: Send variable information for all stack frames along with the error message.
           _type: int
           _default: 0
         user_data_level:
-          _desc: |
+          _desc: >
             How much data about the users is exposed in variable information and the traceback message.
             This can be one of the following values:
+
             * 0: Fully anonymize users.
+
             * 1: Expose the user's display name only.
+
             * 2 or more: Expose all details about the user (display name, account, channel membership, etc.).
           _type: int
           _default: 0
         channel_data_level:
-          _desc: |
+          _desc: >
             How much data about channels is exposed in variable information and the traceback message.
             This can be one of the following values:
+
             * 0: Fully anonymize channels.
+
             * 1 or more: Expose the channel's name.
           _type: int
           _default: 0
     usage:
-      _desc: |
+      _desc: >
         Send data about various aspects of the bot's usage, to help lykos developers better understand
         how various bots are being used in the wild. This data helps focus efforts for feature development
         and environment support.
       _type: dict
       _default:
         game_data:
-          _desc: |
+          _desc: >
             If true, sends information about game mode, game size, winner, and settings that impact
             gameplay. No data about the players themselves is sent. This data helps the developers
             better evaluate and tweak balance for game modes.
           _type: bool
           _default: false
         environment_data:
-          _desc: |
+          _desc: >
             If true, sends information about the environment the bot is running on, including OS version,
             python version, and versions of all pip dependencies. This data helps the developers better
             evaluate what versions of things will be supported and when to drop support for older things.
@@ -1364,13 +1387,13 @@ telemetry: &telemetry
 
 debug: &debug
   _name: debug
-  _desc: |
+  _desc: >
     This section defines special handling that aids in debugging the bot. Debug mode should '''not'''
     be enabled during the course of normal bot operation.
   _type: dict
   _default:
     enabled:
-      _desc: |
+      _desc: >
         Whether or not debug mode is enabled. This will enable a variety of commands that aid in debugging.
         If disabled, none of the other options in this section have any effect.
       _type: bool
@@ -1380,7 +1403,7 @@ debug: &debug
       _type: dict
       _default:
         nothrow:
-          _desc: |
+          _desc: >
             If true, most errors in the messages system will be sent to the client instead of causing the
             bot to log an error and interrupt execution of the current routine. If working on translations, it
             is recommended to enable this at first while ironing out the bulk of issues, then leave it
@@ -1406,7 +1429,7 @@ debug: &debug
       _type: dict
       _default:
         timelord:
-          _desc: |
+          _desc: >
             Whether or not time lord will reduce timers when they die. If false, we still play the message
             and otherwise pretend that timers were reduced, but do not actually modify the timers.
           _type: bool

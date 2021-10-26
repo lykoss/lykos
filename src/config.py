@@ -232,6 +232,11 @@ class Config:
                     cur[key_part] = new
                 cur = cur[key_part]
 
+    @property
+    def metadata(self):
+        return self._metadata
+
+
 Main = Config()
 
 def merge(metadata: dict[str, Any], base, settings, *path: str,
@@ -264,6 +269,32 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
     merge_type = metadata.get("_merge", None)
     if strategy_override is not None:
         merge_type = strategy_override
+
+    nullable = metadata.get("_nullable", False)
+    if nullable:
+        if settings is None:
+            return settings
+        elif settings is Empty and base is not Empty:
+            return base
+        elif settings is Empty and base is Empty:
+            if "_default" not in metadata:
+                raise TypeError("Value for path '{}' is required".format(".".join(path)))
+            return metadata["_default"]
+
+    ctors = metadata.get("_ctors", [])
+    if ctors:
+        assert settings_type == "dict" and "_default" in metadata
+    if ctors and not isinstance(settings, dict):
+        for ctor in ctors:
+            # if a constructor fits our current data type, we'll merge that
+            # into the default object and return it
+            set_metadata = metadata["_default"][ctor["_set"]]
+            assert ctor["_type"] == set_metadata["_type"]
+            try:
+                value = {ctor["_set"]: merge(set_metadata, Empty, settings, *path, ctor["_set"])}
+                return merge(metadata, base, value, *path, strategy_override="replace")
+            except TypeError:
+                continue
 
     if settings_type == "str":
         if settings is not Empty and not isinstance(settings, str):
@@ -378,23 +409,6 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
             if isinstance(base, float):
                 value = min(value, base)
             return value
-
-    elif settings_type == "null":
-        if settings is not Empty and settings is not None:
-            raise TypeError("Expected type NoneType for path '{}', got {} instead".format(".".join(path), type(settings)))
-        # NoneType supports one merge type: replace
-        if merge_type is None:
-            merge_type = "replace"
-        assert merge_type in ("replace",)
-
-        if settings is not Empty:
-            return settings
-        elif base is not Empty:
-            return base
-        elif "_default" not in metadata:
-            raise TypeError("Value for path '{}' is required".format(".".join(path)))
-        else:
-            return metadata["_default"]
 
     elif settings_type == "enum":
         if settings is not Empty and not isinstance(settings, str):
@@ -514,7 +528,7 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
         if settings is not Empty and not isinstance(settings, dict):
             raise TypeError("Expected type dict for path '{}', got {} instead".format(".".join(path), type(settings)))
         assert "_tags" in metadata
-        # tagged types don't have a default
+        # non-nullable tagged types don't have a default; nullable default already handled above
         if settings is Empty and base is Empty:
             raise TypeError("Value for path '{}' is required".format(".".join(path)))
         elif settings is Empty:

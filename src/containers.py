@@ -298,10 +298,6 @@ class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
                 self.popitem() # don't clear, as it's recursive (we might not want that)
             raise
 
-    def __str__(self):
-        vars = ["{0}: {1}".format(x, y) for x, y in self.items()]
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
-
     def __format__(self, format_spec=""):
         if format_spec == "for_tb":
             # we don't know if the keys, the values, or both are Users or other user containers, so try all 3...

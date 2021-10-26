@@ -133,8 +133,9 @@ class IRCContext:
 
     _messages = defaultdict(list)
     _initialized = False
+    _prefix = ""
 
-    def __init__(self, name: str, client: IRCClient):
+    def __init__(self, name: str, client: IRCClient, prefix: str = ""):
         # __init__ is called twice during the construction of a new User;
         # once explicitly during __new__ and once implicitly after __new__.
         # We don't want the implicit run to modify anything, so no-op during it.
@@ -143,6 +144,7 @@ class IRCContext:
             self.client = client
             self.ref = None
             self._initialized = True
+            self._prefix = prefix
 
     def __format__(self, format_spec):
         if not format_spec:
@@ -280,12 +282,20 @@ class IRCContext:
 
         name = self.name
         if prefix is not None:
+            # any prefix sent with the send() call overrides a prefix defined upon context creation;
+            # an empty string prefix can be sent to force the send to be prefix-less
             name = prefix + name
+        else:
+            name = self.prefix + name
         if first is None:
             first = ""
         if sep is None:
             sep = " "
         _send(new, first, sep, self.client, send_type, name, send_chan)
+
+    @property
+    def prefix(self):
+        return self._prefix
 
 class IRCFeatures:
     """Class to store features that the ircd supports."""

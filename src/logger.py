@@ -145,13 +145,13 @@ def init():
             if not log["handler"]["rotate"]:
                 cls = FileHandler
                 kwargs = {}
-            elif log["handler"]["rotate"].get("max_bytes", None):
+            elif log["handler"]["rotate"]["type"] == "bytes":
                 cls = RotatingFileHandler
                 kwargs = {
                     "maxBytes": log["handler"]["rotate"]["max_bytes"],
                     "backupCount": log["handler"]["rotate"]["backup_count"]
                 }
-            elif log["handler"]["rotate"].get("when", None):
+            elif log["handler"]["rotate"]["type"] == "timed":
                 cls = TimedRotatingFileHandler
                 kwargs = {
                     "when": log["handler"]["rotate"]["when"],
