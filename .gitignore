@@ -12,8 +12,8 @@ __pycache__/
 .mypy_cache/
 
 # Config files
-botconfig.py
-/gamemodes.py
+botconfig.*
+!botconfig.example.yml
 /messages.json
 /gamemodes/*.py
 /roles/*.py

@@ -1,47 +1,52 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 import sys
 from collections import defaultdict
+from typing import Optional
 
-from src import debuglog, errlog, plog, users, channels
-from src.decorators import command, event_listener
+from src import users, channels, trans, config
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import in_misdirection_scope
-from src.events import Event
+from src.gamestate import GameState
+from src.events import Event, event_listener
+from src.users import User
 from src.roles.helper.wolves import register_wolf, get_wolfchat_roles
 from src.cats import All, Wolf
 
 register_wolf("traitor")
 
 @event_listener("get_reveal_role")
-def on_get_reveal_role(evt, var, user):
+def on_get_reveal_role(evt: Event, var: GameState, user: User):
     # in team reveal, show traitor as wolfteam, otherwise team stats won't sync with how
     # they're revealed upon death. Team stats should show traitor as wolfteam or else
     # the stats are wrong in that they'll report one less wolf than actually exists,
     # which can confuse a lot of people
-    if evt.data["role"] == "traitor" and var.HIDDEN_TRAITOR and var.ROLE_REVEAL != "team":
-        evt.data["role"] = var.HIDDEN_ROLE
+    if evt.data["role"] == "traitor" and config.Main.get("gameplay.hidden.traitor") and var.role_reveal != "team":
+        evt.data["role"] = var.hidden_role
 
 @event_listener("get_final_role")
-def on_get_final_role(evt, var, user, role):
+def on_get_final_role(evt: Event, var: GameState, user: User, role: str):
     # if a traitor turns we want to show them as traitor in the end game readout
     # instead of "wolf (was traitor)"
     if role == "traitor" and evt.data["role"] == "wolf":
         evt.data["role"] = "traitor"
 
 @event_listener("update_stats", priority=1)
-def on_update_stats1(evt, var, player, mainrole, revealrole, allroles):
-    if mainrole == var.HIDDEN_ROLE and var.HIDDEN_TRAITOR:
+def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
+    if mainrole == var.hidden_role and config.Main.get("gameplay.hidden.traitor"):
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)
-def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
+def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
-    wolfchat = get_wolfchat_roles(var)
+    wolfchat = get_wolfchat_roles()
     if evt.params.reason != "night_death":
         # a chained death, someone dying during day, or someone idling out
         # either way, traitor can die here
@@ -60,7 +65,7 @@ def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
         # luck/misdirection totems are in play, a wolf kill could have bounced to traitor anyway
         return
 
-    if var.PHASE == "day" and var.GAMEPHASE == "night":
+    if var.current_phase == "day" and var.in_phase_transition:
         mevt = Event("get_role_metadata", {})
         mevt.dispatch(var, "night_kills")
         nonwolf = 0
@@ -77,27 +82,26 @@ def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
 @event_listener("chk_win", priority=1.1)
-def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
     did_something = False
     if lrealwolves == 0:
         for traitor in list(rolemap["traitor"]):
-            var.NIGHT_IDLE_EXEMPT.add(traitor) # if they turn during night, don't give them idle warnings
+            trans.NIGHT_IDLE_EXEMPT.add(traitor) # if they turn during night, don't give them idle warnings
             rolemap["wolf"].add(traitor)
             rolemap["traitor"].remove(traitor)
             if "cursed villager" in rolemap:
                 rolemap["cursed villager"].discard(traitor)
             mainroles[traitor] = "wolf"
             did_something = True
-            if var.PHASE in var.GAME_PHASES:
-                var.FINAL_ROLES[traitor] = "wolf"
+            if var.in_game:
+                var.final_roles[traitor] = "wolf"
                 traitor.send(messages["traitor_turn"])
-                debuglog(traitor, "(traitor) TURNING")
     if did_something:
-        if var.PHASE in var.GAME_PHASES:
+        if var.in_game:
             channels.Main.send(messages["traitor_turn_channel"])
             # fix !stats to show that traitor turned as well
             newstats = set()
-            for rs in var.ROLE_STATS:
+            for rs in var.get_role_stats():
                 d = dict(rs)
                 # traitor count of 0 is not possible since we for-sure turned traitors into wolves earlier
                 # as such, exclude such cases from newstats entirely.
@@ -115,12 +119,12 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
                             d["amnesiac"] -= 1
                             newstats.add(frozenset(d.items()))
 
-            var.ROLE_STATS = frozenset(newstats)
+            var.set_role_stats(newstats)
 
         evt.prevent_default = True
         evt.stop_processing = True
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["traitor"] = {"Wolfchat", "Wolfteam", "Wolf Objective"}

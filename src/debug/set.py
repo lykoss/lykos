@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from typing import Generic, Iterator, TypeVar, Optional, Set
+from typing import Generic, Iterator, TypeVar, Optional
 import collections.abc
-import botconfig  # type: ignore
+from src import config
 from src.debug.history import History
 
 __all__ = ["CheckedSet"]
 
 T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
 
-class CheckedSet(collections.abc.MutableSet, Generic[T_co]):
+class CheckedSet(collections.abc.MutableSet, Generic[T]):
     """ Set container with additional features to aid in debugging.
 
     Common mutation methods are exposed to more easily set breakpoints,
@@ -19,7 +18,7 @@ class CheckedSet(collections.abc.MutableSet, Generic[T_co]):
     """
 
     def __new__(cls, name: str, iterable: Optional[Iterator[T]] = None):
-        if not botconfig.DEBUG_MODE:
+        if not config.Main.get("debug.enabled"):
             if iterable is None:
                 return set()
             else:
@@ -30,7 +29,7 @@ class CheckedSet(collections.abc.MutableSet, Generic[T_co]):
     def __init__(self, name: str, iterable: Optional[Iterator[T]] = None):
         self._history = History(name)
         if iterable is None:
-            self._set: Set[T] = set()
+            self._set: set[T] = set()
         else:
             self._set = set(iterable)
 

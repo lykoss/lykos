@@ -3,28 +3,36 @@ from __future__ import annotations
 import re
 import random
 import itertools
+import typing
 import math
 from collections import defaultdict
 
-from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
+from src.trans import chk_win
 from src.status import try_misdirection, try_exchange, add_absent
+
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from typing import Optional
 
 PRIESTS = UserSet()
 
 @command("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def bless(var, wrapper, message):
+def bless(wrapper: MessageDispatcher, message: str):
     """Bless a player, preventing them from being killed for the remainder of the game."""
     if wrapper.source in PRIESTS:
         wrapper.pm(messages["already_blessed"])
         return
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
+    var = wrapper.game_state
+
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
     if not target:
         return
 
@@ -33,21 +41,21 @@ def bless(var, wrapper, message):
         return
 
     PRIESTS.add(wrapper.source)
-    var.ROLES["blessed villager"].add(target)
+    var.roles["blessed villager"].add(target)
     wrapper.pm(messages["blessed_success"].format(target))
     target.send(messages["blessed_notify_target"])
-    debuglog("{0} (priest) BLESS: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def consecrate(var, wrapper, message):
+def consecrate(wrapper: MessageDispatcher, message: str):
     """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
-    alive = get_players()
+    var = wrapper.game_state
+    alive = get_players(var)
     targ = re.split(" +", message)[0]
     if not targ:
         wrapper.pm(messages["not_enough_parameters"])
         return
 
-    dead = set(var.ALL_PLAYERS) - set(alive)
+    dead = set(var.players) - set(alive)
     target = users.complete_match(targ, dead)
     if not target:
         wrapper.pm(messages["consecrate_fail"].format(targ))
@@ -63,24 +71,22 @@ def consecrate(var, wrapper, message):
     evt.dispatch(var, wrapper.source, target)
 
     wrapper.pm(messages["consecrate_success"].format(target))
-    debuglog("{0} (priest) CONSECRATE: {1}".format(wrapper.source, target))
     add_absent(var, wrapper.source, "consecrating")
     from src.votes import chk_decision
-    from src.wolfgame import chk_win
-    if not chk_win():
+    if not chk_win(var):
         # game didn't immediately end due to marking as absent, see if we should force through a lynch
         chk_decision(var)
 
 @event_listener("send_role")
-def on_send_role(evt, var):
-    for priest in get_all_players(("priest",)):
+def on_send_role(evt: Event, var: GameState):
+    for priest in get_all_players(var, ("priest",)):
         priest.send(messages["priest_notify"])
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     PRIESTS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["priest"] = {"Village", "Safe", "Innocent"}

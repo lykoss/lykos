@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from types import SimpleNamespace
-from typing import Callable, Dict, List, Optional
-EVENT_CALLBACKS: Dict[str, List[EventListener]] = defaultdict(list)
+from typing import Callable, Optional, Any
+from src.debug import handle_error
 
-__all__ = ["find_listener", "Event", "EventListener"]
+__all__ = ["find_listener", "event_listener", "Event", "EventListener"]
+EVENT_CALLBACKS: dict[str, list[EventListener]] = defaultdict(list)
 
 class EventListener:
     def __init__(self, callback: Callable, *, listener_id: Optional[str] = None, priority: float = 5):
@@ -53,8 +54,37 @@ def find_listener(event: str, listener_id: str) -> EventListener:
             return evt
     raise Exception("Could not find listener with id {0}".format(listener_id))
 
+class event_listener:
+    def __init__(self, event, priority=5, listener_id=None):
+        self.event = event
+        self.priority = priority
+        self.func: Optional[Callable] = None
+        self.listener_id = listener_id
+        self.listener: Optional[EventListener] = None
+
+    def __call__(self, *args, **kwargs):
+        if self.func is None:
+            func = args[0]
+            if isinstance(func, event_listener):
+                func = func.func
+            if self.listener_id is None:
+                self.listener_id = func.__qualname__
+                # always prefix with module for disambiguation if possible
+                if func.__module__ is not None:
+                    self.listener_id = func.__module__ + "." + self.listener_id
+            self.func = handle_error(func)
+            self.listener = EventListener(self.func, priority=self.priority, listener_id=self.listener_id)
+            self.listener.install(self.event)
+            self.__doc__ = self.func.__doc__
+            return self
+        else:
+            return self.func(*args, **kwargs)
+
+    def remove(self):
+        self.listener.remove(self.event)
+
 class Event:
-    def __init__(self, _name, _data, **kwargs):
+    def __init__(self, _name: str, _data: dict[str, Any], **kwargs):
         self.stop_processing = False
         self.prevent_default = False
         self.name = _name

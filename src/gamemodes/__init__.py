@@ -1,23 +1,148 @@
+from __future__ import annotations
+
 # Imports all gamemode definitions
 import os.path
 import glob
 import importlib
-import src.settings as var
+from typing import Optional
 from src.messages import messages
+from src.gamestate import GameState
 from src.events import Event, EventListener
+from src.users import User
 from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
-__all__ = ["InvalidModeException", "game_mode", "import_builtin_modes" "GameMode"]
+__all__ = ["InvalidModeException", "game_mode", "import_builtin_modes", "GameMode", "GAME_MODES"]
 
 class InvalidModeException(Exception):
     pass
 
-def game_mode(name, minp, maxp, likelihood=0):
-    def decor(c):
-        c.name = name
-        var.GAME_MODES[name] = (c, minp, maxp, likelihood)
-        return c
-    return decor
+class CustomSettings:
+    def __init__(self):
+        self._overridden = set()
+        self._abstain_enabled: Optional[bool] = None
+        self._limit_abstain: Optional[bool] = None
+        self.self_lynch_allowed: bool = True
+        self.default_role: str = "villager"
+        self.hidden_role: str = "villager"
+        self.start_with_day: bool = False
+        self.always_pm_role: bool = False
+        self._role_reveal: Optional[str] = None # on/off/team
+        self._stats_type: Optional[str] = None # default/accurate/team/disabled
+
+        self._day_time_limit: Optional[int] = None
+        self._day_time_warn: Optional[int] = None
+        self._short_day_time_limit: Optional[int] = None
+        self._short_day_time_warn: Optional[int] = None
+        self._night_time_limit: Optional[int] = None
+        self._night_time_warn: Optional[int] = None
+
+    @property
+    def abstain_enabled(self) -> bool:
+        if self._abstain_enabled is None:
+            return True
+        return self._abstain_enabled
+
+    @abstain_enabled.setter
+    def abstain_enabled(self, value: bool):
+        if "abstain_enabled" in self._overridden:
+            return
+        self._abstain_enabled = value
+
+    @property
+    def limit_abstain(self) -> bool:
+        if self._limit_abstain is None:
+            return True
+        return self._limit_abstain
+
+    @limit_abstain.setter
+    def limit_abstain(self, value: bool):
+        if "limit_abstain" in self._overridden:
+            return
+        self._limit_abstain = value
+
+    @property
+    def role_reveal(self) -> str:
+        if self._role_reveal is None:
+            return "on"
+        return self._role_reveal
+
+    @role_reveal.setter
+    def role_reveal(self, value: str):
+        if "role_reveal" in self._overridden:
+            return
+        self._role_reveal = value
+
+    @property
+    def stats_type(self) -> str:
+        if self._stats_type is None:
+            return "default"
+        return self._stats_type
+
+    @stats_type.setter
+    def stats_type(self, value: str):
+        if "stats_type" in self._overridden:
+            return
+        self._stats_type = value
+
+    @property
+    def day_time_limit(self) -> int:
+        if self._day_time_limit is not None:
+            return self._day_time_limit
+        raise AttributeError("day_time_limit")
+
+    @day_time_limit.setter
+    def day_time_limit(self, value: int):
+        self._day_time_limit = value
+
+    @property
+    def day_time_warn(self) -> int:
+        if self._day_time_warn is not None:
+            return self._day_time_warn
+        raise AttributeError("day_time_warn")
+
+    @day_time_warn.setter
+    def day_time_warn(self, value: int):
+        self._day_time_warn = value
+
+    @property
+    def short_day_time_limit(self) -> int:
+        if self._short_day_time_limit is not None:
+            return self._short_day_time_limit
+        raise AttributeError("short_day_time_limit")
+
+    @short_day_time_limit.setter
+    def short_day_time_limit(self, value: int):
+        self._short_day_time_limit = value
+
+    @property
+    def short_day_time_warn(self) -> int:
+        if self._short_day_time_warn is not None:
+            return self._short_day_time_warn
+        raise AttributeError("short_day_time_warn")
+
+    @short_day_time_warn.setter
+    def short_day_time_warn(self, value: int):
+        self._short_day_time_warn = value
+
+    @property
+    def night_time_limit(self) -> int:
+        if self._night_time_limit is not None:
+            return self._night_time_limit
+        raise AttributeError("night_time_limit")
+
+    @night_time_limit.setter
+    def night_time_limit(self, value: int):
+        self._night_time_limit = value
+
+    @property
+    def night_time_warn(self) -> int:
+        if self._night_time_warn is not None:
+            return self._night_time_warn
+        raise AttributeError("night_time_warn")
+
+    @night_time_warn.setter
+    def night_time_warn(self, value: int):
+        self._night_time_warn = value
 
 def import_builtin_modes():
     path = os.path.dirname(os.path.abspath(__file__))
@@ -45,8 +170,12 @@ class GameMode:
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
         self.NUM_TOTEMS = {}
+        self.GUN_CHANCES = {}
 
         self.EVENTS = {}
+        self.ROLE_GUIDE = {}
+
+        self.CUSTOM_SETTINGS = CustomSettings()
 
         # Support all shamans and totems
         # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
@@ -83,26 +212,29 @@ class GameMode:
             if key == "role reveal":
                 if val not in ("on", "off", "team"):
                     raise InvalidModeException(messages["invalid_reveal"].format(val))
-                self.ROLE_REVEAL = val
-                if val == "off" and not hasattr(self, "STATS_TYPE"):
-                    self.STATS_TYPE = "disabled"
-                elif val == "team" and not hasattr(self, "STATS_TYPE"):
-                    self.STATS_TYPE = "team"
+                self.CUSTOM_SETTINGS.role_reveal = val
+                self.CUSTOM_SETTINGS._overridden.add("role_reveal")
+                if val == "off":
+                    self.CUSTOM_SETTINGS.stats_type = "disabled"
+                elif val == "team":
+                    self.CUSTOM_SETTINGS.stats_type = "team"
             elif key == "stats":
                 if val not in ("default", "accurate", "team", "disabled"):
                     raise InvalidModeException(messages["invalid_stats"].format(val))
-                self.STATS_TYPE = val
+                self.CUSTOM_SETTINGS.stats_type = val
+                self.CUSTOM_SETTINGS._overridden.add("stats_type")
             elif key == "abstain":
-                if val not in ("enabled", "restricted", "disabled"):
-                    raise InvalidModeException(messages["invalid_abstain"].format(val))
                 if val == "enabled":
-                    self.ABSTAIN_ENABLED = True
-                    self.LIMIT_ABSTAIN = False
+                    self.CUSTOM_SETTINGS.abstain_enabled = True
+                    self.CUSTOM_SETTINGS.limit_abstain = False
                 elif val == "restricted":
-                    self.ABSTAIN_ENABLED = True
-                    self.LIMIT_ABSTAIN = True
+                    self.CUSTOM_SETTINGS.abstain_enabled = True
+                    self.CUSTOM_SETTINGS.limit_abstain = True
                 elif val == "disabled":
-                    self.ABSTAIN_ENABLED = False
+                    self.CUSTOM_SETTINGS.abstain_enabled = False
+                else:
+                    raise InvalidModeException(messages["invalid_abstain"].format(val))
+                self.CUSTOM_SETTINGS._overridden.update(("abstain_enabled", "limit_abstain"))
 
     def startup(self):
         for event, listeners in self.EVENTS.items():
@@ -134,12 +266,12 @@ class GameMode:
                     chances[role] = value
 
     # Here so any game mode can use it
-    def lovers_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def lovers_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
         winner = evt.data["winner"]
         if winner in Win_Stealer:
             return # fool won, lovers can't win even if they would
         from src.roles.matchmaker import get_lovers
-        all_lovers = get_lovers()
+        all_lovers = get_lovers(var)
         if len(all_lovers) != 1:
             return # we need exactly one cluster alive for this to trigger
 
@@ -149,7 +281,31 @@ class GameMode:
             evt.data["winner"] = "lovers"
             evt.data["message"] = messages["lovers_win"]
 
-    def all_dead_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def all_dead_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
+
+    def custom_gun_chances(self, evt: Event, var: GameState, player: User, role: str):
+        if role in self.GUN_CHANCES:
+            for key, value in self.GUN_CHANCES[role].items():
+                evt.data[key] += value
+
+GAME_MODES: dict[str, tuple[GameMode, int, int, int]] = {}
+
+def game_mode(name: str, minp: int, maxp: int, likelihood: int = 0):
+    def decor(c: GameMode):
+        c.name = name
+        GAME_MODES[name] = (c, minp, maxp, likelihood)
+        return c
+    return decor
+
+path = os.path.dirname(os.path.abspath(__file__))
+search = os.path.join(path, "*.py")
+
+for f in glob.iglob(search):
+    f = os.path.basename(f)
+    n, _ = os.path.splitext(f)
+    if f.startswith("_"):
+        continue
+    importlib.import_module("." + n, package="src.gamemodes")

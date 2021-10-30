@@ -3,11 +3,12 @@ from __future__ import annotations
 import sys
 from collections import defaultdict, OrderedDict
 from operator import attrgetter
-from typing import Dict, Any, ClassVar, List, Set, Optional, Tuple
+from typing import Any, Optional
+import logging
 
-import src.settings as var # FIXME
 from src.messages.message import Message
-from src.logger import debuglog
+from src import config
+from oyoyo.client import IRCClient
 
 class _NotLoggedIn:
     def __copy__(self):
@@ -94,7 +95,7 @@ def _send(data, first, sep, client, send_type, name, chan=None):
             extra, line = line[:length], line[length:]
             client.send("{0} {1} {4}:{2}{3}".format(send_type, name, first, extra, chan))
 
-def lower(nick, *, casemapping=None):
+def lower(nick: Optional[str | IRCContext], *, casemapping: Optional[str] = None):
     if nick is None or nick is NotLoggedIn:
         return nick
     if isinstance(nick, IRCContext):
@@ -116,30 +117,34 @@ def lower(nick, *, casemapping=None):
 
     return nick.lower().translate(str.maketrans(mapping))
 
-def equals(nick1, nick2):
+def equals(nick1: Optional[str | IRCContext], nick2: Optional[str | IRCContext]):
     return nick1 is not None and nick2 is not None and lower(nick1) == lower(nick2)
 
-def context_types(*types):
-    def wrapper(cls):
-        cls._getters = l = []
-        cls.is_fake = False
-        for context_type in types:
-            name = "is_" + context_type
-            setattr(cls, name, False)
-            l.append((context_type, attrgetter(name)))
-        return cls
-    return wrapper
-
-@context_types("channel", "user")
 class IRCContext:
     """Base class for channels and users."""
 
-    _messages = defaultdict(list)
+    is_fake = False
+    is_channel = False
+    is_user = False
 
-    def __init__(self, name, client):
-        self.name = name
-        self.client = client
-        self.ref = None
+    name: str
+    client: IRCClient
+    ref: Optional[IRCContext]
+
+    _messages = defaultdict(list)
+    _initialized = False
+    _prefix = ""
+
+    def __init__(self, name: str, client: IRCClient, prefix: str = ""):
+        # __init__ is called twice during the construction of a new User;
+        # once explicitly during __new__ and once implicitly after __new__.
+        # We don't want the implicit run to modify anything, so no-op during it.
+        if not self._initialized:
+            self.name = name
+            self.client = client
+            self.ref = None
+            self._initialized = True
+            self._prefix = prefix
 
     def __format__(self, format_spec):
         if not format_spec:
@@ -211,8 +216,8 @@ class IRCContext:
         context_type = []
         if cls.is_fake:
             context_type.append("fake")
-        for name, getter in cls._getters:
-            if getter(cls):
+        for name in ("channel", "user"):
+            if getattr(cls, "is_" + name):
                 context_type.append(name)
 
         final = " ".join(context_type)
@@ -237,12 +242,12 @@ class IRCContext:
         return _who(self.client, self.name, data)
 
     def use_cprivmsg(self, send_type):
-        if not self.is_user or var.DISABLE_CPRIVMSG: # FIXME: uses var
+        if not self.is_user or config.Main.get("transports[0].features.cprivmsg") is False:
             return send_type, None
 
         # check if bot is opped in any channels shared with this user
         from src import users
-        cprivmsg_eligible = None # type: Optional[IRCContext]
+        cprivmsg_eligible: Optional[IRCContext] = None
         op_modes = set()
         for status, mode in Features.PREFIX.items():
             op_modes.add(mode)
@@ -267,7 +272,9 @@ class IRCContext:
             new.append(line)
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
-            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(new)))
+            transport_name = config.Main.get("transports[0].name")
+            logger = logging.getLogger("transport.{}.fake".format(transport_name))
+            logger.debug("Would message {0} {1}: {2!r}", self.get_context_type(), self.name, " ".join(new))
             return
 
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
@@ -275,12 +282,20 @@ class IRCContext:
 
         name = self.name
         if prefix is not None:
+            # any prefix sent with the send() call overrides a prefix defined upon context creation;
+            # an empty string prefix can be sent to force the send to be prefix-less
             name = prefix + name
+        else:
+            name = self.prefix + name
         if first is None:
             first = ""
         if sep is None:
             sep = " "
         _send(new, first, sep, self.client, send_type, name, send_chan)
+
+    @property
+    def prefix(self):
+        return self._prefix
 
 class IRCFeatures:
     """Class to store features that the ircd supports."""
@@ -288,7 +303,7 @@ class IRCFeatures:
     # even if we don't have a property that directly exposes it. A bot operator writing custom code can use
     # the generic get() and set() methods to retrieve and manipulate those values.
     # Note: we store whatever the ircd tells us, but normalize return values to what the bot expects
-    _features = {} # type: Dict[str, Any]
+    _features: dict[str, Any] = {}
 
     # RPL_ISUPPORT tokens
 
@@ -304,7 +319,7 @@ class IRCFeatures:
         self._features["CASEMAPPING"] = value
 
     @property
-    def CHANLIMIT(self) -> Dict[str, int]:
+    def CHANLIMIT(self) -> dict[str, int]:
         limits = self._features.get("CHANLIMIT", {})
         value = {}
         for t in self.CHANTYPES:
@@ -327,7 +342,7 @@ class IRCFeatures:
                 self._features["CHANLIMIT"][prefix] = limit
 
     @property
-    def CHANMODES(self) -> Tuple[str, str, str, str]:
+    def CHANMODES(self) -> tuple[str, str, str, str]:
         modes = self._features.get("CHANMODES", [])
         while len(modes) < 4:
             modes.append("")
@@ -338,7 +353,7 @@ class IRCFeatures:
         self._features["CHANMODES"] = value.split(",")
 
     @property
-    def CHANTYPES(self) -> Set[str]:
+    def CHANTYPES(self) -> set[str]:
         return self._features.get("CHANTYPES", set())
 
     @CHANTYPES.setter
@@ -380,7 +395,7 @@ class IRCFeatures:
         self._features["EXCEPTS"] = value
 
     @property
-    def EXTBAN(self) -> Tuple[Optional[str], str]:
+    def EXTBAN(self) -> tuple[Optional[str], str]:
         return self._features.get("EXTBAN", (None, ""))
 
     @EXTBAN.setter
@@ -402,7 +417,7 @@ class IRCFeatures:
         self._features["INVEX"] = value
 
     @property
-    def MAXLIST(self) -> Dict[str, int]:
+    def MAXLIST(self) -> dict[str, int]:
         limits = self._features.get("MAXLIST", {})
         value = {}
         for t in self.CHANMODES[0]:
@@ -449,7 +464,7 @@ class IRCFeatures:
             self._features["PREFIX"][prefixes[i]] = modes[i]
 
     @property
-    def STATUSMSG(self) -> Set[str]:
+    def STATUSMSG(self) -> set[str]:
         value = self._features.get("STATUSMSG", set())
         return value & self.PREFIX.keys()
 
@@ -603,7 +618,7 @@ class IRCFeatures:
 class IRCTargMaxFeature:
     def __init__(self, features: IRCFeatures, value: Optional[str] = None):
         self._features = features
-        self._commands = {} # type: Dict[str, int]
+        self._commands: dict[str, int] = {}
 
     def __getitem__(self, item: str) -> int:
         item = item.lower()

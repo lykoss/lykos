@@ -7,9 +7,10 @@ from src.messages import messages
 from src.containers import UserList, UserDict
 from src.decorators import command, handle_error
 from src.functions import get_players, change_role
+from src.gamestate import GameState
 from src.status import add_dying
-from src.events import EventListener
-from src import channels
+from src.events import EventListener, Event
+from src import channels, locks
 
 @game_mode("sleepy", minp=10, maxp=24, likelihood=5)
 class SleepyMode(GameMode):
@@ -78,27 +79,27 @@ class SleepyMode(GameMode):
         self.start_direction.clear()
         self.on_path.clear()
 
-    def dullahan_targets(self, evt, var, dullahan, max_targets):
-        evt.data["targets"].update(var.ROLES["priest"])
+    def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
+        evt.data["targets"].update(var.roles["priest"])
 
-    def setup_nightmares(self, evt, var):
-        pl = get_players()
+    def setup_nightmares(self, evt: Event, var: GameState):
+        pl = get_players(var)
         for i in range(self.NIGHTMARE_MAX):
             if not pl:
                 break
             if random.random() < self.NIGHTMARE_CHANCE:
-                with var.WARNING_LOCK:
+                with locks.join_timer:
                     target = random.choice(pl)
                     pl.remove(target)
-                    t = threading.Timer(60, self.do_nightmare, (var, target, var.NIGHT_COUNT))
+                    t = threading.Timer(60, self.do_nightmare, (var, target, var.night_count))
                     t.daemon = True
                     t.start()
 
     @handle_error
-    def do_nightmare(self, var, target, night):
-        if var.PHASE != "night" or var.NIGHT_COUNT != night:
+    def do_nightmare(self, var: GameState, target, night):
+        if var.current_phase != "night" or var.night_count != night:
             return
-        if target not in get_players():
+        if target not in get_players(var):
             return
         self.having_nightmare.append(target)
         target.send(messages["sleepy_nightmare_begin"])
@@ -170,7 +171,7 @@ class SleepyMode(GameMode):
                 self.prev_direction[target] = self.start_direction[target]
                 self.nightmare_step(target)
 
-    def move(self, direction, var, wrapper, message):
+    def move(self, direction, wrapper, message):
         opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
         target = wrapper.source
         if self.prev_direction[target] == opposite[direction]:
@@ -203,16 +204,16 @@ class SleepyMode(GameMode):
             wrapper.pm(messages["sleepy_nightmare_restart"])
         self.nightmare_step(target)
 
-    def prolong_night(self, evt, var):
+    def prolong_night(self, evt: Event, var: GameState):
         evt.data["nightroles"].extend(self.having_nightmare)
 
-    def on_night_idled(self, evt, var, player):
+    def on_night_idled(self, evt: Event, var: GameState, player):
         # don't give warning points if the person having a nightmare idled out night
         if player in self.having_nightmare:
             evt.prevent_default = True
 
-    def nightmare_kill(self, evt, var):
-        pl = get_players()
+    def nightmare_kill(self, evt: Event, var: GameState):
+        pl = get_players(var)
         for player in self.having_nightmare:
             if player not in pl:
                 continue
@@ -220,27 +221,27 @@ class SleepyMode(GameMode):
             player.send(messages["sleepy_nightmare_death"])
         self.having_nightmare.clear()
 
-    def happy_fun_times(self, evt, var, player, all_roles, death_triggers):
+    def happy_fun_times(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         if death_triggers and evt.params.main_role == "priest":
             channels.Main.send(messages["sleepy_priest_death"])
 
             mapping = {"seer": "doomsayer", "harlot": "succubus", "cultist": "demoniac"}
             for old, new in mapping.items():
-                turn = [p for p in get_players((old,)) if random.random() < self.TURN_CHANCE]
+                turn = [p for p in get_players(var, (old,)) if random.random() < self.TURN_CHANCE]
                 for t in turn:
                     # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn
                     change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
 
                 newstats = set()
-                for rs in var.ROLE_STATS:
+                for rs in var.get_role_stats():
                     d = Counter(dict(rs))
                     newstats.add(rs)
                     if old in d and d[old] >= 1:
                         d[old] -= 1
                         d[new] += 1
                         newstats.add(frozenset(d.items()))
-                var.ROLE_STATS = frozenset(newstats)
+                var.set_role_stats(newstats)
 
-    def on_revealroles(self, evt, var):
+    def on_revealroles(self, evt: Event, var: GameState):
         if self.having_nightmare:
             evt.data["output"].append(messages["sleepy_revealroles"].format(self.having_nightmare))

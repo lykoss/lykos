@@ -1,17 +1,20 @@
-from typing import Union
+from __future__ import annotations
 
-from src import channels, users
-from src import settings as var
-
+from src import channels, config, users
 from src.functions import get_players
 
 class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
 
-    def __init__(self, source: users.User, target: Union[channels.Channel, users.BotUser]):
+    def __init__(self, source: users.User, target: channels.Channel | users.BotUser):
         self.source = source
         self.target = target
         self.client = source.client
+
+    @property
+    def game_state(self):
+        # lazy evaluation means replacing the source/target doesn't break things
+        return self.target.game_state if self.target.game_state else self.source.game_state
 
     @property
     def private(self):
@@ -40,9 +43,9 @@ class MessageDispatcher:
             first = "{0}: ".format(self.source)
         if self.private:
             self.source.send(*messages, **kwargs)
-        elif (self.target is channels.Main and
-                ((self.source not in get_players() and var.PHASE in var.GAME_PHASES) or
-                (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))):
+        elif (self.target is channels.Main and self.game_state is not None and 
+                (self.source not in get_players(self.game_state) or
+                (config.Main.get("gameplay.nightchat") and self.game_state.current_phase == "night"))):
             # TODO: ideally the above check would be handled in game logic somehow
             # (perhaps via an event) rather than adding game logic to the transport layer
             kwargs.setdefault("notice", True)

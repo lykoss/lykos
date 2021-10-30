@@ -1,0 +1,166 @@
+# lykos configuration file
+# Common values are commented below, but not every valid configuration is present in this file.
+# For documentation on all valid configuration elements, see https://ww.chat/config
+# To configure your bot, COPY this file to "botconfig.yml" and customize it to your liking.
+# When adding additional lines to this file, ONLY USE SPACES TO INDENT, NEVER TABS;
+# our configuration reader is picky and indenting with tabs or not matching surrounding indents will cause errors.
+# If you need additional assistance with formatting for this file, look up YAML syntax on your favorite search engine
+# or come talk to us on chat.freenode.net #lykos
+
+# The file named botconfig.yml is always loaded. A secondary file can be loaded as well which will
+# overwrite settings in the main botconfig.yml file, based on command line switches.
+# Running `wolfbot.py --config botconfig.foo.yml` will attempt to load botconfig.foo.yml.
+# When run with --debug, the file botconfig.debug.yml will be loaded if it exists.
+# This is loaded after the file specified by --config, if any.
+# Instead of command line params, you can also use the environment variable BOTCONFIG to point to a configuration
+# file (will be loaded if --config is not specified) and the environment variable DEBUG to enable debug mode.
+
+# The transports section defines all of the connections your bot will make.
+# At least one transport must be defined for the bot to successfully run.
+# An example transport is provided below; you can tweak it for your own network.
+# Currently, the irc transport *must* be defined first, otherwise the bot will error.
+transports:
+  - type: irc
+    # Name of this transport. Can be anything, but must be defined and unique across all transports in this file.
+    # Many other config sections let you specify a transport for something; those must match the name of a transport
+    # defined here.
+    name: mynetwork
+    # What IRCd the remote is running. Configuring this wrong will have disastrous consequences.
+    module: solanum
+    user:
+      nick: mywolfbot
+      # We only respond to commands in-channel if they begin with this prefix.
+      # Commands in private with this prefix are not relayed to other players in wolfchat, deadchat, etc.
+      # Use quotes around the character to prevent YAML from interpreting it as something special.
+      command_prefix: "!"
+    channels:
+      # Main game channel. Be sure to use quotes around the name so it is not treated as a comment!
+      # In addition to a simple string, both the main channel and alt channels may be configured as objects
+      main: "#werewolf"
+      # Alternate channels. The bot will join these and respond to some commands, but games cannot be played here.
+      # Remove this block if you do not wish to join any additional channels
+      alternate:
+        - "#channel2"
+        # In addition to simple strings, both the main and alt channels can be configured as objects, like so
+        - name: "#channel3"
+          # channel key/password to join a +k channel
+          key: "channelkey"
+          # If specified, messages will be sent to this prefix for this channel (e.g. "voice message")
+          # Ignored if the ircd does not support STATUSMSG
+          prefix: "+"
+    connection:
+      host: example.org
+      port: 6697
+      ssl:
+        # If true, use SSL for this connection
+        use_ssl: true
+    authentication:
+      server:
+        # If the IRC server requires authentication via the PASS command, specify the password here
+        password: null
+      services:
+        # Services module in use, e.g. atheme or anope. Configuring this wrong will have disastrous consequences.
+        module: atheme
+        # Username to authenticate to services with (e.g. NickServ).
+        # If null, defaults to the nickname set in user.nick
+        username: null
+        # Password to authenticate to services with. If using client certificate authentication, leave this null.
+        password: null
+        # If true, use SASL to authenticate. The network must support SASL.
+        use_sasl: true
+        # Client certificate to connect with, in PEM format. You may either have this be a filename containing
+        # the certificate or directly embed the certificate in this configuration file (use the "|" multiline format).
+        # The private key may be optionally present in PEM format after the certificate.
+        client_certificate: null
+        # Private key to connect with, in PEM format, if it was not already specified in client_certificate.
+        # This may be either a filename containing the key or directly embedded in this configuration file.
+        client_key: null
+
+# Bot access. Access entries specified here cannot be modified or removed via the fflags command.
+# However, that command may add additional access entries.
+# By default, the following templates are defined:
+# owner => full access to the bot and can execute every command
+# admin => access to manage moderators and execute commands which can update the bot's code or cause it to restart
+# moderator => manage games in progress and warn users, but cannot manage access entries or cause the bot to restart
+access:
+  entries:
+    - transport: mynetwork
+      account: myaccount
+      template: owner
+
+# Logging. The bot can log data to files as well as to destinations on transports (such as IRC channels).
+# This section configures what gets logged and to where the logs are sent.
+# By default, the following groups are defined:
+# main => logs everything except gameplay details
+# admin-commands => logs all usages of all admin commands
+# warnings => logs all usages of the fwarn commands which add/delete/modify warnings
+# debug => logs all exception reports
+logging:
+  logs:
+    - group: main
+      handler:
+        # Stream handlers can log to either stdout or stderr.
+        # If a logger is not defined to emit to stdout, nothing will be produced there.
+        # Startup errors are always sent to stderr and ignore logging config.
+        type: stream
+        stream: stdout
+    - group: warnings
+      handler:
+        # A log can be sent to a destination on a transport.
+        # Exactly how this works depends on the transport in use.
+        # For IRC, the destination must be either the main channel
+        # or an alternate channel in the transport config.
+        type: transport
+        transport: mynetwork
+        destination: "#channel2"
+      timestamp:
+        # when logging to IRC, it's not necessary to add timestamps to log messages
+        # since most clients will add timestamps anyway
+        enabled: false
+    - group: admin-commands
+      handler:
+        # Files can be absolute paths or relative to the bot root, and are opened in append mode.
+        type: file
+        file: admin.log
+
+# Telemetry. lykos sends error details to the developers to help provide a better and more stable bot.
+# To help preserve the privacy of your users, we anonymize data by default. However, opting in to sending us
+# more data can help us solve errors faster or know how to prioritize development efforts.
+# To send more data to the lykos developers, uncomment the following block:
+#telemetry:
+#  errors:
+#    traceback_verbosity: 2
+#    user_data_level: 2
+#    channel_data_level: 2
+#  usage:
+#    game_data: true
+#    environment_data: true
+
+# Gameplay. This lets you modify certain aspects of the game to better customize the bot for your community.
+gameplay:
+  language: en
+  # Whether or not to allow nightchat, which lets players speak in the main channel during night.
+  # If disabled, nobody can speak at night, but idle timers are also paused during the night.
+  nightchat: true
+  # Whether or not to allow deadchat, which lets dead players and non-players to talk through the bot to each other.
+  deadchat: true
+  wolfchat:
+    # If true, disables wolfchat during the day (commands are still relayed)
+    disable_day: false
+    # If true, disables wolfchat during the night (commands are still relayed)
+    disable_night: false
+    # Only relay kill commands instead of all commands
+    only_kill_command: false
+    # Only relay a command to someone else if they can use the same command themselves
+    only_same_command: false
+    # If true, non-wolves cannot participate in wolfchat (commands are still relayed)
+    wolves_only_chat: false
+    # Remove non-wolves from wolfchat entirely (can be killed, do not count towards wolf win condition, do not show in wolflist, etc.)
+    remove_non_wolves: false
+    # Consider traitor as a non-wolf for the purposes of the above restrictions (if false, traitor is treated the same as wolf cub)
+    traitor_non_wolf: false
+  spectate:
+    # Alert wolfchat that someone is spectating them whenever the spectate command is used
+    notice: true
+    # Include which user is spectating in the above alert, if enabled.
+    include_user: false

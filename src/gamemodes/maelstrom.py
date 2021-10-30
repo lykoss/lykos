@@ -1,12 +1,12 @@
 import random
-import copy
-from datetime import datetime
 from collections import defaultdict, Counter
-import botconfig  # type: ignore
-from src.gamemodes import game_mode, GameMode, InvalidModeException
+
+from src.gamemodes import game_mode, GameMode
 from src.messages import messages
 from src.functions import get_players
+from src.gamestate import GameState
 from src.events import Event, EventListener
+from src.trans import chk_win_conditions
 from src import channels, users
 from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Killer
 
@@ -14,10 +14,10 @@ from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Kill
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
     def __init__(self, arg=""):
-        self.ROLE_REVEAL = "on"
-        self.STATS_TYPE = "disabled"
         super().__init__(arg)
-        self.ALWAYS_PM_ROLE = True
+        self.CUSTOM_SETTINGS.role_reveal = "on"
+        self.CUSTOM_SETTINGS.stats_type = "disabled"
+        self.CUSTOM_SETTINGS.always_pm_role = True
         # clone and wild child are pointless in this mode
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
@@ -27,53 +27,53 @@ class MaelstromMode(GameMode):
             "transition_night_begin": EventListener(self.transition_night_begin)
         }
 
-    def role_attribution(self, evt, var, chk_win_conditions, villagers):
-        self.chk_win_conditions = chk_win_conditions
+    def role_attribution(self, evt: Event, var: GameState, villagers):
         evt.data["addroles"].update(self._role_attribution(var, villagers, True))
         evt.prevent_default = True
 
-    def transition_night_begin(self, evt, var):
+    def transition_night_begin(self, evt: Event, var: GameState):
         # don't do this n1
-        if var.NIGHT_COUNT == 1:
+        if var.night_count == 0:
             return
-        villagers = get_players()
+        villagers = get_players(var)
         lpl = len(villagers)
         addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
-        for role, rs in var.ROLES.items():
+        for role, rs in var.roles.items():
             if role in self.SECONDARY_ROLES:
                 continue
             rs.clear()
         # prevent wolf.py from sending messages about a new wolf to soon-to-be former wolves
         # (note that None doesn't work, so "player" works fine)
-        for player in var.MAIN_ROLES:
-            var.MAIN_ROLES[player] = "player"
+        for player in var.main_roles:
+            var.main_roles[player] = "player"
         new_evt = Event("new_role", {"messages": [], "role": None, "in_wolfchat": False}, inherit_from=None)
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
             for x in selected:
                 villagers.remove(x)
                 new_evt.data["role"] = role
-                new_evt.dispatch(var, x, var.ORIGINAL_MAIN_ROLES[x])
-                var.ROLES[new_evt.data["role"]].add(x)
+                new_evt.dispatch(var, x, var._original_main_roles[x])
+                var.roles[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
-        for role, pl in var.ROLES.items():
+        for role, pl in var.roles.items():
             if role in self.SECONDARY_ROLES:
                 continue
             for p in pl:
                 # discard them from all non-secondary roles, we don't have a reliable
                 # means of tracking their previous role (due to traitor turning, exchange
                 # totem, etc.), so we need to iterate through everything.
-                for r in var.ORIGINAL_ROLES.keys():
+                # also this touches the underlying _original_[main_]roles mappings... shh
+                for r in var.original_roles:
                     if r in self.SECONDARY_ROLES:
                         continue
-                    var.ORIGINAL_ROLES[r].discard(p)
-                var.ORIGINAL_ROLES[role].add(p)
-                var.FINAL_ROLES[p] = role
-                var.MAIN_ROLES[p] = role
-                var.ORIGINAL_MAIN_ROLES[p] = role
+                    var._original_roles[r].discard(p)
+                var._original_roles[role].add(p)
+                var.final_roles[p] = role
+                var.main_roles[p] = role
+                var._original_main_roles[p] = role
 
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers)
@@ -111,7 +111,7 @@ class MaelstromMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if self.chk_win_conditions(rolemap, mainroles, end_game=False):
+        if chk_win_conditions(var, rolemap, mainroles, end_game=False):
             return self._role_attribution(var, villagers, do_templates)
 
         return addroles

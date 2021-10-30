@@ -1,4 +1,4 @@
-# Generated from D:/Code/lykos/src/messages\message_parser.g4 by ANTLR 4.7.2
+# Generated from D:/Code/lykos/src/messages\message_parser.g4 by ANTLR 4.8
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .message_parser import message_parser
@@ -170,3 +170,5 @@ class message_parserListener(ParseTreeListener):
         pass
 
 
+
+del message_parser

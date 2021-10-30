@@ -3,16 +3,19 @@ from __future__ import annotations
 import fnmatch
 import time
 import re
-from typing import Callable, List, Optional, Set
+from typing import Callable, Optional, Iterable, TYPE_CHECKING
 
-from src.context import IRCContext, Features, NotLoggedIn, lower, equals
-from src import settings as var
-from src import db
+from src.context import IRCContext, Features, NotLoggedIn, lower
+from src import config, db
 from src.events import EventListener
-from src.debug import CheckedDict, CheckedSet
+from src.debug import CheckedDict, CheckedSet, handle_error
 from src.match import Match
 
-import botconfig  # type: ignore
+if TYPE_CHECKING:
+    from src.containers import UserSet, UserDict, UserList
+    from src.gamestate import GameState
+    from src.channels import Channel
+    from oyoyo.client import IRCClient
 
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
@@ -135,7 +138,7 @@ def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
 
-def complete_match(pattern: str, scope=None):
+def complete_match(pattern: str, scope: Optional[Iterable[User]] = None):
     """ Find a user or users who match the given pattern.
 
     :param pattern: Pattern to match on. The format is "[nick][:account]",
@@ -149,7 +152,7 @@ def complete_match(pattern: str, scope=None):
     """
     if scope is None:
         scope = _users
-    matches: List[User] = []
+    matches: list[User] = []
     nick_search, _, acct_search = lower(pattern).partition(":")
     if not nick_search and not acct_search:
         return Match([])
@@ -200,12 +203,14 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
     return _raw_nick_pattern.search(rawnick).groupdict(default)
 
-def _cleanup_user(evt, var, user):
+def _cleanup_user(evt, var: GameState, user: User):
     """Removes a user from our global tracking set once it has left all channels."""
     # if user is in-game, keep them around so that other players can act on them
     # and so that they can return to the village. If they aren't in game, erase
     # all memory of them from the bot.
-    if var.PHASE in var.GAME_PHASES and user in var.ALL_PLAYERS:
+    if not var:
+        return
+    if var.in_game and user in var.players:
         user.disconnected = True
     else:
         user.disconnected = False
@@ -220,7 +225,6 @@ def _reset(evt, var):
 
 def _update_account(evt, user):
     """Updates account data of a user for networks which don't support certain features."""
-    from src.decorators import handle_error
     if evt.params.old in _pending_account_updates:
         updates = list(_pending_account_updates[evt.params.old].items())
         del _pending_account_updates[evt.params.old]
@@ -239,11 +243,26 @@ class User(IRCContext):
 
     is_user = True
 
+    _ident: str
+    _host: str
+    _account: str
+
+    channels: CheckedDict[Channel, set[str]]
+    timestamp: float
     account_timestamp: float
 
+    sets: list[UserSet]
+    lists: list[UserList]
+    dict_keys: list[UserDict]
+    dict_values: list[UserDict]
+
+    def __init__(self, cli, nick, ident, host, account):
+        """Make linters happy."""
+        super().__init__(nick, cli)
+
     def __new__(cls, cli, nick, ident, host, account):
-        self = super().__new__(cls)
-        super(__class__, self).__init__(nick, cli)
+        self: User = super().__new__(cls)
+        self.__init__(cli, nick, ident, host, account)
         if account in ("0", "*"):
             account = NotLoggedIn
 
@@ -338,9 +357,6 @@ class User(IRCContext):
 
         return self
 
-    def __init__(self, *args, **kwargs):
-        pass # everything that needed to be done was done in __new__
-
     def __str__(self):
         return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}:{self.account}".format(self=self)
 
@@ -351,9 +367,10 @@ class User(IRCContext):
         if format_spec == "@":
             return "\u0002{0}\u0002".format(self.name)
         elif format_spec == "for_tb":
-            if var.USER_DATA_LEVEL == 0:
+            user_data_level = config.Main.get("telemetry.errors.user_data_level")
+            if user_data_level == 0:
                 return "{self.__class__.__name__}({0:x})".format(id(self), self=self)
-            elif var.USER_DATA_LEVEL == 1:
+            elif user_data_level == 1:
                 return "{self.__class__.__name__}({self.nick!r})".format(self=self)
             else:
                 return repr(self)
@@ -378,7 +395,10 @@ class User(IRCContext):
         :param other: Object to compare with
         :returns: True if `other` is a User object and the non-None properties match our non-None properties.
         """
-        return self._compare(other, __class__, "nick", "ident", "host", "account")
+        val = self._compare(other, __class__, "nick", "ident", "host", "account")
+        if val is NotImplemented:
+            raise TypeError(f"{other.__class__.__name__} is not a subclass of {__class__.__name__}")
+        return val
 
     # User objects are not copyable - this is a deliberate design decision
     # Therefore, those two functions here only return the object itself
@@ -391,7 +411,7 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
-    def swap(self, new, *, same_user=False):
+    def swap(self, new: User, *, same_user=False):
         """Swap yourself out with the new user everywhere.
 
         :param new: New user to replace current one with.
@@ -432,9 +452,11 @@ class User(IRCContext):
                     if self in channel.modes.get(mode, ()):
                         channel.modes[mode].discard(self)
                         channel.modes[mode].add(self)
+
             if not isinstance(new, BotUser):
                 _users.add(new)
-            elif self is Bot:
+
+            if self is Bot:
                 Bot = new
 
         # It is the containers' responsibility to properly remove themselves from the users
@@ -452,7 +474,9 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        accounts = set(botconfig.OWNERS_ACCOUNTS)
+        # FIXME: needs to be transport aware
+        acls = config.Main.get("access.entries")
+        accounts = set(e["account"] for e in acls if e["template"] == "owner")
 
         if self.account and self.account in accounts:
             return True
@@ -463,11 +487,13 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        flags = var.FLAGS_ACCS[self.account]
+        flags = db.FLAGS[self.account]
 
         if "F" not in flags:
             try:
-                accounts = set(botconfig.ADMINS_ACCOUNTS)
+                # FIXME: needs to be transport aware
+                acls = config.Main.get("access.entries")
+                accounts = set(e["account"] for e in acls if e["template"] in ("admin", "owner"))
                 if self.account and self.account in accounts:
                     return True
             except AttributeError:
@@ -496,43 +522,38 @@ class User(IRCContext):
                 fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
 
     def prefers_notice(self):
-        return self.lower().account in var.PREFER_NOTICE_ACCS
+        return self.lower().account in db.PREFER_NOTICE
 
     def get_pingif_count(self):
-        temp = self.lower()
-        if temp.account in var.PING_IF_PREFS_ACCS:
-            return var.PING_IF_PREFS_ACCS[temp.account]
-        return 0
+        return db.PING_IF_PREFS.get(self.lower().account, 0)
 
     def set_pingif_count(self, value, old=None):
         temp = self.lower()
 
         if not value:
-            if temp.account in var.PING_IF_PREFS_ACCS:
-                del var.PING_IF_PREFS_ACCS[temp.account]
+            if temp.account in db.PING_IF_PREFS:
+                del db.PING_IF_PREFS[temp.account]
                 db.set_pingif(0, temp.account)
                 if old is not None:
-                    with var.WARNING_LOCK:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+                    if old in db.PING_IF_NUMS:
+                        db.PING_IF_NUMS[old].discard(temp.account)
         else:
             if temp.account:
-                var.PING_IF_PREFS_ACCS[temp.account] = value
+                db.PING_IF_PREFS[temp.account] = value
                 db.set_pingif(value, temp.account)
-                with var.WARNING_LOCK:
-                    if value not in var.PING_IF_NUMS_ACCS:
-                        var.PING_IF_NUMS_ACCS[value] = set()
-                    var.PING_IF_NUMS_ACCS[value].add(temp.account)
-                    if old is not None:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+                if value not in db.PING_IF_NUMS:
+                    db.PING_IF_NUMS[value] = set()
+                db.PING_IF_NUMS[value].add(temp.account)
+                if old is not None:
+                    if old in db.PING_IF_NUMS:
+                        db.PING_IF_NUMS[old].discard(temp.account)
 
     def wants_deadchat(self):
-        return self.lower().account not in var.DEADCHAT_PREFS_ACCS
+        return self.lower().account not in db.DEADCHAT_PREFS
 
     def stasis_count(self):
         """Return the number of games the user is in stasis for."""
-        return var.STASISED_ACCS.get(self.lower().account, 0)
+        return db.STASISED.get(self.lower().account, 0)
 
     def update_account_data(self, command: str, callback: Callable):
         """Refresh stale account data on networks that don't support certain features.
@@ -644,6 +665,15 @@ class User(IRCContext):
             if not self.channels:
                 _users.discard(self)
 
+    @property
+    def game_state(self):
+        # There's only ever one game for now, but if/when the bot supports
+        # running multiple games simultaneously, we can use this to fetch
+        # which game the user is currently playing in (assuming that a
+        # user can only belong to one game at a time)
+        from src import channels
+        return channels.Main.game_state
+
 class FakeUser(User):
 
     is_fake = True
@@ -680,10 +710,10 @@ class FakeUser(User):
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
-    def __new__(cls, cli, nick, ident=None, host=None, account=None):
-        self = super().__new__(cls, cli, nick, ident, host, account)
-        self.modes = set()
-        return self
+    def __init__(self, cli, nick, ident, host, account):
+        if not self._initialized:
+            self.modes = set()
+        super().__init__(cli, nick, ident, host, account)
 
     def change_nick(self, nick=None):
         if nick is None:
@@ -753,3 +783,8 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
     @disconnected.setter
     def disconnected(self, value):
         pass # no-op
+
+    @property
+    def game_state(self):
+        # PMs to the bot should use the source's game state for disambiguation
+        return None

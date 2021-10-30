@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 import json
 import os
-from typing import Dict, Set
 
-import src.settings as var
+from src import config
 from src.messages.message import Message
 
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 
-
 class Messages:
-    def __init__(self):
-        self.lang = var.LANGUAGE
+    def __init__(self, *, override=None):
+        if override:
+            self.lang = override
+        else:
+            self.lang = config.Main.get("gameplay.language")
         self.cache = {}
         self._load_messages()
 
@@ -29,7 +32,7 @@ class Messages:
 
         return m
 
-    def get_role_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> Dict[str, str]:
+    def get_role_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> dict[str, str]:
         """ Retrieve a mapping between internal role names and localized role names.
 
         :param reverse: If True, maps localized role names and aliases to internal role names.
@@ -51,7 +54,7 @@ class Messages:
         def maybe_remove_spaces(x: str) -> str:
             return x.replace(" ", "") if remove_spaces else x
 
-        roles = {}  # type: Dict[str, str]
+        roles: dict[str, str] = {}
         for key, role in self.messages["_roles"].items():
             if key.startswith("*"):
                 continue
@@ -72,7 +75,7 @@ class Messages:
         self.cache[cache_key] = roles
         return roles
 
-    def get_mode_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> Dict[str, str]:
+    def get_mode_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> dict[str, str]:
         """ Retrieve a mapping between internal mode names and localized mode names.
 
         :param reverse: If True, maps localized mode names to internal mode names.
@@ -87,7 +90,7 @@ class Messages:
         def maybe_remove_spaces(x: str) -> str:
             return x.replace(" ", "") if remove_spaces else x
 
-        modes = {} # type: Dict[str, str]
+        modes: dict[str, str] = {}
         for internal, local in self.messages["_gamemodes"].items():
             if internal.startswith("*"):
                 continue
@@ -99,7 +102,7 @@ class Messages:
         self.cache[cache_key] = modes
         return modes
 
-    def get_totem_mapping(self, reverse: bool = False) -> Dict[str, str]:
+    def get_totem_mapping(self, reverse: bool = False) -> dict[str, str]:
         """ Retrieve a mapping between internal totem names and localized totem names.
 
         :param reverse: If True, maps localized totem names to internal totem names.
@@ -110,7 +113,7 @@ class Messages:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        totems = {}  # type: Dict[str, str]
+        totems: dict[str, str] = {}
         for internal, local in self.messages["_totems"].items():
             if internal.startswith("*"):
                 continue

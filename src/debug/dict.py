@@ -1,6 +1,8 @@
-from typing import Generic, Iterator, TypeVar, Union, Set, Dict, Mapping, Iterable
+from __future__ import annotations
+
+from typing import Generic, Iterator, TypeVar, Mapping, Iterable, Optional
 import collections.abc
-import botconfig  # type: ignore
+from src import config
 from src.debug.history import History
 
 __all__ = ["CheckedDict"]
@@ -16,8 +18,8 @@ class CheckedDict(collections.abc.MutableMapping, Generic[KT, VT]):
     collection was modified in the past.
     """
 
-    def __new__(cls, name: str, arg: Union[None, Mapping, Iterable] = None, **kwargs):
-        if not botconfig.DEBUG_MODE:
+    def __new__(cls, name: str, arg: Optional[Mapping | Iterable] = None, **kwargs):
+        if not config.Main.get("debug.enabled"):
             if arg is None:
                 return dict(**kwargs)
             else:
@@ -25,10 +27,10 @@ class CheckedDict(collections.abc.MutableMapping, Generic[KT, VT]):
 
         return super().__new__(cls)
 
-    def __init__(self, name: str, arg: Union[None, Mapping, Iterable] = None, **kwargs):
+    def __init__(self, name: str, arg: Optional[Mapping | Iterable] = None, **kwargs):
         self._history = History(name)
         if arg is None:
-            self._dict: Dict[KT, VT] = dict(**kwargs)
+            self._dict: dict[KT, VT] = dict(**kwargs)
         else:
             self._dict = dict(arg, **kwargs)
 

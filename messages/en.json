@@ -338,16 +338,6 @@
         "Give me a ping, Vasily. One ping only, please.",
         "Would you people please leave me alone? Seriously."
     ],
-    "gifs": [
-        "https://i.imgur.com/nO8rZ.gifv",
-        "https://i.imgur.com/uGVfZ.gifv",
-        "https://i.imgur.com/VvsgyXJ.gifv",
-        "https://i.imgur.com/PIIfL15.gifv",
-        "https://i.imgur.com/nly0Cmm.gifv",
-        "https://i.redd.it/dstee514i5zz.jpg",
-        "https://i.imgur.com/jWFy9aV.gifv",
-        "https://i.imgur.com/aK34qpZ.gifv"
-    ],
     "latency": "{0:.3f} second(s).",
     "lynch_reveal": [
         "The villagers, after much debate, finally decide on lynching {0:@}, who turned out to be... {1!role:article} {1!role:bold}.",
@@ -999,7 +989,7 @@
     "piper_notify": "You are {=piper!role:article} {=piper!role:bold}. You can select up to two players to charm each night. The charmed players will know each other, but not who charmed them. You win when all other players are charmed. Use \"{=charm!command} <nick1> <nick2>\" to select the players to charm, or \"{=charm!command} <nick>\" to charm just one player. You may also use \"{=pass!command}\" to not charm anyone.",
     "piper_revealroles_charmed": "[b]charmed players[/b]: {0:join}",
     "piper_revealroles_charming": "charming {0:join}",
-    "master_of_teleportation_notify": "You are a {=master of teleportation!role:article} {=master of teleportation!role:bold}. Each night, you teleport players around. Use \"{=choose!command} <nick1> <nick2>\" to swap the positions of the chosen players. You win as long as you are alive at the end of the game.",
+    "master_of_teleportation_notify": "You are {=master of teleportation!role:article} {=master of teleportation!role:bold}. Each night, you teleport players around. Use \"{=choose!command} <nick1> <nick2>\" to swap the positions of the chosen players. You win as long as you are alive at the end of the game.",
     "master_of_teleportation_success": "You have swapped the positions of {0:@} and {1:@}!",
     "vote_weight_revealroles": "[b]vote weight[/b]: {0:join}",
     "forced_votes_revealroles": "[b]forced votes[/b]: {0:join}",
@@ -1040,7 +1030,6 @@
     "night_begin": "It is now nighttime. All players check for PMs from me for instructions.",
     "first_night_begin": "If you did not receive one, simply sit back, relax, and wait patiently for morning.",
     "game_mode_not_found": "Mode {0:bold} not found.",
-    "no_game_running": "No game is currently running. Use \"{=join!command:!}\" to start one.",
     "werewolf_already_running": "Werewolf is already in play.",
     "please_wait": "Please wait at least {0} more {=second,seconds:plural({0})}.",
     "not_enough_players": "{0}: {1:bold} or more players are required to play.",
@@ -1379,7 +1368,7 @@
     "error_log": "An error has occurred and has been logged.",
     "error_pastebin": "(Unable to pastebin traceback; please check the console)",
     "channel_rules": "{0:#} channel rules: {1}",
-    "no_channel_rules": "No rules are defined for {0:#}. Set RULES in botconfig.py to configure this.",
+    "no_channel_rules": "No rules are defined for {0:#}. Set gameplay.rules in botconfig.yml to configure this.",
     "ambiguous_command": "Ambiguous command; more than one role you belong to has a \"{0}\" command. Please prefix this command with a role name, for example \"{1}:{0} ...\" or \"{2}:{0} ...\".",
     "boreal_hungry": "[b]Your stomach is rumbling when you wake up and you feel weak. You feel like you are on the verge of starvation![/b]",
     "boreal_turn": "You wake up in the middle of the snow, confused. You thought you died, but here you are, clearly alive and very, very hungry. You look down upon your monstrous claws and gaunt frame, and realize that you have become a wendigo! Your mind focuses on one thing only, consuming the members of your tribe that did this to you.",

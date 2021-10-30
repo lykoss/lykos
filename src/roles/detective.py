@@ -1,29 +1,39 @@
+from __future__ import annotations
+
 import math
 import re
 import random
+import typing
 
-import src.settings as var
-from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Safe, Wolfteam
+from src import config
 
 from src.roles.helper.wolves import get_wolfchat_roles
+
+if typing.TYPE_CHECKING:
+    from src.dispatcher import MessageDispatcher
+    from src.gamestate import GameState
+    from typing import Optional
+    from src.users import User
 
 INVESTIGATED = UserSet()
 
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",))
-def investigate(var, wrapper, message):
+def investigate(wrapper: MessageDispatcher, message: str):
     """Investigate a player to determine their exact role."""
     if wrapper.source in INVESTIGATED:
         wrapper.send(messages["already_investigated"])
         return
 
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
+    var = wrapper.game_state
+
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
     if target is None:
         return
 
@@ -31,7 +41,7 @@ def investigate(var, wrapper, message):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(target)
+    targrole = get_main_role(var, target)
 
     evt = Event("investigate", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
@@ -40,12 +50,12 @@ def investigate(var, wrapper, message):
     INVESTIGATED.add(wrapper.source)
     wrapper.send(messages["investigate_success"].format(target, targrole))
 
-    if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
+    if (random.random() * 100) < config.Main.get("gameplay.safes.detective_reveal"):  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised! Let the opposing team know
-        if get_main_role(wrapper.source) in Wolfteam:
-            to_notify = get_players(Safe)
+        if get_main_role(var, wrapper.source) in Wolfteam:
+            to_notify = get_players(var, Safe)
         else:
-            to_notify = get_players(get_wolfchat_roles(var))
+            to_notify = get_players(var, get_wolfchat_roles())
             
         if to_notify:
             for player in to_notify:
@@ -53,22 +63,22 @@ def investigate(var, wrapper, message):
             player.send_messages()
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     INVESTIGATED.discard(player)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
+def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "detective" and evt.data["role"] != "detective":
-        INVESTIGATED.discard(user)
+        INVESTIGATED.discard(player)
 
 @event_listener("send_role")
-def on_send_role(evt, var):
-    ps = get_players()
-    for dttv in var.ROLES["detective"]:
+def on_send_role(evt: Event, var: GameState):
+    ps = get_players(var)
+    for dttv in var.roles["detective"]:
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(dttv)
-        chance = math.floor(var.DETECTIVE_REVEALED_CHANCE * 100)
+        chance = config.Main.get("gameplay.safes.detective_reveal")
 
         dttv.send(messages["detective_notify"])
         if chance > 0:
@@ -76,14 +86,14 @@ def on_send_role(evt, var):
         dttv.send(messages["players_list"].format(pl))
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
+def on_transition_night_begin(evt: Event, var: GameState):
     INVESTIGATED.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     INVESTIGATED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, var, kind):
+def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["detective"] = {"Village", "Spy", "Safe"}

@@ -6,9 +6,9 @@ from src import events, channels, users
 class NoRevealMode(GameMode):
     """Roles are not revealed when players die."""
     def __init__(self, arg=""):
-        self.ROLE_REVEAL = "off"
-        self.STATS_TYPE = "disabled"
         super().__init__(arg)
+        self.CUSTOM_SETTINGS.role_reveal = "off"
+        self.CUSTOM_SETTINGS.stats_type = "disabled"
         self.ROLE_GUIDE = {
             6:  ["wolf", "seer", "cursed villager"],
             8:  ["wolf mystic", "mystic"],

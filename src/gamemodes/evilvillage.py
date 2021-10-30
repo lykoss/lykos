@@ -1,7 +1,8 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src.events import EventListener
+from src.gamestate import GameState
+from src.events import EventListener, Event
 from src import channels, users
 from src.cats import Village
 
@@ -9,10 +10,10 @@ from src.cats import Village
 class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self, arg=""):
-        self.ABSTAIN_ENABLED = False
         super().__init__(arg)
-        self.DEFAULT_ROLE = "cultist"
-        self.HIDDEN_ROLE = "cultist"
+        self.CUSTOM_SETTINGS.abstain_enabled = False
+        self.CUSTOM_SETTINGS.default_role = "cultist"
+        self.CUSTOM_SETTINGS.hidden_role = "cultist"
         self.ROLE_GUIDE = {
             6:  ["wolf", "hunter"],
             8:  ["seer"],
@@ -24,9 +25,9 @@ class EvilVillageMode(GameMode):
             "chk_win": EventListener(self.chk_win)
         }
 
-    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-        lsafes = len(get_players(Village, mainroles=mainroles))
-        lcultists = len(get_players(["cultist"], mainroles=mainroles))
+    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
+        lsafes = len(get_players(var, Village, mainroles=mainroles))
+        lcultists = len(get_players(var, ["cultist"], mainroles=mainroles))
         evt.stop_processing = True
 
         if evt.data["winner"] == "fool":

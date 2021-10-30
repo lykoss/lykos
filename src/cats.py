@@ -1,6 +1,6 @@
 # role categories; roles return a subset of these categories when fetching their metadata
 # Wolf: Defines the role as a true wolf role (usually can kill, dies when shot, kills visiting harlots, etc.)
-# Wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
+# Wolfchat: Defines the role as having access to wolfchat (depending on gameplay.wolfchat config settings)
 # Wolfteam: Defines the role as wolfteam for determining winners
 # Killer: Roles which can kill other roles during the game. Roles which kill upon or after death (ms, vg) don't belong in here
 # Village: Defines the role as village for determining winners
@@ -23,13 +23,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict
 import itertools
 
+from src.messages.messages import Messages as _Messages
 from src.events import Event, EventListener
 
 __all__ = [
-    "get", "role_order",
+    "get", "role_order", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective", "All"
 ]
@@ -37,7 +37,7 @@ __all__ = [
 _dict_keys = type(dict().keys())  # type: ignore
 
 # Mapping of category names to the categories themselves; populated in Category.__init__
-ROLE_CATS: Dict[str, Category] = {}
+ROLE_CATS: dict[str, Category] = {}
 
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
@@ -48,7 +48,9 @@ FROZEN = False
 
 ROLES = {}
 
-def get(cat):
+_interal_en = _Messages(override="en")
+
+def get(cat: str) -> Category:
     if not FROZEN:
         raise RuntimeError("Fatal: Role categories are not ready")
     if cat not in ROLE_CATS:
@@ -73,7 +75,7 @@ def role_order():
     buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
-def _register_roles(evt):
+def _register_roles(evt: Event):
     global FROZEN
     mevt = Event("get_role_metadata", {})
     mevt.dispatch(None, "role_categories")
@@ -154,6 +156,13 @@ class Category:
 
     def __repr__(self):
         return "Role category: {0}".format(self.name)
+
+    def plural(self):
+        """Return the English plural versions of roles for internal use."""
+        values = set()
+        for role in self:
+            values.add(_interal_en.raw("_roles", role)[1])
+        return values
 
     def __invert__(self):
         new = self.from_combination(All, self, "", set.difference_update)

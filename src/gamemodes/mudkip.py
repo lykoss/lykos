@@ -1,6 +1,7 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src.events import EventListener
+from src.events import EventListener, Event
+from src.gamestate import GameState
 from src import channels, users
 
 # someone let woffle commit while drunk again... tsk tsk
@@ -9,7 +10,8 @@ class MudkipMode(GameMode):
     """Why are all the professors named after trees?"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ABSTAIN_ENABLED = False
+        self.CUSTOM_SETTINGS.abstain_enabled = False
+        self.CUSTOM_SETTINGS.start_with_day = True
 
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 0},
@@ -35,7 +37,6 @@ class MudkipMode(GameMode):
         # make assassin a primary role
         self.SECONDARY_ROLES.pop("assassin", None)
 
-        self.START_WITH_DAY = True
         self.ROLE_GUIDE = {
             6:  ["wolf", "cult leader", "investigator", "insomniac"],
             7:  ["jester"],
@@ -56,11 +57,11 @@ class MudkipMode(GameMode):
             "daylight_warning": EventListener(self.daylight_warning)
         }
 
-    def lynch_behaviour(self, evt, var):
+    def lynch_behaviour(self, evt: Event, var: GameState):
         evt.data["kill_ties"] = True
         voters = sum(map(len, evt.params.votes.values()))
         if voters == evt.params.players:
             evt.data["force"] = True
 
-    def daylight_warning(self, evt, var):
+    def daylight_warning(self, evt: Event, var: GameState):
         evt.data["message"] = "daylight_warning_killtie"

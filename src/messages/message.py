@@ -1,6 +1,8 @@
 import random
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
 from antlr4.error.ErrorListener import ErrorListener
+
+from src import config
 from src.messages import message_formatter
 from src.messages.lexer import Lexer
 from src.messages.parser import Parser
@@ -52,9 +54,7 @@ class Message:
             walker.walk(listener, tree)
             return listener.value()
         except Exception as e:
-            import botconfig
-            import src.settings as var
-            if not botconfig.DEBUG_MODE or not var.DEBUG_MODE_NOTHROW_MESSAGES:
+            if not config.Main.get("debug.enable") or not config.Main.get("debug.messages.nothrow"):
                 raise
 
             return "ERROR: {0!s} ({1}: {2!r}, {3!r})".format(e, self.key, args, kwargs)

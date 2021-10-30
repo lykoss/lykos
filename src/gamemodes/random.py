@@ -2,7 +2,9 @@ import random
 from collections import defaultdict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src.events import EventListener
+from src.gamestate import GameState
+from src.events import EventListener, Event
+from src.trans import chk_win_conditions
 from src import channels, users
 from src.cats import All, Wolf, Wolf_Objective, Killer
 
@@ -10,9 +12,9 @@ from src.cats import All, Wolf, Wolf_Objective, Killer
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self, arg=""):
-        self.ROLE_REVEAL = random.choice(("on", "off", "team"))
-        self.STATS_TYPE = "disabled" if self.ROLE_REVEAL == "off" else random.choice(("disabled", "team"))
         super().__init__(arg)
+        self.CUSTOM_SETTINGS.role_reveal = random.choice(("on", "off", "team"))
+        self.CUSTOM_SETTINGS.stats_type = "disabled" if self.CUSTOM_SETTINGS.role_reveal == "off" else random.choice(("disabled", "team"))
         for role in self.SECONDARY_ROLES:
             self.SECONDARY_ROLES[role] = All
 
@@ -43,7 +45,7 @@ class RandomMode(GameMode):
             "chK_win": EventListener(self.lovers_chk_win)
         }
 
-    def role_attribution(self, evt, var, chk_win_conditions, villagers):
+    def role_attribution(self, evt: Event, var: GameState, villagers):
         lpl = len(villagers)
         addroles = evt.data["addroles"]
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
@@ -73,7 +75,7 @@ class RandomMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if chk_win_conditions(rolemap, mainroles, end_game=False):
-            return self.role_attribution(evt, var, chk_win_conditions, villagers)
+        if chk_win_conditions(var, rolemap, mainroles, end_game=False):
+            return self.role_attribution(evt, var, villagers)
 
         evt.prevent_default = True

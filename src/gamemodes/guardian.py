@@ -1,7 +1,8 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src.events import EventListener
+from src.gamestate import GameState
+from src.events import EventListener, Event
 from src import channels, users
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
@@ -9,8 +10,8 @@ from src import channels, users
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self, arg=""):
-        self.LIMIT_ABSTAIN = False
         super().__init__(arg)
+        self.CUSTOM_SETTINGS.limit_abstain = False
         self.ROLE_GUIDE = {
             7:  ["werekitten", "seer", "guardian angel", "cursed villager", "cursed villager(2)"],
             8:  ["wolf", "village drunk"],
@@ -47,8 +48,8 @@ class GuardianMode(GameMode):
             "chk_win": EventListener(self.chk_win)
         }
 
-    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-        lguardians = len(get_players(["guardian angel", "bodyguard"], mainroles=mainroles))
+    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
+        lguardians = len(get_players(var, ["guardian angel", "bodyguard"], mainroles=mainroles))
 
         if lpl < 1:
             # handled by default win cond checking

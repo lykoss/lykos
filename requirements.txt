@@ -1,2 +1,3 @@
-antlr4-python3-runtime==4.7.2 \
-    --hash=sha256:168cdcec8fb9152e84a87ca6fd261b3d54c8f6358f42ab3b813b14a7193bb50b
+antlr4-python3-runtime >= 4.8.0, < 4.9.0
+ruamel.yaml >= 0.16.0, < 1.0.0
+requests >= 2.24.0, < 3.0.0

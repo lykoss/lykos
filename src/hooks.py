@@ -6,18 +6,21 @@ further in the relevant hook functions.
 
 """
 
-from typing import Dict, Any
+from __future__ import annotations
 
-from src.decorators import event_listener, hook
+import logging
+import sys
+from typing import Any
+
+from src.decorators import hook
 from src.context import Features, NotLoggedIn
-from src.events import Event
-from src.logger import plog
+from src.events import Event, event_listener
 
-from src import context, channels, users
+from src import config, context, channels, users
 
 ### WHO/WHOX responses handling
 
-_who_old = {} # type: Dict[str, users.User]
+_who_old: dict[str, users.User] = {}
 
 @hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
@@ -171,7 +174,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
 ### WHOIS Reponse Handling
 
-_whois_pending = {} # type: Dict[str, Dict[str, Any]]
+_whois_pending: dict[str, dict[str, Any]] = {}
 
 @hook("whoisuser")
 def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
@@ -335,8 +338,15 @@ def on_loggedin(cli, server, nick, rawnick, account, message):
 
     """
 
-    users.Bot.rawnick = rawnick
-    users.Bot.account = account
+    if users.Bot is None:
+        from src import handler
+        data = users.parse_rawnick_as_dict(rawnick)
+        handler._temp_ident = data["ident"]
+        handler._temp_host = data["host"]
+        handler._temp_account = account
+    else:
+        users.Bot.rawnick = rawnick
+        users.Bot.account = account
 
 ### Server PING handling
 
@@ -774,8 +784,10 @@ def quit(context, message=""):
     cli = context.client
 
     if cli is None or cli.socket.fileno() < 0:
-        plog("Socket is already closed. Exiting.")
-        raise SystemExit
+        transport_name = config.Main.get("transports[0].name")
+        logger = logging.getLogger("transport.{}".format(transport_name))
+        logger.warning("Socket is already closed. Exiting.")
+        sys.exit(0)
 
     with cli:
         cli.send("QUIT :{0}".format(message))

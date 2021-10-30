@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import time
-
 from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+from collections import defaultdict
+import logging
 
 from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
-from src import settings as var
-from src import users, stream
+from src import users, config
 from src.debug import CheckedSet, CheckedDict
+
+if TYPE_CHECKING:
+    from src.gamestate import GameState
+    from src.users import User
 
 Main: Channel = None # type: ignore[assignment]
 Dummy: Channel = None # type: ignore[assignment]
-Dev: Optional[Channel] = None # dev channel
 
-_channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
+_channels: CheckedDict[str, Channel] = CheckedDict("channels._channels")
 
 class _States(Enum):
     NotJoined = "not yet joined"
@@ -32,15 +35,18 @@ class _States(Enum):
 def predicate(name):
     return not name.startswith(tuple(Features["CHANTYPES"]))
 
-def get(name, *, allow_none=False):
+def _normalize(x: str):
+    return lower(x.lstrip("".join(Features.STATUSMSG)))
+
+def get(name: str, *, allow_none: bool = False) -> Optional[Channel]:
     try:
-        return _channels[lower(name)]
+        return _channels[_normalize(name)]
     except KeyError:
         if allow_none:
             return None
         raise
 
-def add(name, cli, key=""):
+def add(name, cli, key="", prefix=""):
     """Add and return a new channel, or an existing one if it exists."""
 
     # We use add() in a bunch of places where the channel probably (but
@@ -50,29 +56,28 @@ def add(name, cli, key=""):
     # another one (or some other weird stuff like that). Instead of
     # jumping through hoops, we just disallow it here.
 
-    if lower(name) in _channels:
-        if cli is not _channels[lower(name)].client:
+    if _normalize(name) in _channels:
+        if cli is not _channels[_normalize(name)].client:
             raise RuntimeError("different IRC client for channel {0}".format(name))
-        return _channels[lower(name)]
+        return _channels[_normalize(name)]
 
     cls = Channel
     if predicate(name):
         cls = FakeChannel
 
-    chan = _channels[lower(name)] = cls(name, cli)
-    chan._key = key
-    chan.join()
+    chan = _channels[_normalize(name)] = cls(name, cli, prefix=prefix)
+    chan.join(key=key)
     return chan
 
 def exists(name):
     """Return True if a channel by the name exists, False otherwise."""
-    return lower(name) in _channels
+    return _normalize(name) in _channels
 
 def channels():
     """Iterate over all the current channels."""
     yield from _channels.values()
 
-def _chan_join(evt, channel, user):
+def _chan_join(evt, channel: Channel, user: User):
     if user is users.Bot:
         channel.state = _States.Joined
 
@@ -82,13 +87,16 @@ class Channel(IRCContext):
 
     is_channel = True
 
-    def __init__(self, name, client):
-        super().__init__(name, client)
-        self.users = CheckedSet("channels.Channel.users")
-        self.modes = {}
+    def __init__(self, name, client, prefix=""):
+        super().__init__(name, client, prefix=prefix)
+        self.users: CheckedSet[User] = CheckedSet("channels.Channel.users")
+        self.modes: dict[str, set[User]] = {}
+        self.old_modes = defaultdict(set)
         self.timestamp = None
         self.state = _States.NotJoined
+        self.game_state: Optional[GameState] = None
         self._pending = []
+        self._key = ""
 
     def __del__(self):
         self.users.clear()
@@ -107,13 +115,12 @@ class Channel(IRCContext):
         if format_spec == "#":
             return self.name
         elif format_spec == "for_tb":
-            if var.CHANNEL_DATA_LEVEL == 0:
+            channel_data_level = config.Main.get("telemetry.errors.channel_data_level")
+            if channel_data_level == 0:
                 if self is Main:
                     value = "Main"
                 elif self is Dummy:
                     value = "Dummy"
-                elif self is Dev:
-                    value = "Dev"
                 else:
                     value = format(id(self), "x")
                 return "{self.__class__.__name__}({0})".format(value, self=self)
@@ -144,9 +151,9 @@ class Channel(IRCContext):
                 Event(name, params).dispatch(*args)
             self._pending = None
 
-    def join(self, key=None):
+    def join(self, key=""):
         if self.state in (_States.NotJoined, _States.Left):
-            if key is None:
+            if not key:
                 key = self.key
             self.state = _States.PendingJoin
             self.client.send("JOIN {0} :{1}".format(self.name, key))
@@ -245,7 +252,9 @@ class Channel(IRCContext):
             elif c not in all_modes:
                 # some broken ircds have modes without telling us about them in ISUPPORT
                 # ignore such modes but emit a warning
-                stream("Broken ircd detected: unrecognized channel mode +{}".format(c), level="warning")
+                transport_name = config.Main.get("transports[0].name")
+                logger = logging.getLogger("transport.{}".format(transport_name))
+                logger.warning("Broken ircd detected: unrecognized channel mode +{0}", c)
                 continue
 
             if prefix == "+":
@@ -255,8 +264,8 @@ class Channel(IRCContext):
                     user = users.get(targets[i], allow_bot=True)
                     self.modes[c].add(user)
                     user.channels[self].add(c)
-                    if user in var.OLD_MODES:
-                        var.OLD_MODES[user].discard(c)
+                    if user in self.old_modes:
+                        self.old_modes[user].discard(c)
                     i += 1
 
                 elif c in list_modes: # stuff like bans, quiets, and ban and invite exempts
@@ -310,7 +319,7 @@ class Channel(IRCContext):
         del user.channels[self]
         if not user.channels: # Only fire if the user left all channels
             event = Event("cleanup_user", {})
-            event.dispatch(var, user)
+            event.dispatch(self.game_state, user)
 
     def clear(self):
         for user in self.users:

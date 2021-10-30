@@ -1,3 +1,4 @@
+from src.events import EventListener
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
@@ -7,12 +8,6 @@ class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        # gunner and sharpshooter always get 1 bullet
-        self.SHOTS_MULTIPLIER = {
-            "gunner": 0.0001,
-            "sharpshooter": 0.0001,
-            "wolf gunner": 0.0001
-        }
         del self.SECONDARY_ROLES["gunner"]
         del self.SECONDARY_ROLES["sharpshooter"]
         self.ROLE_GUIDE = {
@@ -28,3 +23,9 @@ class MadMode(GameMode):
             21: ["blessed villager"],
             22: ["time lord", "cursed villager(2)"]
         }
+        self.EVENTS = {
+            "gun_bullets": EventListener(self.gunner_bullets)
+        }
+
+    def gunner_bullets(self, evt, var, player, role):
+        evt.data["bullets"] = 1 # gunner and sharpshooter only get 1 bullet in this mode

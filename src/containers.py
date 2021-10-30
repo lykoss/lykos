@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Dict, Generic, List, Set, TypeVar
+from abc import ABC, abstractmethod
+from typing import Dict, Generic, Iterable, List, Set, TypeVar
 
 from src.users import User
 
@@ -23,7 +24,7 @@ The containers present here should always follow these rules:
   *must* be called before the variable goes out of scope;
 
 - Copying a container for mutation purpose in a local context should make use of context managers,
-  e.g. 'with copy.deepcopy(var.ROLES) as rolelist:' instead of 'rolelist = copy.deepcopy(var.ROLES)',
+  e.g. 'with copy.deepcopy(var.roles) as rolelist:' instead of 'rolelist = copy.deepcopy(var.roles)',
   with all operations on 'rolelist' being done inside the block. Once the 'with' block is exited (be it
   through exceptions or normal execution), the copied contained ('rolelist' in this case) is automatically cleared.
 
@@ -37,8 +38,22 @@ files to get an idea of how those containers should be used.
 
 """
 
-class Container:
+class Container(ABC):
     """Base container class for all containers."""
+
+    __slots__ = ()
+
+    @abstractmethod
+    def __init__(self, iterable: Iterable = ()):
+        # We require subclasses to accept an iterable but we don't implicitly populate the
+        # base class with it since that would lead to potentially forgotten tracking.
+        # Instead the subclass should iterate over iterable and add each element to the parent container
+        # with its own add/append/etc. method that implements proper user tracking.
+        super(Container, self).__init__()
+
+    def __iter__(self):
+        # noinspection PyUnresolvedReferences
+        return super(Container, self).__iter__()
 
     def __enter__(self):
         return self
@@ -46,16 +61,12 @@ class Container:
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
 
+    def __format__(self, format_spec=""):
+        args = [format(x, format_spec) for x in self]
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(args))
+
     def __str__(self):
-        vars = [format(x) for x in self]
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
-
-    def __format__(self, format_spec):
-        if format_spec == "for_tb":
-            vars = [format(x, "for_tb") for x in self]
-            return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
-
-        return super().__format__(format_spec)
+        return self.__format__()
 
     def __eq__(self, other):
         return self is other
@@ -68,6 +79,11 @@ class Container:
 
     def copy(self):
         return self.__copy__()
+
+    @abstractmethod
+    def clear(self):
+        # noinspection PyUnresolvedReferences
+        super(Container, self).clear()
 
 class UserList(Container, List[User]):
     def __init__(self, iterable=()):
@@ -166,6 +182,11 @@ class UserSet(Container, Set[User]):
             self.clear()
             raise
 
+    def __format__(self, format_spec=""):
+        # sort the args so we have a stable result regardless of our hash key for unit testing
+        args = sorted([format(x, format_spec) for x in self])
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(args))
+
     # Operators are not overloaded - 'user_set & other_set' will return a regular set
     # This is a deliberate design decision. To get a UserSet out of them, use the named ones
 
@@ -190,7 +211,6 @@ class UserSet(Container, Set[User]):
             return NotImplemented
 
         self.difference_update(other)
-        return
 
     def __ixor__(self, other):  # type: ignore
         if not isinstance(other, set):
@@ -264,37 +284,37 @@ class UserSet(Container, Set[User]):
                 self.add(item)
 
 class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
-    def __init__(_self, _it=(), **kwargs):
+    def __init__(self, _it=(), **kwargs):
         super().__init__()
         if hasattr(_it, "items"):
             _it = _it.items()
         try:
             for key, value in _it:
-                _self[key] = value
+                self[key] = value
             for key, value in kwargs.items():
-                _self[key] = value
+                self[key] = value
         except:
-            while _self:
-                _self.popitem() # don't clear, as it's recursive (we might not want that)
+            while self:
+                self.popitem() # don't clear, as it's recursive (we might not want that)
             raise
 
-    def __str__(self):
-        vars = ["{0}: {1}".format(x, y) for x, y in self.items()]
-        return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
-
-    def __format__(self, format_spec):
+    def __format__(self, format_spec=""):
         if format_spec == "for_tb":
             # we don't know if the keys, the values, or both are Users or other user containers, so try all 3...
             try:
-                vars = ["{0:for_tb}: {1:for_tb}".format(x, y) for x, y in self.items()]
+                args = ["{0:for_tb}: {1:for_tb}".format(x, y) for x, y in self.items()]
             except TypeError:
                 try:
-                    vars = ["{0:for_tb}: {1}".format(x, y) for x, y in self.items()]
+                    args = ["{0:for_tb}: {1}".format(x, y) for x, y in self.items()]
                 except TypeError:
-                    vars = ["{0}: {1:for_tb}".format(x, y) for x, y in self.items()]
-            return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
+                    args = ["{0}: {1:for_tb}".format(x, y) for x, y in self.items()]
+        elif format_spec == "":
+            # maintain a stable ordering for unit testing regardless of hash key
+            args = sorted(["{0}: {1}".format(x, y) for x, y in self.items()])
+        else:
+            return super().__format__(format_spec)
 
-        return super().__format__(format_spec)
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(args))
 
     def __deepcopy__(self, memo):
         new = type(self)()
@@ -384,8 +404,8 @@ class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
             self[key] = value
 
 class DefaultUserDict(UserDict[KT, VT], Generic[KT, VT]):
-    def __init__(_self, _factory, _it=(), **kwargs):
-        _self.factory = _factory
+    def __init__(self, _factory, _it=(), **kwargs):
+        self.factory = _factory
         super().__init__(_it, **kwargs)
 
     def __missing__(self, key):

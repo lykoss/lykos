@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import traceback
-from typing import Set, List, Tuple, Dict, Optional
-import botconfig  # type: ignore
+from typing import Optional
+from src import config
 
 __all__ = ["History", "enable_history", "disable_history"]
 
-ENABLED_NAMES = set() # type: Set[str]
+ENABLED_NAMES: set[str] = set()
 
 def enable_history(name: str) -> None:
     ENABLED_NAMES.add(name)
@@ -14,15 +14,13 @@ def enable_history(name: str) -> None:
 def disable_history(name: str) -> None:
     ENABLED_NAMES.discard(name)
 
-ENABLED_NAMES.update(getattr(botconfig, "DEBUG_HISTORY_NAMES", set()))
-
-HISTORY_LIMIT = getattr(botconfig, "DEBUG_HISTORY_LIMIT", 50) # type: int
+ENABLED_NAMES.update(config.Main.get("debug.containers.names"))
+HISTORY_LIMIT = config.Main.get("debug.containers.limit") # type: int
 
 class History:
     def __init__(self, name: str):
         self.name = name
-        self.history = [] # type: List[Tuple[str, List[str], Dict[str,str], traceback.StackSummary]]
-
+        self.history: list[tuple[str, list[str], dict[str,str], traceback.StackSummary]] = []
     def __str__(self) -> str:
         return self.list(-5)
 

@@ -1,27 +1,26 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections import Counter
+from typing import TYPE_CHECKING, Iterable
 
-from src.decorators import event_listener
 from src.containers import UserDict
-from src.functions import get_players, get_all_players, get_main_role, change_role
+from src.functions import get_players, get_main_role, change_role
 from src.messages import messages
-from src.events import Event
-from src.cats import Wolf
-from src import debuglog
+from src.events import Event, event_listener
+from src.cats import Wolf, Category
 
 if TYPE_CHECKING:
+    from src.gamestate import GameState
     from src.users import User
-
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
 LYCANTHROPES: UserDict[User, str] = UserDict()
 SCOPE = set()
 
-def add_lycanthropy(var, target, prefix="lycan"):
+def add_lycanthropy(var: GameState, target: User, prefix="lycan"):
     """Effect the target with lycanthropy. Fire the add_lycanthropy event."""
-    if target in LYCANTHROPES or target not in get_players():
+    if target in LYCANTHROPES or target not in get_players(var):
         return True
 
     if Event("add_lycanthropy", {}).dispatch(var, target):
@@ -30,16 +29,16 @@ def add_lycanthropy(var, target, prefix="lycan"):
 
     return False
 
-def remove_lycanthropy(var, target):
+def remove_lycanthropy(var: GameState, target: User):
     """Remove the lycanthropy effect from the target."""
     del LYCANTHROPES[:target:]
 
-def add_lycanthropy_scope(var, scope):
+def add_lycanthropy_scope(var: GameState, scope: Category | set[str]):
     """Add a scope for roles that can effect lycanthropy, for stats."""
     SCOPE.update(scope)
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, var, roleset, reason):
+def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
     from src.roles.helper.wolves import get_wolfchat_roles
     if reason != "howl" or not SCOPE:
         return
@@ -49,7 +48,7 @@ def on_reconfigure_stats(evt, var, roleset, reason):
 
     roles = {}
 
-    wolfchat = get_wolfchat_roles(var)
+    wolfchat = get_wolfchat_roles()
     for role, count in roleset.items():
         if role in wolfchat or count == 0 or role not in SCOPE:
             continue
@@ -68,16 +67,16 @@ def on_reconfigure_stats(evt, var, roleset, reason):
         evt.data["new"].append(rs)
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     remove_lycanthropy(var, player)
 
 @event_listener("transition_day_resolve_end", priority=2)
-def on_transition_day_resolve_end(evt, var, victims):
+def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
     evt2 = Event("get_role_metadata", {})
     evt2.dispatch(var, "lycanthropy_role")
     for victim in victims:
         if victim in LYCANTHROPES and evt.data["killers"][victim] == ["@wolves"] and victim in evt.data["dead"]:
-            vrole = get_main_role(victim)
+            vrole = get_main_role(var, victim)
             if vrole not in Wolf:
                 new_role = "wolf"
                 prefix = LYCANTHROPES[victim]
@@ -87,7 +86,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                     if "prefix" in evt2.data[vrole]:
                         prefix = evt2.data[vrole]["prefix"]
                     for sec_role in evt2.data[vrole].get("secondary_roles", ()):
-                        var.ROLES[sec_role].add(victim)
+                        var.roles[sec_role].add(victim)
                         to_send = "{0}_notify".format(sec_role.replace(" ", "_"))
                         victim.send(messages[to_send])
                         # FIXME: Not every role has proper message keys, such as shamans
@@ -99,21 +98,17 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
-                debuglog("{0} ({1}) TURN {2}".format(victim, vrole, new_role))
-
 @event_listener("revealroles")
-def on_revealroles(evt, var):
+def on_revealroles(evt: Event, var: GameState):
     if LYCANTHROPES:
         evt.data["output"].append(messages["lycanthropy_revealroles"].format(LYCANTHROPES))
 
 @event_listener("transition_night_begin")
-def on_begin_day(evt, var):
+def on_begin_day(evt: Event, var: GameState):
     LYCANTHROPES.clear()
     SCOPE.clear()
 
 @event_listener("reset")
-def on_reset(evt, var):
+def on_reset(evt: Event, var: GameState):
     LYCANTHROPES.clear()
     SCOPE.clear()
-
-# vim: set sw=4 expandtab:
