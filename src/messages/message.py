@@ -39,7 +39,7 @@ class Message:
     def __radd__(self, other):
         return other + str(self)
 
-    def format(self, *args, **kwargs):
+    def format(self, *args, **kwargs) -> str:
         try:
             error_listener = MessageErrorListener()
             input_stream = InputStream(self.value)

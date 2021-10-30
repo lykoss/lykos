@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from src.messages.formatter import Formatter
 message_formatter = Formatter()
 
-from src.messages import messages as _messages
+from src.messages import _messages
 from src.messages.message import Message
 
 __all__ = ["messages", "message_formatter",
