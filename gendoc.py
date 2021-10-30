@@ -1,6 +1,11 @@
+import copy
 from collections import OrderedDict
 from io import StringIO
 from pathlib import Path
+import sys
+from typing import Optional
+from requests import Session
+import hashlib
 from ruamel.yaml import YAML, RoundTripRepresenter, SafeRepresenter
 
 from src.config import Config, Empty, merge
@@ -104,6 +109,25 @@ def generate_docs():
         markup += add_section(Conf.metadata[key])
     return markup
 
+def wiki_api(session: Session,
+             url: str,
+             params: dict,
+             data: Optional[dict] = None,
+             method: Optional[str] = None,
+             assert_bot: Optional[str] = None):
+    method = method or ("POST" if data else "GET")
+    params = copy.copy(params)
+    params.update({"format": "json", "formatversion": 2})
+    if assert_bot:
+        params.update({"assert": "bot", "assertuser": assert_bot})
+    response = session.request(method, url, params, data)
+    response.raise_for_status()
+    parsed = response.json()
+    if "error" in parsed:
+        print(f"[{parsed['error']['code']}] {parsed['error']['info']}", file=sys.stderr)
+        sys.exit(1)
+    return parsed
+
 if __name__ == "__main__":
     # make sure we always print a literal null when dumping None values
     RoundTripRepresenter.add_representer(type(None), SafeRepresenter.represent_none)
@@ -111,4 +135,35 @@ if __name__ == "__main__":
     RoundTripRepresenter.add_representer(Undefined, lambda r, d: r.represent_scalar("tag:yaml.org,2002:null", ""))
     # omit !!omap tag from our OrderedDict dumps; we use ordering just to make things alphabetical
     RoundTripRepresenter.add_representer(OrderedDict, SafeRepresenter.represent_dict)
-    print(generate_docs())
+    if len(sys.argv) < 6:
+        print(generate_docs())
+    else:
+        # if passing arguments:
+        # the first argument should be the URL to the wiki's api.php (e.g. 'https://werewolf.chat/w/api.php')
+        # the second argument should be the username to authenticate with
+        # the third argument should be the password to authenticate with
+        # the fourth argument should be the page name to edit
+        # the fifth argument should be the id (hash) of the git commit that prompted this script to run
+        api, username, password, page, commit = sys.argv[1:]
+        with Session() as s:
+            token_params = {"action": "query", "meta": "tokens", "type": "login"}
+            login_token = wiki_api(s, api, token_params)["query"]["tokens"]["logintoken"]
+            login_data = {"lgname": username, "lgpassword": password, "lgtoken": login_token}
+            login_result = wiki_api(s, api, {"action": "login"}, login_data)
+            if login_result["login"]["result"] == "Failed":
+                print(f"[loginfailed] {login_result['login']['reason']}")
+                sys.exit(1)
+            username = login_result["login"]["lgusername"]
+            token_params["type"] = "csrf"
+            csrf_token = wiki_api(s, api, token_params, assert_bot=username)["query"]["tokens"]["csrftoken"]
+            edit_params = {"action": "edit", "title": page}
+            text = generate_docs()
+            md5 = hashlib.md5()
+            md5.update(text.encode("utf-8"))
+            edit_data = {"bot": 1,
+                         "nocreate": 1,
+                         "text": text,
+                         "summary": f"Configuration update from [[git:{commit}]]",
+                         "md5": md5.hexdigest(),
+                         "token": csrf_token}
+            print(wiki_api(s, api, edit_params, edit_data, assert_bot=username))

@@ -65,6 +65,11 @@ class IRCTransportHandler(UnionFilterMixin, logging.Handler):
             channel = self.destination[1:]
         channels.get(channel).send(line, prefix=prefix)
 
+    def format(self, record: logging.LogRecord) -> str:
+        # When sending to IRC, only send the first line
+        line = super().format(record)
+        return line.rsplit("\r?\n")[0]
+
 class StringFormatter(logging.Formatter):
     def __init__(self, tsconfig: dict):
         if tsconfig["enabled"]:
