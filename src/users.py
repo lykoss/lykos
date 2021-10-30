@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from src.containers import UserSet, UserDict, UserList
     from src.gamestate import GameState
     from src.channels import Channel
-    from oyoyo.client import IRCClient
 
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
@@ -344,7 +343,8 @@ class User(IRCContext):
 
             potential = None
             users = set(_users)
-            users.add(Bot)
+            if Bot is not None:
+                users.add(Bot)
             for user in users:
                 if self.partial_match(user):
                     if potential is None:

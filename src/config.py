@@ -132,10 +132,10 @@ class Config:
                 cur = cur[idx_part]
                 meta = meta["_items"]
                 meta_type = meta["_type"]
-                if isinstance(meta_type, dict):
-                    # complex meta_type, obtain the actual type metadata
-                    meta = meta["_type"]
-                    meta_type = meta["_type"]
+            if isinstance(meta_type, dict):
+                # complex meta_type, obtain the actual type metadata
+                meta = meta["_type"]
+                meta_type = meta["_type"]
             if isinstance(meta_type, list) and isinstance(cur, dict):
                 # union type and cur is a complex type; determine exactly which type it is
                 # a union can contain at most one untagged complex type
