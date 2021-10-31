@@ -190,7 +190,7 @@ def transition_day(var: GameState, gameid: int = 0):
         return
 
     td = DAY_START_TIME - NIGHT_START_TIME
-    NIGHT_START_TIME: Optional[datetime] = None
+    NIGHT_START_TIME = None # type: Optional[datetime]
     NIGHT_TIMEDELTA += td
     minimum, sec = td.seconds // 60, td.seconds % 60
 
@@ -393,7 +393,7 @@ def transition_night(var: GameState):
     NIGHT_ID = time.time()
     if NIGHT_TIMEDELTA or var.start_with_day:  # transition from day
         td = NIGHT_START_TIME - DAY_START_TIME
-        DAY_START_TIME: Optional[datetime] = None
+        DAY_START_TIME = None # type: Optional[datetime]
         DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         dmsg.append(messages["day_lasted"].format(min, sec))
