@@ -92,6 +92,7 @@ def reaper(var: GameState, gameid: int):
                         IDLE_WARNED.discard(user)  # player saved themselves from death
                         IDLE_WARNED_PM.discard(user)
                 for user in to_kill:
+                    # keys used: idle_death, idle_death_no_reveal
                     channels.Main.send(messages[f"idle_death{reveal}"].format(user, get_reveal_role(var, user)))
                     if var.in_game:
                         DCED_LOSERS.add(user)
@@ -112,6 +113,7 @@ def reaper(var: GameState, gameid: int):
                 revealrole = get_reveal_role(var, dcedplayer)
                 if (what == "quit" and config.Main.get("reaper.quit.enabled") and
                    (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.quit.grace"))):
+                    # keys used: quit_death, quit_death_no_reveal
                     channels.Main.send(messages[f"quit_death{reveal}"].format(dcedplayer, revealrole))
                     if var.current_phase != "join":
                         NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
@@ -122,6 +124,7 @@ def reaper(var: GameState, gameid: int):
 
                 elif (what == "part" and config.Main.get("reaper.part.enabled") and
                         (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.part.grace"))):
+                    # keys used: part_death, part_death_no_reveal
                     channels.Main.send(messages[f"part_death{reveal}"].format(dcedplayer, revealrole))
                     if var.current_phase != "join":
                         NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
@@ -132,6 +135,7 @@ def reaper(var: GameState, gameid: int):
 
                 elif (what == "account" and config.Main.get("reaper.account.enabled") and
                         (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.account.grace"))):
+                    # keys used: account_death, account_death_no_reveal
                     channels.Main.send(messages[f"account_death{reveal}"].format(dcedplayer, revealrole))
                     if var.current_phase != "join":
                         NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
