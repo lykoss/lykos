@@ -425,7 +425,7 @@ def connect_callback(cli: IRCClient):
 
     if config.Main.get("transports[0].authentication.services.use_sasl"):
         @hook("authenticate")
-        def auth_plus(cli: IRCClient, something, plus):
+        def auth_plus(cli: IRCClient, _, plus):
             username: str = config.Main.get("transports[0].authentication.services.username")
             if not username:
                 username = config.Main.get("transports[0].user.nick")
@@ -440,14 +440,14 @@ def connect_callback(cli: IRCClient):
                     cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("saslsuccess")
-        def on_successful_auth(cli: IRCClient, blah, blahh, blahhh):
+        def on_successful_auth(cli: IRCClient, *_):
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
         @hook("saslfail")
         @hook("sasltoolong")
         @hook("saslaborted")
-        def on_failure_auth(cli: IRCClient, *etc):
+        def on_failure_auth(cli: IRCClient, *_):
             nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet

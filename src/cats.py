@@ -48,7 +48,7 @@ FROZEN = False
 
 ROLES = {}
 
-_interal_en = _Messages(override="en")
+_internal_en = _Messages(override="en")
 
 def get(cat: str) -> Category:
     if not FROZEN:
@@ -161,7 +161,7 @@ class Category:
         """Return the English plural versions of roles for internal use."""
         values = set()
         for role in self:
-            values.add(_interal_en.raw("_roles", role)[1])
+            values.add(_internal_en.raw("_roles", role)[1])
         return values
 
     def __invert__(self):

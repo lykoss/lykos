@@ -31,21 +31,19 @@ import signal
 import socket
 import subprocess
 import sys
-import time
 import urllib.request
+import urllib.error
 
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 
-from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, pregame, relay, votes
+from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, relay, votes
 from src.channels import Channel
 from src.users import User
-import src
 
 from src.events import Event, EventListener, event_listener
 from src.transport.irc import get_ircd
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
@@ -56,15 +54,12 @@ from src.context import IRCContext
 from src.status import add_dying, kill_players
 from src.votes import chk_decision
 from src.trans import chk_win, chk_nightdone, reset, stop_game
-from src.cats import (
-    Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, Wolf_Objective, Village_Objective,
-    role_order
-    )
+from src.cats import Hidden
 
 from src.functions import (
     get_players, get_all_players, get_participants,
-    get_main_role, get_all_roles, get_reveal_role,
-    get_target, change_role, match_role, match_mode
+    get_main_role, get_reveal_role,
+    match_role, match_mode
    )
 
 def connect_callback():
@@ -121,7 +116,7 @@ def connect_callback():
         if chan is channels.Main and mode == get_ircd().quiet_mode:
             pending = []
             for quiet in chan.modes.get(mode, ()):
-                if re.search(r"^{0}.+\!\*@\*$".format(get_ircd().quiet_prefix), quiet):
+                if re.search(r"^{0}.+!\*@\*$".format(get_ircd().quiet_prefix), quiet):
                     pending.append(("-" + mode, quiet))
             accumulator.send(pending)
             next(accumulator, None)
@@ -239,7 +234,6 @@ def _restart_program(mode=None):
         assert mode in ("debug",)
         os.execl(python, python, sys.argv[0], "--{0}".format(mode))
     else:
-        import src
         args = []
         if config.Main.get("debug.enabled"):
             args.append("--debug")
@@ -261,7 +255,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
         message = " ".join(args[1:])
 
     if var:
-        if var.in_game and force:
+        if not var.in_game or force:
             stop_game(var, log=False)
         elif var.in_game:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
@@ -417,8 +411,8 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     # 5 = Setting known_role to True if the role is actually known for sure publically (e.g. revealing totem)
     # 2 and 4 are not used by included roles, but may be useful expansion points for custom roles to modify stats
     event = Event("update_stats", {"possible": {evt.params.main_role, evt.params.reveal_role}, "known_role": False},
-            killer_role=evt.params.killer_role,
-            reason=evt.params.reason)
+                  killer_role=evt.params.killer_role,
+                  reason=evt.params.reason)
     event.dispatch(var, player, evt.params.main_role, evt.params.reveal_role, all_roles)
     # Given the set of possible roles this nick could be (or its actual role if known_role is True),
     # figure out the set of roles that need deducting from their counts in the role stats
@@ -573,7 +567,7 @@ def leave(var: GameState, what, user, why=None):
     if not var.in_game or var.role_reveal not in ("on", "team"):
         reveal = "_no_reveal"
 
-    grace_times = {"leave": 0}
+    grace_times = {"leave": 0, "part": 0, "quit": 0, "account": 0}
     if config.Main.get("reaper.part.enabled"):
         grace_times["part"] = config.Main.get("reaper.part.grace")
     if config.Main.get("reaper.quit.enabled"):
@@ -585,11 +579,11 @@ def leave(var: GameState, what, user, why=None):
     if reason == "kick":
         reason = "leave"
 
-    if reason in grace_times and (grace_times[reason] <= 0 or var.current_phase == "join"):
+    if what == "kick" or grace_times[reason] <= 0 or var.current_phase == "join":
         # possible message keys (for easy grep):
         # "quit_death", "quit_death_no_reveal", "leave_death", "leave_death_no_reveal", "account_death", "account_death_no_reveal"
         msg = messages["{0}_death{1}".format(reason, reveal)]
-    elif what != "kick": # There's time for the player to rejoin the game
+    else:
         if reason != "quit":
             # message keys: "part_grace_time_notice", "account_grace_time_notice"
             # No message is sent for quit because the user won't be online to receive it...
@@ -1260,8 +1254,8 @@ def update(wrapper: MessageDispatcher, message: str):
 
     force = (message.strip() == "-force")
 
-    if var and var.in_game:
-        if force:
+    if var:
+        if not var.in_game or force:
             stop_game(var, log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="update"))

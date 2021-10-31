@@ -38,7 +38,7 @@ def _get_auto_sanctions(sanctions, prev, cur):
     for sanc in config.Main.get("warnings.sanctions"):
         mn = sanc["min"]
         mx = sanc["max"]
-        if (prev < mn and cur >= mn) or (prev >= mn and prev <= mx and cur <= mx):
+        if (prev < mn and cur >= mn) or (mn <= prev <= mx and cur <= mx):
             if sanc["stasis"] is not None:
                 if "stasis" not in sanctions:
                     sanctions["stasis"] = sanc["stasis"]
@@ -373,13 +373,14 @@ def fwarn_add(wrapper: MessageDispatcher, args):
 
     if args.ban is not None:
         try:
-            sanctions["tempban"] = _parse_expires(args.ban)
+            tempban: Optional[datetime | int] = _parse_expires(args.ban)
         except ValueError:
             try:
-                sanctions["tempban"] = int(args.ban)
+                tempban = int(args.ban)
             except ValueError:
                 wrapper.reply(messages["fwarn_tempban_invalid"])
                 return
+        sanctions["tempban"] = tempban
 
     reason = " ".join(args.reason).strip()
 
@@ -419,7 +420,6 @@ def fwarn_del(wrapper: MessageDispatcher, args):
     db.del_warning(args.id, wrapper.source.account)
     db.init_vars()
     wrapper.reply(messages["fwarn_done"])
-
 
     logger = logging.getLogger("commands.fwarn.del")
     msg = messages["fwarn_log_del"].format(**warning)

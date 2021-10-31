@@ -127,8 +127,8 @@ def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inh
     # in_wolfchat is filled as part of priority 4
     # if you wish to modify evt.data["role"], do so in priority 3 or sooner
     evt = Event("new_role",
-            {"role": newrole, "messages": [], "in_wolfchat": False},
-            inherit_from=inherit_from)
+                {"role": newrole, "messages": [], "in_wolfchat": False},
+                inherit_from=inherit_from)
     evt.dispatch(var, player, oldrole)
     newrole = evt.data["role"]
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 import os.path
 import glob
 import importlib
-from typing import Optional
+from typing import Optional, Type
 from src.messages import messages
 from src.gamestate import GameState
 from src.events import Event, EventListener
@@ -18,7 +18,8 @@ class InvalidModeException(Exception):
 
 class CustomSettings:
     def __init__(self):
-        self._overridden = set()
+        self._overridden: set[str] = set()
+        self._customized: set[str] = set()
         self._abstain_enabled: Optional[bool] = None
         self._limit_abstain: Optional[bool] = None
         self.self_lynch_allowed: bool = True
@@ -36,6 +37,23 @@ class CustomSettings:
         self._night_time_limit: Optional[int] = None
         self._night_time_warn: Optional[int] = None
 
+    def add_override(self, *args: str) -> None:
+        """
+        Mark settings as overridden, preventing further attempts to change it.
+
+        :param args: Settings to mark as overridden
+        """
+        self._overridden.update(args)
+
+    def is_customized(self, setting: str) -> bool:
+        """
+        Check if a given setting has been customized from the default.
+
+        :param setting: Setting to check.
+        :return: True if the setting is customized, False if not
+        """
+        return setting in self._customized
+
     @property
     def abstain_enabled(self) -> bool:
         if self._abstain_enabled is None:
@@ -47,6 +65,7 @@ class CustomSettings:
         if "abstain_enabled" in self._overridden:
             return
         self._abstain_enabled = value
+        self._customized.add("abstain_enabled")
 
     @property
     def limit_abstain(self) -> bool:
@@ -59,6 +78,7 @@ class CustomSettings:
         if "limit_abstain" in self._overridden:
             return
         self._limit_abstain = value
+        self._customized.add("limit_abstain")
 
     @property
     def role_reveal(self) -> str:
@@ -71,6 +91,7 @@ class CustomSettings:
         if "role_reveal" in self._overridden:
             return
         self._role_reveal = value
+        self._customized.add("role_reveal")
 
     @property
     def stats_type(self) -> str:
@@ -83,6 +104,7 @@ class CustomSettings:
         if "stats_type" in self._overridden:
             return
         self._stats_type = value
+        self._customized.add("stats_type")
 
     @property
     def day_time_limit(self) -> int:
@@ -156,17 +178,19 @@ def import_builtin_modes():
         importlib.import_module("." + n, package="src.gamemodes")
 
 class GameMode:
+    name: str
+
     def __init__(self, arg=""):
         # Default values for the role sets and secondary roles restrictions
         self.ROLE_SETS = {
             "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
         }
         self.SECONDARY_ROLES = {
-            "cursed villager"   : All - Cursed - Wolf - Innocent - {"seer", "oracle"},
-            "gunner"            : Village + Neutral + Hidden - Innocent - Team_Switcher,
-            "sharpshooter"      : Village + Neutral + Hidden - Innocent - Team_Switcher,
-            "mayor"             : All - Innocent - Win_Stealer,
-            "assassin"          : All - Nocturnal + Killer - Spy + Wolfchat - Wolf - Innocent - Team_Switcher - {"traitor"},
+            "cursed villager": All - Cursed - Wolf - Innocent - {"seer", "oracle"},
+            "gunner": Village + Neutral + Hidden - Innocent - Team_Switcher,
+            "sharpshooter": Village + Neutral + Hidden - Innocent - Team_Switcher,
+            "mayor": All - Innocent - Win_Stealer,
+            "assassin": All - Nocturnal + Killer - Spy + Wolfchat - Wolf - Innocent - Team_Switcher - {"traitor"},
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
         self.NUM_TOTEMS = {}
@@ -213,7 +237,7 @@ class GameMode:
                 if val not in ("on", "off", "team"):
                     raise InvalidModeException(messages["invalid_reveal"].format(val))
                 self.CUSTOM_SETTINGS.role_reveal = val
-                self.CUSTOM_SETTINGS._overridden.add("role_reveal")
+                self.CUSTOM_SETTINGS.add_override("role_reveal")
                 if val == "off":
                     self.CUSTOM_SETTINGS.stats_type = "disabled"
                 elif val == "team":
@@ -222,7 +246,7 @@ class GameMode:
                 if val not in ("default", "accurate", "team", "disabled"):
                     raise InvalidModeException(messages["invalid_stats"].format(val))
                 self.CUSTOM_SETTINGS.stats_type = val
-                self.CUSTOM_SETTINGS._overridden.add("stats_type")
+                self.CUSTOM_SETTINGS.add_override("stats_type")
             elif key == "abstain":
                 if val == "enabled":
                     self.CUSTOM_SETTINGS.abstain_enabled = True
@@ -234,7 +258,7 @@ class GameMode:
                     self.CUSTOM_SETTINGS.abstain_enabled = False
                 else:
                     raise InvalidModeException(messages["invalid_abstain"].format(val))
-                self.CUSTOM_SETTINGS._overridden.update(("abstain_enabled", "limit_abstain"))
+                self.CUSTOM_SETTINGS.add_override("abstain_enabled", "limit_abstain")
 
     def startup(self):
         for event, listeners in self.EVENTS.items():
@@ -291,21 +315,11 @@ class GameMode:
             for key, value in self.GUN_CHANCES[role].items():
                 evt.data[key] += value
 
-GAME_MODES: dict[str, tuple[GameMode, int, int, int]] = {}
+GAME_MODES: dict[str, tuple[Type[GameMode], int, int, int]] = {}
 
 def game_mode(name: str, minp: int, maxp: int, likelihood: int = 0):
-    def decor(c: GameMode):
+    def decor(c: Type[GameMode]):
         c.name = name
         GAME_MODES[name] = (c, minp, maxp, likelihood)
         return c
     return decor
-
-path = os.path.dirname(os.path.abspath(__file__))
-search = os.path.join(path, "*.py")
-
-for f in glob.iglob(search):
-    f = os.path.basename(f)
-    n, _ = os.path.splitext(f)
-    if f.startswith("_"):
-        continue
-    importlib.import_module("." + n, package="src.gamemodes")

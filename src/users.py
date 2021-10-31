@@ -426,9 +426,9 @@ class User(IRCContext):
         if not self.channels or same_user:
             _users.discard(self) # Goodbye, my old friend
 
-        for l in self.lists[:]:
-            while self in l:
-                l[l.index(self)] = new
+        for lst in self.lists[:]:
+            while self in lst:
+                lst[lst.index(self)] = new
 
         for s in self.sets[:]:
             s.remove(self)

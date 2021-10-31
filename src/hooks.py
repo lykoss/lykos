@@ -18,8 +18,6 @@ from src.events import Event, event_listener
 
 from src import config, context, channels, users
 
-### WHO/WHOX responses handling
-
 _who_old: dict[str, users.User] = {}
 
 @hook("whoreply")
@@ -50,7 +48,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     # We also don't directly pass which modes they have, since that's already on the channel/user
     is_away = ("G" in status)
 
-    modes = {Features["PREFIX"].get(s) for s in status} - {None}
+    modes: set[str] = {Features.PREFIX.get(s, "") for s in status} - {""}
 
     user = users.get(nick, ident, host, allow_bot=True, allow_none=True)
     if user is None:
@@ -111,7 +109,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     data = int.from_bytes(data.encode(Features["CHARSET"]), "little")
 
-    modes = {Features["PREFIX"].get(s) for s in status} - {None}
+    modes: set[str] = {Features.PREFIX.get(s, "") for s in status} - {""}
 
     # WHOX may be issued to retrieve updated account info so exclude account from users.get()
     # we handle the account change differently below and don't want to add duplicate users
@@ -171,8 +169,6 @@ def end_who(cli, bot_server, bot_nick, target, rest):
     old = _who_old.get(target.name, target)
     _who_old.clear()
     Event("who_end", {}, old=old).dispatch(target)
-
-### WHOIS Reponse Handling
 
 _whois_pending: dict[str, dict[str, Any]] = {}
 
@@ -299,8 +295,6 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
         event.dispatch(chan, new_user)
     Event("who_end", {}, old=user).dispatch(new_user)
 
-### Host changing handling
-
 @hook("event_hosthidden")
 def host_hidden(cli, server, nick, host, message):
     """Properly update the bot's knowledge of itself.
@@ -348,8 +342,6 @@ def on_loggedin(cli, server, nick, rawnick, account, message):
         users.Bot.rawnick = rawnick
         users.Bot.account = account
 
-### Server PING handling
-
 @hook("ping")
 def on_ping(cli, prefix, server):
     """Send out PONG replies to the server's PING requests.
@@ -364,8 +356,6 @@ def on_ping(cli, prefix, server):
 
     with cli:
         cli.send("PONG", server)
-
-### Fetch and store server information
 
 @hook("featurelist")
 def get_features(cli, server, nick, *features):
@@ -392,8 +382,6 @@ def get_features(cli, server, nick, *features):
             Features.set(name, data)
         else:
             Features.set(feature, "")
-
-### Channel and user MODE handling
 
 @hook("channelmodeis")
 def current_modes(cli, server, bot_nick, chan, mode, *targets):
@@ -471,8 +459,6 @@ def apply_mode_changes(evt, actor, target):
     """Apply all mode changes before any other event."""
 
     target.update_modes(actor, evt.data.pop("mode"), evt.data.pop("targets"))
-
-### List modes handling (bans, quiets, ban and invite exempts)
 
 def handle_listmode(cli, chan, mode, target, setter, timestamp):
     """Handle and store list modes."""
@@ -631,8 +617,6 @@ def end_inviteexemptlist(cli, server, bot_nick, chan, message):
 
     handle_endlistmode(cli, chan, "I")
 
-### NICK handling
-
 @hook("nick")
 def on_nick_change(cli, old_rawnick, nick):
     """Handle a user changing nicks, which may be the bot itself.
@@ -651,8 +635,6 @@ def on_nick_change(cli, old_rawnick, nick):
     new_user = users.get(nick, user.ident, user.host, user.account, allow_bot=True)
 
     Event("nick_change", {}, old=user).dispatch(new_user, old_nick)
-
-### ACCOUNT handling
 
 @hook("account")
 def on_account_change(cli, rawnick, account):
@@ -674,8 +656,6 @@ def on_account_change(cli, rawnick, account):
     new_user = users.get(user.nick, user.ident, user.host, account, allow_bot=True)
 
     Event("account_change", {}, old=user).dispatch(new_user, old_account)
-
-### JOIN handling
 
 @hook("join")
 def join_chan(cli, rawnick, chan, account=None, realname=None):
@@ -723,8 +703,6 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
         ch.mode(Features["CHANMODES"][0])
         ch.who()
 
-### PART handling
-
 @hook("part")
 def part_chan(cli, rawnick, chan, reason=""):
     """Handle a user leaving a channel, which may be the bot itself.
@@ -750,8 +728,6 @@ def part_chan(cli, rawnick, chan, reason=""):
     else:
         ch.remove_user(user)
 
-### KICK handling
-
 @hook("kick")
 def kicked_from_chan(cli, rawnick, chan, target, reason):
     """Handle a user being kicked from a channel.
@@ -775,8 +751,6 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
         ch.clear()
     else:
         ch.remove_user(user)
-
-### QUIT handling
 
 def quit(context, message=""):
     """Quit the bot from IRC."""
@@ -813,8 +787,6 @@ def on_quit(cli, rawnick, reason):
             chan.clear()
         else:
             chan.remove_user(user)
-
-### CHGHOST Handling
 
 @hook("chghost")
 def on_chghost(cli, rawnick, ident, host):

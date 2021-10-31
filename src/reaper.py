@@ -32,7 +32,7 @@ def reaper(var: GameState, gameid: int):
     num_night_iters = 0
     short = False
 
-    while not var._torndown and gameid == var.game_id:
+    while var.in_game and gameid == var.game_id:
         skip = False
         time.sleep(1 if short else 10)
         short = False
@@ -67,19 +67,22 @@ def reaper(var: GameState, gameid: int):
                         continue
                     lst = LAST_SAID_TIME.get(user, game_start_time)
                     tdiff = datetime.now() - lst
-                    if config.Main.get("reaper.idle.warn.channel") and (tdiff > timedelta(seconds=config.Main.get("reaper.idle.warn.channel")) and
-                                            user not in IDLE_WARNED):
+                    if (config.Main.get("reaper.idle.warn.channel") and
+                            tdiff > timedelta(seconds=config.Main.get("reaper.idle.warn.channel")) and
+                            user not in IDLE_WARNED):
                         to_warn.add(user)
                         IDLE_WARNED.add(user)
                         LAST_SAID_TIME[user] = (datetime.now() - timedelta(seconds=config.Main.get("reaper.idle.warn.channel")))  # Give them a chance
-                    elif config.Main.get("reaper.idle.warn.private") and (tdiff > timedelta(seconds=config.Main.get("reaper.idle.warn.private")) and
-                                            user not in IDLE_WARNED_PM):
+                    elif (config.Main.get("reaper.idle.warn.private") and
+                            tdiff > timedelta(seconds=config.Main.get("reaper.idle.warn.private")) and
+                            user not in IDLE_WARNED_PM):
                         to_warn_pm.add(user)
                         IDLE_WARNED_PM.add(user)
                         LAST_SAID_TIME[user] = (datetime.now() - timedelta(seconds=config.Main.get("reaper.idle.warn.private")))
-                    elif config.Main.get("reaper.idle.grace") and (tdiff > timedelta(seconds=config.Main.get("reaper.idle.grace")) and
-                                            (not config.Main.get("reaper.idle.warn.channel") or user in IDLE_WARNED) and
-                                            (not config.Main.get("reaper.idle.warn.private") or user in IDLE_WARNED_PM)):
+                    elif (config.Main.get("reaper.idle.grace") and
+                            tdiff > timedelta(seconds=config.Main.get("reaper.idle.grace")) and
+                            (not config.Main.get("reaper.idle.warn.channel") or user in IDLE_WARNED) and
+                            (not config.Main.get("reaper.idle.warn.private") or user in IDLE_WARNED_PM)):
                         to_kill.add(user)
                     elif tdiff < timedelta(seconds=config.Main.get("reaper.idle.warn.channel")) and (user in IDLE_WARNED or user in IDLE_WARNED_PM):
                         IDLE_WARNED.discard(user)  # player saved themselves from death
@@ -121,7 +124,7 @@ def reaper(var: GameState, gameid: int):
                     add_dying(var, dcedplayer, "bot", "quit", death_triggers=False)
 
                 elif (what == "part" and config.Main.get("reaper.part.enabled") and
-                     (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.part.grace"))):
+                        (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.part.grace"))):
                     if var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["part_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
@@ -134,7 +137,7 @@ def reaper(var: GameState, gameid: int):
                     add_dying(var, dcedplayer, "bot", "part", death_triggers=False)
 
                 elif (what == "account" and config.Main.get("reaper.account.enabled") and
-                     (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.account.grace"))):
+                        (datetime.now() - timeofdc) > timedelta(seconds=config.Main.get("reaper.account.grace"))):
                     if var.role_reveal in ("on", "team"):
                         channels.Main.send(messages["account_death"].format(dcedplayer, revealrole))
                     else:
@@ -162,7 +165,7 @@ def update_last_said(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
 
 @handle_error
-def return_to_village(var: GameState, target: User, *, show_message: bool, new_user: Optional[User]=None):
+def return_to_village(var: GameState, target: User, *, show_message: bool, new_user: Optional[User] = None):
     with locks.reaper:
         from src.trans import ORIGINAL_ACCOUNTS
         if channels.Main not in target.channels:

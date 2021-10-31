@@ -20,7 +20,7 @@ from src.functions import get_players, match_role
 from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event, event_listener
-from src.cats import Wolfchat, All
+from src.cats import All
 from src import config, channels, locks, trans, reaper, users
 
 if TYPE_CHECKING:
@@ -34,10 +34,8 @@ WAIT_LAST = 0
 LAST_START: UserDict[User, list[datetime | int]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
-CAN_START_TIME: int = 0
+CAN_START_TIME: datetime = datetime.now()
 FORCE_ROLES: DefaultUserDict[UserSet] = DefaultUserDict(UserSet)
-RESTART_TRIES: int = 0
-MAX_RETRIES = 3 # constant: not a setting
 
 @command("wait", playing=True, phases=("join",))
 def wait(wrapper: MessageDispatcher, message: str):
@@ -140,113 +138,103 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
                 trans.TIMERS["start_votes"][0].cancel()
                 del trans.TIMERS["start_votes"]
 
-def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""):
+def start(wrapper: MessageDispatcher, *, forced: bool = False):
     from src.trans import stop_game
 
     pregame_state: PregameState = wrapper.game_state
 
     if (not forced and LAST_START and wrapper.source in LAST_START and
-            LAST_START[wrapper.source][0] + timedelta(seconds=config.Main.get("ratelimits.start")) >
-            datetime.now() and not restart):
+            LAST_START[wrapper.source][0] + timedelta(seconds=config.Main.get("ratelimits.start")) > datetime.now()):
         LAST_START[wrapper.source][1] += 1
         wrapper.source.send(messages["command_ratelimited"])
         return
 
-    global RESTART_TRIES
-    if restart:
-        RESTART_TRIES += 1
-    if RESTART_TRIES > MAX_RETRIES:
-        stop_game(pregame_state, abort=True, log=False)
+    LAST_START[wrapper.source] = [datetime.now(), 1]
+
+    if pregame_state.in_game:
+        wrapper.source.send(messages["werewolf_already_running"])
         return
 
-    if not restart:
-        LAST_START[wrapper.source] = [datetime.now(), 1]
+    villagers = get_players(pregame_state)
+    vils = set(get_players(pregame_state))
 
-        if pregame_state.in_game:
-            wrapper.source.send(messages["werewolf_already_running"])
+    if wrapper.source not in villagers and not forced:
+        return
+
+    dur = int((CAN_START_TIME - datetime.now()).total_seconds())
+    if dur > 0 and not forced:
+        wrapper.send(messages["please_wait"].format(dur))
+        return
+
+    if len(villagers) < config.Main.get("gameplay.player_limits.minimum"):
+        wrapper.send(messages["not_enough_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.minimum")))
+        return
+
+    if len(villagers) > config.Main.get("gameplay.player_limits.maximum"):
+        wrapper.send(messages["max_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.maximum")))
+        return
+
+    with locks.join_timer:
+        if not forced and wrapper.source in START_VOTES:
+            wrapper.pm(messages["start_already_voted"])
             return
 
-        villagers = get_players(pregame_state)
-        vils = set(get_players(pregame_state))
+        start_votes_required = min(math.ceil(len(villagers) * config.Main.get("gameplay.start.scale")), config.Main.get("gameplay.start.maximum"))
+        if not forced and len(START_VOTES) < start_votes_required:
+            # If there's only one more vote required, start the game immediately.
+            # Checked here to make sure that a player that has already voted can't
+            # vote again for the final start.
+            if len(START_VOTES) < start_votes_required - 1:
+                START_VOTES.add(wrapper.source)
+                remaining_votes = start_votes_required - len(START_VOTES)
+                wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes))
 
-        if wrapper.source not in villagers and not forced:
-            return
-
-        dur = int((CAN_START_TIME - datetime.now()).total_seconds())
-        if dur > 0 and not forced:
-            wrapper.send(messages["please_wait"].format(dur))
-            return
-
-        if len(villagers) < config.Main.get("gameplay.player_limits.minimum"):
-            wrapper.send(messages["not_enough_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.minimum")))
-            return
-
-        if len(villagers) > config.Main.get("gameplay.player_limits.maximum"):
-            wrapper.send.send(messages["max_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.maximum")))
-            return
-
-        with locks.join_timer:
-            if not forced and wrapper.source in START_VOTES:
-                wrapper.pm(messages["start_already_voted"])
+                # If this was the first vote
+                if len(START_VOTES) == 1:
+                    t = threading.Timer(60, expire_start_votes, (pregame_state, wrapper.target))
+                    trans.TIMERS["start_votes"] = (t, time.time(), 60)
+                    t.daemon = True
+                    t.start()
                 return
 
-            start_votes_required = min(math.ceil(len(villagers) * config.Main.get("gameplay.start.scale")), config.Main.get("gameplay.start.maximum"))
-            if not forced and len(START_VOTES) < start_votes_required:
-                # If there's only one more vote required, start the game immediately.
-                # Checked here to make sure that a player that has already voted can't
-                # vote again for the final start.
-                if len(START_VOTES) < start_votes_required - 1:
-                    START_VOTES.add(wrapper.source)
-                    remaining_votes = start_votes_required - len(START_VOTES)
-                    wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes))
+    if pregame_state.current_mode is None:
+        from src.gamemodes import GAME_MODES
+        from src.votes import GAMEMODE_VOTES
 
-                    # If this was the first vote
-                    if len(START_VOTES) == 1:
-                        t = threading.Timer(60, expire_start_votes, (pregame_state, wrapper.target))
-                        trans.TIMERS["start_votes"] = (t, time.time(), 60)
-                        t.daemon = True
-                        t.start()
-                    return
-
-        if pregame_state.current_mode is None:
-            from src.gamemodes import GAME_MODES
-            from src.votes import GAMEMODE_VOTES
-            def _isvalid(gamemode, allow_vote_only):
-                x = GAME_MODES[gamemode]
-                if not x[3] and not allow_vote_only:
-                    return False
-                return (len(villagers) >= x[1] and len(villagers) >= config.Main.get("gameplay.player_limits.minimum") and
-                        len(villagers) <= x[2] and len(villagers) <= config.Main.get("gameplay.player_limits.maximum"))
-            votes = {} # key = gamemode, not hostmask
-            for gamemode in GAMEMODE_VOTES.values():
-                if _isvalid(gamemode, True):
-                    votes[gamemode] = votes.get(gamemode, 0) + 1
-            voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
-            if voted:
-                set_gamemode(pregame_state, random.choice(voted))
-            else:
+        def _isvalid(mode, allow_vote_only):
+            x = GAME_MODES[mode]
+            if not x[3] and not allow_vote_only:
+                return False
+            min_players = config.Main.get("gameplay.player_limits.minimum")
+            max_players = config.Main.get("gameplay.player_limits.maximum")
+            num_villagers = len(villagers)
+            return x[1] <= num_villagers <= x[2] and min_players <= num_villagers <= max_players
+        votes = {} # key = gamemode, not hostmask
+        for gamemode in GAMEMODE_VOTES.values():
+            if _isvalid(gamemode, True):
+                votes[gamemode] = votes.get(gamemode, 0) + 1
+        voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
+        if voted:
+            set_gamemode(pregame_state, random.choice(voted))
+        else:
+            possiblegamemodes = []
+            numvotes = 0
+            for gamemode, num in votes.items():
+                if not _isvalid(gamemode, False):
+                    continue
+                possiblegamemodes += [gamemode] * num
+                numvotes += num
+            if len(villagers) - numvotes > 0:
+                possiblegamemodes += [None] * ((len(villagers) - numvotes) // 2)
+            # check if we go with a voted mode or a random mode
+            gamemode = random.choice(possiblegamemodes)
+            if gamemode is None:
                 possiblegamemodes = []
-                numvotes = 0
-                for gamemode, num in votes.items():
-                    if not _isvalid(gamemode, False):
-                        continue
-                    possiblegamemodes += [gamemode] * num
-                    numvotes += num
-                if len(villagers) - numvotes > 0:
-                    possiblegamemodes += [None] * ((len(villagers) - numvotes) // 2)
-                # check if we go with a voted mode or a random mode
+                for gamemode in GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")):
+                    if _isvalid(gamemode, False):
+                        possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
                 gamemode = random.choice(possiblegamemodes)
-                if gamemode is None:
-                    possiblegamemodes = []
-                    for gamemode in GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")):
-                        if _isvalid(gamemode, False):
-                            possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
-                    gamemode = random.choice(possiblegamemodes)
-                set_gamemode(pregame_state, gamemode)
-
-    else:
-        set_gamemode(pregame_state, restart)
-        pregame_state.game_id = time.time() # restart reaper timer
+            set_gamemode(pregame_state, gamemode)
 
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state
@@ -319,7 +307,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
 
-    if trans.ADMIN_STOPPED and not restart:
+    if trans.ADMIN_STOPPED:
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
@@ -454,35 +442,33 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False, restart: str = ""
             evt.dispatch(ingame_state, player, None)
 
     start_event = Event("start_game", {"custom_game_callback": None})  # defined here to make the linter happy
-    if not restart:
-        gamemode = ingame_state.current_mode.name
-        start_event.dispatch(ingame_state, gamemode, ingame_state.current_mode)
+    gamemode = ingame_state.current_mode.name
+    start_event.dispatch(ingame_state, gamemode, ingame_state.current_mode)
 
-        # Alert the players to option changes they may not be aware of
-        # All keys begin with gso_* (game start options)
-        options = []
-        if ingame_state.current_mode.CUSTOM_SETTINGS._role_reveal is not None:
-            # Keys used here: gso_rr_on, gso_rr_team, gso_rr_off
-            options.append(messages["gso_rr_{0}".format(ingame_state.role_reveal)])
-        if ingame_state.current_mode.CUSTOM_SETTINGS._stats_type is not None:
-            # Keys used here: gso_st_default, gso_st_accurate, gso_st_team, gso_st_disabled
-            options.append(messages["gso_st_{0}".format(ingame_state.stats_type)])
-        if ingame_state.current_mode.CUSTOM_SETTINGS._abstain_enabled is not None or ingame_state.current_mode.CUSTOM_SETTINGS._limit_abstain is not None:
-            if ingame_state.abstain_enabled and ingame_state.limit_abstain:
-                options.append(messages["gso_abs_rest"])
-            elif ingame_state.abstain_enabled:
-                options.append(messages["gso_abs_unrest"])
-            else:
-                options.append(messages["gso_abs_none"])
+    # Alert the players to option changes they may not be aware of
+    # All keys begin with gso_* (game start options)
+    options = []
+    custom_settings = ingame_state.current_mode.CUSTOM_SETTINGS
+    if custom_settings.is_customized("role_reveal"):
+        # Keys used here: gso_rr_on, gso_rr_team, gso_rr_off
+        options.append(messages["gso_rr_{0}".format(ingame_state.role_reveal)])
+    if custom_settings.is_customized("stats_type"):
+        # Keys used here: gso_st_default, gso_st_accurate, gso_st_team, gso_st_disabled
+        options.append(messages["gso_st_{0}".format(ingame_state.stats_type)])
+    if custom_settings.is_customized("abstain_enabled") or custom_settings.is_customized("limit_abstain"):
+        if ingame_state.abstain_enabled and ingame_state.limit_abstain:
+            options.append(messages["gso_abs_rest"])
+        elif ingame_state.abstain_enabled:
+            options.append(messages["gso_abs_unrest"])
+        else:
+            options.append(messages["gso_abs_none"])
 
-        key = "welcome_simple"
-        if options:
-            key = "welcome_options"
-        wrapper.send(messages[key].format(villagers, gamemode, options))
-        wrapper.target.mode("+m")
+    key = "welcome_simple"
+    if options:
+        key = "welcome_options"
+    wrapper.send(messages[key].format(villagers, gamemode, options))
+    wrapper.target.mode("+m")
 
-    if restart:
-        ingame_state.current_phase = "join" # allow transition_* to run properly if game was restarted on first night
     if not ingame_state.start_with_day:
         from src.trans import transition_night
         transition_night(ingame_state)
@@ -546,12 +532,11 @@ def frole(wrapper: MessageDispatcher, message: str):
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
-    global MAX_RETRIES, WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
+    global WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
     LAST_START.clear()
     LAST_WAIT.clear()
     START_VOTES.clear()
     FORCE_ROLES.clear()
-    MAX_RETRIES = 0
     WAIT_TOKENS = 0
     WAIT_LAST = 0
     CAN_START_TIME = 0

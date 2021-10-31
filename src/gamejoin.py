@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Callable
 
 from src.decorators import command
-from src.containers import UserDict
 from src.functions import get_players, get_reveal_role
 from src.gamestate import PregameState, GameState
 from src.warnings import expire_tempbans, decrement_stasis, add_warning
@@ -73,7 +72,7 @@ def join_player(wrapper: MessageDispatcher,
     if _join_player(wrapper, who, forced) and callback:
         callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
-def _join_player(wrapper: MessageDispatcher, who: Optional[User]=None, forced=False):
+def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=False):
     var = wrapper.game_state
     pl = get_players(var)
 
@@ -328,7 +327,7 @@ def join_timer_handler(var):
 
         def get_altpingers(event: Event, chan: Channel, user: User):
             if (event.params.away or user.stasis_count() or not PINGING_PLAYERS or
-                chan is not channels.Main or user is users.Bot or user in pl):
+                    chan is not channels.Main or user is users.Bot or user in pl):
                 return
 
             temp = user.lower()

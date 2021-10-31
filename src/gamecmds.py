@@ -69,7 +69,7 @@ def stats(wrapper: MessageDispatcher, message: str):
     # The events are fired off as part of transition_day and del_player, and are not calculated here
     if var.stats_type == "default":
         # Collapse the role stats into a dict[str, tuple[int, int]]
-        role_stats = {}
+        role_stats: dict[str, tuple[int, int]] = {}
         for stat_set in var.get_role_stats():
             for r, a in stat_set:
                 if r not in role_stats:
@@ -201,6 +201,9 @@ def timeleft(wrapper: MessageDispatcher, message: str):
         elif var.current_phase == "join":
             what = "the game is canceled if it's not started"
             name = "join"
+        else:
+            what = "the end of the phase"
+            name = var.current_phase if var.current_phase in trans.TIMERS else f"{var.current_phase}_limit"
 
         remaining = int((trans.TIMERS[name][1] + trans.TIMERS[name][2]) - time.time())
         msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)

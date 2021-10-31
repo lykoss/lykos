@@ -5,14 +5,14 @@ from collections import Counter
 from typing import Optional, Tuple
 
 from src.containers import UserDict, UserSet
-from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
+from src.functions import get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
 from src.gamestate import GameState, PregameState
 from src.events import Event, event_listener
 from src.users import User
 from src import locks, channels
 
-__all__ = ["add_dying", "is_dying", "is_dead", "kill_players"]
+__all__ = ["add_dying", "is_dying", "is_dead", "kill_players", "DEAD"]
 
 DyingEntry = Tuple[str, str, bool]
 

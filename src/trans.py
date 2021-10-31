@@ -10,7 +10,7 @@ from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
 from src.containers import UserSet, UserDict, UserList
 from src.functions import get_players, get_main_role, get_reveal_role
-from src.warnings import add_warning, expire_tempbans
+from src.warnings import expire_tempbans
 from src.messages import messages
 from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent
 from src.users import User
@@ -21,7 +21,7 @@ from src import channels, users, locks, config, db, reaper, relay
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+    from src.gamestate import GameState, PregameState
 
 NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS: dict[str, tuple[threading.Timer, float | int, int]] = {}
@@ -185,14 +185,12 @@ def transition_day(var: GameState, gameid: int = 0):
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
 
-    if var.start_with_day and not var.day_count:
-        # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
-        # but this is good enough for now to prevent it from crashing
+    if var.start_with_day and var.day_count == 1:
         begin_day(var)
         return
 
     td = DAY_START_TIME - NIGHT_START_TIME
-    NIGHT_START_TIME = None
+    NIGHT_START_TIME: Optional[datetime] = None
     NIGHT_TIMEDELTA += td
     minimum, sec = td.seconds // 60, td.seconds % 60
 
@@ -393,9 +391,9 @@ def transition_night(var: GameState):
     dmsg = []
 
     NIGHT_ID = time.time()
-    if NIGHT_TIMEDELTA or var.start_with_day:  #  transition from day
+    if NIGHT_TIMEDELTA or var.start_with_day:  # transition from day
         td = NIGHT_START_TIME - DAY_START_TIME
-        DAY_START_TIME = None
+        DAY_START_TIME: Optional[datetime] = None
         DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         dmsg.append(messages["day_lasted"].format(min, sec))
@@ -464,7 +462,7 @@ def chk_nightdone(var: GameState):
         if var.current_phase == "night":  # Double check
             event.data["transition_day"](var)
 
-def stop_game(var: GameState, winner="", abort=False, additional_winners=None, log=True):
+def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, additional_winners=None, log=True):
     global DAY_TIMEDELTA, NIGHT_TIMEDELTA, ENDGAME_COMMAND
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
@@ -485,7 +483,7 @@ def stop_game(var: GameState, winner="", abort=False, additional_winners=None, l
     tmin, tsec = total.seconds // 60, total.seconds % 60
     gameend_msg = messages["endgame_stats"].format(tmin, tsec, daymin, daysec, nitemin, nitesec)
 
-    if not abort:
+    if not abort and var.in_game:
         channels.Main.send(gameend_msg)
 
         roles_msg = []
@@ -731,7 +729,7 @@ def reset_game(wrapper: MessageDispatcher, message: str):
     else:
         stop_game(var, log=False)
 
-def reset(var: Optional[GameState]):
+def reset(var: Optional[GameState | PregameState]):
     # Reset game timers
     if var is not None:
         with locks.join_timer: # make sure it isn't being used by the ping join handler

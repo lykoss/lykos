@@ -33,7 +33,7 @@ class _States(Enum):
 # function returns a true value, then it's a fake channel. This is
 # useful for testing, where we might want the users in fake channels.
 def predicate(name):
-    return not name.startswith(tuple(Features["CHANTYPES"]))
+    return not name.startswith(tuple(Features.CHANTYPES))
 
 def _normalize(x: str):
     return lower(x.lstrip("".join(Features.STATUSMSG)))
@@ -101,9 +101,6 @@ class Channel(IRCContext):
     def __del__(self):
         self.users.clear()
         self.modes.clear()
-        self.state = None
-        self.client = None
-        self.timestamp = None
 
     def __str__(self):
         return "{self.__class__.__name__}: {self.name} ({self.state.value})".format(self=self)
@@ -235,8 +232,8 @@ class Channel(IRCContext):
         """
 
         set_time = int(time.time()) # for list modes timestamp
-        list_modes, all_set, only_set, no_set = Features["CHANMODES"]
-        status_modes = Features["PREFIX"].values()
+        list_modes, all_set, only_set, no_set = Features.CHANMODES
+        status_modes = Features.PREFIX.values()
         all_modes = list_modes + all_set + only_set + no_set + "".join(status_modes)
         if self.state is not _States.Joined: # not joined, modes won't have the value
             no_set += all_set + only_set

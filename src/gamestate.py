@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import copy
 import typing
 import time
 
@@ -12,9 +14,9 @@ if typing.TYPE_CHECKING:
     from src.users import User
     from typing import Any, Optional
 
-__all__ = ["GameState", "PregameState", "IngameState", "set_gamemode"]
+__all__ = ["GameState", "PregameState", "set_gamemode"]
 
-def set_gamemode(var: GameState, arg: str) -> bool:
+def set_gamemode(var: PregameState, arg: str) -> bool:
     from src.gamemodes import GAME_MODES, InvalidModeException
     modeargs = arg.split("=", 1)
 
@@ -40,7 +42,7 @@ class PregameState:
         self.game_id: float = time.time()
         self.next_phase: Optional[str] = None
         # Note: current_mode is None for all but the !start machinery
-        self.current_mode: GameMode = None
+        self.current_mode: Optional[GameMode] = None
 
     @property
     def in_game(self):
@@ -60,9 +62,9 @@ class GameState:
         self.game_id: float = pregame_state.game_id
         self.players = pregame_state.players
         self.roles: UserDict[str, UserSet] = UserDict()
-        self._original_roles: UserDict[tuple[str, UserSet]] = None
+        self._original_roles: UserDict[str, UserSet] = UserDict()
         self.main_roles: UserDict[User, str] = UserDict()
-        self._original_main_roles: UserDict[User, str] = None
+        self._original_main_roles: UserDict[User, str] = UserDict()
         self.final_roles: UserDict[User, str] = UserDict()
         self._rolestats: set[frozenset[tuple[str, int]]] = set()
         self.current_phase: str = pregame_state.current_phase
@@ -84,7 +86,9 @@ class GameState:
             raise RuntimeError("GameState.setup() called while already setup")
         if self._torndown:
             raise RuntimeError("cannot setup a used-up GameState")
-        self._original_roles: UserDict[str, UserSet] = UserDict((x, y.copy()) for x, y in self.roles.items())
+        # both of these containers must be empty before we overwrite them
+        assert not self._original_roles and not self._original_main_roles
+        self._original_roles = copy.deepcopy(self.roles)
         self._original_main_roles = self.main_roles.copy()
         self.setup_completed = True
 
@@ -115,6 +119,7 @@ class GameState:
             raise RuntimeError("already in phase transition")
         self.next_phase = phase
         # this is a bit convoluted, but this lets external code plug in their own phases
+        # for grep: var.day_count and var.night_count get incremented here
         setattr(self, f"{self.next_phase}_count", getattr(self, f"{self.next_phase}_count") + 1)
 
     def end_phase_transition(self):

@@ -123,7 +123,6 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
             DEADCHAT_SPECTATE.discard(wrapper.source)
         wrapper.pm(messages["fspectate_off"].format(what))
     else:
-        players = []
         if what == "wolfchat":
             already_spectating = wrapper.source in WOLFCHAT_SPECTATE
             DEADCHAT_SPECTATE.add(wrapper.source)
@@ -136,7 +135,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
                 for player in players:
                     player.queue_message(messages["fspectate_notice"].format(spectator, what))
                 if players:
-                    player.send_messages()
+                    User.send_messages()
         elif config.Main.get("gameplay.deadchat"):
             if wrapper.source in DEADCHAT_PLAYERS:
                 wrapper.pm(messages["fspectate_in_deadchat"])
