@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import re
-import random
-import itertools
-import typing
 import math
-from collections import defaultdict
+import random
+import re
+import typing
 
 from src import config, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
 from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_target
+from src.messages import messages
 from src.status import try_misdirection, try_exchange, remove_lycanthropy, remove_disease
 
 if typing.TYPE_CHECKING:

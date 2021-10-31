@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import math
-from collections import defaultdict
+import re
 from typing import Optional, TYPE_CHECKING
 
-from src.functions import get_players, get_all_players, get_target, get_main_role
+from src import config
+from src.cats import Wolf
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
-from src.events import Event, event_listener
-from src.cats import Wolf
 from src.users import User
-from src import config
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher

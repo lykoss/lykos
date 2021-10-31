@@ -1,22 +1,14 @@
 from __future__ import annotations
 
-import re
-import random
-import itertools
-import math
-from collections import defaultdict
 from typing import Optional
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.cats import Hidden
+from src.events import Event, event_listener
+from src.functions import get_players
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
 from src.users import User
-from src.cats import Hidden
+
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
@@ -28,7 +20,7 @@ def on_send_role(evt: Event, var: GameState):
         if cultists:
             for cultist in cultists:
                 cultist.queue_message(messages["cultist_notify"])
-            cultist.send_messages()
+            User.send_messages()
 
 @event_listener("chk_win", priority=3)
 def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):

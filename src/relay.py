@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
+from src.events import event_listener
 from src.decorators import command
 from src.containers import UserSet
 from src.functions import get_players, get_participants
@@ -64,6 +65,9 @@ def relay_wolfchat(wrapper: MessageDispatcher, message: str):
 @command("", chan=False, pm=True)
 def relay_deadchat(wrapper: MessageDispatcher, message: str):
     """Relay deadchat messages."""
+    if message.startswith(config.Main.get("transports[0].user.command_prefix")):
+        return
+
     if wrapper.source not in get_players(wrapper.game_state) and config.Main.get("gameplay.deadchat") and wrapper.source in DEADCHAT_PLAYERS:
         # relay_message_deadchat and relay_action_deadchat also used here
         key = "relay_message"
@@ -271,3 +275,9 @@ def deadchat_pref(wrapper: MessageDispatcher, message: str):
         db.DEADCHAT_PREFS.add(temp.account)
 
     db.toggle_deadchat(temp.account)
+
+@event_listener("reset")
+def on_reset(evt, var):
+    DEADCHAT_PLAYERS.clear()
+    DEADCHAT_SPECTATE.clear()
+    WOLFCHAT_SPECTATE.clear()

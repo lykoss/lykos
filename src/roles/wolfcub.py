@@ -1,19 +1,13 @@
 from __future__ import annotations
 
-import re
-import random
-from collections import defaultdict, Counter
+from collections import Counter
 from typing import Optional, TYPE_CHECKING
 
-from src.functions import get_players
-from src import users, channels, trans
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
+from src import users, trans
 from src.cats import Wolf, Killer
-
+from src.events import Event, event_listener
+from src.functions import get_players
+from src.messages import messages
 from src.roles.helper.wolves import wolf_can_kill, register_wolf, is_known_wolf_ally
 
 if TYPE_CHECKING:

@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import math
-from collections import defaultdict
+import re
 from typing import TYPE_CHECKING, Optional
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src import channels
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange, add_dying
 from src.events import Event, event_listener
-from src.cats import Win_Stealer
+from src.functions import get_players, get_all_players, get_reveal_role, get_target
+from src.messages import messages
+from src.status import add_dying
 
 if TYPE_CHECKING:
     from src.gamestate import GameState
@@ -119,7 +115,7 @@ def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         mm.send(messages["matchmaker_notify"])
-        if var.next_phase != "night":
+        if var.next_phase == "night":
             mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")

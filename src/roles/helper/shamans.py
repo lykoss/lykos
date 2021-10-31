@@ -4,17 +4,16 @@ import itertools
 import random
 import re
 from typing import Any, Optional, TYPE_CHECKING
-from collections import deque
 
 from src import channels, users, status
-from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target, match_totem
-from src.decorators import command
+from src.cats import All
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.events import Event, event_listener
+from src.functions import (get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target,
+                           match_totem)
 from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_protection, try_exchange
-from src.events import Event, event_listener
-from src.cats import Cursed, Safe, Innocent, Wolf, All
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -255,7 +254,7 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt: Event, var: GameState):
-        if var.next_phase != "night" or not get_all_players(var, (rolename,)):
+        if not get_all_players(var, (rolename,)):
             return
         if var.current_mode.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)

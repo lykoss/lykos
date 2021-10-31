@@ -1,19 +1,18 @@
 from __future__ import annotations
 
-import re
 import random
+import re
 from typing import Optional, TYPE_CHECKING
 
-from src import users, channels, status
-from src.functions import get_players, get_all_players, get_main_role, get_target
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
+from src import status
 from src.cats import All
-
+from src.containers import UserSet, UserDict
+from src.decorators import command
+from src.events import Event, event_listener
+from src.functions import get_all_players, get_main_role, get_target
+from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
+from src.status import try_misdirection, try_exchange
 
 if TYPE_CHECKING:
     from src.users import User
@@ -87,7 +86,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
     for target in SICK.values():
         target.queue_message(messages["player_sick"])
     if SICK:
-        target.send_messages()
+        User.send_messages()
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt: Event, var: GameState):

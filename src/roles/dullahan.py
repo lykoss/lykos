@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import math
-import re
 import random
+import re
 import typing
-from collections import defaultdict, deque
 
-from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src import users, channels
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
 from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_target, get_reveal_role
+from src.messages import messages
 from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_dead
 
 if typing.TYPE_CHECKING:
@@ -146,7 +145,7 @@ def on_transition_night_end(evt: Event, var: GameState):
         random.shuffle(targets)
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
         dullahan.send(messages["dullahan_notify"])
-        if var.next_phase != "night":
+        if var.next_phase == "night":
             dullahan.send(t.format(targets))
 
 @event_listener("visit")

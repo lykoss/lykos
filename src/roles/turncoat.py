@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 import re
-import random
-import itertools
-import math
-from collections import defaultdict
 from typing import Optional, TYPE_CHECKING
 
-from src import channels, users
-from src.functions import get_players, get_all_players, match_role
+from src import users
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
 from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, match_role
+from src.messages import messages
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher

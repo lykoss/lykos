@@ -1,24 +1,18 @@
 from __future__ import annotations
 
-import re
-import random
 import itertools
-from collections import defaultdict, deque
+import random
 from typing import Optional
 
-from src import users, channels
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command
-from src.events import Event, event_listener
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
+from src.events import Event, event_listener
+from src.functions import get_players, get_all_players
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import try_misdirection, try_exchange, is_silent
-from src.users import User
-from src.cats import Win_Stealer
-
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
+from src.status import is_silent
+from src.users import User, Bot
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("crazed shaman", knows_totem=False)
 
@@ -84,7 +78,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                 if ps:
                     target = random.choice(ps)
                     ps.remove(target)
-                    dispatcher = MessageDispatcher(shaman, shaman)
+                    dispatcher = MessageDispatcher(shaman, Bot)
                     given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_unknown", role="crazed shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])

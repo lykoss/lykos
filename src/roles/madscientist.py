@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import re
-import random
-import itertools
-import math
-from collections import defaultdict, deque
 from typing import Optional
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.gamestate import GameState
-from src.status import try_misdirection, try_exchange, try_protection, add_dying
+from src import channels
 from src.events import Event, event_listener
+from src.functions import get_all_players, get_reveal_role
+from src.gamestate import GameState
+from src.messages import messages
+from src.status import try_protection, add_dying
 from src.users import User
 
+
 def _get_targets(var: GameState, pl: set[User], user: User):
-    """Gets the mad scientist's targets.
-
-    var - settings module
-    pl - list of alive players
-    nick - nick of the mad scientist
-
-    """
-
     index = var.players.index(user)
     num_players = len(var.players)
     # determine left player
@@ -43,14 +29,14 @@ def _get_targets(var: GameState, pl: set[User], user: User):
             target2 = var.players[i]
             break
 
-    return (target1, target2)
+    return target1, target2
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if not death_triggers or "mad scientist" not in all_roles:
         return
 
-    target1, target2 = _get_targets(var, get_players(var), player)
+    target1, target2 = _get_targets(var, get_all_players(var), player)
 
     prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
     prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
@@ -84,7 +70,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
     for ms in get_all_players(var, ("mad scientist",)):
-        pl = get_players(var)
+        pl = get_all_players(var)
         target1, target2 = _get_targets(var, pl, ms)
 
         ms.send(messages["mad_scientist_notify"].format(target1, target2))
@@ -92,14 +78,14 @@ def on_send_role(evt: Event, var: GameState):
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):
     if user in var.roles["mad scientist"]:
-        pl = get_players(var)
+        pl = get_all_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
 def on_revealroles(evt: Event, var: GameState,  user: User, role: str):
     if role == "mad scientist":
-        pl = get_players(var)
+        pl = get_all_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
 

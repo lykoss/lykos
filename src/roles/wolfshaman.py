@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-import re
-import random
 import itertools
+import random
 import typing
-from collections import defaultdict, deque
 
-from src import users, channels
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
-from src.messages import messages
 from src.events import Event, find_listener, event_listener
-from src.status import try_misdirection, try_exchange, is_silent
-
+from src.functions import get_players, get_all_players
+from src.messages import messages
 from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables, totem_message
 from src.roles.helper.wolves import register_wolf, send_wolfchat_message
+from src.status import is_silent
+from src.users import Bot
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -84,7 +80,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                 if ps:
                     target = random.choice(ps)
                     ps.remove(target)
-                    dispatcher = MessageDispatcher(shaman, shaman)
+                    dispatcher = MessageDispatcher(shaman, Bot)
                     given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="wolf shaman")
                     if given:
                         send_wolfchat_message(var, shaman, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), role="wolf shaman", command="totem")

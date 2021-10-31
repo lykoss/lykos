@@ -1,19 +1,15 @@
 from __future__ import annotations
 
 import re
-import random
 import typing
 
-from src import users, channels
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.functions import get_players, get_all_players, get_main_role, get_target
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
 from src.cats import Cursed, Safe, Innocent, Wolf
-
+from src.decorators import command
+from src.events import Event, event_listener
+from src.functions import get_main_role, get_target
+from src.messages import messages
 from src.roles.helper.seers import setup_variables
+from src.status import try_misdirection, try_exchange
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher

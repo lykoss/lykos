@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-import math
-import re
 import random
+import re
 import typing
 
-from src.functions import get_players, get_all_players, get_main_role, get_target
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
-from src.cats import Safe, Wolfteam
 from src import config
-
+from src.cats import Safe, Wolfteam
+from src.containers import UserSet
+from src.decorators import command
+from src.events import Event, event_listener
+from src.functions import get_players, get_main_role, get_target
+from src.messages import messages
 from src.roles.helper.wolves import get_wolfchat_roles
+from src.status import try_misdirection, try_exchange
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -43,8 +41,8 @@ def investigate(wrapper: MessageDispatcher, message: str):
 
     targrole = get_main_role(var, target)
 
-    evt = Event("investigate", {"role": targrole})
-    evt.dispatch(var, wrapper.source, target)
+    evt = Event("spy", {"role": targrole})
+    evt.dispatch(var, wrapper.source, target, "detective")
     targrole = evt.data["role"]
 
     INVESTIGATED.add(wrapper.source)
@@ -60,7 +58,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
         if to_notify:
             for player in to_notify:
                 player.queue_message(messages["detective_reveal"].format(wrapper.source))
-            player.send_messages()
+            User.send_messages()
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

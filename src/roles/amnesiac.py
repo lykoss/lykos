@@ -1,20 +1,14 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import math
-from collections import defaultdict
 from typing import Optional, TYPE_CHECKING
 
 from src import users, config
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.events import Event, event_listener
-from src.status import try_misdirection, try_exchange
 from src.cats import role_order, Win_Stealer
+from src.containers import UserDict
+from src.events import Event, event_listener
+from src.functions import get_all_players, change_role
+from src.messages import messages
 
 if TYPE_CHECKING:
     from src.gamestate import GameState
@@ -42,9 +36,9 @@ def on_transition_night_begin(evt: Event, var: GameState):
         for amn in amnesiacs:
             change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
 
-@event_listener("investigate")
-def on_investigate(evt: Event, var: GameState, actor: User, target: User):
-    if evt.data["role"] == "amnesiac":
+@event_listener("spy")
+def on_investigate(evt: Event, var: GameState, actor: User, target: User, spy_role: str):
+    if evt.data["role"] == "amnesiac" and spy_role in ("augur", "detective", "investigator", "sorcerer"):
         evt.data["role"] = ROLES[target]
 
 @event_listener("new_role", priority=1) # Exchange, clone, etc. - assign the amnesiac's final role

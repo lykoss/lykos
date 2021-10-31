@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
+import re
 import typing
-import math
-from collections import defaultdict
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.cats import Neutral, Wolfteam
+from src.containers import UserSet
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.events import Event, event_listener
+from src.functions import get_players, get_main_role, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
-from src.cats import Neutral, Wolfteam
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -54,12 +50,12 @@ def investigate(wrapper: MessageDispatcher, message: str):
     t1role = get_main_role(var, target1)
     t2role = get_main_role(var, target2)
 
-    evt = Event("investigate", {"role": t1role})
-    evt.dispatch(var, wrapper.source, target1)
+    evt = Event("spy", {"role": t1role})
+    evt.dispatch(var, wrapper.source, target1, "investigator")
     t1role = evt.data["role"]
 
-    evt = Event("investigate", {"role": t2role})
-    evt.dispatch(var, wrapper.source, target2)
+    evt = Event("spy", {"role": t2role})
+    evt.dispatch(var, wrapper.source, target2, "investigator")
     t2role = evt.data["role"]
 
     # FIXME: make a standardized way of getting team affiliation, and make

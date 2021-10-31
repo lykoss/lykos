@@ -1,21 +1,16 @@
 from __future__ import annotations
 
 import re
-import random
-import itertools
 import typing
-import math
-from collections import defaultdict
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
 from src.cats import Spy
+from src.containers import UserSet
+from src.decorators import command
+from src.events import Event, event_listener
+from src.functions import get_all_players, get_all_roles, get_target
+from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
+from src.status import try_misdirection, try_exchange
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -48,16 +43,17 @@ def observe(wrapper: MessageDispatcher, message: str):
         return
 
     OBSERVED.add(wrapper.source)
-    targrole = get_main_role(var, target)
-    if targrole == "amnesiac":
-        from src.roles.amnesiac import ROLES as amn_roles
-        targrole = amn_roles[target]
+    roles = get_all_roles(var, target)
 
     key = "sorcerer_fail"
-    if targrole in Spy:
+    args = [target]
+    spy_roles = list(roles & Spy)
+    if spy_roles:
         key = "sorcerer_success"
+        # FIXME: figure out how to make the message support listing all of the roles
+        args.append(spy_roles[0])
 
-    wrapper.pm(messages[key].format(target, targrole))
+    wrapper.pm(messages[key].format(*args))
     send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")
 
 @event_listener("chk_nightdone")

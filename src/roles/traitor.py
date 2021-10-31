@@ -1,23 +1,16 @@
 from __future__ import annotations
 
-import re
-import random
-import itertools
-import math
 import sys
-from collections import defaultdict
 from typing import Optional
 
-from src import users, channels, trans, config
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import in_misdirection_scope
-from src.gamestate import GameState
-from src.events import Event, event_listener
-from src.users import User
-from src.roles.helper.wolves import register_wolf, get_wolfchat_roles
+from src import channels, trans, config
 from src.cats import All, Wolf
+from src.events import Event, event_listener
+from src.gamestate import GameState
+from src.messages import messages
+from src.roles.helper.wolves import register_wolf, get_wolfchat_roles
+from src.status import in_misdirection_scope
+from src.users import User
 
 register_wolf("traitor")
 

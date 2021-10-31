@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import math
+import re
 from collections import defaultdict
 from typing import Optional, Iterable, TYPE_CHECKING
 
-from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages, LocalRole
-from src.status import try_misdirection, try_exchange, is_silent
-from src.events import Event, event_listener
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
 from src import users, config, relay
+from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
+from src.containers import UserList, UserDict
+from src.decorators import command
+from src.events import Event, event_listener
+from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
+from src.messages import messages
+from src.status import try_misdirection, try_exchange, is_silent
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -31,7 +29,7 @@ def register_wolf(rolename):
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
             wolf.send(messages[msg])
             wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
-            if var.next_phase != "night":
+            if var.next_phase == "night":
                 nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
                 nevt.dispatch(var, wolf)
                 if rolename in Killer and not nevt.data["numkills"] and nevt.data["message"]:
@@ -212,7 +210,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         if wofls:
             for wofl in wofls:
                 wofl.queue_message(messages["wolfchat_new_member"].format(player, sayrole))
-            wofl.send_messages()
+            User.send_messages()
         else:
             return # no other wolves, nothing else to do
 

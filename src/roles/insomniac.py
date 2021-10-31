@@ -24,7 +24,7 @@ def _get_targets(var: GameState, pl, user):
             target2 = var.players[i]
             break
 
-    return (target1, target2)
+    return target1, target2
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):

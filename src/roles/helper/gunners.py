@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+import math
 import random
 import re
-import math
 from typing import Any, TYPE_CHECKING
 
-from src import users, config
-from src.decorators import command
+from src import config
+from src.cats import Wolf, Killer
 from src.containers import UserDict
+from src.decorators import command
+from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
-from src.events import Event, event_listener
 from src.trans import chk_win
-from src.cats import Wolf, Killer
 
 if TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher

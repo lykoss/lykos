@@ -1,18 +1,12 @@
-import re
-import random
-import itertools
-import math
-from collections import defaultdict
 from typing import Optional
 
-from src import users, channels
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src import channels
+from src.containers import UserSet
+from src.events import Event, event_listener
 from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
 from src.status import add_lynch_immunity
-from src.events import Event, event_listener
 from src.users import User
 
 REVEALED_MAYORS = UserSet()

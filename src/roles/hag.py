@@ -1,21 +1,16 @@
 from __future__ import annotations
 
 import re
-import random
-import itertools
 import typing
-import math
-from collections import defaultdict
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src import users
+from src.containers import UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange, add_silent
 from src.events import Event, event_listener
-
+from src.functions import get_all_players, get_target
+from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
+from src.status import try_misdirection, try_exchange, add_silent
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher

@@ -1,13 +1,12 @@
 from typing import Optional
 
 from src.events import Event, event_listener, find_listener
-from src.functions import get_players, get_all_players
+from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
-from src.users import User
-
 from src.roles.helper.gunners import setup_variables
 from src.roles.helper.wolves import register_wolf, is_known_wolf_ally
+from src.users import User
 
 HIT_CHANCE       = 7/10
 HEADSHOT_CHANCE  = 6/10

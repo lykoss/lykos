@@ -2,16 +2,13 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src import users, channels
+from src.cats import Hidden
+from src.events import Event, event_listener
 from src.functions import get_players
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
 from src.users import User
-from src.cats import Hidden
+
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
@@ -23,7 +20,7 @@ def on_send_role(evt: Event, var: GameState):
         if villagers:
             for villager in villagers:
                 villager.queue_message(messages["villager_notify"])
-            villager.send_messages()
+            User.send_messages()
 
 @event_listener("chk_win", priority=3)
 def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):

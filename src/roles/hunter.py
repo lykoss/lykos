@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import re
 import random
+import re
 import typing
-from collections import defaultdict
 
-from src import users, channels
-from src.functions import get_players, get_all_players, get_target, get_main_role
+from src import users
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -112,7 +111,7 @@ def on_send_role(evt: Event, var: GameState):
         random.shuffle(pl)
         pl.remove(hunter)
         hunter.send(messages["hunter_notify"])
-        if var.next_phase != "night":
+        if var.next_phase == "night":
             hunter.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")

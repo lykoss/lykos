@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import re
 import random
 from typing import Optional, TYPE_CHECKING
 
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.functions import get_players, get_all_players, get_main_role
-from src.messages import messages
+from src.containers import UserSet
 from src.events import Event, event_listener
+from src.functions import get_players, get_all_players
+from src.messages import messages
 
 if TYPE_CHECKING:
     from src.gamestate import GameState
@@ -39,7 +37,7 @@ def setup_variables(rolename):
             pl.remove(seer)  # remove self from list
 
             seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
-            if var.next_phase != "night":
+            if var.next_phase == "night":
                 seer.send(messages["players_list"].format(pl))
 
     @event_listener("begin_day", listener_id="<{}>.on_begin_day".format(rolename))

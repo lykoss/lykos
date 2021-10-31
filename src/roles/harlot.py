@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
+import re
 import typing
-import math
-from collections import defaultdict
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src import users
+from src.cats import Wolf
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
-from src.cats import Wolf, Wolfchat
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -128,7 +125,7 @@ def on_send_role(evt: Event, var: GameState):
         random.shuffle(pl)
         pl.remove(harlot)
         harlot.send(messages["harlot_notify"])
-        if var.next_phase != "night":
+        if var.next_phase == "night":
             harlot.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")

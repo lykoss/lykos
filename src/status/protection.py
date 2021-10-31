@@ -16,7 +16,7 @@ __all__ = ["add_protection", "try_protection", "remove_all_protections"]
 
 PROTECTIONS: UserDict[User, UserDict[Optional[User], list[tuple[Category | set[str], str]]]] = UserDict()
 
-def add_protection(var: GameState, target: User, protector: User, protector_role: str, scope: Category | set[str]=All):
+def add_protection(var: GameState, target: User, protector: Optional[User], protector_role: str, scope: Category | set[str] = All):
     """Add a protection to the target affecting the relevant scope."""
     if target not in get_players(var):
         return
@@ -49,7 +49,7 @@ def try_protection(var: GameState, target: User, attacker: Optional[User], attac
 
     return prot_evt.data["messages"]
 
-def remove_all_protections(var: GameState, target: User, attacker: User, attacker_role: str, reason: str, scope: Category | set[str]=All):
+def remove_all_protections(var: GameState, target: User, attacker: User, attacker_role: str, reason: str, scope: Category | set[str] = All):
     """Remove all protections from a player."""
     if target not in PROTECTIONS:
         return

@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import re
-import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
-from src import users, channels, cats
-from src.functions import get_players, get_all_players
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
+from src import cats
+from src.containers import UserDict
 from src.events import Event, event_listener
+from src.functions import get_players, get_all_players
+from src.messages import messages
 
 if TYPE_CHECKING:
     from src.gamestate import GameState
@@ -19,7 +16,7 @@ if TYPE_CHECKING:
 # mystic_night_num, mystic_day_num, mystic_info,
 # mystic_notify, wolf_mystic_notify
 
-def register_mystic(rolename: str, *, send_role: bool, types: tuple[str]):
+def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
     LAST_COUNT: UserDict[User, list[tuple[str, int]]] = UserDict()
 
     role = rolename.replace(" ", "_")

@@ -1,21 +1,17 @@
 from __future__ import annotations
 
-import re
-import random
 import itertools
+import random
 import typing
-from collections import defaultdict, deque
 
-from src import users, channels
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
-from src.messages import messages
 from src.events import Event, event_listener
-from src.status import try_misdirection, try_exchange, is_silent
-
+from src.functions import get_players, get_all_players
+from src.messages import messages
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
+from src.status import is_silent
+from src.users import Bot
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -79,7 +75,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                 if ps:
                     target = random.choice(ps)
                     ps.remove(target)
-                    dispatcher = MessageDispatcher(shaman, shaman)
+                    dispatcher = MessageDispatcher(shaman, Bot)
                     given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])

@@ -1,22 +1,15 @@
 from __future__ import annotations
 
-import re
-import random
-import itertools
-import math
-from collections import defaultdict
 from typing import Optional
 
-from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.cats import Wolf
+from src.events import Event, event_listener
+from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import try_misdirection, try_exchange, add_protection
-from src.events import Event, event_listener
+from src.status import add_protection
 from src.users import User
-from src.cats import Wolf
+
 
 @event_listener("team_win")
 def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):

@@ -46,7 +46,7 @@ def choose(wrapper: MessageDispatcher, message: str):
 def on_send_role(evt: Event, var: GameState):
     for player in get_all_players(var, ("master of teleportation",)):
         player.send(messages["master_of_teleportation_notify"])
-        if var.next_phase != "night":
+        if var.next_phase == "night":
             player.send(messages["players_list"].format(get_players(var)))
 
 @event_listener("chk_nightdone")

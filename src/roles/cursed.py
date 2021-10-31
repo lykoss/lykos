@@ -1,19 +1,11 @@
-import re
-import random
-import itertools
-import math
-from collections import defaultdict
 from typing import Optional
 
-from src.functions import get_all_players, get_main_role
-from src import users, channels
-from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.gamestate import GameState
-from src.status import try_misdirection, try_exchange
-from src.events import Event, event_listener
 from src.cats import Wolfchat
+from src.events import Event, event_listener
+from src.functions import get_all_players, get_main_role
+from src.gamestate import GameState
+from src.messages import messages
+
 
 @event_listener("see")
 def on_see(evt: Event, var: GameState, seer, target):

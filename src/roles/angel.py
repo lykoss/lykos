@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import math
+import re
 import typing
-from collections import defaultdict
 
-from src import users, channels
-from src.functions import get_players, get_all_players, get_target, get_main_role
+from src import config
+from src import users
+from src.cats import Wolf
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
-from src.events import Event, event_listener
-from src.cats import Wolf
-from src import config
 
 if typing.TYPE_CHECKING:
     from src.dispatcher import MessageDispatcher
@@ -72,7 +69,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     if var.current_phase == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):
-        for k,v in list(dictvar.items()):
+        for k, v in list(dictvar.items()):
             if player in (k, v):
                 del dictvar[k]
     PASSED.discard(player)

@@ -75,7 +75,7 @@ def get_participants(var: Optional[GameState | PregameState]) -> list[User]:
     evt.dispatch(var)
     return evt.data["players"]
 
-def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = False, allow_bot: bool = False, not_self_message: str = "no_target_self"):
+def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = False, allow_bot: bool = False, not_self_message: str = "no_target_self") -> Optional[User]:
     """Autocomplete a target for an in-game command.
 
     :param MessageDispatcher wrapper: Message context
