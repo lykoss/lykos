@@ -25,7 +25,7 @@ from __future__ import annotations
 from collections import defaultdict
 import itertools
 
-from src.messages.messages import Messages as _Messages
+from src.messages._messages import Messages as _Messages
 from src.events import Event, EventListener
 
 __all__ = [
