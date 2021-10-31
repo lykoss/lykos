@@ -5,6 +5,7 @@ import time
 import json
 import logging
 import logging.handlers
+import re
 import string
 import sys
 import importlib
@@ -70,7 +71,7 @@ class IRCTransportHandler(UnionFilterMixin, logging.Handler):
     def format(self, record: logging.LogRecord) -> str:
         # When sending to IRC, only send the first line
         line = super().format(record)
-        return line.rsplit("\r?\n")[0]
+        return re.split("\r?\n", line)[0]
 
 class StringFormatter(logging.Formatter):
     def __init__(self, tsconfig: dict):

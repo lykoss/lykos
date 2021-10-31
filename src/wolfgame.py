@@ -260,15 +260,15 @@ def restart_program(wrapper: MessageDispatcher, message: str):
         force = True
         message = " ".join(args[1:])
 
-    if var.in_game:
-        if var.current_phase == "join" or force:
+    if var:
+        if var.in_game and force:
             stop_game(var, log=False)
-        else:
+        elif var.in_game:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
             return
 
-    db.set_pre_restart_state(p.nick for p in get_players(var))
-    reset(var)
+        db.set_pre_restart_state(p.nick for p in get_players(var))
+        reset(var)
 
     msg = "{0} restart from {1}".format(
         "Scheduled" if restart_program.aftergame else "Forced", wrapper.source)
@@ -1260,8 +1260,8 @@ def update(wrapper: MessageDispatcher, message: str):
 
     force = (message.strip() == "-force")
 
-    if var.in_game:
-        if var.current_phase == "join" or force:
+    if var and var.in_game:
+        if force:
             stop_game(var, log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="update"))
@@ -1403,6 +1403,12 @@ def freceive(wrapper: MessageDispatcher, message: str):
             handler.unhandled(wrapper.client, prefix, cmd, *args)
     except Exception as e:
         wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
+
+@command("ferror", flag="d")
+def force_error(wrapper: MessageDispatcher, message: str):
+    if not message:
+        message = f"Error requested by {wrapper.source.name}"
+    raise RuntimeError(message)
 
 def _force_command(wrapper: MessageDispatcher, name: str, players, message):
     for user in players:

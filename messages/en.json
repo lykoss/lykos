@@ -145,6 +145,7 @@
         "fday": ["fday"],
         "fdie": ["fdie", "fbye"],
         "fdo": ["fdo", "fme"],
+        "ferror": ["ferror"],
         "fflags": ["fflags"],
         "fgame": ["fgame"],
         "fgoat": ["fgoat"],
