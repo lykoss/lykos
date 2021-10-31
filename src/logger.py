@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import collections.abc
 import time
 import json
 import logging
@@ -85,8 +87,10 @@ class StructuredFormatter(StringFormatter):
         # need to call parent format() to populate various fields on record
         _ = StringFormatter.format(self, record)
         obj = {
-            "version": 1,
+            "version": 2,
             "message": record.message,
+            "template": record.msg,
+            "args": record.args,
             "created": record.created,
             "level": record.levelname,
             "channel": record.name
@@ -104,19 +108,24 @@ class StructuredFormatter(StringFormatter):
         return json.dumps(obj)
 
 class LogRecord(logging.LogRecord):
-    def __init__(self, name, level, pathname, lineno, msg, args, exc_info, func=None, sinfo=None, **kwargs):
-        super().__init__(name, level, pathname, lineno, msg, args, exc_info, func=func, sinfo=sinfo)
-        self.kwargs = kwargs
-
     def getMessage(self) -> str:
         msg = str(self.msg)
         # Internal packages (urllib3, other dependencies we may pull in) still use %-style formatting
         # So try {-style first and fall back to %-style if that fails. In both cases we assume that
         # all arguments being passed in are consumed in the format string.
-        if self.args or self.kwargs:
+
+        # self.args might be a mapping instead of a sequence, which makes vformat unhappy.
+        if isinstance(self.args, collections.abc.Mapping):
+            arg_list = []
+            arg_dict = self.args
+        else:
+            arg_list = self.args
+            arg_dict = {}
+
+        if self.args:
             brace_formatter = _ThrowingFormatter()
             try:
-                msg = brace_formatter.vformat(msg, self.args, self.kwargs)
+                msg = brace_formatter.vformat(msg, arg_list, arg_dict)
             except TypeError:
                 msg = msg % self.args
 

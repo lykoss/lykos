@@ -40,9 +40,9 @@ class command:
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
         self.func: Callable[[MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
-        self.name = commands[0]
+        self.name: str = commands[0]
         self.key = "{0}_{1}".format(command, id(self))
-        self.alt_allowed = bool(flag or owner_only)
+        self.alt_allowed = allow_alt if allow_alt is not None else bool(flag or owner_only)
         self._disabled = False
 
         alias = False
@@ -124,6 +124,18 @@ class command:
             return
 
         logger = logging.getLogger("command.{}".format(self.name))
+        command_log_args = {
+            "target": wrapper.target.name,
+            "name": wrapper.source.name,
+            "rawnick": wrapper.source.rawnick,
+            "command": self.name.upper()
+        }
+
+        if message:
+            command_log_line = "[{target}] {name} ({rawnick}) {command}"
+        else:
+            command_log_line = "[{target}] {name} ({rawnick}) {command}: {message}"
+            command_log_args["message"] = message
 
         for role in self.roles:
             if wrapper.source in var.roles[role]:
@@ -146,7 +158,7 @@ class command:
 
         if self.owner_only:
             if wrapper.source.is_owner():
-                logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                logger.info(command_log_line, command_log_args)
                 self.func(wrapper, message)
                 return
 
@@ -158,7 +170,7 @@ class command:
         flags = db.FLAGS[temp.account]
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
-            logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
+            logger.info(command_log_line, command_log_args)
             return self.func(wrapper, message)
 
         denied_commands = db.DENY[temp.account]
