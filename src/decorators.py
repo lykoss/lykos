@@ -126,16 +126,16 @@ class command:
         logger = logging.getLogger("command.{}".format(self.name))
         command_log_args = {
             "target": wrapper.target.name,
-            "name": wrapper.source.name,
+            "account": wrapper.source.account,
             "rawnick": wrapper.source.rawnick,
             "command": self.name.upper()
         }
 
         if message:
-            command_log_line = "[{target}] {name} ({rawnick}) {command}"
-        else:
-            command_log_line = "[{target}] {name} ({rawnick}) {command}: {message}"
+            command_log_line = "[{target}] {account} ({rawnick}) {command}: {message}"
             command_log_args["message"] = message
+        else:
+            command_log_line = "[{target}] {account} ({rawnick}) {command}"
 
         for role in self.roles:
             if wrapper.source in var.roles[role]:
@@ -181,7 +181,7 @@ class command:
 
         if self.flag:
             if self.flag in flags:
-                logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                logger.info(command_log_line, command_log_args)
                 self.func(wrapper, message)
                 return
 

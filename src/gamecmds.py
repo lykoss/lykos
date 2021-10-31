@@ -41,7 +41,7 @@ def stats(wrapper: MessageDispatcher, message: str):
 
         LAST_STATS = datetime.now()
 
-    if wrapper.private and "src.roles.helper.wolves" in sys.modules:
+    if wrapper.private and var.in_game and "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_wolflist
         msg = messages["players_list_count"].format(
             len(pl), get_wolflist(var, wrapper.source, shuffle=False, remove_player=False))
