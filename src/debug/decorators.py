@@ -7,17 +7,17 @@ import traceback
 import urllib.request
 import logging
 from typing import Optional
-from types import TracebackType
+from types import TracebackType, FrameType
 
 from src import config
 
 __all__ = ["handle_error"]
 
-class _localcls(threading.local):
-    handler = None
+class _LocalCls(threading.local):
+    handler: Optional[chain_exceptions] = None
     level = 0
 
-_local = _localcls()
+_local = _LocalCls()
 
 # This is a mapping of stringified tracebacks to (link, uuid) tuples
 # That way, we don't have to call in to the website every time we have
@@ -54,7 +54,7 @@ class print_traceback:
         return self
 
     def __exit__(self, exc_type: Optional[type], exc_value: Optional[BaseException], tb: Optional[TracebackType]):
-        if exc_type is exc_value is tb is None:
+        if exc_type is None or exc_value is None or tb is None:
             _local.level -= 1
             return False
 
@@ -70,7 +70,7 @@ class print_traceback:
         from src.messages import messages
         exc_log = logging.getLogger("exception.{}".format(exc_type.__name__))
         exc_tb = tb
-        variables = ["", None]
+        variables = ["", ""]
 
         if _local.handler is None:
             _local.handler = chain_exceptions(exc_value)
@@ -78,8 +78,8 @@ class print_traceback:
         traceback_verbosity = config.Main.get("telemetry.errors.traceback_verbosity")
         if traceback_verbosity > 0:
             word = "\nLocal variables from frame #{0} (in {1}):\n"
-            variables.append(None)
-            frames = []
+            variables.append("")
+            frames: list[Optional[FrameType]] = []
 
             while tb is not None:
                 ignore_locals = not tb.tb_frame.f_locals or tb.tb_frame.f_locals.get("_ignore_locals_")

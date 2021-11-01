@@ -46,7 +46,7 @@ from src.events import Event, EventListener, event_listener
 from src.transport.irc import get_ircd
 from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.gamestate import GameState
+from src.gamestate import GameState, PregameState
 from src.gamemodes import GameMode
 from src.messages import messages, LocalMode
 from src.warnings import expire_tempbans
@@ -528,10 +528,10 @@ def channel_kicked(evt, chan: Channel, actor, user, reason):
 def quit_server(evt, user, reason): # FIXME: This uses var
     leave(channels.Main.game_state, "quit", user, reason)
 
-def leave(var: GameState, what, user, why=None):
+def leave(var: Optional[GameState | PregameState], what: str, user: User, why=None):
     if what in ("part", "kick") and why is not channels.Main:
         return
-    if var is None or not var.in_game:
+    if var is None:
         return
 
     ps = get_players(var)
@@ -592,7 +592,11 @@ def leave(var: GameState, what, user, why=None):
         population = ""
         killplayer = False
 
-    channels.Main.send(msg.format(user, get_reveal_role(var, user)) + population)
+    role = ""
+    if var.in_game:
+        role = get_reveal_role(var, user)
+
+    channels.Main.send(msg.format(user, role) + population)
     relay.WOLFCHAT_SPECTATE.discard(user)
     relay.DEADCHAT_SPECTATE.discard(user)
     relay.leave_deadchat(var, user)

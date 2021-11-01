@@ -88,7 +88,8 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
             #  either game ended, or a new game has started
             return True
 
-        dead = set()
+        dead: set[User] = set()
+        assert isinstance(var, GameState)
 
         while DYING:
             player, (killer_role, reason, death_triggers) = DYING.popitem()

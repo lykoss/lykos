@@ -1,4 +1,6 @@
 from antlr4 import TerminalNode
+from typing import Optional
+
 from src.messages.message_parserListener import message_parserListener
 from src.messages.message_parser import message_parser
 
@@ -91,7 +93,7 @@ class Listener(message_parserListener):
 
         field_name = ctx.sub_field().value
         convert = self._coalesce(ctx.sub_convert())
-        spec = dict(x.value for x in ctx.sub_spec())
+        spec: Optional[dict] = dict(x.value for x in ctx.sub_spec())
         # if spec is empty, change it to None. Makes us more consistent with built in format method
         # (since formatter can be used for both this parse tree as well as normal formatting)
         if not spec:

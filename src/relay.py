@@ -102,7 +102,7 @@ def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
     return True
 
 def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: bool):
-    if not try_restricted_cmd(wrapper, "fspectate_restricted"):
+    if not try_restricted_cmd(wrapper, "spectate_restricted"):
         return
 
     var = wrapper.game_state
@@ -110,7 +110,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
     params = message.split(" ")
     on = "on"
     if not len(params):
-        wrapper.pm(messages["fspectate_help"])
+        wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
         return
     elif len(params) > 1:
         on = params[1].lower()
@@ -125,31 +125,33 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
             WOLFCHAT_SPECTATE.discard(wrapper.source)
         else:
             DEADCHAT_SPECTATE.discard(wrapper.source)
-        wrapper.pm(messages["fspectate_off"].format(what))
+        wrapper.pm(messages["spectate_off"].format(what))
     else:
         if what == "wolfchat":
             already_spectating = wrapper.source in WOLFCHAT_SPECTATE
-            DEADCHAT_SPECTATE.add(wrapper.source)
+            WOLFCHAT_SPECTATE.add(wrapper.source)
             players = list(get_players(var, Wolfchat))
             if "src.roles.helper.wolves" in sys.modules:
                 from src.roles.helper.wolves import is_known_wolf_ally
                 players = [p for p in players if is_known_wolf_ally(var, p, p)]
             if not is_fspectate and not already_spectating and config.Main.get("gameplay.spectate.notice"):
-                spectator = wrapper.source.nick if config.Main.get("gameplay.spectate.include_user") else "Someone"
+                # FIXME: hardcoded English for wolfchat/deadchat param
+                key = "spectate_notice_user" if config.Main.get("gameplay.spectate.include_user") else "spectate_notice"
                 for player in players:
-                    player.queue_message(messages["fspectate_notice"].format(spectator, what))
+                    player.queue_message(messages[key].format(what, wrapper.source))
                 if players:
                     User.send_messages()
         elif config.Main.get("gameplay.deadchat"):
             if wrapper.source in DEADCHAT_PLAYERS:
-                wrapper.pm(messages["fspectate_in_deadchat"])
+                wrapper.pm(messages["spectate_in_deadchat"])
                 return
             DEADCHAT_SPECTATE.add(wrapper.source)
             players = DEADCHAT_PLAYERS
         else:
-            wrapper.pm(messages["fspectate_deadchat_disabled"])
+            wrapper.pm(messages["spectate_deadchat_disabled"])
             return
-        wrapper.pm(messages["fspectate_on"].format(what))
+        wrapper.pm(messages["spectate_on"].format(what))
+        # FIXME: hardcoded English
         wrapper.pm("People in {0}: {1}".format(what, ", ".join([player.nick for player in players])))
 
 @command("spectate", flag="p", pm=True, phases=("day", "night"))

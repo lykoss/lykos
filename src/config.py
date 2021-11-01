@@ -4,7 +4,7 @@ import copy
 from pathlib import Path
 import os
 import sys
-from typing import Optional, Any
+from typing import Optional, Any, Iterable
 from ruamel.yaml import YAML
 
 __all__ = ["Main", "Config", "Empty", "merge", "init"]
@@ -111,13 +111,14 @@ class Config:
         self._settings = new_config._settings
 
     def _resolve_key(self, key: str) -> tuple[Any, dict[str, Any]]:
+        assert self._metadata is not None
         parts = key.split(".")
         cur = self._settings
         meta = self._metadata
         for part in parts:
             if "[" in part:
-                key_part, idx_part = part.split("[", maxsplit=1)
-                idx_part = int(idx_part[:-1])  # strip trailing "]"
+                key_part, idx_part_str = part.split("[", maxsplit=1)
+                idx_part: Optional[int] = int(idx_part_str[:-1])  # strip trailing "]"
             else:
                 key_part = part
                 idx_part = None
@@ -217,8 +218,8 @@ class Config:
         for i, part in enumerate(parts):
             set_value = i == len(parts) - 1
             if "[" in part:
-                key_part, idx_part = part.split("[", maxsplit=1)
-                idx_part = int(idx_part[:-1])  # strip trailing "]"
+                key_part, idx_part_str = part.split("[", maxsplit=1)
+                idx_part: Optional[int] = int(idx_part_str[:-1])  # strip trailing "]"
             else:
                 key_part = part
                 idx_part = None
@@ -259,7 +260,7 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
     :raises AssertionError: If metadata is ill-formed
     """
     if not path:
-        path = ["<root>"]
+        path = ("<root>",)
 
     settings_type = metadata["_type"]
     assert settings_type is not None
@@ -331,6 +332,7 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
         else:
             value = metadata["_default"]
 
+        assert isinstance(value, int)
         if merge_type == "replace":
             return value
         elif merge_type == "max":
@@ -363,6 +365,7 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
         else:
             value = metadata["_default"]
 
+        assert isinstance(value, bool)
         if merge_type == "replace":
             return value
         elif merge_type == "and":
@@ -395,6 +398,7 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
         else:
             value = metadata["_default"]
 
+        assert isinstance(value, float)
         if merge_type == "replace":
             return value
         elif merge_type == "max":

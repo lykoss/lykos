@@ -22,7 +22,7 @@ class UnionFilterMixin(logging.Filterer):
     # Default is to require all attached filters to succeed in order to log.
     def filter(self, record: logging.LogRecord) -> bool:
         for f in self.filters: # type: logging.Filter | Callable
-            if hasattr(f, "filter"):
+            if isinstance(f, logging.Filter):
                 val = f.filter(record)
             else:
                 val = f(record)
@@ -66,7 +66,9 @@ class IRCTransportHandler(UnionFilterMixin, logging.Handler):
         if Features.STATUSMSG and self.destination[0] in Features.PREFIX:
             prefix = self.destination[0]
             channel = self.destination[1:]
-        channels.get(channel).send(line, prefix=prefix)
+        chan = channels.get(channel)
+        if chan is not None:
+            chan.send(line, prefix=prefix)
 
     def format(self, record: logging.LogRecord) -> str:
         # When sending to IRC, only send the first line
@@ -117,7 +119,7 @@ class LogRecord(logging.LogRecord):
 
         # self.args might be a mapping instead of a sequence, which makes vformat unhappy.
         if isinstance(self.args, collections.abc.Mapping):
-            arg_list = []
+            arg_list: Sequence = []
             arg_dict = self.args
         else:
             arg_list = self.args
