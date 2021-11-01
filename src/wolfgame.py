@@ -38,6 +38,7 @@ from collections import Counter
 from datetime import datetime
 from typing import Optional
 
+import src
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, relay, votes
 from src.channels import Channel
 from src.users import User
@@ -61,6 +62,9 @@ from src.functions import (
     get_main_role, get_reveal_role,
     match_role, match_mode
    )
+
+# dummy line just to make the src import not unused; having src in scope is useful for !eval and !exec
+assert src is not None
 
 def connect_callback():
     db.init_vars()
@@ -331,6 +335,7 @@ def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
 
     action(account)
     db.toggle_notice(account)
+    # message keys used: "notice_on", "notice_off"
     wrapper.pm(messages["notice_" + toggle])
 
 @command("swap", pm=True, phases=("join", "day", "night"))

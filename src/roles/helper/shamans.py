@@ -310,13 +310,9 @@ def give_totem(var: GameState, wrapper: MessageDispatcher, target: User, totem: 
     """Give a totem to a player."""
 
     orig_target = target
-    orig_role = get_main_role(var, orig_target)
-
     target = try_misdirection(var, wrapper.source, target)
     if try_exchange(var, wrapper.source, target):
         return None
-
-    targrole = get_main_role(var, target)
 
     # keys: shaman_success_night_known, shaman_success_random_known, shaman_success_night_unknown, shaman_success_random_unknown
     wrapper.send(messages[key].format(orig_target, totem))

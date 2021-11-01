@@ -70,7 +70,7 @@ def join_player(wrapper: MessageDispatcher,
         callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
 def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=False):
-    import trans
+    from src import trans
     var = wrapper.game_state
     pl = get_players(var)
 
@@ -176,7 +176,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=
 
 @handle_error
 def kill_join(var: GameState, wrapper: MessageDispatcher):
-    import trans
+    from src import trans
     pl = [x.nick for x in get_players(var)]
     pl.sort(key=lambda x: x.lower())
     trans.reset(var)

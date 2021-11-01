@@ -12,7 +12,8 @@ from src.gamestate import GameState
 from src.messages import messages
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
 from src.status import is_silent
-from src.users import User, Bot
+from src import users
+from src.users import User
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("crazed shaman", knows_totem=False)
 
@@ -78,7 +79,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                 if ps:
                     target = random.choice(ps)
                     ps.remove(target)
-                    dispatcher = MessageDispatcher(shaman, Bot)
+                    dispatcher = MessageDispatcher(shaman, users.Bot)
                     given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_unknown", role="crazed shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])
