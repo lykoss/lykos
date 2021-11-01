@@ -54,7 +54,7 @@ class Message:
             walker.walk(listener, tree)
             return listener.value()
         except Exception as e:
-            if not config.Main.get("debug.enable") or not config.Main.get("debug.messages.nothrow"):
+            if not config.Main.get("debug.enabled") or not config.Main.get("debug.messages.nothrow"):
                 raise
 
             return "ERROR: {0!s} ({1}: {2!r}, {3!r})".format(e, self.key, args, kwargs)
