@@ -2,21 +2,18 @@ from __future__ import annotations
 
 import random
 import re
-import typing
+from typing import Optional
 
 from src import users
 from src.containers import UserSet, UserDict
 from src.decorators import command
+from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_reveal_role, get_target
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, is_dead
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
-    from typing import Optional
+from src.users import User
 
 ENTRANCED = UserSet()
 VISITED: UserDict[users.User, users.User] = UserDict()

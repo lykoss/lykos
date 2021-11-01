@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
 from src.containers import UserDict, UserSet
 from src.functions import get_players
 from src.messages import messages
 from src.events import Event, event_listener
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 __all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes", "get_all_forced_votes", "get_forced_abstains"]
 

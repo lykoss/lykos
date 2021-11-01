@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 import re
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 from src import config
 from src.cats import Wolf, Killer
@@ -14,11 +14,9 @@ from src.functions import get_players, get_all_players, get_target, get_main_rol
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
 from src.trans import chk_win
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
+from src.users import User
 
 _rolestate: dict[str, dict[str, Any]] = {}
 

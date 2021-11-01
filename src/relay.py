@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING
 
 from src.events import event_listener
 from src.decorators import command
@@ -12,10 +11,8 @@ from src.events import Event
 from src.users import User
 from src.cats import role_order, Wolf, Wolfchat
 from src import config, channels, db
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 DEADCHAT_PLAYERS: UserSet = UserSet()
 DEADCHAT_SPECTATE: UserSet = UserSet()

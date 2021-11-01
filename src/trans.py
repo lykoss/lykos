@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import Optional, Callable
 import threading
 import time
 
@@ -18,10 +18,8 @@ from src.events import Event, event_listener
 from src.votes import chk_decision
 from src.cats import Wolfteam, Hidden, Village, Win_Stealer, Wolf_Objective, Village_Objective, role_order
 from src import channels, users, locks, config, db, reaper, relay
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState, PregameState
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState, PregameState
 
 NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS: dict[str, tuple[threading.Timer, float | int, int]] = {}

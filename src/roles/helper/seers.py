@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import random
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src.containers import UserSet
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 def setup_variables(rolename):
     SEEN = UserSet()

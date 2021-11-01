@@ -1,16 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-import typing
+from typing import Optional
 
 from src.functions import match_mode, match_role
 from src.messages import messages
 from src.decorators import command
 from src import channels, users, config, db
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from typing import Optional
+from src.dispatcher import MessageDispatcher
 
 LAST_GSTATS: Optional[datetime] = None
 LAST_PSTATS: Optional[datetime] = None

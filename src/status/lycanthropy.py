@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, Iterable
 
 from src.containers import UserDict
 from src.functions import get_players, get_main_role, change_role
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import Wolf, Category
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 

@@ -1,22 +1,16 @@
 from __future__ import annotations
 
-import random
 import re
-import typing
+from typing import Optional
 
-from src.utilities import singular
-from src.decorators import command
-from src.functions import get_target, get_players, get_all_players
-from src.messages import messages
 from src.containers import UserSet
+from src.decorators import command
+from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
-from src.cats import Win_Stealer
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
-    from typing import Optional
+from src.functions import get_target, get_players, get_all_players
+from src.gamestate import GameState
+from src.messages import messages
+from src.users import User
 
 ACTED = UserSet()
 

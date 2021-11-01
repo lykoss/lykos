@@ -7,10 +7,10 @@ import platform
 import time
 import functools
 import logging
-import typing
 import sys
 from typing import Optional
 
+from oyoyo.client import IRCClient
 from src import channels, config, context, decorators, users
 from src.messages import messages
 from src.functions import get_participants, get_all_roles, match_role
@@ -20,10 +20,7 @@ from src.context import Features
 from src.users import User
 from src.events import Event, EventListener
 from src.transport.irc import get_services
-
-if typing.TYPE_CHECKING:
-    from oyoyo.client import IRCClient
-    from src.channels import Channel
+from src.channels import Channel
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from src.containers import UserDict, DefaultUserDict
 from src.functions import get_players
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import All, Category
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.gamestate import GameState
+from src.users import User
+from src.gamestate import GameState
 
 __all__ = ["add_protection", "try_protection", "remove_all_protections"]
 

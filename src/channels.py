@@ -10,10 +10,11 @@ from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
 from src import users, config
 from src.debug import CheckedSet, CheckedDict
+from src.users import User
 
 if TYPE_CHECKING:
+    # gamestate depends on channels; can't turn this into a top-level import
     from src.gamestate import GameState
-    from src.users import User
 
 Main: Channel = None # type: ignore[assignment]
 Dummy: Channel = None # type: ignore[assignment]

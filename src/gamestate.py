@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import copy
-import typing
+from typing import Any, Optional, TYPE_CHECKING
 import time
 
 from src.containers import UserSet, UserDict, UserList
 from src.messages import messages
 from src.cats import All
-from src import channels, config
+from src import config
+from src.users import User
+from src import channels
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from src.gamemodes import GameMode
-    from src.users import User
-    from typing import Any, Optional
 
 __all__ = ["GameState", "PregameState", "set_gamemode"]
 

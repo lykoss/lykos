@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 import logging
 import re
 
@@ -10,9 +10,7 @@ from src.transport.irc import get_ircd
 from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.decorators import command, COMMANDS
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
+from src.dispatcher import MessageDispatcher
 
 __all__ = ["decrement_stasis", "add_warning", "expire_tempbans"]
 

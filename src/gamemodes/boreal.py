@@ -1,24 +1,21 @@
 from __future__ import annotations
 
-import random
 import re
 from collections import defaultdict
-from typing import TYPE_CHECKING
-from src.gamemodes import game_mode, GameMode, InvalidModeException
-from src.roles.helper.wolves import send_wolfchat_message
-from src.messages import messages
-from src.functions import get_players, get_all_players, get_main_role, change_role, match_totem
-from src.events import EventListener, find_listener
-from src.containers import DefaultUserDict
-from src.status import add_dying
-from src.cats import Wolfteam
-from src.decorators import command
-from src import channels, users
 
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.events import Event
-    from src.gamestate import GameState
+from src import users
+from src.cats import Wolfteam
+from src.containers import DefaultUserDict
+from src.decorators import command
+from src.dispatcher import MessageDispatcher
+from src.events import Event
+from src.events import EventListener
+from src.functions import get_players, get_main_role, change_role, match_totem
+from src.gamemodes import game_mode, GameMode
+from src.gamestate import GameState
+from src.messages import messages
+from src.roles.helper.wolves import send_wolfchat_message
+from src.status import add_dying
 
 @game_mode("boreal", minp=6, maxp=24, likelihood=5)
 class BorealMode(GameMode):

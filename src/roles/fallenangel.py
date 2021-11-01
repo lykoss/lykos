@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src import status
 from src.events import Event, event_listener
 from src.functions import get_all_players
+from src.gamestate import GameState
 from src.roles.helper.wolves import register_wolf
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.users import User
 
 register_wolf("fallen angel")
 

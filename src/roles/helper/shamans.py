@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import random
 import re
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Optional
 
 from src import channels, users, status
 from src.cats import All
@@ -14,10 +14,8 @@ from src.functions import (get_players, get_all_players, get_main_role, get_all_
 from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_protection, try_exchange
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.users import User
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########

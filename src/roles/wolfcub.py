@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src import users, trans
 from src.cats import Wolf, Killer
@@ -9,10 +9,8 @@ from src.events import Event, event_listener
 from src.functions import get_players
 from src.messages import messages
 from src.roles.helper.wolves import wolf_can_kill, register_wolf, is_known_wolf_ally
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 register_wolf("wolf cub")
 ANGRY_WOLVES = False

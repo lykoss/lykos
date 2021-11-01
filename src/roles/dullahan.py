@@ -3,21 +3,18 @@ from __future__ import annotations
 import math
 import random
 import re
-import typing
+from typing import Optional
 
 from src import users, channels
 from src.containers import UserSet, UserDict
 from src.decorators import command
+from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target, get_reveal_role
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_dead
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
-    from typing import Optional
+from src.users import User
 
 KILLS: UserDict[users.User, users.User] = UserDict()
 TARGETS: UserDict[users.User, UserSet] = UserDict()

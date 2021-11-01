@@ -1,11 +1,10 @@
-
 from __future__ import annotations
 
 import threading
 import time
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Callable
+from typing import Optional, Callable
 
 from src.decorators import command
 from src.functions import get_players, get_reveal_role
@@ -15,12 +14,10 @@ from src.messages import messages
 from src.status import add_dying, kill_players
 from src.events import Event, EventListener, event_listener
 from src.debug import handle_error
-from src import db, users, channels, locks, pregame, config, trans, context, reaper, relay
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.channels import Channel
-    from src.users import User
+from src import db, users, channels, locks, pregame, config, context, reaper, relay
+from src.dispatcher import MessageDispatcher
+from src.channels import Channel
+from src.users import User
 
 PINGED_ALREADY: set[str] = set()
 PINGING_PLAYERS: bool = False
@@ -73,6 +70,7 @@ def join_player(wrapper: MessageDispatcher,
         callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
 def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=False):
+    import trans
     var = wrapper.game_state
     pl = get_players(var)
 
@@ -178,6 +176,7 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=
 
 @handle_error
 def kill_join(var: GameState, wrapper: MessageDispatcher):
+    import trans
     pl = [x.nick for x in get_players(var)]
     pl.sort(key=lambda x: x.lower())
     trans.reset(var)

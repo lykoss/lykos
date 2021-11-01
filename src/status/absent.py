@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from src.events import Event, event_listener
 from src.containers import UserDict
 from src.functions import get_players
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 __all__ = ["add_absent", "try_absent", "get_absent"]
 

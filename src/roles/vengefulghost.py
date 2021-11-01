@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-import typing
+from typing import Optional
 
 from src import users
 from src.cats import All, Wolfteam
@@ -12,12 +12,9 @@ from src.events import Event, event_listener
 from src.functions import get_players, get_target, get_all_roles
 from src.messages import messages
 from src.status import try_misdirection, add_silent, is_silent
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
-    from typing import Optional
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
+from src.users import User
 
 KILLS: UserDict[users.User, users.User] = UserDict()
 GHOSTS: UserDict[users.User, str] = UserDict()

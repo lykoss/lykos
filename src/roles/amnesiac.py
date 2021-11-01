@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src import users, config
 from src.cats import role_order, Win_Stealer
@@ -9,10 +9,8 @@ from src.containers import UserDict
 from src.events import Event, event_listener
 from src.functions import get_all_players, change_role
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 __all__ = ["get_blacklist", "get_stats_flag"]
 

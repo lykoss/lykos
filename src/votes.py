@@ -4,20 +4,18 @@ from collections import Counter
 from datetime import datetime, timedelta
 import math
 import re
-from typing import TYPE_CHECKING
 
 from src.containers import UserDict, UserList, UserSet
 from src.decorators import command
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
+from src.status import (try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains,
+                        get_vote_weight, try_lynch_immunity, add_dying, kill_players)
 from src.events import Event, event_listener
 from src import channels, pregame, reaper, locks, config
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 VOTES: UserDict[User, UserList] = UserDict()
 GAMEMODE_VOTES: UserDict[User, str] = UserDict()

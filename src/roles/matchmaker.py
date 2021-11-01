@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from src import channels
 from src.containers import UserSet, UserDict
@@ -11,11 +11,9 @@ from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_reveal_role, get_target
 from src.messages import messages
 from src.status import add_dying
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.dispatcher import MessageDispatcher
-    from src.users import User
+from src.gamestate import GameState
+from src.dispatcher import MessageDispatcher
+from src.users import User
 
 MATCHMAKERS = UserSet()
 ACTED = UserSet()

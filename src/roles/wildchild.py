@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src.containers import UserSet, UserDict
 from src.decorators import command
@@ -10,11 +10,9 @@ from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_target, change_role
 from src.messages import messages
 from src.roles.helper.wolves import get_wolfchat_roles
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 IDOLS: UserDict[User, User] = UserDict()
 CAN_ACT = UserSet()

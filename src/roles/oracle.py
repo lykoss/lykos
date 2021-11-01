@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-import typing
+from typing import Optional
 
 from src.cats import Cursed, Safe, Innocent, Wolf
 from src.decorators import command
@@ -10,11 +10,9 @@ from src.functions import get_main_role, get_target
 from src.messages import messages
 from src.roles.helper.seers import setup_variables
 from src.status import try_misdirection, try_exchange
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from typing import Optional
 
 SEEN = setup_variables("oracle")
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
 
 import threading
 import itertools
@@ -14,19 +13,16 @@ import re
 from src.containers import UserDict, UserSet, DefaultUserDict
 from src.debug import handle_error
 from src.decorators import COMMANDS, command
-from src.gamestate import GameState, PregameState
-from src.gamestate import set_gamemode
+from src.gamestate import set_gamemode, GameState, PregameState
 from src.functions import get_players, match_role
 from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import All
-from src import config, channels, locks, trans, reaper, users
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.dispatcher import MessageDispatcher
-    from src.channels import Channel
+from src import config, channels, locks, reaper, users
+from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.channels import Channel
 
 WAIT_TOKENS = 0
 WAIT_LAST = 0
@@ -109,6 +105,7 @@ def fstart(wrapper: MessageDispatcher, message: str):
 @command("retract", phases=("day", "join"))
 def retract(wrapper: MessageDispatcher, message: str):
     """Take back your vote during the day (for whom to lynch)."""
+    from src.trans import TIMERS
     var = wrapper.game_state
     if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED:
         return
@@ -122,11 +119,12 @@ def retract(wrapper: MessageDispatcher, message: str):
                 wrapper.send(messages["start_retract"].format(wrapper.source))
 
                 if not START_VOTES:
-                    trans.TIMERS["start_votes"][0].cancel()
-                    del trans.TIMERS["start_votes"]
+                    TIMERS["start_votes"][0].cancel()
+                    del TIMERS["start_votes"]
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+    from src.trans import TIMERS
     if var.current_phase == "join":
         for role in FORCE_ROLES:
             FORCE_ROLES[role].discard(player)
@@ -134,12 +132,12 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             START_VOTES.discard(player)
 
             # Cancel the start vote timer if there are no votes left
-            if not START_VOTES and "start_votes" in trans.TIMERS:
-                trans.TIMERS["start_votes"][0].cancel()
-                del trans.TIMERS["start_votes"]
+            if not START_VOTES and "start_votes" in TIMERS:
+                TIMERS["start_votes"][0].cancel()
+                del TIMERS["start_votes"]
 
 def start(wrapper: MessageDispatcher, *, forced: bool = False):
-    from src.trans import stop_game
+    from src.trans import stop_game, ADMIN_STOPPED, TIMERS
 
     pregame_state: PregameState = wrapper.game_state
 
@@ -192,7 +190,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 # If this was the first vote
                 if len(START_VOTES) == 1:
                     t = threading.Timer(60, expire_start_votes, (pregame_state, wrapper.target))
-                    trans.TIMERS["start_votes"] = (t, time.time(), 60)
+                    TIMERS["start_votes"] = (t, time.time(), 60)
                     t.daemon = True
                     t.start()
                 return
@@ -307,7 +305,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
 
-    if trans.ADMIN_STOPPED:
+    if ADMIN_STOPPED:
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
@@ -432,9 +430,9 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
     with locks.join_timer: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
-            if name in trans.TIMERS:
-                trans.TIMERS[name][0].cancel()
-                del trans.TIMERS[name]
+            if name in TIMERS:
+                TIMERS[name][0].cancel()
+                del TIMERS[name]
 
     for role, players in ingame_state.roles.items():
         for player in players:

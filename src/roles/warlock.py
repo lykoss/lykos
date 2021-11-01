@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src.containers import UserSet, UserDict
 from src.decorators import command
@@ -11,11 +11,9 @@ from src.messages import messages
 from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist, \
     register_wolf
 from src.status import try_misdirection, try_exchange
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 register_wolf("warlock")
 

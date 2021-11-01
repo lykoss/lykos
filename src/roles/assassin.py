@@ -1,25 +1,19 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import math
-import typing
-from collections import defaultdict, deque
+import re
+from typing import Optional
 
 from src import channels, users
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.dispatcher import MessageDispatcher
+from src.events import Event, event_listener
+from src.functions import get_players, get_all_players, get_reveal_role, get_target
 from src.gamestate import GameState
 from src.messages import messages
-from src.events import Event, event_listener
 from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_silent
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.users import User
-    from typing import Optional
+from src.users import User
 
 TARGETED: UserDict[users.User, users.User] = UserDict()
 PREV_ACTED = UserSet()

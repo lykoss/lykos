@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-import typing
+from typing import Optional
 
 from src import users
 from src.cats import Nocturnal
@@ -12,12 +12,9 @@ from src.functions import get_all_players, get_all_roles, get_target
 from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 from src.status import try_misdirection, try_exchange
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
-    from typing import Optional
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
+from src.users import User
 
 register_wolf("werecrow")
 

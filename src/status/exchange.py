@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from src.containers import UserSet
 from src.functions import get_main_role, change_role, get_players
 from src.messages import messages
 from src.events import Event, event_listener
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 __all__ = ["add_exchange", "try_exchange"]
 

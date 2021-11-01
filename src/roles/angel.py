@@ -2,23 +2,20 @@ from __future__ import annotations
 
 import random
 import re
-import typing
+from typing import Optional
 
 from src import config
 from src import users
 from src.cats import Wolf
 from src.containers import UserSet, UserDict
 from src.decorators import command
+from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target
+from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from typing import Optional
-    from src.users import User
+from src.users import User
 
 GUARDED: UserDict[users.User, users.User] = UserDict()
 LASTGUARDED: UserDict[users.User, users.User] = UserDict()

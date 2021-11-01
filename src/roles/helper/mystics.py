@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable
+from typing import Iterable
 
 from src import cats
 from src.containers import UserDict
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 # Generated message keys used in this file:
 # mystic_night_num, mystic_day_num, mystic_info,

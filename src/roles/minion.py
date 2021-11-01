@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src.cats import Wolf
 from src.containers import UserSet
@@ -9,9 +9,7 @@ from src.events import Event, event_listener
 from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.users import User
+from src.users import User
 
 RECEIVED_INFO = UserSet()
 KNOWS_MINIONS = UserSet()

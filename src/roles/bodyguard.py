@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src import config
 from src.cats import Wolf
@@ -13,10 +13,8 @@ from src.functions import get_players, get_all_players, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.users import User
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 GUARDED: UserDict[User, User] = UserDict()
 PASSED = UserSet()

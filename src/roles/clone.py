@@ -1,26 +1,18 @@
 from __future__ import annotations
 
-import re
 import random
-import itertools
-import typing
-import math
-from collections import defaultdict
+import re
+from typing import Optional
 
-from src import channels, users, config
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
+from src import users, config
+from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
-from src.status import try_misdirection, try_exchange
-from src.cats import Win_Stealer
+from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
-    from typing import Optional
+from src.functions import get_players, get_all_players, get_target, change_role
+from src.gamestate import GameState
+from src.messages import messages
+from src.users import User
 
 CLONED: UserDict[users.User, users.User] = UserDict()
 CAN_ACT = UserSet()

@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import random
-import typing
+from typing import Optional
 
 from src.containers import UserSet
 from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, match_role
 from src.messages import messages
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from typing import Optional
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 PRAYED = UserSet()
 

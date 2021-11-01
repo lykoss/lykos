@@ -2,21 +2,17 @@ from __future__ import annotations
 
 import itertools
 import random
-import typing
+from typing import Optional
 
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players
+from src.gamestate import GameState
 from src.messages import messages
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
 from src.status import is_silent
 from src.users import Bot
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from typing import Optional
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("shaman", knows_totem=True)
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 import time
 import sys
 import re
@@ -13,11 +13,9 @@ from src.messages import messages
 from src.events import Event, EventListener, event_listener
 from src.cats import Wolfteam, Neutral, role_order
 from src import config, users, channels, pregame, trans
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
+from src.users import User
 
 LAST_STATS: Optional[datetime] = None
 LAST_TIME: Optional[datetime] = None

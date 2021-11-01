@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src.cats import Wolf, All
 from src.containers import UserSet, UserDict
@@ -11,11 +11,9 @@ from src.functions import get_players, get_all_players, get_target
 from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 from src.status import try_misdirection, try_exchange, add_lycanthropy, add_lycanthropy_scope
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 register_wolf("alpha wolf")
 

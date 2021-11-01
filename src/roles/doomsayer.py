@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src import status
 from src.cats import All
@@ -13,11 +13,9 @@ from src.functions import get_all_players, get_main_role, get_target
 from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
 from src.status import try_misdirection, try_exchange
-
-if TYPE_CHECKING:
-    from src.users import User
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
+from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 register_wolf("doomsayer")
 

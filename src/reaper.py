@@ -8,7 +8,7 @@ from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.containers import UserDict, UserSet
 from src.gamestate import GameState
-from src.functions import get_players, get_reveal_role, get_main_role
+from src.functions import get_players, get_reveal_role
 from src.warnings import add_warning
 from src.messages import messages
 from src.status import add_dying, kill_players

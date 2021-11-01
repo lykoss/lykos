@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import re
 from collections import defaultdict
-from typing import Optional, Iterable, TYPE_CHECKING
+from typing import Optional, Iterable
 
 from src import users, config, relay
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
@@ -13,11 +13,9 @@ from src.events import Event, event_listener
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, is_silent
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
+from src.users import User
 
 KILLS: UserDict[users.User, UserList] = UserDict()
 

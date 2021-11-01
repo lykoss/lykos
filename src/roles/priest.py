@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-import typing
+from typing import Optional
 
 from src import users
 from src.containers import UserSet
@@ -11,11 +11,8 @@ from src.functions import get_players, get_all_players, get_target
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_absent
 from src.trans import chk_win
-
-if typing.TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from typing import Optional
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
 
 PRIESTS = UserSet()
 

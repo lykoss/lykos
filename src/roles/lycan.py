@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src.events import Event, event_listener
 from src.functions import get_all_players
 from src.messages import messages
 from src.status import add_lycanthropy, add_lycanthropy_scope, remove_lycanthropy
-
-if TYPE_CHECKING:
-    from src.gamestate import GameState
-    from src.users import User
+from src.gamestate import GameState
+from src.users import User
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):

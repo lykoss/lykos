@@ -3,7 +3,7 @@
 # This "bootstraps" the bot in preparation for importing the bulk of the code. Some imports
 # change behavior based on whether or not we're in debug mode, so that must be established before
 # we continue on to import other files
-from src import config, lineparse, match
+from src import config, lineparse, locks, match
 
 # Initialize config.Main
 config.init()
@@ -15,23 +15,20 @@ logger.init()
 # Files with dependencies only on things imported in previous lines, in order
 # The top line must only depend on things imported above in our "no dependencies" block
 from src import debug
-from src import events
+from src import events, transport
 from src import cats, messages
 from src import context, functions
 from src import db
 from src import users
 from src import channels, containers
-from src import dispatcher
+from src import dispatcher, gamestate
 from src import decorators
-from src import hooks, status, warnings, relay
-from src import pregame
-from src import trans
-from src import gamejoin
+from src import game_stats, handler, hooks, status, warnings, relay
+from src import reaper
+from src import gamejoin, pregame
 from src import votes
-from src import handler
-from src import wolfgame
-from src import gamecmds
-from src import game_stats
+from src import trans
+from src import gamecmds, wolfgame
 
 # Import the user-defined game modes
 # These are not required, so failing to import it doesn't matter

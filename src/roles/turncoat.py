@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
 from src import users
 from src.containers import UserSet, UserDict
@@ -9,11 +9,9 @@ from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, match_role
 from src.messages import messages
-
-if TYPE_CHECKING:
-    from src.dispatcher import MessageDispatcher
-    from src.gamestate import GameState
-    from src.users import User
+from src.dispatcher import MessageDispatcher
+from src.gamestate import GameState
+from src.users import User
 
 TURNCOATS: UserDict[users.User, tuple[str, int]] = UserDict()
 PASSED = UserSet()
