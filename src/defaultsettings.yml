@@ -971,7 +971,7 @@ timers: &timers
             A warning is printed to channel that night is almost over at this time.
             Must be less than timers.night.limit.
           _type: int
-          _default: 60
+          _default: 90
     day:
       _desc: Time limits related to the day phase.
       _type: dict
