@@ -43,11 +43,6 @@ class MessageDispatcher:
             first = "{0}: ".format(self.source)
         if self.private:
             self.source.send(*messages, **kwargs)
-        elif (self.target is channels.Main and self.game_state is not None and 
-                ((self.game_state.current_phase != "join" and self.source not in get_players(self.game_state)) or
-                    (not config.Main.get("gameplay.nightchat") and self.game_state.current_phase == "night"))):
-            kwargs.setdefault("notice", True)
-            self.source.send(*messages, **kwargs)
         else:
             kwargs.setdefault("first", first)
             self.target.send(*messages, **kwargs)
