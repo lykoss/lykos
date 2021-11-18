@@ -162,8 +162,8 @@ def show_votes(wrapper: MessageDispatcher, message: str):
 
     global LAST_VOTES
 
-    if (wrapper.public and LAST_VOTES and config.Main.get("ratelimit.votes") and
-            LAST_VOTES + timedelta(seconds=config.Main.get("ratelimit.votes")) > datetime.now()):
+    if (wrapper.public and LAST_VOTES and config.Main.get("ratelimits.votes") and
+            LAST_VOTES + timedelta(seconds=config.Main.get("ratelimits.votes")) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"])
         return
 
