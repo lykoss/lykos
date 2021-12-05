@@ -32,11 +32,13 @@ def match_all(search: str, scope: Iterable[str]) -> Match[str]:
         Otherwise, all items that begin with search will be returned.
     """
     found = set()
+    search_folded = search.lower()
     for item in scope:
-        if search == item:
+        item_folded = item.lower()
+        if search_folded == item_folded:
             found = {item}
             break
-        if item.startswith(search):
+        if item_folded.startswith(search_folded):
             found.add(item)
     return Match(found)
 

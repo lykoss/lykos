@@ -51,3 +51,6 @@ try:
 except (ModuleNotFoundError, AttributeError):
     from src import gamemodes
     gamemodes.import_builtin_modes()
+
+# Perform final initialization
+events.Event("init", {}).dispatch()

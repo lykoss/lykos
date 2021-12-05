@@ -73,7 +73,6 @@ if args.config:
 from oyoyo.client import IRCClient, TokenBucket
 
 from src import handler, config
-from src.events import Event
 
 def main():
     # fetch IRC transport
@@ -88,8 +87,6 @@ def main():
 
     general_logger = logging.getLogger("general")
     general_logger.info("Loading Werewolf IRC bot")
-    evt = Event("init", {})
-    evt.dispatch()
 
     host = config.Main.get("transports[0].connection.host")
     port = config.Main.get("transports[0].connection.port")

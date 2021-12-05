@@ -198,7 +198,6 @@ def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False
     :param scope: Limit matched roles to these explicitly passed-in roles (iterable of internal role names).
     :return: Match object with all matches (see src.match.match_all)
     """
-    role = role.lower()
     if remove_spaces:
         role = role.replace(" ", "")
 
