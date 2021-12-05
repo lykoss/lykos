@@ -13,10 +13,14 @@ from src.roles.helper.wolves import get_wolfchat_roles
 from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.trans import NIGHT_IDLE_EXEMPT
 
 IDOLS: UserDict[User, User] = UserDict()
 CAN_ACT = UserSet()
 ACTED = UserSet()
+
+# this is populated only during stop_game to track which wild children turned for the endgame readout
+_turned: set[User] = set()
 
 @command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(wrapper: MessageDispatcher, message: str):
@@ -73,14 +77,20 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     del IDOLS[:player:]
     CAN_ACT.discard(player)
     ACTED.discard(player)
-    if not death_triggers:
-        return
 
     for child in get_all_players(var, ("wild child",)):
         if IDOLS.get(child) is player:
-            # Change their main role to wolf
-            change_role(var, child, get_main_role(var, child), "wolf", message="wild_child_idol_died")
-            var.roles["wild child"].add(child)
+            if death_triggers:
+                # Change their main role to wolf
+                change_role(var, child, get_main_role(var, child), "wolf", message="wild_child_idol_died")
+                var.roles["wild child"].add(child)
+            else:
+                # Let them pick a new idol
+                del IDOLS[child]
+                if var.current_phase == "night":
+                    ACTED.discard(child)
+                    CAN_ACT.add(child)
+                    NIGHT_IDLE_EXEMPT.add(child)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):
@@ -98,7 +108,6 @@ def on_transition_day_begin(evt: Event, var: GameState):
                     idol = random.choice(players)
                     IDOLS[child] = idol
                     child.send(messages["wild_child_random_idol"].format(idol))
-                    idol_role = get_main_role(var, idol)
 
 @event_listener("send_role")
 def on_transition_night_end(evt: Event, var: GameState):
@@ -124,6 +133,18 @@ def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
 def on_get_reveal_role(evt: Event, var: GameState, user: User):
     if evt.data["role"] == "wolf" and user in get_all_players(var, ("wild child",)):
         evt.data["role"] = "wild child"
+
+@event_listener("get_final_role")
+def on_get_final_role(evt: Event, var: GameState, player: User, role: str):
+    # ensure wild children are recorded as such in the stats db, even if they turn
+    if role == "wild child" and evt.data["role"] == "wolf":
+        _turned.add(player)
+        evt.data["role"] = "wild child"
+
+@event_listener("get_endgame_message")
+def on_get_endgame_message(evt: Event, var: GameState, player: User, role: str, is_main_role: bool):
+    if role == "wild child" and player in _turned:
+        evt.data["message"].append(messages["wild_child_turned"])
 
 @event_listener("update_stats")
 def on_update_stats(evt: Event, var: GameState, player: User, main_role: str, reveal_role: str, all_roles: set[str]):

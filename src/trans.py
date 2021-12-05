@@ -518,7 +518,7 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
                     player_msg.append(messages[roleswap_key].format(orig_main[player]))
                     roleswap_key = "endgame_roleswap_short"
                 evt = Event("get_endgame_message", {"message": player_msg})
-                evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
+                evt.dispatch(var, player, role, is_main_role=mainroles[player] == role)
                 key = "endgame_role_player_short"
                 if player_msg:
                     key = "endgame_role_player_long"

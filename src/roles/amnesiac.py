@@ -66,7 +66,7 @@ def on_reveal_role(evt: Event, var: GameState, user: User):
         evt.data["role"] = "amnesiac"
 
 @event_listener("get_endgame_message")
-def on_get_endgame_message(evt: Event, var: GameState, player: User, role: str, is_mainrole: bool):
+def on_get_endgame_message(evt: Event, var: GameState, player: User, role: str, is_main_role: bool):
     if role == "amnesiac":
         evt.data["message"].append(messages["amnesiac_endgame"].format(ROLES[player]))
 

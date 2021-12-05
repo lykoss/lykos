@@ -675,6 +675,7 @@
     "wild_child_revealroles_no_idol": "no idol picked yet",
     "wild_child_idol_died": "Your idol has died, and you are now a {=wolf!role:bold}!",
     "wild_child_idol": "Your idol is {0:@}.",
+    "wild_child_turned": "turned into wolf",
     "idle_death": "{0:@} didn't get out of bed for a very long time and has been found dead. The survivors bury the {1!role:bold}'s body.",
     "idle_death_no_reveal": "{0:@} didn't get out of bed for a very long time and has been found dead.",
     "channel_idle_warning": "{0:join_simple}: [b]You have been idling for a while. Please say something soon or you might be declared dead.[/b]",
