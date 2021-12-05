@@ -722,13 +722,13 @@ def reset_game(wrapper: MessageDispatcher, message: str):
     """Forces the game to stop."""
     wrapper.send(messages["fstop_success"].format(wrapper.source))
     var = wrapper.game_state
+    pl = None
     if var.current_phase == "join":
         pl = [p for p in get_players(var) if not p.is_fake]
-        reset(var)
-        if pl:
-            wrapper.send(messages["fstop_ping"].format(pl))
-    else:
-        stop_game(var, log=False)
+
+    stop_game(var, log=False)
+    if pl:
+        wrapper.send(messages["fstop_ping"].format(pl))
 
 def reset(var: Optional[GameState | PregameState]):
     # Reset game timers

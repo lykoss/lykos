@@ -260,13 +260,11 @@ def restart_program(wrapper: MessageDispatcher, message: str):
 
     if var:
         if not var.in_game or force:
+            db.set_pre_restart_state(p.nick for p in get_players(var))
             stop_game(var, log=False)
-        elif var.in_game:
+        else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
             return
-
-        db.set_pre_restart_state(p.nick for p in get_players(var))
-        reset(var)
 
     msg = "{0} restart from {1}".format(
         "Scheduled" if restart_program.aftergame else "Forced", wrapper.source)
@@ -409,6 +407,9 @@ def parted_modes(evt, chan: Channel, user, reason):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+    if not var.in_game:
+        return
+
     # update the role stats
     # Event priorities:
     # 1 = Expanding the possible set (e.g. traitor would add themselves if nickrole is villager)
@@ -438,13 +439,6 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
                 d[p] -= 1
                 newstats.add(frozenset(d.items()))
     var.set_role_stats(newstats)
-
-    if var.current_phase == "join":
-        if player in votes.GAMEMODE_VOTES:
-            del votes.GAMEMODE_VOTES[player]
-
-        # Died during the joining process as a person
-        var.players.remove(player)
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)

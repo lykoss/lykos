@@ -396,9 +396,10 @@ def leave_game(wrapper: MessageDispatcher, message: str):
 
     add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
     kill_players(var)
-    if len(get_players(var)) == 0:
-        from src.wolfgame import reset
-        reset(var)
+    if not var.in_game and len(get_players(var)) == 0:
+        # chk_win handles ending game at 0 players if a game is running, don't need to do so here
+        from src.trans import stop_game
+        stop_game(var, log=False)
 
 @command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(wrapper: MessageDispatcher, message: str):
@@ -438,6 +439,10 @@ def fleave(wrapper: MessageDispatcher, message: str):
 
             add_dying(var, target, "bot", "fquit", death_triggers=False)
             kill_players(var)
+            if not var.in_game and len(get_players(var)) == 0:
+                # chk_win handles ending game at 0 players if a game is running, don't need to do so here
+                from src.trans import stop_game
+                stop_game(var, log=False)
 
         elif dead_target:
             dead_target = dead_target.get()

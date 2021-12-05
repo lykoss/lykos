@@ -42,11 +42,6 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
         if player in DYING or player in DEAD:
             return False
 
-        if var.current_phase == "join":
-            var.players.remove(player)
-            channels.Main.mode(("-v", player.nick))
-            return False
-
         DYING[player] = (killer_role, reason, death_triggers)
         return True
 
@@ -84,26 +79,35 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
     t = time.time()
 
     with locks.reaper: # FIXME
-        if not var or not var.in_game or var.game_id > t:
+        if not var or var.game_id > t:
             #  either game ended, or a new game has started
             return True
 
         dead: set[User] = set()
-        assert isinstance(var, GameState)
 
         while DYING:
             player, (killer_role, reason, death_triggers) = DYING.popitem()
-            main_role = get_main_role(var, player)
-            reveal_role = get_reveal_role(var, player)
-            all_roles = get_all_roles(var, player)
-            # kill them off
-            del var.main_roles[player]
-            for role in all_roles:
-                var.roles[role].remove(player)
-            dead.add(player)
-            # Don't track players that quit before the game started
-            if var.current_phase != "join":
+            if var.in_game:
+                main_role = get_main_role(var, player)
+                reveal_role = get_reveal_role(var, player)
+                all_roles = get_all_roles(var, player)
+            else:
+                main_role = "player"
+                reveal_role = "player"
+                all_roles = ["player"]
+
+            if var.in_game:
+                # kill them off
+                del var.main_roles[player]
+                for role in all_roles:
+                    var.roles[role].remove(player)
+                dead.add(player)
                 DEAD.add(player)
+            else:
+                # left during join phase
+                var.players.remove(player)
+                channels.Main.mode(("-v", player.nick))
+
             # notify listeners that the player died for possibility of chained deaths
             evt = Event("del_player", {},
                         killer_role=killer_role,
@@ -112,6 +116,9 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
                         reason=reason)
             evt_death_triggers = death_triggers and var.in_game
             evt.dispatch(var, player, all_roles, evt_death_triggers)
+
+        if not var.in_game:
+            return False
 
         # give roles/modes an opportunity to adjust !stats now that all deaths have resolved
         evt = Event("reconfigure_stats", {"new": []})
