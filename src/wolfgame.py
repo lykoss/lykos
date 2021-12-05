@@ -129,7 +129,7 @@ def connect_callback():
 
     def mode_change(event, actor, target):
         if target is channels.Main: # we may or may not be opped; assume we are
-            accumulator.send([])
+            accumulator.send(("-m",))
             next(accumulator, None)
 
             mode_change_listener.remove("mode_change")
@@ -165,26 +165,25 @@ def on_sync_modes(evt):
 
 def sync_modes():
     game_state = channels.Main.game_state
-    if game_state:
-        voices = [None]
-        mode = hooks.Features["PREFIX"]["+"]
-        pl = get_players(game_state)
+    voices = [None]
+    mode = hooks.Features["PREFIX"]["+"]
+    pl = get_players(game_state) if game_state else []
 
-        for user in channels.Main.users:
-            if config.Main.get("gameplay.nightchat") and game_state.current_phase == "night":
-                if mode in user.channels[channels.Main]:
-                    voices.append(("-" + mode, user))
-            elif user in pl and mode not in user.channels[channels.Main]:
-                voices.append(("+" + mode, user))
-            elif user not in pl and mode in user.channels[channels.Main]:
+    for user in channels.Main.users:
+        if game_state and not config.Main.get("gameplay.nightchat") and game_state.current_phase == "night":
+            if mode in user.channels[channels.Main]:
                 voices.append(("-" + mode, user))
+        elif user in pl and mode not in user.channels[channels.Main]:
+            voices.append(("+" + mode, user))
+        elif user not in pl and mode in user.channels[channels.Main]:
+            voices.append(("-" + mode, user))
 
-        if game_state.in_game:
-            voices[0] = "+m"
-        else:
-            voices[0] = "-m"
+    if game_state and game_state.in_game:
+        voices[0] = "+m"
+    else:
+        voices[0] = "-m"
 
-        channels.Main.mode(*voices)
+    channels.Main.mode(*voices)
 
 @command("refreshdb", flag="m", pm=True)
 def refreshdb(wrapper: MessageDispatcher, message: str):
