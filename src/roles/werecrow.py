@@ -14,6 +14,7 @@ from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, r
 from src.status import try_misdirection, try_exchange
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.trans import NIGHT_IDLE_EXEMPT
 from src.users import User
 
 register_wolf("werecrow")
@@ -65,6 +66,14 @@ def on_reset(evt: Event, var: GameState):
 def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(OBSERVED)
     evt.data["nightroles"].extend(get_all_players(var, ("werecrow",)))
+
+@event_listener("del_player")
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+    del OBSERVED[:player:]
+    for crow, target in list(OBSERVED.items()):
+        if target is player:
+            NIGHT_IDLE_EXEMPT.add(crow)
+            del OBSERVED[crow]
 
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):

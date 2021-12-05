@@ -1,22 +1,24 @@
 from __future__ import annotations
 
+import logging
 import sys
 from collections import defaultdict, OrderedDict
-from operator import attrgetter
 from typing import Any, Optional
-import logging
 
-from src.messages.message import Message
-from src import config
 from oyoyo.client import IRCClient
+from src import config
+from src.messages.message import Message
 
 class _NotLoggedIn:
     def __copy__(self):
         return self
+
     def __deepcopy__(self, memo):
         return self
+
     def __bool__(self):
         return False
+
     def __repr__(self):
         return "NotLoggedIn"
 
@@ -26,7 +28,7 @@ def _who(cli, target, data=b""):
     """Handle WHO requests."""
 
     if isinstance(data, str):
-        data = data.encode(Features["CHARSET"])
+        data = data.encode(Features.CHARSET)
     elif isinstance(data, int):
         if data > 0xFFFFFF:
             data = b""
@@ -36,7 +38,7 @@ def _who(cli, target, data=b""):
     if len(data) > 3:
         data = b""
 
-    if "WHOX" in Features:
+    if Features.WHOX:
         cli.send("WHO", target, b"%tcuihsnfdlar," + data)
     else:
         cli.send("WHO", target)
@@ -101,9 +103,9 @@ def lower(nick: Optional[str | IRCContext], *, casemapping: Optional[str] = None
     if isinstance(nick, IRCContext):
         return nick.lower()
     if casemapping is None:
-        casemapping = Features["CASEMAPPING"]
+        casemapping = Features.CASEMAPPING
 
-    mapping = {
+    mapping: dict[str, Optional[str | int]] = {
         "[": "{",
         "]": "}",
         "\\": "|",
@@ -346,7 +348,7 @@ class IRCFeatures:
         modes = self._features.get("CHANMODES", [])
         while len(modes) < 4:
             modes.append("")
-        return tuple(modes[:4])
+        return tuple(modes[:4]) # type: ignore
 
     @CHANMODES.setter
     def CHANMODES(self, value: str):

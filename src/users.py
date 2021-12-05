@@ -457,11 +457,12 @@ class User(IRCContext):
                 _users.add(new)
 
             if self is Bot:
+                assert isinstance(new, BotUser)
                 Bot = new
 
         # It is the containers' responsibility to properly remove themselves from the users
         # So if any list is non-empty, something went terribly wrong
-        assert not self.lists + self.sets + self.dict_keys + self.dict_values
+        assert not self.lists and not self.sets and not self.dict_keys and not self.dict_values
 
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.account))
