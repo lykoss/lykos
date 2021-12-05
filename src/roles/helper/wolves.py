@@ -271,12 +271,13 @@ def on_transition_night_end(evt: Event, var: GameState, role):
     elif config.Main.get("gameplay.wolfchat.disable_day"):
         wccond = 3
 
-    if role not in talkroles or wccond == 0:
+    if role not in talkroles or wccond == 0 or len(get_players(var, talkroles)) < 2:
         return
 
     wolves = get_players(var, (role,))
     for wolf in wolves:
-        wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
+        wolf.queue_message(messages["wolfchat_notify_{0}".format(wccond)])
+    User.send_messages()
 
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):
