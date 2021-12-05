@@ -12,6 +12,7 @@ from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target, change_role
 from src.gamestate import GameState
 from src.messages import messages
+from src.trans import NIGHT_IDLE_EXEMPT
 from src.users import User
 
 CLONED: UserDict[users.User, users.User] = UserDict()
@@ -25,8 +26,6 @@ def clone(wrapper: MessageDispatcher, message: str):
     if wrapper.source in CLONED:
         wrapper.pm(messages["already_cloned"])
         return
-
-    var = wrapper.game_state
 
     params = re.split(" +", message)
     target = get_target(wrapper, params[0])
@@ -54,9 +53,16 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
         if clone in CLONED:
             target = CLONED[clone]
             if player is target:
-                # clone is cloning target, so clone becomes target's role
-                # clone does NOT get any of target's templates (gunner/assassin/etc.)
                 del CLONED[clone]
+                if not death_triggers:
+                    # if the target idled out, clone can pick a new target but doesn't gain the target's role
+                    # mark the clone as immune to night idle warnings for tonight
+                    # so they aren't penalized for someone else being idle
+                    NIGHT_IDLE_EXEMPT.add(clone)
+                    continue
+
+                # clone is cloning target, so clone becomes target's main role
+                # clone does NOT get any of target's secondary roles (gunner/assassin/etc.)
                 mainrole = change_role(var, clone, "clone", mainrole, inherit_from=target)
                 # if a clone is cloning a clone, clone who the old clone cloned
                 if mainrole == "clone" and player in CLONED:
