@@ -327,6 +327,8 @@ def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], 
 
         if player in ABSTAINS:
             ABSTAINS.remove(player)
+    elif var.current_phase == "join":
+        del GAMEMODE_VOTES[:player:]
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt: Event, var: GameState):

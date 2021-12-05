@@ -396,6 +396,9 @@ def leave_game(wrapper: MessageDispatcher, message: str):
 
     add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
     kill_players(var)
+    if len(get_players(var)) == 0:
+        from src.wolfgame import reset
+        reset(var)
 
 @command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(wrapper: MessageDispatcher, message: str):
