@@ -22,25 +22,25 @@ def on_lynch(evt: Event, var: GameState, votee, voters):
         lmsg = messages["lynch_reveal"].format(votee, "fool")
         VOTED = votee
         channels.Main.send(lmsg)
-        chk_win(var, winner="fool")
+        chk_win(var, winner="fools")
 
         evt.prevent_default = True
         evt.stop_processing = True
 
 @event_listener("chk_win", priority=0)
 def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
-    if evt.data["winner"] == "fool":
+    if evt.data["winner"] == "fools":
         evt.data["message"] = messages["fool_win"]
 
 @event_listener("team_win")
 def on_team_win(evt: Event, var: GameState, player, main_role, all_roles, winner):
-    if winner == "fool" and player is VOTED:
+    if winner == "fools" and player is VOTED:
         # giving voted fool a team win means that lover can win with them if they're voted
         evt.data["team_win"] = True
 
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
-    if winner == "fool" and player is VOTED:
+    if winner == "fools" and player is VOTED:
         evt.data["individual_win"] = True
 
 @event_listener("send_role")
