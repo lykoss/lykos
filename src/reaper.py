@@ -156,7 +156,7 @@ def update_last_said(wrapper: MessageDispatcher, message: str):
     if wrapper.game_state.in_game:
         LAST_SAID_TIME[wrapper.source] = datetime.now()
 
-    if wrapper.source in get_players(wrapper.game_state) and wrapper.source in IDLE_WARNED_PM:
+    if wrapper.private and wrapper.source in get_players(wrapper.game_state) and wrapper.source in IDLE_WARNED_PM:
         wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
 
 @handle_error
