@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta
 from typing import Optional
 import time
@@ -166,6 +167,11 @@ def stats(wrapper: MessageDispatcher, message: str):
             entries.append(messages["stats_reply_entry_single"].format("neutral player", neutral))
 
     wrapper.reply(messages["stats_reply"].format(var.current_phase, first_count, entries))
+
+@event_listener("reconfigure_stats")
+def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
+    global LAST_STATS
+    LAST_STATS = None
 
 @command("time", pm=True, phases=("join", "day", "night"))
 def timeleft(wrapper: MessageDispatcher, message: str):
