@@ -146,6 +146,11 @@ def on_get_endgame_message(evt: Event, var: GameState, player: User, role: str, 
     if role == "wild child" and player in _turned:
         evt.data["message"].append(messages["wild_child_turned"])
 
+@event_listener("team_win")
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
+    if main_role == "wild child" and winner in ("villagers", "wolves"):
+        evt.data["team_win"] = (winner == "villagers") ^ (player in _turned)
+
 @event_listener("update_stats")
 def on_update_stats(evt: Event, var: GameState, player: User, main_role: str, reveal_role: str, all_roles: set[str]):
     if reveal_role == "wild child":
