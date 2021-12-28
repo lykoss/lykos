@@ -167,6 +167,7 @@ def on_reset(evt: Event, var: GameState):
     IDOLS.clear()
     CAN_ACT.clear()
     ACTED.clear()
+    _turned.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
