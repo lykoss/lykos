@@ -107,7 +107,7 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
 
     uncharmed = set(get_players(var, mainroles=mainroles)) - CHARMED - pipers
 
-    if var.current_phase == "day" and not uncharmed:
+    if not uncharmed:
         evt.data["winner"] = "pipers"
         evt.data["message"] = messages["piper_win"].format(lp)
 
