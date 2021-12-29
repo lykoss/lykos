@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import itertools
 import random
 import re
@@ -252,8 +253,18 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt: Event, var: GameState):
-        if not get_all_players(var, (rolename,)):
+        # check if this role gave out any totems the previous night
+        # (lycanthropy, luck, and misdirection all apply the night after they were handed out)
+        # since LASTGIVEN is a DefaultUserDict we can't rely on bool() to operate properly as examining state may
+        # have inserted keys with default (empty) values
+        for user in LASTGIVEN:
+            if functools.reduce(lambda x, y: bool(x) or bool(y), LASTGIVEN[user].values(), False):
+                # if this is True, this user gave out at least one totem last night
+                break
+        else:
+            # we get here if no users gave out totems last night
             return
+
         if var.current_mode.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)
         if var.current_mode.TOTEM_CHANCES["luck"][rolename] > 0:

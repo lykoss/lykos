@@ -33,6 +33,7 @@ def see(wrapper: MessageDispatcher, message: str):
     if wrapper.source in SEEN:
         wrapper.send(messages["seer_fail"])
         return
+
     var = wrapper.game_state
     target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if not target:
@@ -50,9 +51,8 @@ def see(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(var, target)
-
     mode, mapping = random.choice(_mappings)
+    # keys: doomsayer_death, doomsayer_lycan, doomsayer_sick
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
     mapping[wrapper.source] = target
 
@@ -94,8 +94,10 @@ def on_transition_day(evt: Event, var: GameState):
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt: Event, var: GameState):
-    if var.night_count > 0 and get_all_players(var, ("doomsayer",)):
-        status.add_lycanthropy_scope(var, All) # any role can transform if ds is in play
+    if LASTSEEN:
+        # if doomsayer is in play and at least one of them saw someone the previous night,
+        # let stats know that anyone could be a lycan
+        status.add_lycanthropy_scope(var, All)
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)
     for sick in SICK.values():
