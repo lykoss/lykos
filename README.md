@@ -18,7 +18,7 @@ We run an instance of the bot in the [#werewolf channel][game_webchat] on Libera
 
 ### I've never played such a game before. How do I play?
 
-You can join a new game with `!join`. There must be at least 4 players to be able to start a game. When the game is started, the bot will message you privately telling you your role, what command(s) you have access to as that role, and what your goal is. You may then send commands privately to the bot; for example `see person`. Some roles require you to use the command during the day, and sometimes in the channel. Make sure to pay attention to the message!
+You can join a new game with `!join`. There must be at least 6 players to be able to start a game. When the game is started, the bot will message you privately telling you your role, what command(s) you have access to as that role, and what your goal is. You may then send commands privately to the bot; for example `see person`. Some roles require you to use the command during the day, and sometimes in the channel. Make sure to pay attention to the message!
 
 If you're a wolf or other wolf-aligned role, you probably have access to the wolfchat. To use it, simply message the bot, and your message will be relayed to all other wolfchat players. You will also get their messages.
 
@@ -38,21 +38,10 @@ The bot requires some setup before it can be up and running. Here are the requir
 - If building Python from source, you will need to include SQLite3 as part of the building process, as the bot uses it.
 - To enable the ability to update the bot with the changes that we bring to it, you will need to [download and install Git][git].
 - If your network supports it, create an account for your bot and give it automatic op upon joining your channel via your channel management service (typically the `+O` flag if using `ChanServ`).
-- Copy the file `botconfig.py.example` to `botconfig.py` (make sure to make a copy and not simply rename), and open it with your favourite text editor. Modify the settings as seen below. If a setting is not present here, it means the default is fine for most cases.
-```
-HOST: Where the bot will connect to. Make sure to surround the name in "quotes".
-PORT: The port that the bot will use to connect to the above. Traditionally 6667 or 5555, but 6697 is used for SSL.
-NICK: Which nick the bot should connect as. This should be the same as the account you registered above.
-PASS: This is the password for your bot, which will be sent upon connection. Make sure it is surrounded by "quotes".
-SASL_AUTHENTICATION: We highly recommend leaving this setting as-is, as it is the most secure way to identify.
-
-USE_SSL: We recommend leaving this settings as-is. In that case, PORT needs to be adjusted, typically to 6697.
-CHANNEL: This is the channel the game will be played it. Make sure it has the leading # and is surrounded in "quotes".
-CMD_CHAR: The command prefix for every command. It is ! by default, but can be anything and of any length. Make sure it is surrounded in "quotes".
-
-OWNERS: This is the hostname of the bot owner. This supports wildcards, but please be careful, as this grants total access over the bot. If the host changes too much or too often, we recommend setting this to ()
-OWNERS_ACCOUNTS: This is the account of the owner of the bot. This also supports wildcards. If your network does not support accounts, set this to ()
-```
+- Copy the file `botconfig.example.yml` to `botconfig.yml` (make sure to make a copy and not simply rename), and open it with your favourite text editor. The file is extensively commented with examples and additional info. Modify the sections below. If a setting is not present here, it means the default is fine for most cases.
+  * transports: update to point to your IRC network
+  * access: point this to your account so you can control the bot over IRC
+  * logging: see the comments and update accordingly. For a test bot, you could log everything to stdout (as shown in the first group). If you choose to use transport, make sure you pick a channel and check the comments for more info
 
 ### I entered everything correctly, but the bot doesn't work in some way. What can I do?
 
@@ -60,9 +49,7 @@ We can help you with these kinds of issues in our [development channel, #lykos][
 
 ### The bot works fine, but there's just something I'd like to tweak. Is that possible?
 
-It absolutely is! If you open the file `settings.py` under the `src` folder, you will see a lot of different settings, usually accompagnied by a comment briefly explaining what the setting is for. You can copy and paste these settings into your `botconfig.py` file, and change them as you wish. Time-related settings are in seconds. You will need to restart the bot for the changes to take effect.
-
-*Careful: Do __not__ modify the `settings.py` file directly, as that will prevent you from getting any future update.*
+It absolutely is! For additional gameplay settings, see [the wiki's Configuration page](https://werewolf.chat/Configuration#gameplay). You can copy and paste these settings into your `botconfig.yml` file, and change them as you wish. Time-related settings are in seconds. You will need to restart the bot for the changes to take effect.
 
 If there is something that you would like to tweak but can't find the setting for it, you may ask in [#lykos][dev_webchat]. It may be hidden somewhere, or may not exist. We are usually willing to add new settings to allow other bot owners to customize their bot to the fullest. You may also [open an issue][new_issue] on our bug tracker.
 
@@ -72,7 +59,7 @@ Yes! You can create your own roles by putting them inside the `roles` folder. Th
 
 ### Can I also add a new game mode to go with my new role(s) or just to change things up?
 
-That's also possible! You can copy the `gamemodes.py.example` file into `gamemodes.py` and modify it following the layout inside the `src/gamemodes.py` file. Creating a simple gamemode is a fairly straightforward task compared to creating a new role.
+That's also possible! See the existing gamemodes in `src/gamemodes/` and the community modes in [our community-modes repository](https://github.com/lykoss/community-modes) for examples. Put custom modes into the `gamemodes/` directory (*not* `src/gamemodes/`). Then, copy `gamemodes/__init__.py.example` to `gamemodes/__init__.py` so your bot loads them.
 
 ### What admin commands can I use?
 
@@ -89,8 +76,6 @@ Let us know! We will do the best we can to accomodate third-party roles and mode
 ### Additional information for bot operators
 
 You can run the bot by doing `./wolfbot.py` on Linux, or simply double-clicking the `wolfbot.py` file on Windows.
-
-The bot has a built-in throttling mechanism, preventing the bot from flooding out if too many messages are sent at once. However, depending on the network, these settings may be too strict or too lax. Before running the bot initially, we recommend running `./wolfbot.py --lagcheck`. Wait for it to finish, and it will tell you which settings you should put into your `botconfig.py` file.
 
 ## Credits
 
