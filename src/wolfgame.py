@@ -893,7 +893,7 @@ def on_invite(cli, raw_nick, something, chan):
     if user and user.is_admin():
         cli.join(chan) # Allows the bot to be present in any channel
 
-@command("coin", pm=True)
+@command("coin", pm=False)
 def coin(wrapper: MessageDispatcher, message: str):
     """It's a bad idea to base any decisions on this command."""
 
@@ -908,7 +908,7 @@ def coin(wrapper: MessageDispatcher, message: str):
         coin = messages.get("coin_land", 2)
     wrapper.send(coin.format())
 
-@command("pony", pm=True)
+@command("pony", pm=False)
 def pony(wrapper: MessageDispatcher, message: str):
     """Toss a magical pony into the air and see what happens!"""
 
@@ -925,7 +925,7 @@ def pony(wrapper: MessageDispatcher, message: str):
         pony = messages.get("pony_land", 3)
     wrapper.send(pony.format(nick=wrapper.source))
 
-@command("cat", pm=True)
+@command("cat", pm=False)
 def cat(wrapper: MessageDispatcher, message: str):
     """Toss a cat into the air and see what happens!"""
     wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"].format(), sep="\n")
