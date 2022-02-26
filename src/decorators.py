@@ -41,6 +41,7 @@ class command:
         self.func: Callable[[MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name: str = commands[0]
+        self.internal_name = command
         self.key = "{0}_{1}".format(command, id(self))
         self.alt_allowed = allow_alt if allow_alt is not None else bool(flag or owner_only)
         self._disabled = False
@@ -175,7 +176,7 @@ class command:
 
         denied_commands = db.DENY[temp.account]
 
-        if self.commands & denied_commands:
+        if self.internal_name in denied_commands:
             wrapper.pm(messages["invalid_permissions"])
             return
 

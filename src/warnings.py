@@ -43,7 +43,9 @@ def _get_auto_sanctions(sanctions, prev, cur):
                 else:
                     sanctions["stasis"] = max(sanctions["stasis"], sanc["stasis"])
             if sanc["scalestasis"] is not None:
-                (a, b, c) = sanc["scalestasis"]
+                a = sanc["scalestasis"]["a"]
+                b = sanc["scalestasis"]["b"]
+                c = sanc["scalestasis"]["c"]
                 amt = (a * cur * cur) + (b * cur) + c
                 if "stasis" not in sanctions:
                     sanctions["stasis"] = amt
@@ -146,7 +148,6 @@ def stasis(wrapper: MessageDispatcher, message: str):
 def fstasis(wrapper: MessageDispatcher, message: str):
     """Removes or views stasis penalties."""
 
-    var = wrapper.game_state
     data = re.split(" +", message)
     from src.context import lower as irc_lower
 
@@ -363,7 +364,7 @@ def fwarn_add(wrapper: MessageDispatcher, args):
         normalized_cmds = set()
         for cmd in args.deny:
             for obj in COMMANDS[cmd]:
-                normalized_cmds.add(obj.key)
+                normalized_cmds.add(obj.internal_name)
         # don't allow the warn command to be denied
         # in-game commands bypass deny restrictions as well
         normalized_cmds.discard("warn")
