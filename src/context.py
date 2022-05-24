@@ -269,9 +269,15 @@ class IRCContext:
     def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
         new = []
         for line in data:
+            # support deferred messages
+            if callable(line):
+                line = line()
             if isinstance(line, Message):
                 line = line.format()
-            new.append(line)
+            if line:
+                new.append(line)
+        if not new:
+            return
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
             transport_name = config.Main.get("transports[0].name")

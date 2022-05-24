@@ -26,8 +26,11 @@ def try_exchange(var: GameState, actor: User, target: User):
     role = get_main_role(var, actor)
     target_role = get_main_role(var, target)
 
-    actor_role = change_role(var, actor, role, target_role, inherit_from=target)
+    actor_role, actor_messages = change_role(var, actor, role, target_role, inherit_from=target, send_messages=False)
     target_role = change_role(var, target, target_role, role, inherit_from=actor)
+    # defer actor's messages so that things dependent on all roles to be resolved can run after we finish setting
+    # the target's role
+    actor.send(*actor_messages)
 
     if actor_role == target_role: # swap state of two players with the same role
         evt = Event("swap_role_state", {"actor_messages": [], "target_messages": []})

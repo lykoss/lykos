@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Callable
 from collections import Counter
 import functools
 import typing
@@ -123,35 +123,57 @@ def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = F
 
     return match.get()
 
-def change_role(var: GameState, player: User, oldrole: str, newrole: str, *, inherit_from=None, message="new_role"):
+def change_role(var: GameState,
+                player: User,
+                old_role: str,
+                new_role: str,
+                *,
+                inherit_from=None,
+                message="new_role",
+                send_messages=True) -> tuple[str, list[str | Callable[[], str]]]:
+    """ Change the player's main role, updating relevant game state.
+
+    :param var: Game state
+    :param player: Player whose role is being changed
+    :param old_role: Player's old main role
+    :param new_role: Player's new main role
+    :param inherit_from: Another player whose role state to inherit from (e.g. in role swaps)
+    :param message: Message alerting the player that they have a new role
+    :param send_messages: if False, messages are not immediately sent to the player
+        and must be sent by the caller
+    :return: A tuple containing the player's new role (which may be different from the new_role
+        parameter due to events) and a list of messages that were sent to the player (or should
+        be sent to the player if send_messages is False).
+    """
     # in_wolfchat is filled as part of priority 4
     # if you wish to modify evt.data["role"], do so in priority 3 or sooner
     evt = Event("new_role",
-                {"role": newrole, "messages": [], "in_wolfchat": False},
+                {"role": new_role, "messages": [], "in_wolfchat": False},
                 inherit_from=inherit_from)
-    evt.dispatch(var, player, oldrole)
-    newrole = evt.data["role"]
+    evt.dispatch(var, player, old_role)
+    new_role = evt.data["role"]
 
-    var.roles[oldrole].remove(player)
-    var.roles[newrole].add(player)
+    var.roles[old_role].remove(player)
+    var.roles[new_role].add(player)
     # only adjust main_roles/final_roles if we're changing the player's actual role
-    if var.main_roles[player] == oldrole:
-        var.main_roles[player] = newrole
-        var.final_roles[player] = newrole
+    if var.main_roles[player] == old_role:
+        var.main_roles[player] = new_role
+        var.final_roles[player] = new_role
 
     # if giving the player a new role during night, don't warn them for not acting
     from src.trans import NIGHT_IDLE_EXEMPT
     NIGHT_IDLE_EXEMPT.add(player)
 
-    sayrole = newrole
-    if sayrole in Hidden:
-        sayrole = var.hidden_role
+    say_role = new_role
+    if say_role in Hidden:
+        say_role = var.hidden_role
 
     if message:
-        player.send(messages[message].format(sayrole))
-    player.send(*evt.data["messages"])
+        evt.data["messages"].insert(0, messages[message].format(say_role))
+    if send_messages:
+        player.send(*evt.data["messages"])
 
-    return newrole
+    return new_role, evt.data["messages"]
 
 def get_main_role(var: GameState, user):
     role = var.main_roles.get(user)

@@ -63,7 +63,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
 
                 # clone is cloning target, so clone becomes target's main role
                 # clone does NOT get any of target's secondary roles (gunner/assassin/etc.)
-                mainrole = change_role(var, clone, "clone", mainrole, inherit_from=target)
+                mainrole, _ = change_role(var, clone, "clone", mainrole, inherit_from=target)
                 # if a clone is cloning a clone, clone who the old clone cloned
                 if mainrole == "clone" and player in CLONED:
                     if CLONED[player] is clone:

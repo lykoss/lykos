@@ -215,7 +215,10 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         else:
             return # no other wolves, nothing else to do
 
-        evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player, role=evt.data["role"])))
+        # defer resolution of get_wolflist() until the time the message is actually being sent to the player
+        # this way in a role swap we aren't working on an inaccurate view of who should have which role and potentially
+        # leak information or give inaccurate information to the new wolf
+        evt.data["messages"].append(lambda: messages["players_list"].format(get_wolflist(var, player, role=evt.data["role"])))
 
         if var.current_phase == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
