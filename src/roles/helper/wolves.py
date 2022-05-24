@@ -207,6 +207,9 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         evt.data["in_wolfchat"] = True
         if wofls:
             for wofl in wofls:
+                # if a wolf is leaving us, don't tell them about the new wolf
+                if wofl is evt.params.inherit_from:
+                    continue
                 wofl.queue_message(messages["wolfchat_new_member"].format(player, sayrole))
             User.send_messages()
         else:
