@@ -79,8 +79,8 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
 
     for user in users:
         if update and have_raw_nick:
-            # check for variations in case; this is the *only* time where users.get() can be case-insensitive
-            if user.lower() == temp.lower():
+            # check for variations in case; this is the *only* time when users.get() can be case-insensitive
+            if user.lower().partial_match(temp.lower()):
                 user.rawnick = raw_nick
                 return [user] if allow_multiple else user
         elif user.partial_match(temp):
