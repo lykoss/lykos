@@ -523,6 +523,7 @@
         "{0:@} received a command from the heavens ordering them to play a game of werewolf. They raised the number of players to {1:bold}.",
         "{0:@} received a divine command telling them to play a game of werewolf. They raised the number of players to {1:bold}.",
         "{0:@} decided to play a game of werewolf. They raised the number of players to {1:bold}.",
+        "{0:@} decided to open a hedgehog rescue in the village. They raised the number of players to {1:bold}.",
         "{0:@} was hypnotized by one of the villagers and so moved in. They raised the number of players to {1:bold}.",
         "{0:@} wanted a new life and decided this village would be a good place to live. They raised the number of players to {1:bold}.",
         "{0:@} came to the village looking for work. They raised the number of players to {1:bold}.",
