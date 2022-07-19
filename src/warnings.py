@@ -177,10 +177,7 @@ def fstasis(wrapper: MessageDispatcher, message: str):
             if amt < 0:
                 wrapper.reply(messages["stasis_non_negative"])
                 return
-            elif amt > cur:
-                wrapper.reply(messages["stasis_cannot_increase"])
-                return
-            elif cur == 0:
+            elif amt == 0 and cur == 0:
                 wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
                 return
 

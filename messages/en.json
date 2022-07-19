@@ -1056,7 +1056,6 @@
     "account_not_in_stasis": "{0:bold} (Account: {1}) is not in stasis.",
     "currently_stasised": "Currently stasised: {0}",
     "noone_stasised": "Nobody is currently stasised.",
-    "stasis_cannot_increase": "Cannot increase stasis using fstasis; use fwarn instead.",
     "no_command_specified": "Error: No command specified. Did you mean [b]-cmds[/b]?",
     "invalid_option": "Invalid option: {0}",
     "command_does_not_exist": "That command does not exist.",
