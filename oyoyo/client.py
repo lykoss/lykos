@@ -188,7 +188,7 @@ class IRCClient:
                         sys.exit(1)
 
             if self.use_ssl:
-                ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
 
                 if self.cipher_list:
                     try:
