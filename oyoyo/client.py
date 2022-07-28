@@ -199,9 +199,13 @@ class IRCClient:
                         raise
 
                 # explicitly disable old protocols
+                # (for OpenSSL 1.0.x)
                 ctx.options |= ssl.OP_NO_SSLv2
                 ctx.options |= ssl.OP_NO_SSLv3
                 ctx.options |= ssl.OP_NO_TLSv1
+                ctx.options |= ssl.OP_NO_TLSv1_1
+                # (for OpenSSL 1.1.x)
+                ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
                 # explicitly disable compression (CRIME attack)
                 ctx.options |= ssl.OP_NO_COMPRESSION
