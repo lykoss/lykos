@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# Imports all gamemode definitions
 import os.path
 import glob
 import importlib
