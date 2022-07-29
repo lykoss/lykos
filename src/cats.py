@@ -29,7 +29,7 @@ from src.messages._messages import Messages as _Messages
 from src.events import Event, EventListener
 
 __all__ = [
-    "get", "role_order", "Category",
+    "get", "role_order", "all_cats", "all_roles", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective", "All"
 ]
@@ -74,6 +74,25 @@ def role_order():
     buckets["Wolf"].insert(0, "wolf")
     buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
+
+def all_cats() -> dict[str, Category]:
+    if not FROZEN:
+        raise RuntimeError("Fatal: Role categories are not ready")
+    # make a copy so that the original cannot be mutated and skip the * alias
+    return {k: v for k, v in ROLE_CATS.items() if k != "*"}
+
+def all_roles() -> dict[str, list[Category]]:
+    if not FROZEN:
+        raise RuntimeError("Fatal: Role categories are not ready")
+    roles = {}
+    # sort the categories for each role by the main category (team affiliation) first,
+    # followed by all other categories in alphabetical order
+    for role, tags in ROLES.items():
+        cats = set(ROLE_CATS[tag] for tag in tags)
+        main_cat = cats & {Wolfteam, Village, Neutral, Hidden}
+        cats.difference_update(main_cat)
+        roles[role] = [next(iter(main_cat))] + sorted(iter(cats), key=str)
+    return roles
 
 def _register_roles(evt: Event):
     global FROZEN

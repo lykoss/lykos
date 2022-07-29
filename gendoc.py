@@ -1,17 +1,27 @@
 import copy
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from io import StringIO
 from pathlib import Path
 import sys
 from typing import Optional
 from requests import Session
 import hashlib
+import json
+import re
 from ruamel.yaml import YAML, RoundTripRepresenter, SafeRepresenter
 
 from src.config import Config, Empty, merge
+from src.gamemodes import GAME_MODES
+from src.cats import all_cats, all_roles, role_order, Category
 
 class Undefined:
     pass
+
+class CategoryEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Category):
+            return str(o)
+        return super().default(o)
 
 Conf = Config()
 
@@ -96,7 +106,7 @@ def yaml_dump(obj):
         dump = buffer.getvalue()
         return f"\n<syntaxhighlight lang=\"yaml\">{dump}</syntaxhighlight>\n"
 
-def generate_docs():
+def generate_config_page():
     file = Path(__file__).parent / "src" / "defaultsettings.yml"
     Conf.load_metadata(file)
     # Initialize markup with our intro (as a template so we can easily edit it without needing to push code changes)
@@ -108,6 +118,81 @@ def generate_docs():
     for key in sorted_keys:
         markup += add_section(Conf.metadata[key])
     return markup
+
+def generate_roles_page():
+    obj = {
+        "cats": {k: sorted(v.roles) for k, v in all_cats().items()},
+        "order": list(role_order()),
+        "roles": all_roles()
+    }
+
+    # pretty-print for easier human parsing
+    # sort keys to ensure that page content remains stable between executions (as otherwise dict order is arbitrary)
+    return json.dumps(obj, indent=2, sort_keys=True, cls=CategoryEncoder)
+
+def generate_gamemodes_page():
+    obj = {
+        "modes": {}
+    }
+    total_likelihood = 0
+    for mode, min_players, max_players, likelihood in GAME_MODES.values():
+        if mode.name == "roles":
+            continue
+        mode_inst = mode()
+        role_guide = {}
+        default_role = mode_inst.CUSTOM_SETTINGS.default_role
+        mode_obj = {
+            "min": min_players,
+            "max": max_players,
+            "likelihood": likelihood,
+            "default_role": default_role,
+            "defined_counts": sorted(mode_inst.ROLE_GUIDE.keys())
+        }
+        c = Counter({default_role: min_players})
+        seen_roles = set()
+        strip = lambda x: re.sub(r"\(.*\)", "", x)
+        for role_defs in mode_inst.ROLE_GUIDE.values():
+            seen_roles.update(strip(x) for x in role_defs if x[0] != "-")
+
+        for role in seen_roles:
+            c[role] = 0
+
+        for i in range(min_players, max_players + 1):
+            if i in mode_inst.ROLE_GUIDE:
+                for role in mode_inst.ROLE_GUIDE[i]:
+                    role = strip(role)
+                    if role[0] == "-":
+                        role = role[1:]
+                        c[role] -= 1
+                    else:
+                        c[role] += 1
+                    # c[default_role] was initialized to min_players above, so deduct actual roles from the count
+                    if i == min_players:
+                        c[default_role] -= 1
+            else:
+                c[default_role] += 1
+            role_guide[i] = {k: v for k, v in c.items()}
+        mode_obj["role_guide"] = role_guide
+        mode_obj["secondary_roles"] = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
+        mode_obj["role_sets"] = {k: v for k, v in mode_inst.ROLE_SETS.items() if k in seen_roles}
+        obj["modes"][mode.name] = mode_obj
+
+        total_likelihood += likelihood
+
+    obj["total_likelihood"] = total_likelihood
+
+    return json.dumps(obj, indent=2, sort_keys=True)
+
+def generate_docs(doc_type):
+    if doc_type == "config":
+        return generate_config_page()
+    elif doc_type == "roles":
+        return generate_roles_page()
+    elif doc_type == "gamemodes":
+        return generate_gamemodes_page()
+    else:
+        print(f"Unknown documentation type {doc_type}")
+        sys.exit(1)
 
 def wiki_api(session: Session,
              url: str,
@@ -128,6 +213,24 @@ def wiki_api(session: Session,
         sys.exit(1)
     return parsed
 
+def edit_page(session: Session,
+              url: str,
+              page: str,
+              text: str,
+              summary: str,
+              edit_token: str,
+              assert_bot: Optional[str] = None):
+    edit_params = {"action": "edit", "title": page}
+    md5 = hashlib.md5()
+    md5.update(text.encode("utf-8"))
+    edit_data = {"bot": 1,
+                 "nocreate": 1,
+                 "text": text,
+                 "summary": summary,
+                 "md5": md5.hexdigest(),
+                 "token": edit_token}
+    return wiki_api(session, url, edit_params, edit_data, assert_bot=assert_bot)
+
 if __name__ == "__main__":
     # make sure we always print a literal null when dumping None values
     RoundTripRepresenter.add_representer(type(None), SafeRepresenter.represent_none)
@@ -135,16 +238,19 @@ if __name__ == "__main__":
     RoundTripRepresenter.add_representer(Undefined, lambda r, d: r.represent_scalar("tag:yaml.org,2002:null", ""))
     # omit !!omap tag from our OrderedDict dumps; we use ordering just to make things alphabetical
     RoundTripRepresenter.add_representer(OrderedDict, SafeRepresenter.represent_dict)
-    if len(sys.argv) < 6:
-        print(generate_docs())
+    if len(sys.argv) < 2 or sys.argv[1] == "-h" or sys.argv[1] == "--help":
+        print("Manual usage: gendoc.py config|roles|gamemodes")
+        print("CI usage: gendoc.py <API-url> <username> <password> <git-commit-sha>")
+        sys.exit(1)
+    elif len(sys.argv) < 5:
+        print(generate_docs(sys.argv[1]))
     else:
         # if passing arguments:
         # the first argument should be the URL to the wiki's api.php (e.g. 'https://werewolf.chat/w/api.php')
         # the second argument should be the username to authenticate with
         # the third argument should be the password to authenticate with
-        # the fourth argument should be the page name to edit
-        # the fifth argument should be the id (hash) of the git commit that prompted this script to run
-        api, username, password, page, commit = sys.argv[1:]
+        # the fourth argument should be the id (hash) of the git commit that prompted this script to run
+        api, username, password, commit = sys.argv[1:]
         with Session() as s:
             token_params = {"action": "query", "meta": "tokens", "type": "login"}
             login_token = wiki_api(s, api, token_params)["query"]["tokens"]["logintoken"]
@@ -156,14 +262,15 @@ if __name__ == "__main__":
             username = login_result["login"]["lgusername"]
             token_params["type"] = "csrf"
             csrf_token = wiki_api(s, api, token_params, assert_bot=username)["query"]["tokens"]["csrftoken"]
-            edit_params = {"action": "edit", "title": page}
-            text = generate_docs()
-            md5 = hashlib.md5()
-            md5.update(text.encode("utf-8"))
-            edit_data = {"bot": 1,
-                         "nocreate": 1,
-                         "text": text,
-                         "summary": f"Configuration update from [[git:{commit}]]",
-                         "md5": md5.hexdigest(),
-                         "token": csrf_token}
-            print(wiki_api(s, api, edit_params, edit_data, assert_bot=username))
+
+            print("Updating Configuration page...")
+            print(edit_page(s, api, "Configuration", generate_docs("config"),
+                            f"Configuration update from [[git:{commit}]]", csrf_token, assert_bot=username))
+
+            print("Updating Roles page...")
+            print(edit_page(s, api, "Module:Roles/data.json", generate_docs("roles"),
+                            f"Role data update from [[git:{commit}]]", csrf_token, assert_bot=username))
+
+            print("Updating Game modes page...")
+            print(edit_page(s, api, "Module:Gamemodes/data.json", generate_docs("gamemodes"),
+                            f"Game mode data update from [[git:{commit}]]", csrf_token, assert_bot=username))

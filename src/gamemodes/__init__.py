@@ -8,7 +8,8 @@ from typing import Optional, Type
 from src.messages import messages
 from src.events import Event, EventListener
 from src.users import User
-from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
+from src.cats import (All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher,
+                      Win_Stealer, Nocturnal, Killer, Spy)
 from src.gamestate import GameState
 
 __all__ = ["InvalidModeException", "game_mode", "import_builtin_modes", "GameMode", "GAME_MODES"]
