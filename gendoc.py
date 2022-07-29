@@ -121,7 +121,7 @@ def generate_config_page():
 
 def generate_roles_page():
     obj = {
-        "cats": {k: sorted(v.roles) for k, v in all_cats().items()},
+        "categories": {k: sorted(v.roles) for k, v in all_cats().items()},
         "order": list(role_order()),
         "roles": all_roles()
     }
@@ -145,8 +145,8 @@ def generate_gamemodes_page():
             "min": min_players,
             "max": max_players,
             "likelihood": likelihood,
-            "default_role": default_role,
-            "defined_counts": sorted(mode_inst.ROLE_GUIDE.keys())
+            "default role": default_role,
+            "defined counts": sorted(mode_inst.ROLE_GUIDE.keys())
         }
         c = Counter({default_role: min_players})
         seen_roles = set()
@@ -172,14 +172,14 @@ def generate_gamemodes_page():
             else:
                 c[default_role] += 1
             role_guide[i] = {k: v for k, v in c.items()}
-        mode_obj["role_guide"] = role_guide
-        mode_obj["secondary_roles"] = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
-        mode_obj["role_sets"] = {k: v for k, v in mode_inst.ROLE_SETS.items() if k in seen_roles}
+        mode_obj["role guide"] = role_guide
+        mode_obj["secondary roles"] = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
+        mode_obj["role sets"] = {k: v for k, v in mode_inst.ROLE_SETS.items() if k in seen_roles}
         obj["modes"][mode.name] = mode_obj
 
         total_likelihood += likelihood
 
-    obj["total_likelihood"] = total_likelihood
+    obj["total likelihood"] = total_likelihood
 
     return json.dumps(obj, indent=2, sort_keys=True)
 
