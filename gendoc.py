@@ -136,7 +136,7 @@ def generate_gamemodes_page():
     }
     total_likelihood = 0
     for mode, min_players, max_players, likelihood in GAME_MODES.values():
-        if mode.name == "roles":
+        if mode.name in ("roles", "random", "maelstrom"):
             continue
         mode_inst = mode()
         role_guide = {}
@@ -150,15 +150,19 @@ def generate_gamemodes_page():
         }
         c = Counter({default_role: min_players})
         seen_roles = set()
+        set_only_roles = set()
         strip = lambda x: re.sub(r"\(.*\)", "", x)
         for role_defs in mode_inst.ROLE_GUIDE.values():
             seen_roles.update(strip(x) for x in role_defs if x[0] != "-")
         for role_set, set_roles in mode_inst.ROLE_SETS.items():
             if role_set not in seen_roles:
                 continue
+            set_only_roles.update(set_roles.keys() - seen_roles)
             seen_roles.update(set_roles.keys())
 
         for role in seen_roles:
+            if role in set_only_roles:
+                continue
             c[role] = 0
 
         for i in range(min_players, max_players + 1):
