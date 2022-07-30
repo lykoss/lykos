@@ -153,6 +153,10 @@ def generate_gamemodes_page():
         strip = lambda x: re.sub(r"\(.*\)", "", x)
         for role_defs in mode_inst.ROLE_GUIDE.values():
             seen_roles.update(strip(x) for x in role_defs if x[0] != "-")
+        for role_set, set_roles in mode_inst.ROLE_SETS.items():
+            if role_set not in seen_roles:
+                continue
+            seen_roles.update(set_roles.keys())
 
         for role in seen_roles:
             c[role] = 0

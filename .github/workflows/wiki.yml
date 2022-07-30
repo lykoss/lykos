@@ -8,6 +8,7 @@ on:
       - "src/defaultsettings.yml"
       - "src/roles/**"
       - "src/gamemodes/**"
+  workflow_dispatch:
 
 env:
   WAPI: https://werewolf.chat/w/api.php
