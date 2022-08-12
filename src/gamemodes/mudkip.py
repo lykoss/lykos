@@ -5,7 +5,7 @@ from src.gamestate import GameState
 from src import channels, users
 
 # someone let woffle commit while drunk again... tsk tsk
-@game_mode("mudkip", minp=5, maxp=17, likelihood=5)
+@game_mode("mudkip", minp=6, maxp=17, likelihood=5)
 class MudkipMode(GameMode):
     """Why are all the professors named after trees?"""
     def __init__(self, arg=""):
