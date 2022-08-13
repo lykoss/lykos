@@ -174,11 +174,7 @@ def generate_gamemodes_page():
                         c[role] -= 1
                     else:
                         c[role] += 1
-                    # c[default_role] was initialized to min_players above, so deduct actual roles from the count
-                    if i == min_players:
-                        c[default_role] -= 1
-            else:
-                c[default_role] += 1
+            c[default_role] = i - sum(c.values()) + c[default_role]
             role_guide[i] = {k: v for k, v in c.items()}
         mode_obj["role guide"] = role_guide
         mode_obj["secondary roles"] = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
