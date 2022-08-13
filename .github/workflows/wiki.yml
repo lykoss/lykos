@@ -8,6 +8,7 @@ on:
       - "src/defaultsettings.yml"
       - "src/roles/**"
       - "src/gamemodes/**"
+      - "gendoc.py"
   workflow_dispatch:
 
 env:
