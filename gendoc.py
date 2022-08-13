@@ -165,6 +165,7 @@ def generate_gamemodes_page():
                 continue
             c[role] = 0
 
+        exclude = set(mode_inst.SECONDARY_ROLES.keys()) | set(mode_inst.ROLE_SETS.keys()) | {default_role}
         for i in range(min_players, max_players + 1):
             if i in mode_inst.ROLE_GUIDE:
                 for role in mode_inst.ROLE_GUIDE[i]:
@@ -174,7 +175,7 @@ def generate_gamemodes_page():
                         c[role] -= 1
                     else:
                         c[role] += 1
-            c[default_role] = i - sum(c.values()) + c[default_role]
+            c[default_role] = i - sum(v for k, v in c.items() if k not in exclude)
             role_guide[i] = {k: v for k, v in c.items()}
         mode_obj["role guide"] = role_guide
         mode_obj["secondary roles"] = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
