@@ -42,6 +42,7 @@ def guard(wrapper: MessageDispatcher, message: str):
         return
 
     add_protection(var, target, wrapper.source, "guardian angel")
+    PASSED.discard(wrapper.source)
     GUARDED[wrapper.source] = target
     LASTGUARDED[wrapper.source] = target
 
