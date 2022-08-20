@@ -224,6 +224,8 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 numvotes += num
             if len(villagers) - numvotes > 0:
                 possiblegamemodes += [None] * ((len(villagers) - numvotes) // 4)
+                if not possiblegamemodes:
+                    possiblegamemodes = [None]
             # check if we go with a voted mode or a random mode
             gamemode = random.choice(possiblegamemodes)
             if gamemode is None:
