@@ -4,7 +4,7 @@ from src.functions import get_players, get_all_players, get_all_roles
 from src.gamestate import GameState
 from src.messages import messages
 from src.events import Event, event_listener
-from src.cats import Nocturnal
+from src.status import is_awake
 
 def _get_targets(var: GameState, pl, user):
     index = var.players.index(user)
@@ -39,14 +39,14 @@ def on_transition_day_begin(evt: Event, var: GameState):
     pl = get_players(var)
     for insomniac in get_all_players(var, ("insomniac",)):
         p1, p2 = _get_targets(var, pl, insomniac)
-        p1_roles = get_all_roles(var, p1)
-        p2_roles = get_all_roles(var, p2)
-        if p1_roles & Nocturnal and p2_roles & Nocturnal:
+        p1_awake = is_awake(var, p1)
+        p2_awake = is_awake(var, p2)
+        if p1_awake and p2_awake:
             # both of the players next to the insomniac were awake last night
             insomniac.send(messages["insomniac_both_awake"].format(p1, p2))
-        elif p1_roles & Nocturnal:
+        elif p1_awake:
             insomniac.send(messages["insomniac_awake"].format(p1))
-        elif p2_roles & Nocturnal:
+        elif p2_awake:
             insomniac.send(messages["insomniac_awake"].format(p2))
         else:
             # both players next to the insomniac were asleep all night

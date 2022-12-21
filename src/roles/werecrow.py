@@ -4,14 +4,13 @@ import re
 from typing import Optional
 
 from src import users
-from src.cats import Nocturnal
 from src.containers import UserDict
 from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_all_players, get_all_roles, get_target
 from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
-from src.status import try_misdirection, try_exchange
+from src.status import try_misdirection, try_exchange, is_awake
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 from src.trans import NIGHT_IDLE_EXEMPT
@@ -48,8 +47,7 @@ def observe(wrapper: MessageDispatcher, message: str):
 def on_transition_day_begin(evt: Event, var: GameState):
     for crow, target in OBSERVED.items():
         # if any of target's roles (primary or secondary) are Nocturnal, we see them as awake
-        roles = get_all_roles(var, target)
-        if roles & Nocturnal:
+        if is_awake(var, target):
             crow.send(messages["werecrow_success"].format(target))
         else:
             crow.send(messages["werecrow_failure"].format(target))
