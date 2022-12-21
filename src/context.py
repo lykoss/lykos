@@ -207,10 +207,10 @@ class IRCContext:
                 send_type = target.get_send_type(is_notice=notice, is_privmsg=privmsg)
                 send_type, send_chan = target.use_cprivmsg(send_type)
                 send_types[(send_type, send_chan)].append(target)
-            for (send_type, send_chan), targets in send_types.items():
+            for (send_type, send_chan), send_targets in send_types.items():
                 max_targets = Features["TARGMAX"][send_type]
-                while targets:
-                    using, targets = targets[:max_targets], targets[max_targets:]
+                while send_targets:
+                    using, send_targets = send_targets[:max_targets], send_targets[max_targets:]
                     _send(message, "", " ", using[0].client, send_type, ",".join([t.nick for t in using]), send_chan)
 
     @classmethod
@@ -247,8 +247,11 @@ class IRCContext:
         if not self.is_user or config.Main.get("transports[0].features.cprivmsg") is False:
             return send_type, None
 
-        # check if bot is opped in any channels shared with this user
+        # because type checker is dumb
         from src import users
+        assert(isinstance(self, users.User))
+
+        # check if bot is opped in any channels shared with this user
         cprivmsg_eligible: Optional[IRCContext] = None
         op_modes = set()
         for status, mode in Features.PREFIX.items():
@@ -290,8 +293,8 @@ class IRCContext:
 
         name = self.name
         if prefix is not None:
-            # any prefix sent with the send() call overrides a prefix defined upon context creation;
-            # an empty string prefix can be sent to force the send to be prefix-less
+            # any prefix sent with send() overrides a prefix defined upon context creation;
+            # an empty string prefix can be sent to force send() to be prefix-less
             name = prefix + name
         else:
             name = self.prefix + name

@@ -4,7 +4,7 @@ import copy
 from pathlib import Path
 import os
 import sys
-from typing import Optional, Any, Iterable
+from typing import Optional, Any
 from ruamel.yaml import YAML
 
 __all__ = ["Main", "Config", "Empty", "merge", "init"]

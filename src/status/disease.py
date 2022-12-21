@@ -24,7 +24,7 @@ def remove_disease(var: GameState, target: User):
     DISEASED.discard(target)
 
 def wolves_diseased(var: GameState):
-    """Return whether or not wolves are currently diseased."""
+    """Return whether wolves are currently diseased."""
     return DISEASED_WOLVES
 
 @event_listener("transition_day_resolve_end")

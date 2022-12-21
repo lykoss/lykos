@@ -1,11 +1,10 @@
 import random
 from collections import defaultdict
-from src.gamemodes import game_mode, GameMode, InvalidModeException
-from src.messages import messages
+from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 from src.events import EventListener, Event
 from src.trans import chk_win_conditions
-from src import channels, users
+from src import users
 from src.cats import All, Wolf, Wolf_Objective, Killer
 
 @game_mode("random", minp=8, maxp=24, likelihood=0)
@@ -42,7 +41,7 @@ class RandomMode(GameMode):
 
         self.EVENTS = {
             "role_attribution": EventListener(self.role_attribution),
-            "chK_win": EventListener(self.lovers_chk_win)
+            "chK_win": EventListener(self.lovers_chk_win, listener_id="lovers_chk_win")
         }
 
     def role_attribution(self, evt: Event, var: GameState, villagers):

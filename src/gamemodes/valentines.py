@@ -1,7 +1,5 @@
-from src.gamemodes import game_mode, GameMode, InvalidModeException
-from src.messages import messages
+from src.gamemodes import game_mode, GameMode
 from src.events import EventListener
-from src import channels, users
 
 @game_mode("valentines", minp=8, maxp=24, likelihood=0)
 class MatchmakerMode(GameMode):
@@ -21,5 +19,5 @@ class MatchmakerMode(GameMode):
             24: ["wolf(6)"],
         }
         self.EVENTS = {
-            "chk_win": EventListener(self.lovers_chk_win)
+            "chk_win": EventListener(self.lovers_chk_win, listener_id="lovers_chk_win")
         }

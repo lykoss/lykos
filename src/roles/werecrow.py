@@ -7,7 +7,7 @@ from src import users
 from src.containers import UserDict
 from src.decorators import command
 from src.events import Event, event_listener
-from src.functions import get_all_players, get_all_roles, get_target
+from src.functions import get_all_players, get_target
 from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 from src.status import try_misdirection, try_exchange, is_awake

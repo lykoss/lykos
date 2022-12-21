@@ -9,7 +9,7 @@ from src.cats import All
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
-from src.functions import get_all_players, get_main_role, get_target
+from src.functions import get_all_players, get_target
 from src.messages import messages
 from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
 from src.status import try_misdirection, try_exchange

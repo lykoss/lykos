@@ -11,7 +11,7 @@ __all__ = ["add_vote_weight", "remove_vote_weight", "get_vote_weight"]
 
 WEIGHT: UserDict[User, int] = UserDict()
 
-def add_vote_weight(var: GameState, target: User, amount : int = 1) -> None:
+def add_vote_weight(var: GameState, target: User, amount: int = 1) -> None:
     """Make the target's votes as having more weight."""
     if target not in get_players(var):
         return

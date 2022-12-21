@@ -80,8 +80,8 @@ def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = F
 
     :param MessageDispatcher wrapper: Message context
     :param str message: Text to complete against
-    :param bool allow_self: Whether or not to allow the current player as the target
-    :param bool allow_bot: Whether or not to allow the bot as the target
+    :param bool allow_self: Whether to allow the current player as the target
+    :param bool allow_bot: Whether to allow the bot as the target
     :param str not_self_message: If allow_self is False, the message key to output if we matched ourselves
     :returns: The matched target, or None if no matches
     :rtype: Optional[User]
@@ -210,7 +210,7 @@ def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False
     """ Match a partial role or alias name into the internal role key.
 
     :param role: Partial role to match on
-    :param remove_spaces: Whether or not to remove all spaces before matching.
+    :param remove_spaces: Whether to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
         prefer that the user matches including spaces where possible for friendlier-looking commands.
     :param allow_extra: Whether to allow keys that are defined in the translation file but do not exist in the bot.
@@ -252,7 +252,7 @@ def match_mode(mode: str, remove_spaces: bool = False, allow_extra: bool = False
     """ Match a partial game mode into the internal game mode key.
 
     :param mode: Partial game mode to match on
-    :param remove_spaces: Whether or not to remove all spaces before matching.
+    :param remove_spaces: Whether to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
         prefer that the user matches including spaces where possible for friendlier-looking commands.
     :param allow_extra: Whether to allow keys that are defined in the translation file but do not exist in the bot.

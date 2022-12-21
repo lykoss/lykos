@@ -16,7 +16,7 @@ COMMANDS: dict[str, list[command]] = defaultdict(list)
 HOOKS: dict[str, list[hook]] = defaultdict(list)
 
 class command:
-    def __init__(self, command: str, *, flag: Optional[str] = None, owner_only: bool = False,
+    def __init__(self, cmd: str, *, flag: Optional[str] = None, owner_only: bool = False,
                  chan: bool = True, pm: bool = False, playing: bool = False, silenced: bool = False,
                  phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None,
                  allow_alt: Optional[bool] = None, register: bool = True):
@@ -26,7 +26,7 @@ class command:
             return
 
         # handle command localizations
-        commands = messages.raw("_commands")[command]
+        commands = messages.raw("_commands")[cmd]
 
         self.commands = frozenset(commands)
         self.flag = flag
@@ -41,8 +41,8 @@ class command:
         self.func: Callable[[MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name: str = commands[0]
-        self.internal_name = command
-        self.key = "{0}_{1}".format(command, id(self))
+        self.internal_name = cmd
+        self.key = "{0}_{1}".format(cmd, id(self))
         self.alt_allowed = allow_alt if allow_alt is not None else bool(flag or owner_only)
         self._disabled = False
 

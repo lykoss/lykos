@@ -10,6 +10,8 @@ __all__ = ["find_listener", "event_listener", "Event", "EventListener"]
 EVENT_CALLBACKS: dict[str, list[EventListener]] = defaultdict(list)
 
 class EventListener:
+    # because type checker is dumb...
+    # noinspection PyUnresolvedReferences
     def __init__(self, callback: Callable, *, listener_id: Optional[str] = None, priority: float = 5):
         if listener_id is not None:
             self._id = listener_id
