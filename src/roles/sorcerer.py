@@ -47,8 +47,11 @@ def observe(wrapper: MessageDispatcher, message: str):
     spy_roles = list(roles & Spy)
     if spy_roles:
         key = "sorcerer_success"
-        # FIXME: figure out how to make the message support listing all of the roles
-        args.append(spy_roles[0])
+        targrole = spy_roles[0]
+        evt = Event("spy", {"role": targrole})
+        evt.dispatch(var, wrapper.source, target, "sorcerer")
+        targrole = evt.data["role"]
+        args.append(targrole)
 
     wrapper.pm(messages[key].format(*args))
     send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")

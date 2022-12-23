@@ -1371,6 +1371,7 @@ def fgame_help(args=""):
 @command("eval", owner_only=True, flag="d", pm=True)
 def pyeval(wrapper: MessageDispatcher, message: str):
     """Evaluate a Python expression."""
+    var = wrapper.game_state
     try:
         wrapper.send(str(eval(message))[:500])
     except Exception as e:
@@ -1379,6 +1380,7 @@ def pyeval(wrapper: MessageDispatcher, message: str):
 @command("exec", owner_only=True, flag="d", pm=True)
 def py(wrapper: MessageDispatcher, message: str):
     """Execute arbitrary Python code."""
+    var = wrapper.game_state
     try:
         exec(message)
     except Exception as e:
