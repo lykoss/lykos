@@ -190,7 +190,7 @@ def on_revealroles(evt: Event, var: GameState):
 @event_listener("revealroles_role")
 def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
     players = TOBECHARMED.get(user)
-    if players:
+    if role == "piper" and players:
         evt.data["special_case"].append(messages["piper_revealroles_charming"].format(players))
 
 @event_listener("get_role_metadata")
