@@ -13,8 +13,8 @@ class GuardianMode(GameMode):
         super().__init__(arg)
         self.CUSTOM_SETTINGS.limit_abstain = False
         self.ROLE_GUIDE = {
-            7:  ["werekitten", "seer", "guardian angel", "cursed villager", "cursed villager(2)"],
-            8:  ["wolf", "village drunk"],
+            7:  ["werekitten", "cultist", "seer", "guardian angel", "cursed villager", "cursed villager(2)"],
+            8:  ["wolf", "village drunk", "-cultist"],
             10: ["werecrow", "shaman"],
             12: ["alpha wolf", "guardian angel(2)", "cursed villager(3)"],
             13: ["jester", "gunner"],
