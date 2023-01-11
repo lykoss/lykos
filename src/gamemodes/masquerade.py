@@ -12,9 +12,9 @@ class MasqueradeMode(GameMode):
         self.ROLE_GUIDE = {
             6: ["augur", "wolf", "wild child"],
             7: ["guardian angel/vigilante"],
-            8: ["wolf(2)"],
+            8: ["wild child(2)"],
             9: ["amnesiac"],
-            10: ["seer/village drunk", "wild child(2)"],
+            10: ["seer/village drunk", "wolf(2)"],
             11: ["gunner"],
             12: ["werekitten"],
             13: ["guardian angel/vigilante(2)"],
