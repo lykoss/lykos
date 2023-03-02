@@ -17,7 +17,7 @@ class EvilVillageMode(GameMode):
         self.ROLE_GUIDE = {
             6:  ["wolf", "hunter"],
             8:  ["seer"],
-            10: ["minion", "guardian angel", "fool"],
+            10: ["minion", "guardian angel"],
             12: ["shaman"],
             15: ["wolf(2)", "hunter(2)"],
         }
