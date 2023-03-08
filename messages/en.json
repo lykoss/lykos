@@ -1363,7 +1363,7 @@
     "idle_warning": "Idling out during game. If you {=join!command:!} please pay attention to the channel and ensure that your client notifies you when highlighted.",
     "part_warning": "Parting during game. You only have a short time to re-join the channel after parting to stay alive.",
     "quit_warning": "Quitting IRC during game. You only have a short time to re-join the channel after quitting to stay alive.",
-    "acc_warning": "Changing accounts during game. Please do not change accounts while playing.",
+    "account_warning": "Changing accounts during game. Please do not change accounts while playing.",
     "tempban_kick": "Temporary ban for warning: {reason}",
     "revealroles_special": "{0} ({1:join_simple})",
     "revealroles_output": "{0!role:bold}: {1:join_simple}",
