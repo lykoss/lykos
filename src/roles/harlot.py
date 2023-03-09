@@ -101,6 +101,11 @@ def on_transition_day_resolve_end3(evt: Event, var: GameState, victims: list[Use
             evt.data["dead"].append(harlot)
             evt.data["killers"][harlot].append("@wolves")
 
+@event_listener("retribution_kill")
+def on_retribution_kill(evt: Event, var: GameState, victim: User, loser: User):
+    if VISITED.get(victim) in get_players(var, Wolf):
+        evt.data["target"] = VISITED[victim]
+
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(VISITED)

@@ -463,35 +463,35 @@ def on_transition_day_begin(evt: Event, var: GameState):
 
 @event_listener("transition_day_resolve_end", priority=4)
 def on_transition_day_resolve6(evt: Event, var: GameState, victims: list[User]):
-    for victim in victims:
-        if victim in RETRIBUTION:
-            killers = list(evt.data["killers"].get(victim, []))
+    totems = set(evt.data["dead"]) & RETRIBUTION
+    for victim in totems:
+        killers = list(evt.data["killers"].get(victim, []))
+        loser = None
+        while killers:
+            loser = random.choice(killers)
+            if loser in evt.data["dead"] or victim is loser:
+                killers.remove(loser)
+                continue
+            break
+        if loser in evt.data["dead"] or victim is loser:
             loser = None
-            while killers:
-                loser = random.choice(killers)
-                if loser in evt.data["dead"] or victim is loser:
-                    killers.remove(loser)
-                    continue
-                break
-            if loser in evt.data["dead"] or victim is loser:
-                loser = None
-            ret_evt = Event("retribution_kill", {"target": loser, "message": []})
-            ret_evt.dispatch(var, victim, loser)
-            loser = ret_evt.data["target"]
-            evt.data["message"][loser].extend(ret_evt.data["message"])
-            if loser in evt.data["dead"] or victim is loser:
-                loser = None
-            if loser is not None:
-                protected = try_protection(var, loser, victim, get_main_role(var, victim), "retribution_totem")
-                if protected is not None:
-                    channels.Main.send(*protected)
-                    return
+        ret_evt = Event("retribution_kill", {"target": loser, "message": []})
+        ret_evt.dispatch(var, victim, loser)
+        loser = ret_evt.data["target"]
+        evt.data["message"][loser].extend(ret_evt.data["message"])
+        if loser in evt.data["dead"] or victim is loser:
+            loser = None
+        if loser is not None:
+            protected = try_protection(var, loser, victim, get_main_role(var, victim), "retribution_totem")
+            if protected is not None:
+                channels.Main.send(*protected)
+                return
 
-                evt.data["dead"].append(loser)
-                to_send = "totem_death_no_reveal"
-                if var.role_reveal in ("on", "team"):
-                    to_send = "totem_death"
-                evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(var, loser)))
+            evt.data["dead"].append(loser)
+            to_send = "totem_death_no_reveal"
+            if var.role_reveal in ("on", "team"):
+                to_send = "totem_death"
+            evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(var, loser)))
 
 @event_listener("transition_day_end", priority=1)
 def on_transition_day_end(evt: Event, var: GameState):
