@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import random
 import re
 from typing import Optional
@@ -17,9 +18,23 @@ from src.users import User
 
 MATCHMAKERS = UserSet()
 ACTED = UserSet()
-LOVERS = UserDict()
 
-def _set_lovers(target1, target2):
+# active lover pairings (no dead players), contains forward and reverse mappings
+LOVERS: UserDict[User, UserSet] = UserDict()
+
+# all lover pairings (for revealroles/endgame stats), contains forward mappings only
+PAIRINGS: UserDict[User, UserSet] = UserDict()
+
+def _set_lovers(target1: User, target2: User):
+    # ensure that PAIRINGS maps lower id to higher ids
+    if target2.account < target1.account:
+        target1, target2 = target2, target1
+
+    if target1 in PAIRINGS:
+        PAIRINGS[target1].add(target2)
+    else:
+        PAIRINGS[target1] = UserSet({target2})
+
     if target1 in LOVERS:
         LOVERS[target1].add(target2)
     else:
@@ -33,38 +48,35 @@ def _set_lovers(target1, target2):
     target1.send(messages["matchmaker_target_notify"].format(target2))
     target2.send(messages["matchmaker_target_notify"].format(target1))
 
-def get_lovers(var: GameState):
+def get_all_lovers() -> list[set[User]]:
     lovers = []
-    pl = get_players(var)
-    for lover in LOVERS:
-        done = None
-        for i, lset in enumerate(lovers):
-            if lover in pl and lover in lset:
-                if done is not None: # plot twist! two clusters turn out to be linked!
-                    done.update(lset)
-                    for lvr in LOVERS[lover]:
-                        if lvr in pl:
-                            done.add(lvr)
+    all_lovers = set(LOVERS.keys())
+    while all_lovers:
+        cur = all_lovers.pop()
+        visited = {cur}
+        queue = set(LOVERS[cur])
+        while queue:
+            cur = queue.pop()
+            all_lovers.discard(cur)
+            visited.add(cur)
+            queue |= LOVERS[cur] - visited
 
-                    lset.clear()
-                    continue
-
-                for lvr in LOVERS[lover]:
-                    if lvr in pl:
-                        lset.add(lvr)
-                done = lset
-
-        if done is None and lover in pl:
-            lovers.append(set())
-            lovers[-1].add(lover)
-            for lvr in LOVERS[lover]:
-                if lvr in pl:
-                    lovers[-1].add(lvr)
-
-    while set() in lovers:
-        lovers.remove(set())
+        lovers.append(visited)
 
     return lovers
+
+def get_lovers(player: User) -> set[User]:
+    if player not in LOVERS:
+        return set()
+
+    visited = {player}
+    queue = set(LOVERS[player])
+    while queue:
+        cur = queue.pop()
+        visited.add(cur)
+        queue |= LOVERS[cur] - visited
+
+    return visited - {player}
 
 @command("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 def choose(wrapper: MessageDispatcher, message: str):
@@ -76,7 +88,7 @@ def choose(wrapper: MessageDispatcher, message: str):
     pieces = re.split(" +", message)
     if len(pieces) < 2:
         return
-    var = wrapper.game_state
+
     target1 = get_target(wrapper, pieces[0], allow_self=True)
     target2 = get_target(wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:
@@ -120,55 +132,48 @@ def on_send_role(evt: Event, var: GameState):
 def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers):
     MATCHMAKERS.discard(player)
     ACTED.discard(player)
-    if death_triggers and player in LOVERS:
+    if player in LOVERS:
         lovers = set(LOVERS[player])
+        pl = get_players(var)
+        if death_triggers:
+            for lover in lovers:
+                if lover not in pl:
+                    continue # already died somehow
+                to_send = "lover_suicide_no_reveal"
+                if var.role_reveal in ("on", "team"):
+                    to_send = "lover_suicide"
+                channels.Main.send(messages[to_send].format(lover, get_reveal_role(var, lover)))
+                add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
+
         for lover in lovers:
-            if lover not in get_players(var):
-                continue # already died somehow
-            to_send = "lover_suicide_no_reveal"
-            if var.role_reveal in ("on", "team"):
-                to_send = "lover_suicide"
-            channels.Main.send(messages[to_send].format(lover, get_reveal_role(var, lover)))
-            add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
+            LOVERS[lover].discard(player)
+            if not LOVERS[lover]:
+                del LOVERS[lover]
+
+        del LOVERS[player]
 
 @event_listener("game_end_messages")
 def on_game_end_messages(evt: Event, var: GameState):
-    done = {}
     lovers = []
-    for lover1, lset in LOVERS.items():
+    for lover1, lset in PAIRINGS.items():
         for lover2 in lset:
-            # check if already said the pairing
-            if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
-                continue
             lovers.append(messages["lover_pair_endgame"].format(lover1, lover2))
-            if lover1 in done:
-                done[lover1].append(lover2)
-            else:
-                done[lover1] = [lover2]
 
     if lovers:
         evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
 
 @event_listener("team_win")
 def on_team_win(evt: Event, var: GameState, player, main_role, allroles, winner):
-    if winner == "lovers" and player in get_lovers(var)[0]:
+    if winner == "lovers" and player in LOVERS:
         evt.data["team_win"] = True
 
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
-    if player in LOVERS:
+    if player in PAIRINGS or player in itertools.chain.from_iterable(PAIRINGS.values()):
         evt.data["special"].append("lover")
-
-        if survived:
-            lovers = get_lovers(var)
-            for cule in lovers:
-                if player in cule:
-                    for lover in cule:
-                        if lover is player:
-                            continue
-                        if team_win or lover in evt.params.team_wins:
-                            evt.data["individual_win"] = True
-                            break
+        # grant lover a win if any of the other lovers in their polycule got a team win
+        if team_win or get_lovers(player) & evt.params.team_wins:
+            evt.data["individual_win"] = True
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):
@@ -178,11 +183,8 @@ def on_chk_nightdone(evt: Event, var: GameState):
 
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt: Event, var: GameState, target1, target2):
-    if target1 in LOVERS and target2 in LOVERS:
-        for lset in get_lovers(var):
-            if target1 in lset and target2 in lset:
-                evt.data["same"] = True
-                break
+    if target1 in LOVERS and target2 in get_lovers(target1):
+        evt.data["same"] = True
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user):
@@ -194,22 +196,14 @@ def on_myrole(evt: Event, var: GameState, user):
 def on_revealroles(evt: Event, var: GameState):
     # print out lovers
     pl = get_players(var)
-    done = {}
     lovers = []
-    for lover1, lset in LOVERS.items():
+    for lover1, lset in PAIRINGS.items():
         if lover1 not in pl:
             continue
         for lover2 in lset:
-            # check if already said the pairing
-            if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
-                continue
             if lover2 not in pl:
                 continue
             lovers.append("{0}/{1}".format(lover1, lover2))
-            if lover1 in done:
-                done[lover1].append(lover2)
-            else:
-                done[lover1] = [lover2]
     if lovers:
         evt.data["output"].append(messages["lovers_revealroles"].format(lovers))
 
