@@ -33,7 +33,7 @@ def _set_lovers(target1, target2):
     target1.send(messages["matchmaker_target_notify"].format(target2))
     target2.send(messages["matchmaker_target_notify"].format(target1))
 
-def get_lovers(var):
+def get_lovers(var: GameState):
     lovers = []
     pl = get_players(var)
     for lover in LOVERS:
@@ -158,16 +158,17 @@ def on_team_win(evt: Event, var: GameState, player, main_role, allroles, winner)
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
     if player in LOVERS:
         evt.data["special"].append("lover")
-    pl = get_players(var)
-    if player in LOVERS and survived and LOVERS[player].intersection(pl):
-        for lover in LOVERS[player]:
-            if lover not in pl:
-                # cannot win with dead lover (lover idled out)
-                continue
-            if team_win or lover in evt.params.team_wins:
-                # lovers only win this way if one of them got a team win
-                evt.data["individual_win"] = True
-                break
+
+        if survived:
+            lovers = get_lovers(var)
+            for cule in lovers:
+                if player in cule:
+                    for lover in cule:
+                        if lover is player:
+                            continue
+                        if team_win or lover in evt.params.team_wins:
+                            evt.data["individual_win"] = True
+                            break
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):
