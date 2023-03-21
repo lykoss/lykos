@@ -295,7 +295,7 @@ class GameMode:
         if winner in Win_Stealer:
             return # fool won, lovers can't win even if they would
         from src.roles.matchmaker import get_all_lovers
-        all_lovers = get_all_lovers()
+        all_lovers = get_all_lovers(var)
         if len(all_lovers) != 1:
             return # we need exactly one cluster alive for this to trigger
 

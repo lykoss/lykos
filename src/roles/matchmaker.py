@@ -48,24 +48,37 @@ def _set_lovers(target1: User, target2: User):
     target1.send(messages["matchmaker_target_notify"].format(target2))
     target2.send(messages["matchmaker_target_notify"].format(target1))
 
-def get_all_lovers() -> list[set[User]]:
+def get_all_lovers(var: GameState) -> list[set[User]]:
+    """ Get all sets of currently alive lovers.
+
+    This method fully resolves lover chains and returns a list of every polycule.
+    Each currently alive lover is guaranteed to be in exactly one of those lists.
+
+    :param var: Game state
+    :return: A list containing zero or more sets of lovers.
+        Each member of the set is either directly or indirectly matched to every other member of that set.
+    """
     lovers = []
     all_lovers = set(LOVERS.keys())
     while all_lovers:
-        cur = all_lovers.pop()
-        visited = {cur}
-        queue = set(LOVERS[cur])
-        while queue:
-            cur = queue.pop()
-            all_lovers.discard(cur)
-            visited.add(cur)
-            queue |= LOVERS[cur] - visited
-
+        visited = get_lovers(var, all_lovers.pop(), include_player=True)
+        all_lovers -= visited
         lovers.append(visited)
 
     return lovers
 
-def get_lovers(player: User) -> set[User]:
+def get_lovers(var: GameState, player: User, include_player: bool = False) -> set[User]:
+    """ Get all alive players this player is currently in love with.
+
+    :param var: Game state
+    :param player: Player to check
+    :param include_player: If True, include ``player`` in the result set if they are matched
+    :return: If ``player`` is dead or is not matched to anyone else alive, an empty set.
+        Otherwise, a set containing every other player that ``player`` is matched to,
+        whether directly or indirectly.
+        If ``include_player=True``, the set additionally includes ``player``.
+    """
+
     if player not in LOVERS:
         return set()
 
@@ -76,7 +89,7 @@ def get_lovers(player: User) -> set[User]:
         visited.add(cur)
         queue |= LOVERS[cur] - visited
 
-    return visited - {player}
+    return visited if include_player else visited - {player}
 
 @command("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 def choose(wrapper: MessageDispatcher, message: str):
@@ -172,7 +185,7 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
     if player in PAIRINGS or player in itertools.chain.from_iterable(PAIRINGS.values()):
         evt.data["special"].append("lover")
         # grant lover a win if any of the other lovers in their polycule got a team win
-        if team_win or get_lovers(player) & evt.params.team_wins:
+        if team_win or get_lovers(var, player) & evt.params.team_wins:
             evt.data["individual_win"] = True
 
 @event_listener("chk_nightdone")
@@ -183,7 +196,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
 
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt: Event, var: GameState, target1, target2):
-    if target1 in LOVERS and target2 in get_lovers(target1):
+    if target1 in LOVERS and target2 in get_lovers(var, target1):
         evt.data["same"] = True
 
 @event_listener("myrole")
