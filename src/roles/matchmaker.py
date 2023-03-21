@@ -67,7 +67,7 @@ def get_all_lovers(var: GameState) -> list[set[User]]:
 
     return lovers
 
-def get_lovers(var: GameState, player: User, include_player: bool = False) -> set[User]:
+def get_lovers(var: GameState, player: User, *, include_player: bool = False) -> set[User]:
     """ Get all alive players this player is currently in love with.
 
     :param var: Game state
