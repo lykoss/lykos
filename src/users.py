@@ -387,6 +387,14 @@ class User(IRCContext):
                 and self.host == other.host
                 and self.account == other.account)
 
+    def __lt__(self, other):
+        if not isinstance(other, User):
+            return NotImplemented
+
+        self_comp = self.name if self.is_fake else self.account
+        other_comp = other.name if other.is_fake else other.account
+        return self_comp < other_comp
+
     def partial_match(self, other):
         """Test if our non-None properties match the non-None properties on the other object.
 

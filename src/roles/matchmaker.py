@@ -27,7 +27,7 @@ PAIRINGS: UserDict[User, UserSet] = UserDict()
 
 def _set_lovers(target1: User, target2: User):
     # ensure that PAIRINGS maps lower id to higher ids
-    if target2.account < target1.account:
+    if target2 < target1:
         target1, target2 = target2, target1
 
     if target1 in PAIRINGS:
