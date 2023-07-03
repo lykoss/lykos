@@ -112,8 +112,10 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
         if player is killer or not targets:
             del KILLS[killer]
 
-@event_listener("transition_day", priority=1)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
+    # ensure wolves are only credited for kills if nobody else does it on the same target
+    evt.data["kill_priorities"]["@wolves"] = 5
     # figure out wolf target
     found = defaultdict(int)
     wolves = get_all_players(var, Wolf)
@@ -132,8 +134,9 @@ def on_transition_day(evt: Event, var: GameState):
             # wolfchat such as sorcerer or traitor, unlike main role wolves)
             for victim in victims:
                 if victim not in wolves:
-                    evt.data["victims"].append(victim)
-                    evt.data["killers"][victim].append(wolf)
+                    house = var.players.index(victim)
+                    evt.data["victims"].add(f"house_{house}")
+                    evt.data["killers"][f"house_{house}"].append(wolf)
     # for wolves in wolfchat, determine who had the most kill votes and kill them,
     # choosing randomly in case of ties
     for i in range(total_kills):
@@ -147,36 +150,11 @@ def on_transition_day(evt: Event, var: GameState):
                 dups.append(v)
         if maxc and dups:
             target = random.choice(dups)
-            evt.data["victims"].append(target)
+            house = var.players.index(target)
+            evt.data["victims"].add(f"house_{house}")
             # special key to let us know to randomly select a wolf in case of retribution totem
-            evt.data["killers"][target].append("@wolves")
+            evt.data["killers"][f"house_{house}"].append("@wolves")
             del found[target]
-
-def _reorganize_killers(var: GameState, killers):
-    wolfteam = get_players(var, Wolfteam)
-    for victim, attackers in list(killers.items()):
-        k2 = []
-        kappend = []
-        wolves = False
-        for k in attackers:
-            if k in wolfteam:
-                kappend.append(k)
-            elif k == "@wolves":
-                wolves = True
-            else:
-                k2.append(k)
-        k2.extend(kappend)
-        if wolves:
-            k2.append("@wolves")
-        killers[victim] = k2
-
-@event_listener("transition_day", priority=3)
-def on_transition_day3(evt: Event, var: GameState):
-    _reorganize_killers(var, evt.data["killers"])
-
-@event_listener("transition_day", priority=6)
-def on_transition_day6(evt: Event, var: GameState):
-    _reorganize_killers(var, evt.data["killers"])
 
 @event_listener("retribution_kill")
 def on_retribution_kill(evt: Event, var: GameState, victim, orig_target):

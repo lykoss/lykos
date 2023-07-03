@@ -86,10 +86,10 @@ def on_transition_day_begin(evt: Event, var: GameState):
     if SICK:
         User.send_messages()
 
-@event_listener("transition_day", priority=2)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     for killer, victim in list(KILLS.items()):
-        evt.data["victims"].append(victim)
+        evt.data["victims"].add(victim)
         evt.data["killers"][victim].append(killer)
 
 @event_listener("transition_night_end")

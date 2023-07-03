@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional
+from typing import Optional, Union
 
 from src import config
 from src.cats import Wolf
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
-from src.functions import get_players, get_all_players, get_target
+from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.users import User
@@ -74,25 +74,39 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_players(var, ("bodyguard",)))
 
-@event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
-    for bodyguard in DYING:
-        evt.data["message"][bodyguard].clear()
-    DYING.clear()
+@event_listener("resolve_killer_tag")
+def on_resolve_killer_tag(evt: Event, var: GameState, victim: User, tag: str):
+    if tag == "@bodyguard":
+        # bodyguard is attacked by the wolf they (mistakenly?) guarded
+        evt.data["attacker"] = GUARDED[victim]
+        evt.data["role"] = get_main_role(var, GUARDED[victim])
+        evt.data["try_lycanthropy"] = True
+
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
+    chance = config.Main.get("gameplay.safes.bodyguard_dies")
+    if chance == 0:
+        return
+    evt.data["kill_priorities"]["@bodyguard"] = 10
+    wolves = get_players(var, Wolf)
     for bodyguard in get_all_players(var, ("bodyguard",)):
-        if GUARDED.get(bodyguard) in get_players(var, Wolf) and bodyguard not in evt.data["dead"]:
-            r = random.random() * 100
-            if r < config.Main.get("gameplay.safes.bodyguard_dies"):
-                if var.role_reveal == "on":
-                    evt.data["message"][bodyguard].append(messages["bodyguard_protected_wolf"].format(bodyguard))
-                else: # off and team
-                    evt.data["message"][bodyguard].append(messages["bodyguard_protection"].format(bodyguard))
-                evt.data["dead"].append(bodyguard)
+        if GUARDED.get(bodyguard) in wolves and random.random() * 100 < chance:
+            evt.data["victims"].add(bodyguard)
+            evt.data["killers"][bodyguard].append("@bodyguard")
+
+@event_listener("night_death_message")
+def on_night_death_message(evt: Event, var: GameState, victim: User, killer: Union[User, str]):
+    if killer == "@bodyguard":
+        evt.data["key"] = "protected_wolf" if var.role_reveal == "on" else "protected_wolf_no_reveal"
+        evt.data["args"] = [victim, "bodyguard"]
+    elif victim in DYING:
+        # suppress the usual death message when bodyguard power activates
+        evt.prevent_default = True
+        evt.stop_processing = True
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):
     # needs to be here in order to allow bodyguard protections to work during the daytime
-    # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
 
 @event_listener("send_role")
@@ -121,15 +135,15 @@ def on_try_protection(evt: Event, var: GameState, target: User, attacker: User, 
             evt.data["protections"].append((protector, protector_role, scope))
 
 @event_listener("player_protected")
-def on_player_protected(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
+def on_player_protected(evt: Event, var: GameState, target: User, attacker: Optional[User], attacker_role: str, protector: User, protector_role: str, reason: str):
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
-        add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
+        add_dying(var, protector, killer_role=attacker_role, reason="bodyguard", killer=attacker)
         if var.current_phase == "night" and var.in_phase_transition: # currently transitioning
             DYING.add(protector)
 
 @event_listener("remove_protection")
-def on_remove_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
+def on_remove_protection(evt: Event, var: GameState, target: User, attacker: Optional[User], attacker_role: str, protector: User, protector_role: str, reason: str):
     if attacker_role == "fallen angel" and protector_role == "bodyguard":
         evt.data["remove"] = True
         add_dying(var, protector, killer_role="fallen angel", reason=reason)

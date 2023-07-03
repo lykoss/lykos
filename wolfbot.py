@@ -25,8 +25,8 @@ import logging
 from pathlib import Path
 
 ver = sys.version_info
-if ver < (3, 7):
-    print("Python 3.7 or newer is required to run the bot.", file=sys.stderr)
+if ver < (3, 9):
+    print("Python 3.9 or newer is required to run the bot.", file=sys.stderr)
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]), file=sys.stderr)
     sys.exit(1)
 

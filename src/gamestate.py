@@ -71,6 +71,7 @@ class GameState:
         self.next_phase: Optional[str] = None
         self.night_count: int = 0
         self.day_count: int = 0
+        self.locations: UserDict[User, str] = UserDict()
 
     def begin_setup(self):
         if self.setup_completed:

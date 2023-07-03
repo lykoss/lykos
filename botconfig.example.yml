@@ -5,7 +5,7 @@
 # When adding additional lines to this file, ONLY USE SPACES TO INDENT, NEVER TABS;
 # our configuration reader is picky and indenting with tabs or not matching surrounding indents will cause errors.
 # If you need additional assistance with formatting for this file, look up YAML syntax on your favorite search engine
-# or come talk to us on chat.freenode.net #lykos
+# or come talk to us on irc.libera.chat #lykos
 
 # The file named botconfig.yml is always loaded. A secondary file can be loaded as well which will
 # overwrite settings in the main botconfig.yml file, based on command line switches.

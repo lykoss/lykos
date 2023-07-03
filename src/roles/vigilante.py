@@ -64,16 +64,16 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
 
-@event_listener("transition_day", priority=2)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     for vigilante, target in list(KILLS.items()):
-        evt.data["victims"].append(target)
+        evt.data["victims"].add(target)
         evt.data["killers"][target].append(vigilante)
-        # important, otherwise our del_player listener lets hunter kill again
+        # important, otherwise our del_player listener instructs vigilante to kill again
         del KILLS[vigilante]
 
         if get_main_role(var, target) not in Wolf | Win_Stealer:
-            add_dying(var, vigilante, "vigilante", "night_kill")
+            add_dying(var, vigilante, "vigilante", "night_kill", killer=vigilante)
 
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):

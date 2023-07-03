@@ -78,10 +78,10 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
                     channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
                     channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
-                add_dying(var, target, "dullahan", "dullahan_die")
+                add_dying(var, target, "dullahan", "dullahan_die", killer=player)
 
-@event_listener("transition_day", priority=2)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     while KILLS:
         k, d = KILLS.popitem()
         evt.data["victims"].append(d)

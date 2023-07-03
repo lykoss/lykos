@@ -61,8 +61,8 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     if death_triggers and evt.params.main_role in Wolf:
         ENABLED = True
 
-@event_listener("transition_day", priority=5)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     global ENABLED
     for alpha, target in BITTEN.items():
         # bite is now separate but some people may try to double up still
@@ -70,8 +70,9 @@ def on_transition_day(evt: Event, var: GameState):
         # simplify a lot of the code by offloading it to relevant pieces
         add_lycanthropy(var, target, "bitten")
         add_lycanthropy_scope(var, All)
-        evt.data["killers"][target].append("@wolves")
-        evt.data["victims"].append(target)
+        house = var.players.index(target)
+        evt.data["victims"].add(f"house_{house}")
+        evt.data["killers"][f"house_{house}"].append("@wolves")
 
     # reset ENABLED here instead of begin_day so that night deaths can enable alpha wolf the next night
     ENABLED = False

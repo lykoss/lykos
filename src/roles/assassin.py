@@ -19,7 +19,7 @@ TARGETED: UserDict[users.User, users.User] = UserDict()
 PREV_ACTED = UserSet()
 
 @command("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
-def target(wrapper: MessageDispatcher, message: str):
+def target_cmd(wrapper: MessageDispatcher, message: str):
     """Pick a player as your target, killing them if you die."""
     if wrapper.source in PREV_ACTED:
         wrapper.send(messages["assassin_already_targeted"])
@@ -45,17 +45,13 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("assassin",)) - PREV_ACTED)
     evt.data["acted"].extend(TARGETED.keys() - PREV_ACTED)
 
-@event_listener("transition_day", priority=7)
-def on_transition_day(evt: Event, var: GameState):
-    # Select a random target for assassin that isn't already going to die if they didn't target
-    pl = get_players(var)
+@event_listener("transition_day_resolve")
+def on_transition_day_resolve(evt: Event, var: GameState, dead: set[User], killers):
+    # Select a random target for assassin if they didn't target
+    pl = set(get_players(var)) - dead
     for ass in get_all_players(var, ("assassin",)):
         if ass not in TARGETED and not is_silent(var, ass):
-            ps = pl[:]
-            ps.remove(ass)
-            for victim in set(evt.data["victims"]):
-                if victim in ps:
-                    ps.remove(victim)
+            ps = list(pl - {ass})
             if ps:
                 target = random.choice(ps)
                 TARGETED[ass] = target
@@ -104,7 +100,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             if var.role_reveal in ("on", "team"):
                 to_send = "assassin_success"
             channels.Main.send(messages[to_send].format(player, target, get_reveal_role(var, target)))
-            add_dying(var, target, killer_role=evt.params.main_role, reason="assassin")
+            add_dying(var, target, killer_role=evt.params.main_role, reason="assassin", killer=player)
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user):

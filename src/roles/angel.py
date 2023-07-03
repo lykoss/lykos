@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional
+from typing import Optional, Union
 
 from src import config
 from src import users
@@ -11,7 +11,7 @@ from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
-from src.functions import get_players, get_all_players, get_target
+from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
@@ -86,17 +86,31 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_players(var, ("guardian angel",)))
 
-@event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims):
-    for gangel in get_all_players(var, ("guardian angel",)):
-        if GUARDED.get(gangel) in get_players(var, Wolf) and gangel not in evt.data["dead"]:
-            r = random.random() * 100
-            if r < config.Main.get("gameplay.safes.angel_dies"):
-                to_send = "guardian_angel_protected_wolf_no_reveal"
-                if var.role_reveal == "on":
-                    to_send = "guardian_angel_protected_wolf"
-                evt.data["message"][gangel].append(messages[to_send].format(gangel))
-                evt.data["dead"].append(gangel)
+@event_listener("resolve_killer_tag")
+def on_resolve_killer_tag(evt: Event, var: GameState, victim: User, tag: str):
+    if tag == "@angel":
+        # GA is attacked by the wolf they (mistakenly?) guarded
+        evt.data["attacker"] = GUARDED[victim]
+        evt.data["role"] = get_main_role(var, GUARDED[victim])
+        evt.data["try_lycanthropy"] = True
+
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
+    chance = config.Main.get("gameplay.safes.angel_dies")
+    if chance == 0:
+        return
+    evt.data["kill_priorities"]["@angel"] = 10
+    wolves = get_players(var, Wolf)
+    for angel in get_all_players(var, ("guardian angel",)):
+        if GUARDED.get(angel) in wolves and random.random() * 100 < chance:
+            evt.data["victims"].add(angel)
+            evt.data["killers"][angel].append("@angel")
+
+@event_listener("night_death_message")
+def on_night_death_message(evt: Event, var: GameState, victim: User, killer: Union[User, str]):
+    if killer == "@angel":
+        evt.data["key"] = "protected_wolf" if var.role_reveal == "on" else "protected_wolf_no_reveal"
+        evt.data["args"] = [victim, "guardian angel"]
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt: Event, var: GameState):

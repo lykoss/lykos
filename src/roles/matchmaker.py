@@ -156,7 +156,7 @@ def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers)
                 if var.role_reveal in ("on", "team"):
                     to_send = "lover_suicide"
                 channels.Main.send(messages[to_send].format(lover, get_reveal_role(var, lover)))
-                add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
+                add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide", killer=evt.params.killer)
 
         for lover in lovers:
             LOVERS[lover].discard(player)

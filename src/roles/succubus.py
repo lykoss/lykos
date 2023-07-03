@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional
+from typing import Optional, Union
 
 from src import users
 from src.containers import UserSet, UserDict
@@ -44,6 +44,8 @@ def hvisit(wrapper: MessageDispatcher, message: str):
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
+    house = var.players.index(target)
+    var.locations[wrapper.source] = f"house_{house}"
 
     if target not in get_all_players(var, ("succubus",)):
         ENTRANCED.add(target)
@@ -148,27 +150,10 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             e = ENTRANCED.pop()
             e.send(messages["entranced_revert_win"])
 
-@event_listener("transition_day_resolve", priority=1)
-def on_transition_day_resolve(evt: Event, var: GameState, victim: User):
-    if victim in get_all_players(var, ("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
-        evt.data["message"][victim].append(messages["target_not_home"])
-        evt.data["novictmsg"] = False
-        evt.stop_processing = True
-        evt.prevent_default = True
-
-@event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
-    for victim in victims:
-        if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
-            for succubus in VISITED:
-                if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
-                    role = get_reveal_role(var, succubus)
-                    to_send = "visited_victim_noreveal"
-                    if var.role_reveal in ("on", "team"):
-                        to_send = "visited_victim"
-                    evt.data["message"][succubus].append(messages[to_send].format(succubus, role))
-                    evt.data["dead"].append(succubus)
-                    evt.data["killers"][succubus].append("@wolves")
+@event_listener("night_death_message")
+def on_night_death_message(evt: Event, var: GameState, victim: User, killer: Union[User, str]):
+    if killer == "@wolves" and victim in VISITED:
+        evt.data["key"] = "visited_victim" if var.role_reveal in ("on", "team") else "visited_victim_no_reveal"
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):

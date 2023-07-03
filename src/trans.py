@@ -2,17 +2,18 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
+import random
 import threading
 import time
 
 from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
 from src.containers import UserSet, UserDict, UserList
-from src.functions import get_players, get_main_role, get_reveal_role
+from src.functions import get_players, get_main_role, get_reveal_role, get_players_in_location
 from src.warnings import expire_tempbans
 from src.messages import messages
-from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent
+from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent, try_lycanthropy
 from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
@@ -20,6 +21,10 @@ from src.cats import Wolfteam, Hidden, Village, Win_Stealer, Wolf_Objective, Vil
 from src import channels, users, locks, config, db, reaper, relay
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
+
+# some type aliases to make things clearer later
+UserOrLocation = Union[User, str]
+UserOrSpecialTag = Union[User, str]
 
 NIGHT_IDLE_EXEMPT = UserSet()
 TIMERS: dict[str, tuple[threading.Timer, float | int, int]] = {}
@@ -98,6 +103,10 @@ def begin_day(var: GameState):
             if not player.is_fake:
                 modes.append(("+v", player.nick))
         channels.Main.mode(*modes)
+
+    # move everyone to the village square
+    for p in get_players(var):
+        var.locations[p] = "square"
 
     event = Event("begin_day", {})
     event.dispatch(var)
@@ -193,125 +202,111 @@ def transition_day(var: GameState, game_id: int = 0):
     NIGHT_TIMEDELTA += td
     minimum, sec = td.seconds // 60, td.seconds % 60
 
-    # built-in logic runs at the following priorities:
-    # 1 = wolf kills
-    # 2 = non-wolf kills
-    # 3 = fixing killers dict to have correct priority (wolf-side VG kills -> non-wolf kills -> wolf kills)
-    # 4 = protections/fallen angel
-    #     4.1 = shaman, 4.2 = bodyguard/GA, 4.3 = blessed villager
-    # 5 = alpha wolf bite, other custom events that trigger after all protection stuff is resolved
-    # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
-    #     fixing killers dict priority again (in case step 4 or 5 added to it)
-    # 7 = read-only operations
-    # Actually killing off the victims happens in transition_day_resolve
+    # Mark people who are dying as a direct result of night actions (i.e. not chained deaths)
     # We set the variables here first; listeners should mutate, not replace
     # We don't need to use User containers here, as these don't persist long enough
-    # This removes the burden of having to clear them at the end or should an error happen
-    victims: list[User] = []
-    killers: dict[User, list[User]] = defaultdict(list)
+    # Kill priorities are used to determine which kill takes precedence over another; default priority is 0,
+    # negative numbers make those kills take precedence, and positive numbers make those kills defer to others.
+    # In default logic, wolf-aligned VG is priority -5, wolf kills (including harlot visiting wolf) are priority +5,
+    # GA/bodyguard guarding a wolf is +10, and everything else is 0.
+    # Ties in priority are resolved randomly
+    victims: set[UserOrLocation] = set()
+    killers: dict[UserOrLocation, list[UserOrSpecialTag]] = defaultdict(list)
+    kill_priorities: dict[UserOrSpecialTag, int] = defaultdict(int)
+    message: dict[UserOrSpecialTag, list[str]] = defaultdict(list)
+    message["*"].append(messages["sunrise"].format(minimum, sec))
+    dead: set[User] = set()
+    novictmsg = True
+    howl_count = 0
 
-    evt = Event("transition_day", {
+    evt = Event("night_kills", {
         "victims": victims,
         "killers": killers,
+        "kill_priorities": kill_priorities
         })
     evt.dispatch(var)
 
-    # remove duplicates
-    victims_set = set(victims)
-    vappend = []
-    victims.clear()
-    # Ensures that special events play for bodyguard and harlot-visiting-victim so that kill can
-    # be correctly attributed to wolves (for vengeful ghost lover), and that any gunner events
-    # can play. Harlot visiting wolf doesn't play special events if they die via other means since
-    # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
-    # TODO: this needs to be split off into bodyguard.py and harlot.py
-    from src.roles import bodyguard, harlot
-    for v in victims_set:
-        if is_dying(var, v):
-            victims.append(v)
-        elif v in var.roles["bodyguard"] and v in bodyguard.GUARDED and bodyguard.GUARDED[v] in victims_set:
-            vappend.append(v)
-        elif harlot.VISITED.get(v) in victims_set:
-            vappend.append(v)
-        else:
-            victims.append(v)
-    prevlen = config.Main.get("gameplay.player_limits.maximum") + 10
-    while len(vappend) > 0:
-        if len(vappend) == prevlen:
-            # have a circular dependency, try to break it by appending the next value
-            v = vappend[0]
-            vappend.remove(v)
-            victims.append(v)
-            continue
+    # expand locations to encompass everyone at that location
+    for v in set(victims):
+        if isinstance(v, str):
+            pl = get_players_in_location(var, v)
+            # Play the "target not home" message if the wolves attacked an empty location
+            # This also suppresses the "no victims" message if nobody ends up dying tonight
+            if not pl and "@wolves" in killers[v]:
+                message["*"].append(messages["target_not_home"])
+                novictmsg = False
+            for p in pl:
+                victims.add(p)
+                killers[p].extend(killers[v])
+            victims.remove(v)
+            del killers[v]
 
-        prevlen = len(vappend)
-        for v in vappend[:]:
-            if v in var.roles["bodyguard"] and bodyguard.GUARDED.get(v) not in vappend:
-                vappend.remove(v)
-                victims.append(v)
-            elif harlot.VISITED.get(v) not in vappend:
-                vappend.remove(v)
-                victims.append(v)
+    # sort the killers dict by kill priority, adding random jitter to break ties
+    get_kill_priority = lambda x: kill_priorities[x] + random.random()
+    killers = {u: sorted(kl, key=get_kill_priority) for u, kl in killers.items()}
 
-    message = defaultdict(list)
-    message["*"].append(messages["sunrise"].format(minimum, sec))
-
-    dead: list[User] = []
-    vlist = victims[:]
-    revt = Event("transition_day_resolve", {
-        "message": message,
-        "novictmsg": True,
-        "dead": dead,
-        "killers": killers,
-        })
-    # transition_day_resolve priorities:
-    # 1: target not home
-    # 2: protection
-    # 6: riders on default logic
-    # In general, an event listener < 6 should both stop propagation and prevent default
-    # Priority 6 listeners add additional stuff to the default action and should not prevent default
-    for victim in vlist:
-        if not revt.dispatch(var, victim):
-            continue
-        if victim not in revt.data["dead"]: # not already dead via some other means
+    for victim in victims:
+        if not is_dying(var, victim):
             for killer in list(killers[victim]):
+                kdata = {
+                    "attacker": None,
+                    "role": None,
+                    "try_protection": True,
+                    "protection_reason": "night_death",
+                    "try_lycanthropy": False
+                }
                 if killer == "@wolves":
-                    attacker = None
-                    role = "wolf"
+                    kdata["role"] = "wolf"
+                    kdata["try_lycanthropy"] = True
+                elif isinstance(killer, str):
+                    kevt = Event("resolve_killer_tag", kdata)
+                    kevt.dispatch(var, victim, killer)
+                    assert kdata["role"] is not None
                 else:
-                    attacker = killer
-                    role = get_main_role(var, killer)
-                protected = try_protection(var, victim, attacker, role, reason="night_death")
+                    kdata["attacker"] = killer
+                    kdata["role"] = get_main_role(var, killer)
+                protected = None
+                if kdata["try_protection"]:
+                    protected = try_protection(var, victim, kdata["attacker"], kdata["role"], reason=kdata["protection_reason"])
                 if protected is not None:
-                    revt.data["message"][victim].extend(protected)
+                    message[victim].extend(protected)
                     killers[victim].remove(killer)
-                    revt.data["novictmsg"] = False
+                    novictmsg = False
+                elif kdata["try_lycanthropy"] and try_lycanthropy(var, victim):
+                    howl_count += 1
+                    novictmsg = False
+                    killers[victim].remove(killer)
 
             if not killers[victim]:
                 continue
 
-            key = "death_no_reveal"
-            if var.role_reveal in ("on", "team"):
-                key = "death"
-            revt.data["message"][victim].append(messages[key].format(victim, get_reveal_role(var, victim)))
-            revt.data["dead"].append(victim)
+        dead.add(victim)
 
-    # Priorities:
-    # 1 = harlot/succubus visiting victim (things that kill the role itself)
-    # 2 = howl/novictmsg processing, alpha wolf bite/lycan turning (roleswaps)
-    # 3 = harlot visiting wolf, bodyguard/GA guarding wolf (things that kill the role itself -- should move to pri 1)
-    # 4 = gunner shooting wolf, retribution totem (things that kill the victim's killers)
-    # 5 = wolves killing diseased, wolves stealing gun (all deaths must be finalized before pri 5)
-    # Note that changing the "novictmsg" data item only makes sense for priority 2 events,
-    # as after that point the message was already added (at priority 2.9).
-    revt2 = Event("transition_day_resolve_end", {
-        "message": message,
-        "novictmsg": revt.data["novictmsg"],
-        "howl": 0,
-        "dead": dead,
-        "killers": killers,
+    # Delay messaging until all protections and lycanthropy has been processed for every victim
+    for victim in dead:
+        mevt = Event("night_death_message", {
+            "key": "death" if var.role_reveal in ("on", "team") else "death_no_reveal",
+            "args": [victim, get_reveal_role(var, victim)]
         })
-    revt2.dispatch(var, victims)
+        if mevt.dispatch(var, victim, killers[victim][0]):
+            message[victim].append(messages[mevt.data["key"]].format(*mevt.data["args"]))
+
+    # Offer a chance for game modes and roles to inspect the fully-resolved state and act upon it.
+    # The victims, dead, and killers collections should not be mutated in this event, use earlier events
+    # to manipulate these (such as night_kills and by adding protections), or later events (del_player) in the case
+    # of chained deaths.
+    evt = Event("transition_day_resolve", {
+        "message": message,
+        "novictmsg": novictmsg,
+        "howl": howl_count,
+        }, victims=victims)
+    evt.dispatch(var, dead, {v: k[0] for v, k in killers.items() if v in dead})
+
+    # handle howls and novictmsg
+    if evt.data["novictmsg"] and len(dead) == 0:
+        message["*"].append(messages["no_victims"] + messages["no_victims_append"])
+    for i in range(evt.data["howl"]):
+        message["*"].append(messages["new_wolf"])
 
     # flatten message, * goes first then everyone else
     to_send = message["*"]
@@ -323,14 +318,14 @@ def transition_day(var: GameState, game_id: int = 0):
 
     # chilling howl message was played, give roles the opportunity to update !stats
     # to account for this
-    event = Event("reconfigure_stats", {"new": []})
-    for i in range(revt2.data["howl"]):
+    revt = Event("reconfigure_stats", {"new": []})
+    for i in range(evt.data["howl"]):
         newstats = set()
         for rs in var.get_role_stats():
             d = Counter(dict(rs))
-            event.data["new"] = [d]
-            event.dispatch(var, d, "howl")
-            for new_set in event.data["new"]: # type: Counter[str]
+            revt.data["new"] = [d]
+            revt.dispatch(var, d, "howl")
+            for new_set in revt.data["new"]: # type: Counter[str]
                 if min(new_set.values()) >= 0:
                     newstats.add(frozenset(new_set.items()))
         var.set_role_stats(newstats)
@@ -340,15 +335,22 @@ def transition_day(var: GameState, game_id: int = 0):
         if is_dying(var, deadperson):
             continue
 
-        if killers.get(deadperson):
-            killer = killers[deadperson][0]
-            if killer == "@wolves":
-                killer_role[deadperson] = "wolf"
-            else:
-                killer_role[deadperson] = get_main_role(var, killer)
+        killer = killers[deadperson][0]
+        if killer == "@wolves":
+            killer_role[deadperson] = "wolf"
+        elif isinstance(killer, str):
+            kevt = Event("resolve_killer_tag", {
+                "attacker": None,
+                "role": None,
+                "try_protection": True,
+                "protection_reason": "night_death",
+                "try_lycanthropy": False
+            })
+            kevt.dispatch(var, deadperson, killer)
+            assert kevt.data["role"] is not None
+            killer_role[deadperson] = kevt.data["role"]
         else:
-            # no killers, so assume suicide
-            killer_role[deadperson] = get_main_role(var, deadperson)
+            killer_role[deadperson] = get_main_role(var, killer)
 
         add_dying(var, deadperson, killer_role[deadperson], "night_kill")
 
@@ -372,6 +374,11 @@ def transition_night(var: GameState):
     # var.night_count gets increased by 1 in begin_phase_transition
 
     NIGHT_START_TIME = datetime.now()
+
+    # move everyone back to their house (indexed by join order)
+    pl = get_players(var)
+    for i, p in enumerate(var.players):
+        var.locations[p] = f"house_{i}"
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
@@ -435,13 +442,6 @@ def transition_night(var: GameState):
 
     # If there are no nightroles that can act, immediately turn it to daytime
     chk_nightdone(var)
-
-@event_listener("transition_day_resolve_end", priority=2.9)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims):
-    if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
-        evt.data["message"]["*"].append(messages["no_victims"] + messages["no_victims_append"])
-    for i in range(evt.data["howl"]):
-        evt.data["message"]["*"].append(messages["new_wolf"])
 
 def chk_nightdone(var: GameState):
     if var.current_phase != "night":

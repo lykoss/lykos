@@ -40,7 +40,7 @@ class BorealMode(GameMode):
             "wolf_numkills": EventListener(self.on_wolf_numkills),
             "totem_assignment": EventListener(self.on_totem_assignment),
             "transition_day_begin": EventListener(self.on_transition_day_begin, priority=8),
-            "transition_day_resolve_end": EventListener(self.on_transition_day_resolve_end, priority=2),
+            "transition_day_resolve": EventListener(self.on_transition_day_resolve),
             "del_player": EventListener(self.on_del_player),
             "apply_totem": EventListener(self.on_apply_totem),
             "lynch": EventListener(self.on_lynch),
@@ -176,9 +176,9 @@ class BorealMode(GameMode):
 
         self.totem_tracking.clear()
 
-    def on_transition_day_resolve_end(self, evt: Event, var: GameState, victims):
-        if len(evt.data["dead"]) == 0:
-            evt.data["novictmsg"] = False
+    def on_transition_day_resolve(self, evt: Event, var: GameState, dead, killers):
+        # never play the "no victims" message
+        evt.data["novictmsg"] = False
         # say if the village went hungry last night (and apply those effects if it did)
         if self.village_hunger > 0:
             self.village_starve += 1

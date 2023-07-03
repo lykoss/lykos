@@ -14,12 +14,12 @@ from src import locks, channels
 
 __all__ = ["add_dying", "is_dying", "is_dead", "kill_players", "DEAD"]
 
-DyingEntry = Tuple[str, str, bool]
+DyingEntry = Tuple[str, str, bool, Optional[User]]
 
 DYING: UserDict[User, DyingEntry] = UserDict()
 DEAD: UserSet = UserSet()
 
-def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
+def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True, killer: Optional[User] = None) -> bool:
     """
     Mark a player as dying.
 
@@ -28,6 +28,7 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
     :param killer_role: The role which is responsible for killing player; must be an actual role
     :param reason: The reason the player is being killed off, for stats tracking purposes
     :param death_triggers: Whether or not to run role logic that triggers on death; players who die due to quitting or idling out have this set to False
+    :param killer: The particular user responsible for killing this player. Not set for bot kills or shared kills (e.g. wolf kills at night).
     :returns: True if the player was successfully marked as dying, or False if they are already dying or dead
     """
     t = time.time()
@@ -42,7 +43,7 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
         if player in DYING or player in DEAD:
             return False
 
-        DYING[player] = (killer_role, reason, death_triggers)
+        DYING[player] = (killer_role, reason, death_triggers, killer)
         return True
 
 def is_dying(var: GameState, player: User) -> bool:
@@ -86,7 +87,7 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
         dead: set[User] = set()
 
         while DYING:
-            player, (killer_role, reason, death_triggers) = DYING.popitem()
+            player, (killer_role, reason, death_triggers, killer) = DYING.popitem()
             if var.in_game:
                 main_role = get_main_role(var, player)
                 reveal_role = get_reveal_role(var, player)
@@ -103,6 +104,9 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
                     var.roles[role].remove(player)
                 dead.add(player)
                 DEAD.add(player)
+
+                # move their body to the graveyard
+                var.locations[player] = "graveyard"
             else:
                 # left during join phase
                 var.players.remove(player)
@@ -110,6 +114,7 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
 
             # notify listeners that the player died for possibility of chained deaths
             evt = Event("del_player", {},
+                        killer=killer,
                         killer_role=killer_role,
                         main_role=main_role,
                         reveal_role=reveal_role,
@@ -139,17 +144,14 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
         evt = Event("kill_players", {}, end_game=end_game)
         return not evt.dispatch(var, dead)
 
-@event_listener("transition_day_resolve_end", priority=1)
-def kill_off_dying_players(evt: Event, var: GameState, victims: list[User]):
+@event_listener("night_kills")
+def kill_off_dying_players(evt: Event, var: GameState):
+    evt.data["victims"].update(DYING)
+    # this priority (and killer entry) doesn't matter because we do an explicit test for is_dying in transition_day,
+    # but doing this lets us sort @dying first for easier debugging into game logic
+    evt.data["kill_priorities"]["@dying"] = -100
     for victim in DYING:
-        if victim not in evt.data["dead"]:
-            evt.data["novictmsg"] = False
-            evt.data["dead"].append(victim)
-
-            to_send = "death_no_reveal"
-            if var.role_reveal in ("on", "team"):
-                to_send = "death"
-            evt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(var, victim)))
+        evt.data["killers"][victim].append("@dying")
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):

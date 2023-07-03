@@ -18,7 +18,7 @@ GUNNERS = setup_variables("wolf gunner", hit=HIT_CHANCE, headshot=HEADSHOT_CHANC
 # unregister the gunner night message and send the number of bullets a different way
 find_listener("send_role", "gunners.<wolf gunner>.on_send_role").remove("send_role")
 # wolf gunners don't shoot other wolves at night nor get their gun stolen
-find_listener("transition_day_resolve_end", "gunners.<wolf gunner>.on_transition_day_resolve_end").remove("transition_day_resolve_end")
+find_listener("del_player", "gunners.<wolf gunner>.on_del_player").remove("del_player")
 
 @event_listener("wolf_notify")
 def on_wolf_notify(evt: Event, var: GameState, role: str):

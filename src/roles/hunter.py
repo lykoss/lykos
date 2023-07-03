@@ -76,12 +76,12 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             h.send(messages["hunter_discard"])
             del KILLS[h]
 
-@event_listener("transition_day", priority=2)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     for k, d in list(KILLS.items()):
-        evt.data["victims"].append(d)
+        evt.data["victims"].add(d)
         evt.data["killers"][d].append(k)
-        # important, otherwise our del_player listener lets hunter kill again
+        # important, otherwise our del_player listener instructs hunter to kill again
         del KILLS[k]
 
 @event_listener("new_role")

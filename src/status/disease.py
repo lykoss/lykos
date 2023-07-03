@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Union
 
 from src.containers import UserSet
 from src.gamestate import GameState
@@ -27,11 +28,12 @@ def wolves_diseased(var: GameState):
     """Return whether wolves are currently diseased."""
     return DISEASED_WOLVES
 
-@event_listener("transition_day_resolve_end")
-def on_transition_day_resolve(evt: Event, var: GameState, victims: list[User]):
+@event_listener("transition_day_resolve")
+def on_transition_day_resolve(evt: Event, var: GameState, dead: set[User], killers: dict[User, Union[User, str]]):
     global DISEASED_WOLVES
-    for victim in evt.data["dead"]:
-        if "@wolves" in evt.data["killers"][victim] and victim in DISEASED: # Silly wolves, eating a sick person... tsk tsk
+    for victim in dead:
+        # Silly wolves, eating a sick person... tsk tsk
+        if killers[victim] == "@wolves" and victim in DISEASED:
             DISEASED_WOLVES = True
             break
     else:

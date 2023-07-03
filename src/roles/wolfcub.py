@@ -77,8 +77,8 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
         roleset["wolf"] = roleset["wolf cub"]
         roleset["wolf cub"] = 0
 
-@event_listener("transition_day_resolve_end")
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
+@event_listener("transition_day_resolve")
+def on_transition_day_resolve(evt: Event, var: GameState, dead, killers):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 

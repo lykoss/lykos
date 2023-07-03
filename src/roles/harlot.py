@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Optional
+from typing import Optional, Union
 
 from src import users
 from src.cats import Wolf
@@ -41,10 +41,10 @@ def hvisit(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    vrole = get_main_role(var, target)
-
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
+    house = var.players.index(target)
+    var.locations[wrapper.source] = f"house_{house}"
 
     wrapper.pm(messages["harlot_success"].format(target))
     if target is not wrapper.source:
@@ -71,35 +71,21 @@ def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visit
             PASSED.add(visited)
             visited.send(messages["already_being_visited"])
 
-@event_listener("transition_day_resolve", priority=1)
-def on_transition_day_resolve(evt: Event, var: GameState, victim: User):
-    if victim in var.roles["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
-        evt.data["message"][victim].append(messages["target_not_home"])
-        evt.data["novictmsg"] = False
-        evt.stop_processing = True
-        evt.prevent_default = True
-
-@event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
-    for victim in victims:
-        if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
-            for hlt in VISITED:
-                if VISITED[hlt] is victim and hlt not in evt.data["dead"]:
-                    role = get_reveal_role(var, hlt)
-                    to_send = "visited_victim_noreveal"
-                    if var.role_reveal in ("on", "team"):
-                        to_send = "visited_victim"
-                    evt.data["message"][hlt].append(messages[to_send].format(hlt, role))
-                    evt.data["dead"].append(hlt)
-                    evt.data["killers"][hlt].append("@wolves")
-
-@event_listener("transition_day_resolve_end", priority=3)
-def on_transition_day_resolve_end3(evt: Event, var: GameState, victims: list[User]):
-    for harlot in get_all_players(var, ("harlot",)):
-        if VISITED.get(harlot) in get_players(var, Wolf) and harlot not in evt.data["dead"]:
-            evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
-            evt.data["dead"].append(harlot)
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
+    wolves = get_players(var, Wolf)
+    for harlot, target in VISITED.items():
+        if target in wolves:
+            evt.data["victims"].add(harlot)
             evt.data["killers"][harlot].append("@wolves")
+
+@event_listener("night_death_message")
+def on_night_death_message(evt: Event, var: GameState, victim: User, killer: Union[User, str]):
+    if killer == "@wolves" and victim in VISITED:
+        if VISITED[victim] in get_players(var, Wolf):
+            evt.data["key"] = "harlot_visited_wolf"
+        else:
+            evt.data["key"] = "visited_victim" if var.role_reveal in ("on", "team") else "visited_victim_no_reveal"
 
 @event_listener("retribution_kill")
 def on_retribution_kill(evt: Event, var: GameState, victim: User, loser: User):

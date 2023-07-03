@@ -15,3 +15,5 @@ GUNNERS = setup_variables("gunner", hit=HIT_CHANCE, headshot=HEADSHOT_CHANCE, ex
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["gunner"] = {"Village", "Safe", "Killer"}
+    elif kind == "lycanthropy_role":
+        evt.data["gunner"] = {"role": "wolf gunner"}

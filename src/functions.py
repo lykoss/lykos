@@ -19,7 +19,8 @@ __all__ = [
     "get_players", "get_all_players", "get_participants",
     "get_target", "change_role",
     "get_main_role", "get_all_roles", "get_reveal_role",
-    "match_role", "match_mode", "match_totem"
+    "match_role", "match_mode", "match_totem",
+    "get_players_in_location", "get_location"
     ]
 
 def get_players(var: Optional[GameState | PregameState], roles=None, *, mainroles=None) -> list[User]:
@@ -306,3 +307,22 @@ def match_totem(totem: str, scope: Optional[Iterable[str]] = None) -> Match[Loca
             filtered_matches.add(LocalTotem(totem_map[match], match))
 
     return Match(filtered_matches)
+
+def get_players_in_location(var: GameState, location: str) -> set[User]:
+    """ Get all players in a particular location.
+
+    :param var: Game state
+    :param location: Location to check
+    :return: All users present in the given location, or an empty set if the location is vacant
+    """
+    pl = get_players(var)
+    return {p for p, loc in var.locations.items() if loc == location and p in pl}
+
+def get_location(var: GameState, player: User) -> str:
+    """ Get the location this player is present in.
+
+    :param var: Game state
+    :param player: Player to check
+    :return: Location player is present in
+    """
+    return var.locations[player]

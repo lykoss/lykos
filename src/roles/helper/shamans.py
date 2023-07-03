@@ -7,14 +7,14 @@ import re
 from typing import Any, Optional
 
 from src import channels, users, status
-from src.cats import All
+from src.cats import All, Wolf, Killer
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.events import Event, event_listener
 from src.functions import (get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target,
                            match_totem)
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import try_misdirection, try_protection, try_exchange
+from src.status import try_misdirection, try_protection, try_exchange, is_dying, add_dying
 from src.dispatcher import MessageDispatcher
 from src.users import User
 
@@ -64,7 +64,6 @@ from src.users import User
 #####################################################################################
 
 DEATH: UserDict[users.User, UserList] = UserDict()
-PROTECTION = UserList()
 REVEALING = UserSet()
 NARCOLEPSY = UserSet()
 SILENCE = UserSet()
@@ -153,7 +152,8 @@ def setup_variables(rolename, *, knows_totem):
                             DEATH[shaman] = UserList()
                         DEATH[shaman].append(victim)
                     elif totem == "protection": # this totem stacks
-                        PROTECTION.append(victim)
+                        # protector role is "shaman" regardless of actual shaman role to simplify logic elsewhere
+                        status.add_protection(var, victim, protector=None, protector_role="shaman")
                     elif totem == "revealing":
                         REVEALING.add(victim)
                     elif totem == "narcolepsy":
@@ -397,8 +397,9 @@ def on_lynch(evt: Event, var: GameState, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
+        main_role = get_main_role(var, votee)
         if target is not votee:
-            protected = try_protection(var, target, attacker=votee, attacker_role="shaman", reason="totem_desperation")
+            protected = try_protection(var, target, attacker=votee, attacker_role=main_role, reason="totem_desperation")
             if protected is not None:
                 channels.Main.send(*protected)
                 return
@@ -407,23 +408,15 @@ def on_lynch(evt: Event, var: GameState, votee, voters):
             if var.role_reveal in ("on", "team"):
                 to_send = "totem_desperation"
             channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(var, target)))
-            status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
+            status.add_dying(var, target, killer_role=main_role, reason="totem_desperation", killer=votee)
             # no kill_players() call here; let our caller do that for us
 
-@event_listener("transition_day", priority=2)
-def on_transition_day2(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     for shaman, targets in DEATH.items():
         for target in targets:
-            evt.data["victims"].append(target)
+            evt.data["victims"].add(target)
             evt.data["killers"][target].append(shaman)
-
-@event_listener("transition_day", priority=4.1)
-def on_transition_day3(evt: Event, var: GameState):
-    # protection totems are applied first in default logic, however
-    # we set priority=4.1 to allow other modes of protection
-    # to pre-empt us if desired
-    for player in PROTECTION:
-        status.add_protection(var, player, protector=None, protector_role="shaman")
 
 @event_listener("remove_protection")
 def on_remove_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
@@ -439,7 +432,6 @@ def on_remove_protection(evt: Event, var: GameState, target: User, attacker: Use
 def on_transition_day_begin(evt: Event, var: GameState):
     # Reset totem variables
     DEATH.clear()
-    PROTECTION.clear()
     REVEALING.clear()
     NARCOLEPSY.clear()
     SILENCE.clear()
@@ -461,39 +453,38 @@ def on_transition_day_begin(evt: Event, var: GameState):
     brokentotem.clear()
     havetotem.clear()
 
-@event_listener("transition_day_resolve_end", priority=4)
-def on_transition_day_resolve6(evt: Event, var: GameState, victims: list[User]):
-    totems = set(evt.data["dead"]) & RETRIBUTION
-    for victim in totems:
-        killers = list(evt.data["killers"].get(victim, []))
+@event_listener("del_player")
+def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+    if not death_triggers or player not in RETRIBUTION:
+        return
+    loser = evt.params.killer
+    if loser is None and evt.params.killer_role == "wolf" and evt.params.reason == "night_kill":
+        pl = get_players(var, Wolf & Killer)
+        if pl:
+            loser = random.choice(pl)
+    if loser is None or is_dying(var, loser):
+        # person that killed us is already dead?
+        return
+
+    ret_evt = Event("retribution_kill", {"target": loser, "message": []})
+    ret_evt.dispatch(var, player, loser)
+    loser = ret_evt.data["target"]
+    channels.Main.send(*ret_evt.data["message"])
+    if loser is not None and is_dying(var, loser):
         loser = None
-        while killers:
-            loser = random.choice(killers)
-            if loser in evt.data["dead"] or victim is loser:
-                killers.remove(loser)
-                continue
-            break
-        if loser in evt.data["dead"] or victim is loser:
-            loser = None
-        ret_evt = Event("retribution_kill", {"target": loser, "message": []})
-        ret_evt.dispatch(var, victim, loser)
-        loser = ret_evt.data["target"]
-        evt.data["message"][loser].extend(ret_evt.data["message"])
-        if loser in evt.data["dead"] or victim is loser:
-            loser = None
-        if loser is not None:
-            protected = try_protection(var, loser, victim, get_main_role(var, victim), "retribution_totem")
-            if protected is not None:
-                channels.Main.send(*protected)
-                return
+    if loser is not None:
+        protected = try_protection(var, loser, player, evt.params.main_role, "retribution_totem")
+        if protected is not None:
+            channels.Main.send(*protected)
+            return
 
-            evt.data["dead"].append(loser)
-            to_send = "totem_death_no_reveal"
-            if var.role_reveal in ("on", "team"):
-                to_send = "totem_death"
-            evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(var, loser)))
+        to_send = "totem_death_no_reveal"
+        if var.role_reveal in ("on", "team"):
+            to_send = "totem_death"
+        channels.Main.send(messages[to_send].format(player, loser, get_reveal_role(var, loser)))
+        add_dying(var, loser, evt.params.main_role, "retribution_totem", killer=player)
 
-@event_listener("transition_day_end", priority=1)
+@event_listener("transition_day_end")
 def on_transition_day_end(evt: Event, var: GameState):
     message = []
     havetotem.sort(key=lambda x: x.nick)
@@ -547,7 +538,6 @@ def on_player_protected(evt: Event, var: GameState, target: User, attacker: User
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
     DEATH.clear()
-    PROTECTION.clear()
     REVEALING.clear()
     NARCOLEPSY.clear()
     SILENCE.clear()

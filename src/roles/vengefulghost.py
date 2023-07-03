@@ -135,27 +135,16 @@ def on_transition_day_begin(evt: Event, var: GameState):
             if choice:
                 KILLS[ghost] = random.choice(choice)
 
-@event_listener("transition_day", priority=2)
-def on_transition_day(evt: Event, var: GameState):
+@event_listener("night_kills")
+def on_night_kills(evt: Event, var: GameState):
     for k, d in KILLS.items():
-        evt.data["victims"].append(d)
+        evt.data["victims"].add(d)
         evt.data["killers"][d].append(k)
-
-@event_listener("transition_day", priority=3.01)
-def on_transition_day3(evt: Event, var: GameState):
-    for k, d in list(KILLS.items()):
         if GHOSTS[k] == "villager":
-            evt.data["killers"][d].remove(k)
-            evt.data["killers"][d].insert(0, k)
-
-@event_listener("transition_day", priority=6.01)
-def on_transition_day6(evt: Event, var: GameState):
-    for k, d in list(KILLS.items()):
-        if GHOSTS[k] == "villager" and k in evt.data["killers"][d]:
-            evt.data["killers"][d].remove(k)
-            evt.data["killers"][d].insert(0, k)
-        # important, otherwise our del_player listener messages the vg
-        del KILLS[k]
+            # wolf-aligned VGs take precedence over other killers
+            evt.data["kill_priorities"][k] = -5
+    # prevent VGs from being messaged in del_player that they can choose someone else
+    KILLS.clear()
 
 @event_listener("retribution_kill", priority=6)
 def on_retribution_kill(evt: Event, var: GameState, victim: User, orig_target: User):

@@ -5,14 +5,14 @@ import random
 import re
 from typing import Any
 
-from src import config
+from src import config, channels
 from src.cats import Wolf, Killer
 from src.containers import UserDict
 from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
-from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
+from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent, try_protection, is_dying
 from src.trans import chk_win
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
@@ -67,7 +67,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                 if var.role_reveal == "on":
                     to_send = "gunner_victim_wolf_death"
                 wrapper.send(messages[to_send].format(target, targrole))
-                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
+                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                 kill_players(var)
             elif shoot_evt.data["kill"]:
                 to_send = "gunner_victim_villager_death_accident"
@@ -76,7 +76,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                 wrapper.send(messages[to_send].format(target))
                 if var.role_reveal in ("on", "team"):
                     wrapper.send(messages["gunner_victim_role"].format(targrole))
-                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim")
+                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                 kill_players(var)
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
@@ -102,45 +102,49 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
             if GUNNERS[gunner] or var.always_pm_role:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
-    @event_listener("transition_day_resolve_end", priority=4, listener_id="gunners.<{}>.on_transition_day_resolve_end".format(rolename))
-    def on_transition_day_resolve_end(evt: Event, var: GameState, victims: list[User]):
-        for victim in list(evt.data["dead"]):
-            if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
-                if (random.random() * 100) < config.Main.get("gameplay.gunner_wolf.kills_attacker"):
-                    # pick a random wolf to be shot
-                    wolves = [wolf for wolf in get_players(var, Wolf & Killer) if wolf not in evt.data["dead"]]
-                    if wolves:
-                        shot = random.choice(wolves)
-                        event = Event("gun_shoot", {"hit": True, "kill": True, "explode": False})
-                        event.dispatch(var, victim, shot, rolename)
-                        GUNNERS[victim] -= 1  # deduct the used bullet
-                        if event.data["hit"] and event.data["kill"]:
+    @event_listener("del_player", listener_id="gunners.<{}>.on_del_player".format(rolename))
+    def on_del_player(evt: Event, var: GameState, victim: User, all_roles: set[str], death_triggers: bool):
+        if not death_triggers:
+            return
+        if GUNNERS.get(victim) and rolename in all_roles and evt.params.killer_role == "wolf" and evt.params.reason == "night_kill":
+            if random.random() * 100 < config.Main.get("gameplay.gunner_wolf.kills_attacker"):
+                # pick a random wolf to be shot
+                wolves = get_players(var, Wolf & Killer)
+                if evt.params.killer is not None:
+                    # attacked by a wolf not in wolfchat, so only the lone wolf is in danger
+                    wolves = [evt.params.killer] if not is_dying(var, evt.params.killer) else []
+                if wolves:
+                    shot = random.choice(wolves)
+                    event = Event("gun_shoot", {"hit": True, "kill": True, "explode": False})
+                    event.dispatch(var, victim, shot, rolename)
+                    GUNNERS[victim] -= 1  # deduct the used bullet
+                    if event.data["hit"] and event.data["kill"]:
+                        protected = try_protection(var, shot, victim, rolename, "gunner_overnight_fail")
+                        if protected is not None:
+                            channels.Main.send(*protected)
+                        else:
                             to_send = "gunner_killed_wolf_overnight_no_reveal"
                             if var.role_reveal in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
-                            evt.data["message"][victim].append(messages[to_send].format(victim, shot, get_reveal_role(var, shot)))
-                            evt.data["dead"].append(shot)
-                            evt.data["killers"][shot].append(victim)
-                        elif event.data["hit"]:
-                            # shot hit, but didn't kill
-                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_hit"].format(victim))
-                            add_absent(var, shot, "wounded")
-                        else:
-                            # shot was fired and missed
-                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"].format(victim))
-
-                # let wolf steal gun if the gunner has any bullets remaining
-                # this gives the looter the "wolf gunner" secondary role
-                # if the wolf gunner role isn't loaded, guns cannot be stolen regardless of gameplay.gunner_wolf.steals_gun
-                if config.Main.get("gameplay.gunner_wolf.steals_gun") and GUNNERS[victim] and "wolf gunner" in _rolestate:
-                    possible = get_players(var, Wolf & Killer)
-                    random.shuffle(possible)
-                    for looter in possible:
-                        if looter not in evt.data["dead"]:
-                            break
+                            channels.Main.send(messages[to_send].format(victim, shot, get_reveal_role(var, shot)))
+                            add_dying(var, shot, killer_role=evt.params.main_role, reason="assassin", killer=victim)
+                    elif event.data["hit"]:
+                        # shot hit, but didn't kill
+                        channels.Main.send(messages["gunner_shoot_overnight_hit"].format(victim))
+                        add_absent(var, shot, "wounded")
                     else:
-                        return # no live wolf, nothing to do here
+                        # shot was fired and missed
+                        channels.Main.send(messages["gunner_shoot_overnight_missed"].format(victim))
 
+            # let wolf steal gun if the gunner has any bullets remaining
+            # this gives the looter the "wolf gunner" secondary role
+            # if the wolf gunner role isn't loaded, guns cannot be stolen regardless of gameplay.gunner_wolf.steals_gun
+            if config.Main.get("gameplay.gunner_wolf.steals_gun") and GUNNERS[victim] and "wolf gunner" in _rolestate:
+                possible = get_players(var, Wolf & Killer)
+                if evt.params.killer is not None:
+                    possible = [evt.params.killer] if not is_dying(var, evt.params.killer) else []
+                if possible:
+                    looter = random.choice(possible)
                     _rolestate["wolf gunner"]["GUNNERS"][looter] = _rolestate["wolf gunner"]["GUNNERS"].get(looter, 0) + 1
                     del GUNNERS[victim]
                     var.roles["wolf gunner"].add(looter)
