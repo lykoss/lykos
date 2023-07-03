@@ -63,21 +63,29 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
         if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
             if realrole in Wolf and shoot_evt.data["kill"]:
-                to_send = "gunner_victim_wolf_death_no_reveal"
-                if var.role_reveal == "on":
-                    to_send = "gunner_victim_wolf_death"
-                wrapper.send(messages[to_send].format(target, targrole))
-                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
-                kill_players(var)
+                protected = try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
+                if protected is not None:
+                    channels.Main.send(*protected)
+                else:
+                    to_send = "gunner_victim_wolf_death_no_reveal"
+                    if var.role_reveal == "on":
+                        to_send = "gunner_victim_wolf_death"
+                    wrapper.send(messages[to_send].format(target, targrole))
+                    add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
+                    kill_players(var)
             elif shoot_evt.data["kill"]:
-                to_send = "gunner_victim_villager_death_accident"
-                if gun_evt.data["headshot"] == 1: # would always headshot
-                    to_send = "gunner_victim_villager_death"
-                wrapper.send(messages[to_send].format(target))
-                if var.role_reveal in ("on", "team"):
-                    wrapper.send(messages["gunner_victim_role"].format(targrole))
-                add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
-                kill_players(var)
+                protected = try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
+                if protected is not None:
+                    channels.Main.send(*protected)
+                else:
+                    to_send = "gunner_victim_villager_death_accident"
+                    if gun_evt.data["headshot"] == 1: # would always headshot
+                        to_send = "gunner_victim_villager_death"
+                    wrapper.send(messages[to_send].format(target))
+                    if var.role_reveal in ("on", "team"):
+                        wrapper.send(messages["gunner_victim_role"].format(targrole))
+                    add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
+                    kill_players(var)
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
                 add_absent(var, target, "wounded")

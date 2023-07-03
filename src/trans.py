@@ -271,7 +271,9 @@ def transition_day(var: GameState, game_id: int = 0):
                 if protected is not None:
                     message[victim].extend(protected)
                     killers[victim].remove(killer)
-                    novictmsg = False
+                    # if there's no particular protection message (e.g. blessed), then we still want no victims message to play
+                    if protected:
+                        novictmsg = False
                 elif kdata["try_lycanthropy"] and try_lycanthropy(var, victim):
                     howl_count += 1
                     novictmsg = False
