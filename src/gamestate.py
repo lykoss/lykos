@@ -5,6 +5,7 @@ from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
 
 from src.containers import UserSet, UserDict, UserList
+from src.locations import Location, Square, Graveyard, House, Reason
 from src.messages import messages
 from src.cats import All
 from src import config
@@ -62,6 +63,7 @@ class GameState:
         self.setup_started: bool = False
         self.setup_completed: bool = False
         self._torndown: bool = False
+        self.tearing_down: bool = False
         self.current_mode: GameMode = pregame_state.current_mode
         self.game_settings: dict[str, Any] = {}
         self.game_id: float = pregame_state.game_id
@@ -76,7 +78,32 @@ class GameState:
         self.next_phase: Optional[str] = None
         self.night_count: int = 0
         self.day_count: int = 0
-        self.locations: UserDict[User, str] = UserDict()
+        self.village_square = Square(self)
+        self.graveyard = Graveyard(self)
+        self._locations: set[Location] = {self.village_square, self.graveyard}
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        attrs = cls.__dict__.copy()
+        strip = ("__module__", "__dict__", "__doc__")
+        for thing in strip:
+            if thing in attrs:
+                del attrs[thing]
+
+        merge = ("__annotations__",)
+        for thing in merge:
+            if thing in attrs:
+                GameState.__dict__[thing].update(attrs[thing])
+                del attrs[thing]
+
+        if "__init__" in attrs:
+            GameState._init_fns.append(attrs["__init__"])
+            del attrs["__init__"]
+
+        for thing, value in attrs.items():
+            if thing.startswith("__") and thing.endswith("__"):
+                raise TypeError(f"GameState subclasses cannot define a {thing} member")
+            setattr(GameState, thing, value)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -119,15 +146,26 @@ class GameState:
         assert not self._original_roles and not self._original_main_roles
         self._original_roles = copy.deepcopy(self.roles)
         self._original_main_roles = self.main_roles.copy()
+        for i, player in enumerate(self.players):
+            house = House(self, player, i)
+            house.users[player] = (Reason.home, None)
+            self._locations.add(house)
         self.setup_completed = True
 
     def teardown(self):
-        self.roles.clear()
-        self._original_roles.clear()
-        self._original_main_roles.clear()
-        self._rolestats.clear()
-        self.current_mode.teardown()
-        self._torndown = True
+        assert not self._torndown, "cannot tear down already torn-down GameState"
+        self.tearing_down = True
+        try:
+            self.roles.clear()
+            self._original_roles.clear()
+            self._original_main_roles.clear()
+            self._rolestats.clear()
+            self.current_mode.teardown()
+            self._torndown = True
+            for loc in self._locations:
+                loc.teardown()
+        finally:
+            self.tearing_down = False
 
     def _get_value(self, key: str) -> Any:
         # we don't actually need to complete setup before this can be used
@@ -142,6 +180,41 @@ class GameState:
     @property
     def in_game(self):
         return self.setup_completed and not self._torndown
+
+    @property
+    def locations(self) -> dict[User, Location]:
+        value = {}
+        for loc in self._locations:
+            for user in loc.users:
+                value[user] = loc
+        return value
+
+    def get_user_location(self, user: User):
+        for x in self._locations:
+            if user in x.users:
+                return (x,) + x.users[user]
+        raise ValueError(f"User {user} is not anywhere")
+
+    def set_user_location(self, user: User, loc: Location, reason: Reason | None = None, key: str | None = None):
+        if user not in loc.users:
+            for x in self._locations:
+                if user in x.users:
+                    old_r, old_k = x.users.pop(user)
+                    if reason is None:
+                        reason = old_r
+                        key = old_k
+                    loc.users[user] = (reason, key)
+                    break
+            else:
+                raise RuntimeError(f"Failed setting user {user} to location {loc}")
+
+    def find_house(self, user: User):
+        for x in self._locations:
+            if not isinstance(x, House):
+                continue
+            if x.owner is user:
+                return x
+        raise ValueError(f"Could not find house for {user}")
 
     def begin_phase_transition(self, phase: str):
         if self.next_phase is not None:

@@ -8,6 +8,7 @@ from src import users
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
+from src.locations import Reason
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_reveal_role, get_target
 from src.gamestate import GameState
@@ -44,8 +45,7 @@ def hvisit(wrapper: MessageDispatcher, message: str):
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
-    house = var.players.index(target)
-    var.locations[wrapper.source] = f"house_{house}"
+    var.set_user_location(wrapper.source, var.find_house(target), Reason.visiting)
 
     if target not in get_all_players(var, ("succubus",)):
         ENTRANCED.add(target)

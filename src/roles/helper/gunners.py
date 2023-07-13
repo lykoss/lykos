@@ -9,10 +9,11 @@ from src import config, channels
 from src.cats import Wolf, Killer
 from src.containers import UserDict
 from src.decorators import command
+from src.locations import Reason
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
-from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent, try_protection, is_dying
+from src.status import try_misdirection, try_exchange, add_dying, kill_players, try_protection, is_dying
 from src.trans import chk_win
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
@@ -88,7 +89,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                     kill_players(var)
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
-                add_absent(var, target, "wounded")
+                var.set_user_location(target, var.find_house(target), Reason.prison, "wounded")
                 from src.votes import chk_decision
                 if not chk_win(var):
                     # game didn't immediately end due to injury, see if we should force through a vote
@@ -139,7 +140,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                     elif event.data["hit"]:
                         # shot hit, but didn't kill
                         channels.Main.send(messages["gunner_shoot_overnight_hit"].format(victim))
-                        add_absent(var, shot, "wounded")
+                        var.set_user_location(shot, var.find_house(shot), Reason.prison, "wounded")
                     else:
                         # shot was fired and missed
                         channels.Main.send(messages["gunner_shoot_overnight_missed"].format(victim))

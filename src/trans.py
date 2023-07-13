@@ -10,10 +10,11 @@ import time
 from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
 from src.containers import UserSet, UserDict, UserList
-from src.functions import get_players, get_main_role, get_reveal_role, get_players_in_location
+from src.locations import Location, Reason
+from src.functions import get_players, get_main_role, get_reveal_role
 from src.warnings import expire_tempbans
 from src.messages import messages
-from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent, try_lycanthropy
+from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, try_lycanthropy
 from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
@@ -23,7 +24,7 @@ from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
 
 # some type aliases to make things clearer later
-UserOrLocation = Union[User, str]
+UserOrLocation = Union[User, Location]
 UserOrSpecialTag = Union[User, str]
 
 NIGHT_IDLE_EXEMPT = UserSet()
@@ -106,7 +107,9 @@ def begin_day(var: GameState):
 
     # move everyone to the village square
     for p in get_players(var):
-        var.locations[p] = "square"
+        loc, reason, key = var.get_user_location(p)
+        if reason is not Reason.prison:
+            var.set_user_location(p, var.village_square, Reason.day)
 
     event = Event("begin_day", {})
     event.dispatch(var)
@@ -228,8 +231,8 @@ def transition_day(var: GameState, game_id: int = 0):
 
     # expand locations to encompass everyone at that location
     for v in set(victims):
-        if isinstance(v, str):
-            pl = get_players_in_location(var, v)
+        if isinstance(v, Location):
+            pl = set(get_players(var)) & v.users
             # Play the "target not home" message if the wolves attacked an empty location
             # This also suppresses the "no victims" message if nobody ends up dying tonight
             if not pl and "@wolves" in killers[v]:
@@ -379,17 +382,17 @@ def transition_night(var: GameState):
 
     NIGHT_START_TIME = datetime.now()
 
-    # move everyone back to their house (indexed by join order)
+    # move every alive player back to their house
     pl = get_players(var)
-    for i, p in enumerate(var.players):
-        var.locations[p] = f"house_{i}"
+    for p in pl:
+        var.set_user_location(p, var.find_house(p), Reason.home)
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
 
     if not config.Main.get("gameplay.nightchat"):
         modes = []
-        for player in get_players(var):
+        for player in pl:
             if not player.is_fake:
                 modes.append(("-v", player))
         channels.Main.mode(*modes)
@@ -678,7 +681,7 @@ def chk_win_conditions(var: GameState, rolemap: dict[str, set[User]] | UserDict[
     """Internal handler for the chk_win function."""
     with locks.reaper:
         if var.current_phase == "day":
-            pl = set(get_players(var)) - get_absent(var)
+            pl = set(var.village_square)
             lpl = len(pl)
         else:
             pl = set(get_players(var, mainroles=mainroles))

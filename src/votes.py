@@ -7,9 +7,10 @@ import re
 
 from src.containers import UserDict, UserList, UserSet
 from src.decorators import command
+from src.locations import Reason
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import (try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains,
+from src.status import (get_forced_votes, get_all_forced_votes, get_forced_abstains,
                         get_vote_weight, try_lynch_immunity, add_dying, kill_players)
 from src.events import Event, event_listener
 from src import channels, pregame, reaper, locks, config
@@ -42,7 +43,10 @@ def lynch(wrapper: MessageDispatcher, message: str):
     if not voted:
         return
 
-    if try_absent(var, wrapper.source):
+    location, reason, key = var.get_user_location(wrapper.source)
+    if location is not var.village_square:
+        if key is not None:
+            wrapper.source.send(messages[key + "_absent"])
         return
 
     ABSTAINS.discard(wrapper.source)
@@ -80,7 +84,9 @@ def no_lynch(wrapper: MessageDispatcher, message: str):
     elif var.limit_abstain and var.day_count == 1:
         wrapper.pm(messages["no_abstain_day_one"])
         return
-    elif try_absent(var, wrapper.source):
+    elif (n := var.get_user_location(wrapper.source))[0] is not var.village_square:
+        if n[2] is not None:
+            wrapper.source.send(messages[n[2] + "_absent"])
         return
     for voter in list(VOTES):
         if wrapper.source in VOTES[voter]:
@@ -117,6 +123,12 @@ def retract(wrapper: MessageDispatcher, message: str):
             break
     else:
         wrapper.pm(messages["pending_vote"])
+
+def chk_voters(var: GameState):
+    for votee, voters in VOTES.items():
+        for voter in list(voters):
+            if voter not in var.village_square:
+                voters.remove(voter)
 
 @command("votes", pm=True, phases=("join", "day", "night"))
 def show_votes(wrapper: MessageDispatcher, message: str):
@@ -176,6 +188,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
             LAST_VOTES = None # reset
 
     else:
+        chk_voters(var)
         votelist = []
         for votee, voters in VOTES.items():
             votelist.append("{0}: {1} ({2})".format(votee, len(voters), ", ".join(p.nick for p in voters)))
@@ -183,7 +196,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
 
     wrapper.reply(msg, prefix_nick=True)
 
-    avail = len(pl) - len(get_absent(var))
+    avail = len(var.village_square)
     votesneeded = avail // 2 + 1
     abstaining = len(ABSTAINS)
     if abstaining == 1: # *i18n* hardcoded English
@@ -212,7 +225,8 @@ def vote(wrapper: MessageDispatcher, message: str):
 def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     from src.trans import chk_win
     with locks.reaper:
-        players = set(get_players(var)) - get_absent(var)
+        chk_voters(var)
+        players = set(var.village_square)
         avail = len(players)
         needed = avail // 2 + 1
 
