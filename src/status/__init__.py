@@ -1,6 +1,5 @@
 """Core game status are exposed here."""
 
-from src.status.absent import *
 from src.status.awake import *
 from src.status.disease import *
 from src.status.dying import *
