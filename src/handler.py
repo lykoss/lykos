@@ -426,15 +426,21 @@ def connect_callback(cli: IRCClient):
             username: str = config.Main.get("transports[0].authentication.services.username")
             if not username:
                 username = config.Main.get("transports[0].user.nick")
-            password: str = config.Main.get("transports[0].authentication.services.password")
+            password: Optional[str] = config.Main.get("transports[0].authentication.services.password")
             if plus == "+":
                 if selected_sasl == "EXTERNAL":
                     cli.send("AUTHENTICATE +")
                 elif selected_sasl == "PLAIN":
-                    account = username.encode("utf-8")
-                    pwd = password.encode("utf-8")
-                    auth_token = base64.b64encode(b"\0".join((account, account, pwd))).decode("utf-8")
-                    cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
+                    if password is None:
+                        logger.error("Unable to do authenticate due to no password being set in "
+                                     "transport.authentication.services.password.")
+                        cli.quit()
+                        sys.exit(1)
+                    else:
+                        account = username.encode("utf-8")
+                        pwd = password.encode("utf-8")
+                        auth_token = base64.b64encode(b"\0".join((account, account, pwd))).decode("utf-8")
+                        cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("saslsuccess")
         def on_successful_auth(cli: IRCClient, *_):
@@ -452,7 +458,7 @@ def connect_callback(cli: IRCClient):
                 logger.warning("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
                 cli.send("AUTHENTICATE PLAIN")
             else:
-                logger.error("Authentication failed.  Did you fill the account name "
+                logger.error("Authentication failed. Did you fill the account name "
                              "in transport.authentication.services.username if it's different from the bot nick?")
                 cli.quit()
                 sys.exit(1)
