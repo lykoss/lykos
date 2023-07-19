@@ -135,7 +135,7 @@ class print_traceback:
 
         # sanitize paths in tb: convert backslash to forward slash and remove prefixes from src and library paths
         variables[1] = variables[1].replace("\\", "/")
-        variables[1] = re.sub(r'File "[^"]*/(src|gamemodes|oyoyo|roles|lib|wolfbot)', r'File "/\1', variables[1])
+        variables[1] = re.sub(r'File "[^"]*/(src|gamemodes|oyoyo|roles|[Ll]ib|wolfbot)', r'File "/\1', variables[1])
 
         # sanitize values within local frames
         if len(variables) > 3:

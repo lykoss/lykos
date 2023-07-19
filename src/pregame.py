@@ -346,7 +346,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
         if count == 0 or role in ingame_state.current_mode.SECONDARY_ROLES:
             continue
 
-        selected = random.sample(vils, count)
+        selected = random.sample(list(vils), count)
         for x in selected:
             ingame_state.main_roles[x] = role
             vils.remove(x)
