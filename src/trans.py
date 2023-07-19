@@ -339,6 +339,7 @@ def transition_day(var: GameState, game_id: int = 0):
 
         killer = killers[deadperson][0]
         if killer == "@wolves":
+            killer = None
             killer_role[deadperson] = "wolf"
         elif isinstance(killer, str):
             kevt = Event("resolve_killer_tag", {
@@ -350,11 +351,12 @@ def transition_day(var: GameState, game_id: int = 0):
             })
             kevt.dispatch(var, deadperson, killer)
             assert kevt.data["role"] is not None
+            killer = kevt.data["attacker"]
             killer_role[deadperson] = kevt.data["role"]
         else:
             killer_role[deadperson] = get_main_role(var, killer)
 
-        add_dying(var, deadperson, killer_role[deadperson], "night_kill")
+        add_dying(var, deadperson, killer_role[deadperson], "night_kill", killer=killer)
 
     kill_players(var, end_game=False) # temporary hack; end_game=False also prevents kill_players from attempting phase transitions
 
