@@ -112,7 +112,7 @@ class Channel(IRCContext):
     def __format__(self, format_spec):
         if format_spec == "#":
             return self.name
-        elif format_spec == "for_tb":
+        elif format_spec in ("for_tb", "for_tb_verbose"):
             channel_data_level = config.Main.get("telemetry.errors.channel_data_level")
             if channel_data_level == 0:
                 if self is Main:

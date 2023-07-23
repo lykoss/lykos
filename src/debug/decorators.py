@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import platform
 import re
+import subprocess
 import threading
 import traceback
 import urllib.request
@@ -71,6 +73,7 @@ class print_traceback:
         exc_log = logging.getLogger("exception.{}".format(exc_type.__name__))
         exc_tb = tb
         variables = ["", ""]
+        game_state = None
 
         if _local.handler is None:
             _local.handler = chain_exceptions(exc_value)
@@ -97,19 +100,27 @@ class print_traceback:
                 frames = [frames[-1]]
 
             with _local.handler:
+                from src.gamestate import GameState, PregameState
+                from src.dispatcher import MessageDispatcher
                 for i, frame in enumerate(frames, start=1):
                     if frame is None:
                         continue
                     variables.append(word.format(i, frame.f_code.co_name))
                     for name, value in frame.f_locals.items():
+                        # Capture game state for later display
+                        if isinstance(value, GameState) or isinstance(value, PregameState):
+                            game_state = value
+                        elif isinstance(value, MessageDispatcher) and value.game_state is not None:
+                            game_state = value.game_state
+
                         try:
                             if isinstance(value, dict):
                                 try:
                                     log_value = "{{{0}}}".format(", ".join("{0:for_tb}: {1:for_tb}".format(k, v) for k, v in value.items()))
-                                except:
+                                except (TypeError, ValueError):
                                     try:
                                         log_value = "{{{0}}}".format(", ".join("{0!r}: {1:for_tb}".format(k, v) for k, v in value.items()))
-                                    except:
+                                    except (TypeError, ValueError):
                                         log_value = "{{{0}}}".format(", ".join("{0:for_tb}: {1!r}".format(k, v) for k, v in value.items()))
                             elif isinstance(value, list):
                                 log_value = "[{0}]".format(", ".join(format(v, "for_tb") for v in value))
@@ -117,12 +128,11 @@ class print_traceback:
                                 log_value = "{{{0}}}".format(", ".join(format(v, "for_tb") for v in value))
                             else:
                                 log_value = format(value, "for_tb")
-                        except:
+                        except (TypeError, ValueError):
                             log_value = repr(value)
                         variables.append("{0} = {1}".format(name, log_value))
 
             if len(variables) > 3:
-                variables.append("\n")
                 if traceback_verbosity > 1:
                     variables[2] = "Local variables in all frames (most recent call last):"
                 else:
@@ -131,6 +141,43 @@ class print_traceback:
                 variables[2] = "No local variables found in all frames."
 
         variables[1] = _local.handler.traceback
+
+        # dump game state if we found it in our traceback
+        if game_state is not None:
+            variables.append("\nGame state:\n")
+            for key, value in game_state.__dict__.items():
+                # Skip over things like __module__, __dict__, and __weakrefs__
+                if key.startswith("__") and key.endswith("__"):
+                    continue
+                # Only interested in data members, not properties or methods
+                if isinstance(value, property) or callable(value):
+                    continue
+                try:
+                    variables.append("{0} = {1:for_tb}".format(key, value))
+                except (TypeError, ValueError):
+                    variables.append("{0} = {1!r}".format(key, value))
+
+        # dump full list of known users with verbose output, as everything above has truncated output for readability
+        if config.Main.get("telemetry.errors.user_data_level") > 1:
+            import src.users
+            variables.append("\nAll connected users:\n")
+            for user in src.users.users():
+                variables.append("{0:x} = {1:for_tb_verbose}".format(id(user), user))
+            if len(list(src.users.disconnected())) > 0:
+                variables.append("\nAll disconnected users:\n")
+                for user in src.users.disconnected():
+                    variables.append("{0:x} = {1:for_tb_verbose}".format(id(user), user))
+            else:
+                variables.append("\nNo disconnected users.")
+
+        # obtain bot version
+        try:
+            ans = subprocess.check_output(["git", "log", "-n", "1", "--pretty=format:%h"])
+            variables[0] = "lykos {0}, Python {1}\n".format(str(ans.decode()), platform.python_version())
+        except (OSError, subprocess.CalledProcessError):
+            variables[0] = "lykos <unknown>, Python {0}\n".format(platform.python_version())
+
+        # capture variables before sanitization for local logging
         extra_data = {"variables": "\n".join(variables)}
 
         # sanitize paths in tb: convert backslash to forward slash and remove prefixes from src and library paths
@@ -147,7 +194,7 @@ class print_traceback:
             channels.Main.send(messages["error_log"])
         message = [str(messages["error_log"])]
 
-        link = _tracebacks.get("\n".join(variables))
+        link = _tracebacks.get(variables[1])
         if link is None and not config.Main.get("debug.enabled"):
             api_url = "https://ww.chat/submit"
             data = None # prevent UnboundLocalError when error log fails to upload
@@ -165,7 +212,7 @@ class print_traceback:
                 message.append(messages["error_pastebin"].format())
                 extra_data["paste_error"] = _local.handler.traceback
             else:
-                link = _tracebacks["\n".join(variables)] = data["url"]
+                link = _tracebacks[variables[1]] = data["url"]
                 message.append(link)
 
         elif link is not None:

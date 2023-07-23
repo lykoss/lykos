@@ -299,15 +299,15 @@ class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
             raise
 
     def __format__(self, format_spec=""):
-        if format_spec == "for_tb":
+        if format_spec in ("for_tb", "for_tb_verbose"):
             # we don't know if the keys, the values, or both are Users or other user containers, so try all 3...
             try:
-                args = ["{0:for_tb}: {1:for_tb}".format(x, y) for x, y in self.items()]
-            except TypeError:
+                args = ["{0:{2}}: {1:{2}}".format(x, y, format_spec) for x, y in self.items()]
+            except (TypeError, ValueError):
                 try:
-                    args = ["{0:for_tb}: {1}".format(x, y) for x, y in self.items()]
-                except TypeError:
-                    args = ["{0}: {1:for_tb}".format(x, y) for x, y in self.items()]
+                    args = ["{0:{2}}: {1}".format(x, y, format_spec) for x, y in self.items()]
+                except (TypeError, ValueError):
+                    args = ["{0}: {1:{2}}".format(x, y, format_spec) for x, y in self.items()]
         elif format_spec == "":
             # maintain a stable ordering for unit testing regardless of hash key
             args = sorted(["{0}: {1}".format(x, y) for x, y in self.items()])

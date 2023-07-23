@@ -25,7 +25,7 @@ _users: CheckedSet[User] = CheckedSet("users._users")
 _ghosts: CheckedSet[User] = CheckedSet("users._ghosts")
 _pending_account_updates: CheckedDict[User, CheckedDict[str, Callable]] = CheckedDict("users._pending_account_updates")
 
-_arg_msg = "(user={0:for_tb}, allow_bot={1})"
+_arg_msg = "(user={0:for_tb_verbose}, allow_bot={1})"
 
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
@@ -364,12 +364,12 @@ class User(IRCContext):
     def __format__(self, format_spec):
         if format_spec == "@":
             return "\u0002{0}\u0002".format(self.name)
-        elif format_spec == "for_tb":
+        elif format_spec in ("for_tb", "for_tb_verbose"):
             user_data_level = config.Main.get("telemetry.errors.user_data_level")
             if user_data_level == 0:
                 return "{self.__class__.__name__}({0:x})".format(id(self), self=self)
-            elif user_data_level == 1:
-                return "{self.__class__.__name__}({self.nick!r})".format(self=self)
+            elif user_data_level == 1 or format_spec == "for_tb":
+                return "{self.__class__.__name__}({self.nick!r}, {0:x})".format(id(self), self=self)
             else:
                 return repr(self)
         return super().__format__(format_spec)
@@ -689,7 +689,7 @@ class FakeUser(User):
         return hash(self.nick)
 
     def __format__(self, format_spec):
-        if format_spec == "for_tb" and self.nick.startswith("@"):
+        if format_spec in ("for_tb", "for_tb_verbose") and self.nick.startswith("@"):
             # fakes starting with @ are used internally for various purposes (such as @WolvesAgree@)
             # so it'd be good to keep that around when debugging in tracebacks
             return "{self.__class__.__name__}({self.nick!r})".format(self=self)
