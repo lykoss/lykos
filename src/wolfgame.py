@@ -1371,6 +1371,7 @@ def fgame_help(args=""):
 @command("eval", owner_only=True, flag="d", pm=True)
 def pyeval(wrapper: MessageDispatcher, message: str):
     """Evaluate a Python expression."""
+    import inspect  # for more expressive debugging
     var = wrapper.game_state
     try:
         wrapper.send(str(eval(message))[:500])

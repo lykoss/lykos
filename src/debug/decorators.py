@@ -8,6 +8,7 @@ import threading
 import traceback
 import urllib.request
 import logging
+import inspect
 from typing import Optional
 from types import TracebackType, FrameType
 
@@ -145,7 +146,7 @@ class print_traceback:
         # dump game state if we found it in our traceback
         if game_state is not None:
             variables.append("\nGame state:\n")
-            for key, value in game_state.__dict__.items():
+            for key, value in inspect.getmembers(game_state):
                 # Skip over things like __module__, __dict__, and __weakrefs__
                 if key.startswith("__") and key.endswith("__"):
                     continue
