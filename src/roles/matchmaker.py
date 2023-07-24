@@ -15,7 +15,6 @@ from src.status import add_dying
 from src.dispatcher import MessageDispatcher
 from src.users import User
 
-@gamestate.extend_state
 class GameState(gamestate.GameState):
     matchmaker_acted: UserSet = UserSet()
     matchmaker_acted_tonight: UserSet = UserSet()

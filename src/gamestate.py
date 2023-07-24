@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Optional, TypeVar, TYPE_CHECKING
+from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
 
 from src.containers import UserSet, UserDict, UserList
@@ -14,23 +14,7 @@ from src import channels
 if TYPE_CHECKING:
     from src.gamemodes import GameMode
 
-__all__ = ["GameState", "PregameState", "set_gamemode", "extend_state"]
-
-_bases: list[type] = []
-T = TypeVar("T")
-
-def extend_state(cls: T) -> T:
-    # These classes extending GameState is purely for type checking;
-    # it will break runtime if left as-is. Create a new class that
-    # has no base classes, and use that for dynamic extensions.
-    stripped_dict = cls.__dict__.copy()
-    if "__dict__" in stripped_dict:
-        del stripped_dict["__dict__"]
-    stripped_cls = type(cls.__name__, (), stripped_dict)
-    _bases.append(stripped_cls)
-
-    # But return the original class for type-checking/static analysis purposes
-    return cls
+__all__ = ["GameState", "PregameState", "set_gamemode"]
 
 def set_gamemode(var: PregameState, arg: str) -> bool:
     from src.gamemodes import GAME_MODES, InvalidModeException
@@ -69,12 +53,12 @@ class PregameState:
             self.current_mode.teardown()
 
 class GameState:
-    def __new__(cls, pregame_state: PregameState):
-        # If we add any locals here, PyCharm exposes them in the IDE as if they were class attributes,
-        # hence deferring all logic to a helper function
-        return _make_game_state(pregame_state)
+    _init_fns: ClassVar[list[Callable[[GameState], None]]] = []
 
     def __init__(self, pregame_state: PregameState):
+        # Initialize role-specific state
+        for fn in GameState._init_fns:
+            fn(self)
         self.setup_started: bool = False
         self.setup_completed: bool = False
         self._torndown: bool = False
@@ -93,6 +77,29 @@ class GameState:
         self.night_count: int = 0
         self.day_count: int = 0
         self.locations: UserDict[User, str] = UserDict()
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        attrs = cls.__dict__.copy()
+        strip = ("__module__", "__dict__", "__doc__")
+        for thing in strip:
+            if thing in attrs:
+                del attrs[thing]
+
+        merge = ("__annotations__",)
+        for thing in merge:
+            if thing in attrs:
+                GameState.__dict__[thing].update(attrs[thing])
+                del attrs[thing]
+
+        if "__init__" in attrs:
+            GameState._init_fns.append(attrs["__init__"])
+            del attrs["__init__"]
+
+        for thing, value in attrs.items():
+            if thing.startswith("__") and thing.endswith("__"):
+                raise TypeError(f"GameState subclasses cannot define a {thing} member")
+            setattr(GameState, thing, value)
 
     def begin_setup(self):
         if self.setup_completed:
@@ -258,23 +265,3 @@ class GameState:
     def set_role_stats(self, value) -> None:
         self._rolestats.clear()
         self._rolestats.update(value)
-
-def _pass(*args, **kwargs):
-    pass
-
-def _make_game_state(pregame_state: PregameState) -> GameState:
-    # Dynamically create a new type that extends GameState and every class decorated with @extend_state,
-    # and calls their __init__() methods. Classes with @extend_state will **not** be passed the PregameState!
-    all_bases = [GameState]
-    all_bases.extend(_bases)
-    # Avoid recursion
-    new_copy = GameState.__new__
-    del GameState.__new__
-    state_cls = type("GameState", tuple(all_bases), {"__init__": _pass})
-    self = state_cls()
-    GameState.__init__(self, pregame_state)
-    for base in _bases:
-        base.__init__(self)
-
-    GameState.__new__ = new_copy
-    return self
