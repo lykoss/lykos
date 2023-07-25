@@ -112,6 +112,10 @@ class GameState:
             raise RuntimeError("cannot setup a used-up GameState")
         for role in All:
             self.roles[role] = UserSet()
+        for i, player in enumerate(self.players):
+            house = House(self, player, i)
+            house.users[player] = (None, False)
+            self._locations.add(house)
         self.setup_started = True
 
     def finish_setup(self):
@@ -123,10 +127,6 @@ class GameState:
         assert not self._original_roles and not self._original_main_roles
         self._original_roles = copy.deepcopy(self.roles)
         self._original_main_roles = self.main_roles.copy()
-        for i, player in enumerate(self.players):
-            house = House(self, player, i)
-            house.users[player] = (None, False)
-            self._locations.add(house)
         self.setup_completed = True
 
     def teardown(self):

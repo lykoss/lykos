@@ -232,7 +232,7 @@ def transition_day(var: GameState, game_id: int = 0):
     # expand locations to encompass everyone at that location
     for v in set(victims):
         if isinstance(v, Location):
-            pl = set(get_players(var)) & v.users
+            pl = set(get_players(var)) & v.users.keys()
             # Play the "target not home" message if the wolves attacked an empty location
             # This also suppresses the "no victims" message if nobody ends up dying tonight
             if not pl and "@wolves" in killers[v]:
@@ -680,12 +680,11 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
 def chk_win_conditions(var: GameState, rolemap: dict[str, set[User]] | UserDict[str, UserSet], mainroles: dict[User, str] | UserDict[User, str], end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with locks.reaper:
-        if var.current_phase == "day":
+        if var.current_phase == "day" and not var.in_phase_transition:
             pl = set(var.village_square)
-            lpl = len(pl)
         else:
             pl = set(get_players(var, mainroles=mainroles))
-            lpl = len(pl)
+        lpl = len(pl)
 
         wolves = set(get_players(var, Wolf_Objective, mainroles=mainroles))
         lwolves = len(wolves & pl)
