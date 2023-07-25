@@ -105,29 +105,6 @@ class GameState:
                 raise TypeError(f"GameState subclasses cannot define a {thing} member")
             setattr(GameState, thing, value)
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        attrs = cls.__dict__.copy()
-        strip = ("__module__", "__dict__", "__doc__")
-        for thing in strip:
-            if thing in attrs:
-                del attrs[thing]
-
-        merge = ("__annotations__",)
-        for thing in merge:
-            if thing in attrs:
-                GameState.__dict__[thing].update(attrs[thing])
-                del attrs[thing]
-
-        if "__init__" in attrs:
-            GameState._init_fns.append(attrs["__init__"])
-            del attrs["__init__"]
-
-        for thing, value in attrs.items():
-            if thing.startswith("__") and thing.endswith("__"):
-                raise TypeError(f"GameState subclasses cannot define a {thing} member")
-            setattr(GameState, thing, value)
-
     def begin_setup(self):
         if self.setup_completed:
             raise RuntimeError("GameState.setup() called while already setup")
