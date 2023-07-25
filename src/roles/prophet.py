@@ -3,28 +3,30 @@ from __future__ import annotations
 import random
 from typing import Optional
 
+from src import gamestate
 from src.containers import UserSet
 from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, match_role
 from src.messages import messages
 from src.dispatcher import MessageDispatcher
-from src.gamestate import GameState
 
-PRAYED = UserSet()
+class GameState(gamestate.GameState):
+    def __init__(self):
+        self.prophet_prayed = UserSet()
 
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
 def pray(wrapper: MessageDispatcher, message: str):
     """Receive divine visions of who has a role."""
-    if wrapper.source in PRAYED:
+    var: GameState = wrapper.game_state
+
+    if wrapper.source in var.prophet_prayed:
         wrapper.pm(messages["already_prayed"])
         return
 
     if not message:
         wrapper.pm(messages["not_enough_parameters"])
         return
-
-    var = wrapper.game_state
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
     matches = match_role(message, allow_special=False)
@@ -37,7 +39,7 @@ def pray(wrapper: MessageDispatcher, message: str):
 
     role = matches.get().key
     pl = get_players(var)
-    PRAYED.add(wrapper.source)
+    var.prophet_prayed.add(wrapper.source)
 
     # this sees through amnesiac, so the amnesiac's final role counts as their role
     from src.roles.amnesiac import ROLES as amn_roles
@@ -66,15 +68,11 @@ def on_send_role(evt: Event, var: GameState):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("prophet",)))
-    evt.data["acted"].extend(PRAYED)
+    evt.data["acted"].extend(var.prophet_prayed)
 
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):
-    PRAYED.clear()
-
-@event_listener("reset")
-def on_reset(evt: Event, var: GameState):
-    PRAYED.clear()
+    var.prophet_prayed.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):

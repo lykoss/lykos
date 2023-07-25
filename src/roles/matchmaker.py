@@ -16,12 +16,13 @@ from src.dispatcher import MessageDispatcher
 from src.users import User
 
 class GameState(gamestate.GameState):
-    matchmaker_acted: UserSet = UserSet()
-    matchmaker_acted_tonight: UserSet = UserSet()
-    # active lover pairings (no dead players), contains forward and reverse mappings
-    matchmaker_lovers: UserDict[User, UserSet] = UserDict()
-    # all lover pairings (for revealroles/endgame stats), contains forward mappings only
-    matchmaker_pairings: UserDict[User, UserSet] = UserDict()
+    def __init__(self):
+        self.matchmaker_acted: UserSet = UserSet()
+        self.matchmaker_acted_tonight: UserSet = UserSet()
+        # active lover pairings (no dead players), contains forward and reverse mappings
+        self.matchmaker_lovers: UserDict[User, UserSet] = UserDict()
+        # all lover pairings (for revealroles/endgame stats), contains forward mappings only
+        self.matchmaker_pairings: UserDict[User, UserSet] = UserDict()
 
 def _set_lovers(var: GameState, target1: User, target2: User):
     # ensure that PAIRINGS maps lower id to higher ids
