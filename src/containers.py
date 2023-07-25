@@ -50,16 +50,28 @@ class Container(ABC):
         # Instead the subclass should iterate over iterable and add each element to the parent container
         # with its own add/append/etc. method that implements proper user tracking.
         super(Container, self).__init__()
+        self._destroyed = False
+
+    def __getattribute__(self, name: str):
+        if object.__getattribute__(self, "_destroyed"):
+            raise RuntimeError("Cannot do operations on a destroyed Container.")
+        return super(Container, self).__getattribute__(name)
 
     def __iter__(self):
         # noinspection PyUnresolvedReferences
+        self._destroyed
         return super(Container, self).__iter__()
 
+    def __contains__(self, item):
+        self._destroyed
+        return super(Container, self).__contains__(item)
+
     def __enter__(self):
+        self._destroyed
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        self.clear()
+        self.destroy()
 
     def __format__(self, format_spec=""):
         args = [format(x, format_spec) for x in self]
@@ -69,6 +81,7 @@ class Container(ABC):
         return self.__format__()
 
     def __eq__(self, other):
+        self._destroyed
         return self is other
 
     def __copy__(self):
@@ -84,6 +97,10 @@ class Container(ABC):
     def clear(self):
         # noinspection PyUnresolvedReferences
         super(Container, self).clear()
+
+    def destroy(self):
+        self.clear()
+        self._destroyed = True
 
 class UserList(Container, List[User]):
     def __init__(self, iterable=()):
@@ -102,6 +119,7 @@ class UserList(Container, List[User]):
         self.extend(other)
 
     def __getitem__(self, item):
+        self._destroyed
         new = super().__getitem__(item)
         if isinstance(item, slice):
             new = type(self)(new)
@@ -321,6 +339,10 @@ class UserDict(Container, Dict[KT, VT], Generic[KT, VT]):
         for key, value in self.items():
             new[key] = copy.deepcopy(value, memo)
         return new
+
+    def __getitem__(self, item):
+        self._destroyed
+        super().__getitem__(item)
 
     def __setitem__(self, item, value):
         old = self.get(item)

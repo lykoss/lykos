@@ -4,7 +4,7 @@ import copy
 from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
 
-from src.containers import UserSet, UserDict, UserList
+from src.containers import UserSet, UserDict, UserList, Container
 from src.messages import messages
 from src.cats import All
 from src import config
@@ -56,12 +56,10 @@ class GameState:
     _init_fns: ClassVar[list[Callable[[GameState], None]]] = []
 
     def __init__(self, pregame_state: PregameState):
-        # Initialize role-specific state
-        for fn in GameState._init_fns:
-            fn(self)
         self.setup_started: bool = False
         self.setup_completed: bool = False
         self._torndown: bool = False
+        self._to_destroy: list[Container] = []
         self.current_mode: GameMode = pregame_state.current_mode
         self.game_settings: dict[str, Any] = {}
         self.game_id: float = pregame_state.game_id
@@ -77,6 +75,9 @@ class GameState:
         self.night_count: int = 0
         self.day_count: int = 0
         self.locations: UserDict[User, str] = UserDict()
+        # Initialize role-specific state
+        for fn in GameState._init_fns:
+            fn(self)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -101,6 +102,12 @@ class GameState:
                 raise TypeError(f"GameState subclasses cannot define a {thing} member")
             setattr(GameState, thing, value)
 
+    def __setattr__(self, name, value):
+        if not self.setup_started:
+            if isinstance(value, Container):
+                self._to_destroy.append(value)
+        super().__setattr__(name, value)
+
     def begin_setup(self):
         if self.setup_completed:
             raise RuntimeError("GameState.setup() called while already setup")
@@ -122,11 +129,10 @@ class GameState:
         self.setup_completed = True
 
     def teardown(self):
-        self.roles.clear()
-        self._original_roles.clear()
-        self._original_main_roles.clear()
         self._rolestats.clear()
         self.current_mode.teardown()
+        for container in self._to_destroy:
+            container.destroy()
         self._torndown = True
 
     def _get_value(self, key: str) -> Any:
