@@ -9,7 +9,6 @@ from typing import Any, Optional
 from src import channels, users, status
 from src.cats import All, Wolf, Killer
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.locations import Reason
 from src.events import Event, event_listener
 from src.functions import (get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target,
                            match_totem)
@@ -513,7 +512,7 @@ def on_transition_night_end(evt: Event, var: GameState):
 def on_begin_day(evt: Event, var: GameState):
     # Apply totem effects that need to begin on day proper
     for player in NARCOLEPSY:
-        var.set_user_location(player, var.find_house(player), Reason.prison, "totem")
+        var.set_user_location(player, var.find_house(player), "totem", forced=True)
     for player in IMPATIENCE:
         status.add_force_vote(var, player, get_all_players(var) - {player})
     for player in PACIFISM:

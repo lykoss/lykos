@@ -9,7 +9,6 @@ from src.cats import Wolf
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
-from src.locations import Reason
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.gamestate import GameState
@@ -44,7 +43,7 @@ def hvisit(wrapper: MessageDispatcher, message: str):
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
-    var.set_user_location(wrapper.source, var.find_house(target), Reason.visiting)
+    var.set_user_location(wrapper.source, var.find_house(target))
 
     wrapper.pm(messages["harlot_success"].format(target))
     if target is not wrapper.source:

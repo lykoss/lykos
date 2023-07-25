@@ -8,7 +8,6 @@ from src.containers import UserDict, UserSet
 from src.functions import get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
 from src.gamestate import GameState, PregameState
-from src.locations import Reason
 from src.events import Event, event_listener
 from src.users import User
 from src import locks, channels
@@ -107,7 +106,7 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
                 DEAD.add(player)
 
                 # move their body to the graveyard
-                var.set_user_location(player, var.graveyard, Reason.dead)
+                var.set_user_location(player, var.graveyard)
             else:
                 # left during join phase
                 var.players.remove(player)

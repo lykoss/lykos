@@ -10,7 +10,7 @@ import time
 from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
 from src.containers import UserSet, UserDict, UserList
-from src.locations import Location, Reason
+from src.locations import Location
 from src.functions import get_players, get_main_role, get_reveal_role
 from src.warnings import expire_tempbans
 from src.messages import messages
@@ -107,9 +107,9 @@ def begin_day(var: GameState):
 
     # move everyone to the village square
     for p in get_players(var):
-        loc, reason, key = var.get_user_location(p)
-        if reason is not Reason.prison:
-            var.set_user_location(p, var.village_square, Reason.day)
+        loc, key, forced = var.get_user_location(p)
+        if not forced:
+            var.set_user_location(p, var.village_square)
 
     event = Event("begin_day", {})
     event.dispatch(var)
@@ -385,7 +385,7 @@ def transition_night(var: GameState):
     # move every alive player back to their house
     pl = get_players(var)
     for p in pl:
-        var.set_user_location(p, var.find_house(p), Reason.home)
+        var.set_user_location(p, var.find_house(p))
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)

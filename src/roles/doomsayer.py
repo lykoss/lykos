@@ -8,7 +8,6 @@ from src import status
 from src.cats import All
 from src.containers import UserSet, UserDict
 from src.decorators import command
-from src.locations import Reason
 from src.events import Event, event_listener
 from src.functions import get_all_players, get_target
 from src.messages import messages
@@ -110,7 +109,7 @@ def on_transition_night_end(evt: Event, var: GameState):
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):
     for sick in SICK.values():
-        var.set_user_location(sick, var.find_house(sick), Reason.prison, "illness")
+        var.set_user_location(sick, var.find_house(sick), "illness", forced=True)
         status.add_silent(var, sick)
 
     # clear out LASTSEEN for people that didn't see last night

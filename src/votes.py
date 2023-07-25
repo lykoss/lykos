@@ -7,7 +7,6 @@ import re
 
 from src.containers import UserDict, UserList, UserSet
 from src.decorators import command
-from src.locations import Reason
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import (get_forced_votes, get_all_forced_votes, get_forced_abstains,
@@ -43,7 +42,7 @@ def lynch(wrapper: MessageDispatcher, message: str):
     if not voted:
         return
 
-    location, reason, key = var.get_user_location(wrapper.source)
+    location, key, forced = var.get_user_location(wrapper.source)
     if location is not var.village_square:
         if key is not None:
             wrapper.source.send(messages[key + "_absent"])

@@ -10,21 +10,12 @@ from src.containers import UserDict, UserList
 if TYPE_CHECKING:
     from src.gamestate import GameState
 
-class Reason(Enum):
-    home = 0
-    day = 1
-    visiting = 2
-    killing = 3
-    dead = 4
-    special = 5
-    prison = 6
-
 class Location:
     """Base class for locations."""
     def __init__(self, var: GameState, name: str):
         self._gs = var
         self.name = name
-        self.users: UserDict[User, tuple[Reason, str | None]] = UserDict()
+        self.users: UserDict[User, tuple[str | None, bool]] = UserDict()
 
     def __contains__(self, item):
         return item in self.users

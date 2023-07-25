@@ -5,7 +5,7 @@ from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
 
 from src.containers import UserSet, UserDict, UserList
-from src.locations import Location, Square, Graveyard, House, Reason
+from src.locations import Location, Square, Graveyard, House
 from src.messages import messages
 from src.cats import All
 from src import config
@@ -125,7 +125,7 @@ class GameState:
         self._original_main_roles = self.main_roles.copy()
         for i, player in enumerate(self.players):
             house = House(self, player, i)
-            house.users[player] = (Reason.home, None)
+            house.users[player] = (None, False)
             self._locations.add(house)
         self.setup_completed = True
 
@@ -172,15 +172,14 @@ class GameState:
                 return (x,) + x.users[user]
         raise ValueError(f"User {user} is not anywhere")
 
-    def set_user_location(self, user: User, loc: Location, reason: Reason | None = None, key: str | None = None):
+    def set_user_location(self, user: User, loc: Location, key: str | None = None, *, forced: bool = False):
         if user not in loc.users:
             for x in self._locations:
                 if user in x.users:
-                    old_r, old_k = x.users.pop(user)
-                    if reason is None:
-                        reason = old_r
+                    old_k, old_f = x.users.pop(user)
+                    if key is None:
                         key = old_k
-                    loc.users[user] = (reason, key)
+                    loc.users[user] = (key, forced)
                     break
             else:
                 raise RuntimeError(f"Failed setting user {user} to location {loc}")

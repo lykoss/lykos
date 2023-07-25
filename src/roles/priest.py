@@ -8,7 +8,6 @@ from src.containers import UserSet
 from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, get_target
-from src.locations import Reason
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.trans import chk_win
@@ -65,7 +64,7 @@ def consecrate(wrapper: MessageDispatcher, message: str):
     evt.dispatch(var, wrapper.source, target)
 
     wrapper.pm(messages["consecrate_success"].format(target))
-    var.set_user_location(wrapper.source, var.graveyard, Reason.special, "consecrating")
+    var.set_user_location(wrapper.source, var.graveyard, "consecrating", forced=True)
     from src.votes import chk_decision
     if not chk_win(var):
         # game didn't immediately end due to marking as absent, see if we should force through a lynch
