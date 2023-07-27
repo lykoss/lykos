@@ -195,13 +195,15 @@ class print_traceback:
             channels.Main.send(messages["error_log"])
         message = [str(messages["error_log"])]
 
-        link = _tracebacks.get(variables[1])
+        content = "\n".join(variables)
+
+        link = _tracebacks.get(content)
         if link is None and not config.Main.get("debug.enabled"):
             api_url = "https://ww.chat/submit"
             data = None # prevent UnboundLocalError when error log fails to upload
             with _local.handler:
                 req = urllib.request.Request(api_url, json.dumps({
-                        "c": "\n".join(variables),  # contents
+                        "c": content,
                     }).encode("utf-8", "replace"))
 
                 req.add_header("Accept", "application/json")
@@ -213,7 +215,7 @@ class print_traceback:
                 message.append(messages["error_pastebin"].format())
                 extra_data["paste_error"] = _local.handler.traceback
             else:
-                link = _tracebacks[variables[1]] = data["url"]
+                link = _tracebacks[content] = data["url"]
                 message.append(link)
 
         elif link is not None:
