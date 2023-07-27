@@ -142,6 +142,8 @@ def on_send_role(evt: Event, var: GameState):
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers):
+    if not var.in_game:
+        return
     var.matchmaker_acted.discard(player)
     var.matchmaker_acted_tonight.discard(player)
     if player in var.matchmaker_lovers:
