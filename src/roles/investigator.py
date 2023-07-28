@@ -73,7 +73,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
         t2role = "blue"
 
     evt = Event("get_team_affiliation", {"same": (t1role == t2role)})
-    evt.dispatch(evt, target1, target2)
+    evt.dispatch(var, target1, target2)
 
     if evt.data["same"]:
         wrapper.pm(messages["investigator_results_same"].format(target1, target2))
