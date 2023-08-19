@@ -73,7 +73,16 @@ def on_night_kills(evt: Event, var: GameState):
         del KILLS[vigilante]
 
         if get_main_role(var, target) not in Wolf | Win_Stealer:
-            add_dying(var, vigilante, "vigilante", "night_kill", killer=vigilante)
+            evt.data["kill_priorities"]["@vigilante"] = 15
+            evt.data["victims"].add(vigilante)
+            evt.data["killers"][vigilante].append("@vigilante")
+
+@event_listener("resolve_killer_tag")
+def on_resolve_killer_tag(evt: Event, var: GameState, victim: User, killer: str):
+    if killer == "@vigilante":
+        evt.data["attacker"] = victim
+        evt.data["role"] = "vigilante"
+        evt.data["try_protection"] = False
 
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
