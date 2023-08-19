@@ -208,7 +208,7 @@ def transition_day(var: GameState, game_id: int = 0):
     # Kill priorities are used to determine which kill takes precedence over another; default priority is 0,
     # negative numbers make those kills take precedence, and positive numbers make those kills defer to others.
     # In default logic, wolf-aligned VG is priority -5, wolf kills (including harlot visiting wolf) are priority +5,
-    # GA/bodyguard guarding a wolf is +10, and everything else is 0.
+    # GA/bodyguard guarding a wolf is +10, suicides are +15, and everything else is 0.
     # Ties in priority are resolved randomly
     victims: set[UserOrLocation] = set()
     killers: dict[UserOrLocation, list[UserOrSpecialTag]] = defaultdict(list)
