@@ -569,13 +569,14 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
             # Once *all* team wins are settled, we can determine individual wins and get the final list of winners
             team_wins = frozenset(team_wins)
             for player, role in mainroles.items():
-                entry = {"version": 3,
+                entry = {"version": 4,
                          "account": player.account,
                          "main_role": role,
                          "all_roles": list(allroles[player]),
                          "special": [],
                          "team_win": player in team_wins,
                          "individual_win": False,
+                         "count_game": True,
                          "dced": player in reaper.DCED_LOSERS
                          }
                 # player.account could be None if they disconnected during the game. Use original tracked account name
@@ -588,10 +589,13 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
                     won = entry["team_win"] and survived
 
                     # let events modify this default and also add special tags/pseudo-roles to the stats
-                    event = Event("player_win", {"individual_win": won, "special": []},
+                    event = Event("player_win", {"individual_win": won, "special": [], "count_game": True},
                                   team_wins=team_wins, is_win_stealer=is_win_stealer)
                     event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
                     won = event.data["individual_win"]
+                    # count the game towards stats if the player_win event tells us to or if the player dced
+                    # (so dc'ed players take a game stats penalty even if they're a role that normally doesn't count)
+                    entry["count_game"] = event.data["count_game"] or entry["dced"]
                     # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
                     entry["special"] = list(event.data["special"])
 

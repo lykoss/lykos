@@ -26,7 +26,7 @@ __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_t
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 # Constant of all the flags that the bot uses
 # This is not meant to be modified
@@ -264,13 +264,14 @@ def add_game(mode, size, started, finished, winner, players, options):
 
     Players dict format:
     {
-        version: 3
+        version: 4
         account: "Account name"
         main_role: "role name"
         all_roles: ["role name", ...]
         special: ["special qualities", ... (lover, entranced, etc.)]
         team_win: True/False
         individual_win: True/False
+        count_game: True/False
         dced: True/False
     }
     """
@@ -286,8 +287,8 @@ def add_game(mode, size, started, finished, winner, players, options):
                  VALUES (?, ?, ?, ?, ?, ?)""", (mode, json.dumps(options), started, finished, size, winner))
     gameid = c.lastrowid
     for p in players:
-        c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced)
-                     VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["team_win"], p["individual_win"], p["dced"]))
+        c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced, count_game)
+                     VALUES (?, ?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["team_win"], p["individual_win"], p["dced"], p["count_game"]))
         gpid = c.lastrowid
         for role in p["all_roles"]:
             c.execute("""INSERT INTO game_player_role (game_player, role, special)
@@ -306,9 +307,10 @@ def get_player_stats(acc, role):
     c = conn.cursor()
     c.execute("""SELECT
                    gpr.role AS role,
-                   SUM(gp.team_win) AS team,
-                   SUM(gp.indiv_win) AS indiv,
-                   SUM(gp.team_win OR gp.indiv_win) AS overall,
+                   SUM(gp.count_game AND gp.team_win) AS team,
+                   SUM(gp.count_game AND gp.indiv_win) AS indiv,
+                   SUM(gp.count_game AND (gp.team_win OR gp.indiv_win)) AS overall,
+                   SUM(gp.count_game) AS count_total,
                    COUNT(1) AS total
                  FROM person pe
                  JOIN player pl
@@ -323,20 +325,28 @@ def get_player_stats(acc, role):
     row = c.fetchone()
     name = _get_display_name(peid)
     if row:
-        role, team, indiv, overall, total = row
-        return messages["db_player_stats"].format(name, role=role, team=team, teamp=team/total, indiv=indiv, indivp=indiv/total, overall=overall, overallp=overall/total, total=total)
+        role, team, indiv, overall, count_total, total = row
+        if count_total == 0:
+            teamp = 1
+            indivp = 1
+            overallp = 1
+        else:
+            teamp = team / count_total
+            indivp = indiv / count_total
+            overallp = overall / count_total
+        return messages["db_player_stats"].format(name, role=role, team=team, teamp=teamp, indiv=indiv, indivp=indivp, overall=overall, overallp=overallp, total=total)
     return messages["db_pstats_no_role"].format(name, role)
 
 def get_player_totals(acc):
     peid, plid = _get_ids(acc)
-    total_games = _total_games(peid)
-    if not total_games:
+    if not _total_games(peid):
         return (messages["db_pstats_no_game"].format(acc), [])
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
                    gpr.role AS role,
-                   COUNT(1) AS total
+                   COUNT(1) AS total,
+                   SUM(gp.count_game) AS count_total
                  FROM person pe
                  JOIN player pl
                    ON pl.person = pe.id
@@ -347,10 +357,9 @@ def get_player_totals(acc):
                  WHERE pe.id = ?
                  GROUP BY role""", (peid,))
     tmp = {}
-    totals = []
     for row in c:
-        tmp[row[0]] = row[1]
-    c.execute("""SELECT SUM(gp.team_win OR gp.indiv_win)
+        tmp[row[0]] = (row[1], row[2])
+    c.execute("""SELECT SUM(gp.count_game AND (gp.team_win OR gp.indiv_win))
                  FROM game_player gp
                  JOIN player pl
                    ON pl.id = gp.player
@@ -361,10 +370,15 @@ def get_player_totals(acc):
     order = list(role_order())
     name = _get_display_name(peid)
     #ordered role stats
-    totals = [messages["db_role_games"].format(r, tmp[r]) for r in order if r in tmp]
+    totals = [messages["db_role_games"].format(r, *tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
     totals += [messages["db_role_games"].format(r, t) for r, t in tmp.items() if r not in order]
-    return (messages["db_total_games"].format(name, total_games, won_games / total_games), totals)
+    count_games = _countable_games(peid)
+    if count_games == 0:
+        wonp = 1
+    else:
+        wonp = won_games / count_games
+    return (messages["db_total_games"].format(name, count_games, wonp), totals)
 
 def get_game_stats(mode, size):
     conn = _conn()
@@ -1034,6 +1048,10 @@ def _upgrade(oldversion):
             # add data column to person
             c.execute("ALTER TABLE person ADD data TEXT")
             conn.commit()
+        if oldversion < 10:
+            print("Upgrade from version 9 to 10...", file=sys.stderr)
+            # add count_game column to game_player and initialize to 1
+            c.execute("ALTER TABLE game_player ADD count_game BOOLEAN NOT NULL DEFAULT 1")
 
         print("Rebuilding indexes...", file=sys.stderr)
         c.execute("REINDEX")
@@ -1182,6 +1200,24 @@ def _total_games(peid):
                    ON gp.player = pl.id
                  WHERE
                    pe.id = ?""", (peid,))
+    # aggregates without GROUP BY always have exactly one row,
+    # so no need to check for None here
+    return c.fetchone()[0]
+
+def _countable_games(peid):
+    if peid is None:
+        return 0
+    conn = _conn()
+    c = conn.cursor()
+    c.execute("""SELECT COUNT(DISTINCT gp.game)
+                 FROM person pe
+                 JOIN player pl
+                   ON pl.person = pe.id
+                 JOIN game_player gp
+                   ON gp.player = pl.id
+                 WHERE
+                   pe.id = ?
+                   AND gp.count_game = 1""", (peid,))
     # aggregates without GROUP BY always have exactly one row,
     # so no need to check for None here
     return c.fetchone()[0]

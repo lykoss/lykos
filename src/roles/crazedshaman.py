@@ -55,8 +55,8 @@ def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
 
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
-    if main_role == "crazed shaman" and survived and not evt.params.is_win_stealer:
-        evt.data["individual_win"] = True
+    if main_role == "crazed shaman":
+        evt.data["count_game"] = False
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt: Event, var: GameState):
