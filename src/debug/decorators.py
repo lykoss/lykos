@@ -141,7 +141,7 @@ class print_traceback:
             else:
                 variables[2] = "No local variables found in all frames."
 
-        variables[1] = _local.handler.traceback
+        variables[1] = full_tb = _local.handler.traceback
 
         # dump game state if we found it in our traceback
         if game_state is not None:
@@ -195,15 +195,13 @@ class print_traceback:
             channels.Main.send(messages["error_log"])
         message = [str(messages["error_log"])]
 
-        content = "\n".join(variables)
-
-        link = _tracebacks.get(content)
+        link = _tracebacks.get(full_tb)
         if link is None and not config.Main.get("debug.enabled"):
             api_url = "https://ww.chat/submit"
             data = None # prevent UnboundLocalError when error log fails to upload
             with _local.handler:
                 req = urllib.request.Request(api_url, json.dumps({
-                        "c": content,
+                        "c": "\n".join(variables),
                     }).encode("utf-8", "replace"))
 
                 req.add_header("Accept", "application/json")
@@ -215,7 +213,7 @@ class print_traceback:
                 message.append(messages["error_pastebin"].format())
                 extra_data["paste_error"] = _local.handler.traceback
             else:
-                link = _tracebacks[content] = data["url"]
+                link = _tracebacks[full_tb] = data["url"]
                 message.append(link)
 
         elif link is not None:
