@@ -332,14 +332,22 @@ def on_loggedin(cli, server, nick, rawnick, account, message):
 
     """
 
+    # rawnick can be an uncloaked version, even if we already have a cloak
+    # only trust it if we don't have ident/host data from elsewhere
     if users.Bot is None:
         from src import handler
         data = users.parse_rawnick_as_dict(rawnick)
-        handler._temp_ident = data["ident"]
-        handler._temp_host = data["host"]
+        if handler._temp_ident is None:
+            handler._temp_ident = data["ident"]
+        if handler._temp_host is None:
+            handler._temp_host = data["host"]
         handler._temp_account = account
     else:
-        users.Bot.rawnick = rawnick
+        data = users.parse_rawnick_as_dict(rawnick)
+        if users.Bot.ident is None:
+            users.Bot.ident = data["ident"]
+        if users.Bot.host is None:
+            users.Bot.host = data["host"]
         users.Bot.account = account
 
 @hook("ping")
