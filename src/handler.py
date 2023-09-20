@@ -22,6 +22,31 @@ from src.events import Event, EventListener
 from src.transport.irc import get_services
 from src.channels import Channel
 
+from ircrobots.ircrobots import Server as _Server
+from irctokens import Line
+
+class Server(_Server):
+    async def line_read(self, line: Line):
+        if line.command == "NOTICE" and not line.hostmask.hostname: # server notice, ignore
+            return
+
+        _ignore_locals_ = False
+        if config.Main.get("telemetry.errors.user_data_level") == 0 or config.Main.get("telemetry.errors.channel_data_level") == 0:
+            _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
+
+        user = users.get(line.hostmask.nickname, line.hostmask.username, line.hostmask.hostname, allow_none=True)
+
+        chan = line.params[0].lstrip("".join(Features["PREFIX"]))
+
+        if context.equals(chan, users.Bot.nick): # PM
+            target = users.Bot
+        else:
+            target = channels.get(chan, allow_none=True)
+
+        if user is None or target is None:
+            return
+
+
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those

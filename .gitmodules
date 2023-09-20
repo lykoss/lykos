@@ -1,0 +1,3 @@
+[submodule "ircrobots"]
+	path = ircrobots
+	url = https://github.com/jesopo/ircrobots

@@ -17,6 +17,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import asyncio
 import traceback
 import sys
 import os
@@ -34,6 +35,7 @@ try: # need to manually add dependencies here
     import antlr4
     import requests
     import ruamel.yaml
+    from ircrobots import ircrobots # TODO: figure out how to make it install the deps
 except ImportError:
     command = "python3"
     if os.name == "nt":
@@ -74,7 +76,7 @@ from oyoyo.client import IRCClient, TokenBucket
 
 from src import handler, config
 
-def main():
+async def main():
     # fetch IRC transport
     irc = config.Main.get("transports[0].type", None)
     if irc != "irc":
@@ -122,16 +124,25 @@ def main():
         }
         transport_logger.log(level_map[level], msg)
 
-    cli = IRCClient(
-        cmd_handler,
+    params = ircrobots.ConnectionParams(
+        nickname=nick,
         host=host,
         port=port,
+        username=ident,
+        realname=real_name,
+        password=config.Main.get("transports[0].authentication.services.password"),
+    )
+
+    cli = IRCClient(
+        cmd_handler,
+        #host=host,
+        #port=port,
         bindhost=bindhost,
         authname=username,
-        password=config.Main.get("transports[0].authentication.services.password"),
-        nickname=nick,
-        ident=ident,
-        real_name=real_name,
+        #password=config.Main.get("transports[0].authentication.services.password"),
+        #nickname=nick,
+        #ident=ident,
+        #real_name=real_name,
         sasl_auth=config.Main.get("transports[0].authentication.services.use_sasl"),
         server_pass=config.Main.get("transports[0].authentication.server.password"),
         use_ssl=use_ssl,
@@ -151,7 +162,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except Exception:
         # can't rely on logging utilities here, they might be broken or closed already
         traceback.print_exc()
