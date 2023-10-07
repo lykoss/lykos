@@ -513,6 +513,7 @@ def on_begin_day(evt: Event, var: GameState):
     # Apply totem effects that need to begin on day proper
     for player in NARCOLEPSY:
         status.add_absent(var, player, "totem")
+        move_player_home(var, player)
     for player in IMPATIENCE:
         status.add_force_vote(var, player, get_all_players(var) - {player})
     for player in PACIFISM:

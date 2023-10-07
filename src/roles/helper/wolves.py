@@ -16,6 +16,7 @@ from src.status import try_misdirection, try_exchange, is_silent
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 from src.users import User
+from src.locations import get_home
 
 KILLS: UserDict[users.User, UserList] = UserDict()
 
@@ -134,9 +135,9 @@ def on_night_kills(evt: Event, var: GameState):
             # wolfchat such as sorcerer or traitor, unlike main role wolves)
             for victim in victims:
                 if victim not in wolves:
-                    house = var.players.index(victim)
-                    evt.data["victims"].add(f"house_{house}")
-                    evt.data["killers"][f"house_{house}"].append(wolf)
+                    house = get_home(var, victim)
+                    evt.data["victims"].add(house)
+                    evt.data["killers"][house].append(wolf)
     # for wolves in wolfchat, determine who had the most kill votes and kill them,
     # choosing randomly in case of ties
     for i in range(total_kills):
@@ -150,10 +151,10 @@ def on_night_kills(evt: Event, var: GameState):
                 dups.append(v)
         if maxc and dups:
             target = random.choice(dups)
-            house = var.players.index(target)
-            evt.data["victims"].add(f"house_{house}")
+            house = get_home(var, target)
+            evt.data["victims"].add(house)
             # special key to let us know to randomly select a wolf in case of retribution totem
-            evt.data["killers"][f"house_{house}"].append("@wolves")
+            evt.data["killers"][house].append("@wolves")
             del found[target]
 
 @event_listener("retribution_kill")

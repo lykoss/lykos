@@ -10,7 +10,8 @@ import time
 from src.transport.irc import get_ircd
 from src.decorators import command, handle_error
 from src.containers import UserSet, UserDict, UserList
-from src.functions import get_players, get_main_role, get_reveal_role, get_players_in_location
+from src.functions import get_players, get_main_role, get_reveal_role
+from src.locations import Location, VillageSquare, get_players_in_location, move_player, move_player_home
 from src.warnings import expire_tempbans
 from src.messages import messages
 from src.status import is_silent, is_dying, try_protection, add_dying, kill_players, get_absent, try_lycanthropy
@@ -23,7 +24,7 @@ from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
 
 # some type aliases to make things clearer later
-UserOrLocation = Union[User, str]
+UserOrLocation = Union[User, Location]
 UserOrSpecialTag = Union[User, str]
 
 NIGHT_IDLE_EXEMPT = UserSet()
@@ -104,9 +105,13 @@ def begin_day(var: GameState):
                 modes.append(("+v", player.nick))
         channels.Main.mode(*modes)
 
-    # move everyone to the village square
+    # move everyone to the village square (or home if they're absent)
+    absent = get_absent(var)
     for p in get_players(var):
-        var.locations[p] = "square"
+        if p in absent:
+            move_player_home(var, p)
+        else:
+            move_player(var, p, VillageSquare)
 
     event = Event("begin_day", {})
     event.dispatch(var)
@@ -228,7 +233,7 @@ def transition_day(var: GameState, game_id: int = 0):
 
     # expand locations to encompass everyone at that location
     for v in set(victims):
-        if isinstance(v, str):
+        if isinstance(v, Location):
             pl = get_players_in_location(var, v)
             # Play the "target not home" message if the wolves attacked an empty location
             # This also suppresses the "no victims" message if nobody ends up dying tonight
@@ -379,10 +384,10 @@ def transition_night(var: GameState):
 
     NIGHT_START_TIME = datetime.now()
 
-    # move everyone back to their house (indexed by join order)
+    # move everyone back to their house
     pl = get_players(var)
-    for i, p in enumerate(var.players):
-        var.locations[p] = f"house_{i}"
+    for p in pl:
+        move_player_home(var, p)
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
