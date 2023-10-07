@@ -6,7 +6,6 @@ from typing import Optional, Tuple
 
 from src.containers import UserDict, UserSet
 from src.functions import get_main_role, get_all_roles, get_reveal_role
-from src.messages import messages
 from src.gamestate import GameState, PregameState
 from src.events import Event, event_listener
 from src.users import User
@@ -104,9 +103,6 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
                     var.roles[role].remove(player)
                 dead.add(player)
                 DEAD.add(player)
-
-                # move their body to the graveyard
-                var.locations[player] = "graveyard"
             else:
                 # left during join phase
                 var.players.remove(player)

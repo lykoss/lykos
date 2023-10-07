@@ -23,6 +23,7 @@ from src import config, channels, locks, reaper, users
 from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.channels import Channel
+from src.locations import Location, set_home
 
 WAIT_TOKENS = 0
 WAIT_LAST = 0
@@ -31,7 +32,7 @@ LAST_START: UserDict[User, list[datetime | int]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
 CAN_START_TIME: datetime = datetime.now()
-FORCE_ROLES: DefaultUserDict[UserSet] = DefaultUserDict(UserSet)
+FORCE_ROLES: DefaultUserDict[str, UserSet] = DefaultUserDict(UserSet)
 
 @command("wait", playing=True, phases=("join",))
 def wait(wrapper: MessageDispatcher, message: str):
@@ -430,6 +431,12 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
         else:
             raise KeyError("Invalid action for role_attribution_end")
 
+    # set default location for each player to a unique house
+    for i, p in enumerate(get_players(ingame_state)):
+        home_event = Event("player_home", {"home": Location("house_{0}".format(i))})
+        home_event.dispatch(ingame_state, p)
+        set_home(ingame_state, p, home_event.data["home"])
+
     with locks.join_timer: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
             if name in TIMERS:
@@ -469,11 +476,11 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
     wrapper.send(messages[key].format(villagers, gamemode, options))
     wrapper.target.mode("+m")
 
-    if not ingame_state.start_with_day:
+    if start_event.data["custom_game_callback"]:
+        start_event.data["custom_game_callback"](ingame_state)
+    elif not ingame_state.start_with_day:
         from src.trans import transition_night
         transition_night(ingame_state)
-    elif start_event.data["custom_game_callback"]:
-        start_event.data["custom_game_callback"](ingame_state)
     else:
         # send role messages
         evt = Event("send_role", {})

@@ -76,7 +76,6 @@ class GameState:
         self.next_phase: Optional[str] = None
         self.night_count: int = 0
         self.day_count: int = 0
-        self.locations: UserDict[User, str] = UserDict()
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

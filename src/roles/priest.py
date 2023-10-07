@@ -13,6 +13,7 @@ from src.status import try_misdirection, try_exchange, add_absent
 from src.trans import chk_win
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.locations import move_player, Graveyard
 
 PRIESTS = UserSet()
 
@@ -65,6 +66,7 @@ def consecrate(wrapper: MessageDispatcher, message: str):
 
     wrapper.pm(messages["consecrate_success"].format(target))
     add_absent(var, wrapper.source, "consecrating")
+    move_player(var, wrapper.source, Graveyard)
     from src.votes import chk_decision
     if not chk_win(var):
         # game didn't immediately end due to marking as absent, see if we should force through a lynch

@@ -17,6 +17,7 @@ from src.trans import chk_win
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 from src.users import User
+from src.locations import move_player_home
 
 _rolestate: dict[str, dict[str, Any]] = {}
 
@@ -89,6 +90,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
                 add_absent(var, target, "wounded")
+                move_player_home(var, target)
                 from src.votes import chk_decision
                 if not chk_win(var):
                     # game didn't immediately end due to injury, see if we should force through a vote
@@ -140,6 +142,8 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                         # shot hit, but didn't kill
                         channels.Main.send(messages["gunner_shoot_overnight_hit"].format(victim))
                         add_absent(var, shot, "wounded")
+                        # player will be moved back to home after daytime locations are fixed;
+                        # doing it here will simply get overwritten
                     else:
                         # shot was fired and missed
                         channels.Main.send(messages["gunner_shoot_overnight_missed"].format(victim))

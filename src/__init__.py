@@ -22,7 +22,7 @@ from src import db
 from src import users
 from src import channels, containers
 from src import dispatcher, gamestate
-from src import decorators
+from src import decorators, locations
 from src import game_stats, handler, hooks, status, warnings, relay
 from src import reaper
 from src import gamejoin, pregame

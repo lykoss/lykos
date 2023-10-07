@@ -9,11 +9,12 @@ from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
-from src.functions import get_players, get_all_players, get_reveal_role, get_target
+from src.functions import get_players, get_all_players, get_target
 from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, is_dead
 from src.users import User
+from src.locations import move_player, get_home
 
 ENTRANCED = UserSet()
 VISITED: UserDict[users.User, users.User] = UserDict()
@@ -44,9 +45,7 @@ def hvisit(wrapper: MessageDispatcher, message: str):
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
-    house = var.players.index(target)
-    var.locations[wrapper.source] = f"house_{house}"
-
+    move_player(var, wrapper.source, get_home(var, target))
     if target not in get_all_players(var, ("succubus",)):
         ENTRANCED.add(target)
         wrapper.send(messages["succubus_target_success"].format(target))

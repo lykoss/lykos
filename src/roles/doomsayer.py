@@ -16,6 +16,7 @@ from src.status import try_misdirection, try_exchange
 from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.locations import move_player_home
 
 register_wolf("doomsayer")
 
@@ -111,6 +112,7 @@ def on_begin_day(evt: Event, var: GameState):
     for sick in SICK.values():
         status.add_absent(var, sick, "illness")
         status.add_silent(var, sick)
+        move_player_home(var, sick)
 
     # clear out LASTSEEN for people that didn't see last night
     for doom in list(LASTSEEN.keys()):
