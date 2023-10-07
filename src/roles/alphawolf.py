@@ -14,6 +14,7 @@ from src.status import try_misdirection, try_exchange, add_lycanthropy, add_lyca
 from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.locations import get_home
 
 register_wolf("alpha wolf")
 
@@ -70,9 +71,9 @@ def on_night_kills(evt: Event, var: GameState):
         # simplify a lot of the code by offloading it to relevant pieces
         add_lycanthropy(var, target, "bitten")
         add_lycanthropy_scope(var, All)
-        house = var.players.index(target)
-        evt.data["victims"].add(f"house_{house}")
-        evt.data["killers"][f"house_{house}"].append("@wolves")
+        house = get_home(var, target)
+        evt.data["victims"].add(house)
+        evt.data["killers"][house].append("@wolves")
 
     # reset ENABLED here instead of begin_day so that night deaths can enable alpha wolf the next night
     ENABLED = False
