@@ -7,7 +7,7 @@ from typing import Callable, Optional, Iterable, TYPE_CHECKING
 
 from src.context import IRCContext, Features, NotLoggedIn, lower
 from src import config, db
-from src.events import EventListener
+from src.events import Event, EventListener
 from src.debug import CheckedDict, CheckedSet, handle_error
 from src.match import Match
 
@@ -579,6 +579,9 @@ class User(IRCContext):
         if self.is_fake:
             callback(self)
             return
+
+        evt = Event("update_account_data", {})
+        evt.dispatch(self)
 
         if self.account and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
