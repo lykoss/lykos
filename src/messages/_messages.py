@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from typing import Optional
 
 from src import config
 from src.messages.message import Message
@@ -16,12 +17,17 @@ class Messages:
         else:
             self.lang = config.Main.get("gameplay.language")
         self.cache = {}
+        self.messages = {}
+        self.overrides = {}
         self._load_messages()
 
-    def get(self, key, index=None):
-        if key not in self.messages:
-            raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(key))
-        return Message(key, self.messages[key], index)
+    def get(self, key, index=None) -> Optional[Message]:
+        actual_key = self.overrides[key] if key in self.overrides else key
+        if actual_key is None:
+            return None
+        if actual_key not in self.messages:
+            raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(actual_key))
+        return Message(actual_key, self.messages[actual_key], index)
 
     __getitem__ = get
 

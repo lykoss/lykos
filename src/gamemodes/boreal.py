@@ -51,6 +51,12 @@ class BorealMode(GameMode):
             "num_totems": EventListener(self.on_num_totems)
         }
 
+        self.MESSAGE_OVERRIDES = {
+            # suppress the "you can !kill" line; wolf shamans get most of their info from shaman_notify
+            # and wolves can't kill in this mode
+            "wolf_shaman_notify": None
+        }
+
         self.TOTEM_CHANCES = {totem: {} for totem in self.DEFAULT_TOTEM_CHANCES}
         self.set_default_totem_chances()
         for totem, roles in self.TOTEM_CHANCES.items():

@@ -200,6 +200,7 @@ class GameMode:
         self.ROLE_GUIDE = {}
 
         self.CUSTOM_SETTINGS = CustomSettings()
+        self.MESSAGE_OVERRIDES = {}
 
         # Support all shamans and totems
         # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
@@ -267,6 +268,8 @@ class GameMode:
             else:
                 for listener in listeners:
                     listener.install(event)
+        for key, override in self.MESSAGE_OVERRIDES.items():
+            messages.overrides[key] = override
 
     def teardown(self):
         for event, listeners in self.EVENTS.items():
@@ -275,6 +278,8 @@ class GameMode:
             else:
                 for listener in listeners:
                     listener.remove(event)
+        for key in self.MESSAGE_OVERRIDES:
+            del messages.overrides[key]
 
     def can_vote_bot(self, var):
         return False

@@ -17,6 +17,7 @@ from src.messages import messages
 from src.status import try_misdirection, try_protection, try_exchange, is_dying, add_dying
 from src.dispatcher import MessageDispatcher
 from src.users import User
+from src.locations import move_player_home
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########

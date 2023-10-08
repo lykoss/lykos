@@ -17,6 +17,9 @@ botconfig.*
 /messages.json
 /gamemodes/*.py
 /roles/*.py
+!/hooks
+/hooks/
+!/hooks/__init__.py
 
 # Database files
 *.sqlite3
