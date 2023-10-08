@@ -52,5 +52,8 @@ except (ModuleNotFoundError, AttributeError):
     from src import gamemodes
     gamemodes.import_builtin_modes()
 
+# Import user-defined hooks
+from src import hooks
+
 # Perform final initialization
 events.Event("init", {}).dispatch()
