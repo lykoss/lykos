@@ -580,9 +580,6 @@ class User(IRCContext):
             callback(self)
             return
 
-        evt = Event("update_account_data", {})
-        evt.dispatch(self)
-
         if self.account and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
             callback(self)
@@ -591,6 +588,12 @@ class User(IRCContext):
         if self.account and self.account_timestamp > time.time() - 900:
             # account data is less than 15 minutes old, use existing data instead of refreshing
             callback(self)
+            return
+
+        evt = Event("update_account_data", {})
+        if not evt.dispatch(self):
+            new_user = get(self.nick, self.ident, self.host, allow_ghosts=True)
+            callback(new_user)
             return
 
         if self not in _pending_account_updates:
