@@ -81,8 +81,10 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
         if update and have_raw_nick:
             # check for variations in case; this is the *only* time when users.get() can be case-insensitive
             if user.lower().partial_match(temp.lower()):
+                # changing rawnick could swap user out, so we need to fetch the new instance
+                # (with update=False to avoid recursion)
                 user.rawnick = raw_nick
-                return [user] if allow_multiple else user
+                return get(raw_nick, allow_multiple=allow_multiple, allow_none=allow_none, allow_bot=allow_bot, allow_ghosts=allow_ghosts, update=False)
         elif user.partial_match(temp):
             potential.append(user)
 

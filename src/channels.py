@@ -10,7 +10,7 @@ from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
 from src import users, config
 from src.debug import CheckedSet, CheckedDict
-from src.users import User
+from src.users import User, BotUser
 
 if TYPE_CHECKING:
     # gamestate depends on channels; can't turn this into a top-level import
@@ -79,7 +79,7 @@ def channels():
     yield from _channels.values()
 
 def _chan_join(evt, channel: Channel, user: User):
-    if user is users.Bot:
+    if isinstance(user, BotUser):
         channel.state = _States.Joined
 
 EventListener(_chan_join).install("chan_join")

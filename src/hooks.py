@@ -706,7 +706,9 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
 
     Event("chan_join", {}).dispatch(ch, user)
 
-    if user is users.Bot:
+    # don't test for users.Bot specifically since chan_join may have caused a swap
+    # (this only happens in exotic situations where custom code listens to update_account_data)
+    if isinstance(user, users.BotUser):
         ch.mode()
         ch.mode(Features["CHANMODES"][0])
         ch.who()
