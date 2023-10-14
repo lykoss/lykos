@@ -37,7 +37,8 @@ def guard(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    add_protection(var, target, wrapper.source, "bodyguard")
+    # we want bodyguard to fire last out of actual protections
+    add_protection(var, target, wrapper.source, "bodyguard", priority=20)
     GUARDED[wrapper.source] = target
 
     wrapper.pm(messages["protecting_target"].format(target))
@@ -124,15 +125,6 @@ def on_send_role(evt: Event, var: GameState):
         if chance > 0:
             bg.send(messages["bodyguard_death_chance"].format(chance))
         bg.send(messages["players_list"].format(pl))
-
-@event_listener("try_protection")
-def on_try_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, reason: str):
-    if len(evt.data["protections"]) <= 1: # We only care if there's 2+ protections
-        return
-    for (protector, protector_role, scope) in list(evt.data["protections"]):
-        if protector_role == "bodyguard":
-            evt.data["protections"].remove((protector, protector_role, scope))
-            evt.data["protections"].append((protector, protector_role, scope))
 
 @event_listener("player_protected")
 def on_player_protected(evt: Event, var: GameState, target: User, attacker: Optional[User], attacker_role: str, protector: User, protector_role: str, reason: str):

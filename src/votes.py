@@ -301,15 +301,15 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                         channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "lynch")
 
-            kill_players(var, end_game=False) # FIXME
+            kill_players(var, end_game=False)
 
         elif timeout:
             channels.Main.send(messages["sunset"])
 
-        if chk_win(var):
-            return # game ended, just exit out
-
         if timeout or LYNCHED >= num_lynches:
+            if chk_win(var, count_absent=False):
+                return
+
             from src.trans import transition_night
             transition_night(var)
 

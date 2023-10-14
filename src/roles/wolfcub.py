@@ -47,9 +47,16 @@ def on_wolf_notify(evt: Event, var: GameState, role: str):
     users.User.send_messages()
 
 @event_listener("chk_win", priority=1)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event,
+               var: GameState,
+               rolemap: dict[str, set[User]],
+               mainroles: dict[User, str],
+               num_players: int,
+               num_wolves: int,
+               num_real_wolves: int,
+               num_vampires: int):
     did_something = False
-    if lrealwolves == 0:
+    if num_real_wolves - num_vampires == 0:
         for wc in list(rolemap["wolf cub"]):
             trans.NIGHT_IDLE_EXEMPT.add(wc) # if they grow up during night, don't give them idle warnings
             rolemap["wolf"].add(wc)

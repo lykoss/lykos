@@ -4,7 +4,7 @@ import random
 from typing import Optional
 
 from src import users, config
-from src.cats import role_order, Win_Stealer
+from src.cats import role_order, Win_Stealer, Vampire_Team
 from src.containers import UserDict
 from src.events import Event, event_listener
 from src.functions import get_all_players, change_role
@@ -18,7 +18,7 @@ ROLES: UserDict[users.User, str] = UserDict()
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def get_blacklist(var: GameState):
-    return var.current_mode.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
+    return var.current_mode.SECONDARY_ROLES.keys() | Win_Stealer | Vampire_Team | {"villager", "cultist", "amnesiac"}
 
 def get_stats_flag(var):
     return STATS_FLAG

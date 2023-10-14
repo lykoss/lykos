@@ -75,9 +75,9 @@ def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, re
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
 @event_listener("chk_win", priority=1.1)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
     did_something = False
-    if lrealwolves == 0:
+    if lrealwolves - lvampires == 0:
         for traitor in list(rolemap["traitor"]):
             trans.NIGHT_IDLE_EXEMPT.add(traitor) # if they turn during night, don't give them idle warnings
             rolemap["wolf"].add(traitor)

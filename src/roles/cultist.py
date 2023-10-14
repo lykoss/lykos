@@ -23,8 +23,8 @@ def on_send_role(evt: Event, var: GameState):
             User.send_messages()
 
 @event_listener("chk_win", priority=3)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
-    if evt.data["winner"] is not None:
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
+    if evt.data["winner"] is not None or lvampires > 0:
         return
     if lwolves == lpl / 2:
         evt.data["winner"] = "wolves"

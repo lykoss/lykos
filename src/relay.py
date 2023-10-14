@@ -9,7 +9,7 @@ from src.functions import get_players, get_participants
 from src.messages import messages
 from src.events import Event
 from src.users import User
-from src.cats import role_order, Wolf, Wolfchat
+from src.cats import role_order, Wolf, Wolfchat, Vampire
 from src import config, channels, db
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
@@ -17,10 +17,11 @@ from src.gamestate import GameState
 DEADCHAT_PLAYERS: UserSet = UserSet()
 DEADCHAT_SPECTATE: UserSet = UserSet()
 WOLFCHAT_SPECTATE: UserSet = UserSet()
+VAMPCHAT_SPECTATE: UserSet = UserSet()
 
 @command("", chan=False, pm=True)
 def relay_wolfchat(wrapper: MessageDispatcher, message: str):
-    """Relay wolfchat messages and commands."""
+    """Relay wolfchat/vampchat messages and commands."""
     var = wrapper.game_state
 
     if message.startswith(config.Main.get("transports[0].user.command_prefix")):
@@ -28,15 +29,16 @@ def relay_wolfchat(wrapper: MessageDispatcher, message: str):
 
     if "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_talking_roles
-        badguys = get_players(var, get_talking_roles())
+        wolfchat = get_players(var, get_talking_roles())
     else:
-        badguys = get_players(var, Wolfchat)
+        wolfchat = get_players(var, Wolfchat)
     wolves = get_players(var, Wolf)
+    vampires = get_players(var, Vampire)
 
-    if wrapper.source in badguys and len(badguys) > 1:
+    if wrapper.source in wolfchat and len(wolfchat) > 1:
         # handle wolfchat toggles
         if not config.Main.get("gameplay.wolfchat.traitor_non_wolf"):
-            wolves.extend(var.roles["traitor"])
+            wolves.extend(get_players(var, ("traitor",)))
         if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
         elif var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
@@ -46,18 +48,37 @@ def relay_wolfchat(wrapper: MessageDispatcher, message: str):
         elif wrapper.source not in wolves and config.Main.get("gameplay.wolfchat.remove_non_wolves"):
             return
 
-        badguys.remove(wrapper.source)
-        # relay_message_wolfchat and relay_action_wolfchat also used here
-        key = "relay_message"
-        if message.startswith("\u0001ACTION"):
-            key = "relay_action"
-            message = message[8:-1]
-        for player in badguys:
-            player.queue_message(messages[key].format(wrapper.source, message))
-        for player in WOLFCHAT_SPECTATE:
-            player.queue_message(messages[key + "_wolfchat"].format(wrapper.source, message))
+        wolfchat.remove(wrapper.source)
+        send_to = wolfchat
+        spectators = WOLFCHAT_SPECTATE
+        spectate_key_suffix = "_wolfchat"
+    elif wrapper.source in vampires and len(vampires) > 1:
+        # handle vampire chat toggles; they use the same config as wolfchat
+        if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
+            return
+        elif var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
+            return
 
-        User.send_messages()
+        vampires.remove(wrapper.source)
+        send_to = vampires
+        spectators = VAMPCHAT_SPECTATE
+        spectate_key_suffix = "_vampchat"
+    else:
+        # not sending anything
+        return
+
+    key = "relay_message"
+    if message.startswith("\u0001ACTION") and message[-1] == "\u0001":
+        key = "relay_action"
+        message = message[8:-1]
+    for player in send_to:
+        player.queue_message(messages[key].format(wrapper.source, message))
+    for player in spectators:
+        # full keys used, for grep:
+        # relay_message_wolfchat relay_action_wolfchat relay_message_vampchat relay_action_vampchat
+        player.queue_message(messages[key + spectate_key_suffix].format(wrapper.source, message))
+
+    User.send_messages()
 
 @command("", chan=False, pm=True)
 def relay_deadchat(wrapper: MessageDispatcher, message: str):
@@ -112,7 +133,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
     elif len(params) > 1:
         on = params[1].lower()
     what = params[0].lower()
-    allowed = ("wolfchat", "deadchat") if is_fspectate else ("wolfchat",)
+    allowed = ("wolfchat", "vampchat", "deadchat") if is_fspectate else ("wolfchat", "vampchat")
     if what not in allowed or on not in ("on", "off"):
         wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
         return
@@ -120,22 +141,37 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
     if on == "off":
         if what == "wolfchat":
             WOLFCHAT_SPECTATE.discard(wrapper.source)
+        elif what == "vampchat":
+            VAMPCHAT_SPECTATE.discard(wrapper.source)
         else:
             DEADCHAT_SPECTATE.discard(wrapper.source)
         wrapper.pm(messages["spectate_off"].format(what))
     else:
-        if what == "wolfchat":
-            already_spectating = wrapper.source in WOLFCHAT_SPECTATE
-            WOLFCHAT_SPECTATE.add(wrapper.source)
-            players = list(get_players(var, Wolfchat))
-            if "src.roles.helper.wolves" in sys.modules:
-                from src.roles.helper.wolves import is_known_wolf_ally
-                players = [p for p in players if is_known_wolf_ally(var, p, p)]
+        if what in ("wolfchat", "vampchat"):
+            if what == "wolfchat":
+                already_spectating = wrapper.source in WOLFCHAT_SPECTATE
+                WOLFCHAT_SPECTATE.add(wrapper.source)
+                players = list(get_players(var, Wolfchat))
+                if "src.roles.helper.wolves" in sys.modules:
+                    from src.roles.helper.wolves import is_known_wolf_ally
+                    players = [p for p in players if is_known_wolf_ally(var, p, p)]
+            else:
+                already_spectating = wrapper.source in VAMPCHAT_SPECTATE
+                VAMPCHAT_SPECTATE.add(wrapper.source)
+                players = list(get_players(var, Vampire))
+                if "src.roles.vampire" in sys.modules:
+                    from src.roles.vampire import is_known_vampire_ally
+                    players = [p for p in players if is_known_vampire_ally(var, p, p)]
+
             if not is_fspectate and not already_spectating and config.Main.get("gameplay.spectate.notice"):
-                # FIXME: hardcoded English for wolfchat/deadchat param
-                key = "spectate_notice_user" if config.Main.get("gameplay.spectate.include_user") else "spectate_notice"
+                if config.Main.get("gameplay.spectate.include_user"):
+                    # keys used: spectate_wolfchat_notice_user spectate_vampchat_notice_user
+                    key = "spectate_{0}_notice_user".format(what)
+                else:
+                    # keys used: spectate_wolfchat_notice spectate_vampchat_notice
+                    key = "spectate_{0}_notice".format(what)
                 for player in players:
-                    player.queue_message(messages[key].format(what, wrapper.source))
+                    player.queue_message(messages[key].format(wrapper.source))
                 if players:
                     User.send_messages()
         elif config.Main.get("gameplay.deadchat"):
@@ -147,18 +183,18 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
         else:
             wrapper.pm(messages["spectate_deadchat_disabled"])
             return
-        wrapper.pm(messages["spectate_on"].format(what))
-        # FIXME: hardcoded English
-        wrapper.pm("People in {0}: {1}".format(what, ", ".join([player.nick for player in players])))
+        # keys used: spectate_on_deadchat spectate_on_wolfchat spectate_on_vampchat
+        wrapper.pm(messages["spectate_on_{0}".format(what)])
+        wrapper.pm(messages["players_list"].format(players))
 
 @command("spectate", flag="p", pm=True, phases=("day", "night"))
 def spectate(wrapper: MessageDispatcher, message: str):
-    """Spectate wolfchat or deadchat."""
+    """Spectate wolfchat, vampire chat, or deadchat."""
     spectate_chat(wrapper, message, is_fspectate=False)
 
 @command("fspectate", flag="F", pm=True, phases=("day", "night"))
 def fspectate(wrapper: MessageDispatcher, message: str):
-    """Spectate wolfchat or deadchat."""
+    """Spectate wolfchat, vampire chat, or deadchat."""
     spectate_chat(wrapper, message, is_fspectate=True)
 
 @command("revealroles", flag="a", pm=True, phases=("day", "night"))
@@ -224,7 +260,7 @@ def join_deadchat(var: GameState, *all_users: User):
     for user in DEADCHAT_PLAYERS:
         user.queue_message(msg)
     for user in DEADCHAT_SPECTATE:
-        user.queue_message("[deadchat] " + msg)
+        user.queue_message(messages["relay_command_deadchat"].format(msg))
     for user in to_join:
         user.queue_message(messages["joined_deadchat"])
         user.queue_message(messages["players_list"].format(list(people)))
@@ -250,7 +286,7 @@ def leave_deadchat(var: GameState, user: User, *, force=None):
         for user in DEADCHAT_PLAYERS:
             user.queue_message(msg)
         for user in DEADCHAT_SPECTATE:
-            user.queue_message("[deadchat] " + msg)
+            user.queue_message(messages["relay_command_deadchat"].format(msg))
 
         User.send_messages()
 

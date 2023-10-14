@@ -18,7 +18,7 @@ from src.status import is_silent, is_dying, try_protection, add_dying, kill_play
 from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
-from src.cats import Wolfteam, Hidden, Village, Win_Stealer, Wolf_Objective, Village_Objective, role_order
+from src.cats import Wolfteam, Vampire_Team, Hidden, Village, Win_Stealer, Wolf_Objective, Vampire_Objective, Village_Objective, role_order
 from src import channels, users, locks, config, db, reaper, relay
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
@@ -392,6 +392,10 @@ def transition_night(var: GameState):
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
 
+    # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
+    if chk_win(var):
+        return
+
     if not config.Main.get("gameplay.nightchat"):
         modes = []
         for player in get_players(var):
@@ -425,10 +429,6 @@ def transition_night(var: GameState):
                     timer.daemon = True
                     timer.start()
                     TIMERS[f"night_{s}"] = (timer, NIGHT_ID, getattr(var, value.format(s)))
-
-    # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
-    if chk_win(var):
-        return
 
     event_role = Event("send_role", {})
     event_role.dispatch(var)
@@ -557,9 +557,12 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
                 if player in reaper.DCED_LOSERS or winner == "":
                     continue
                 won = False
-                # determine default team win for wolves/village
+                # determine default team win for wolves/vampires/village
                 if role in Wolfteam or (var.hidden_role == "cultist" and role in Hidden):
                     if winner == "wolves":
+                        won = True
+                elif role in Vampire_Team or (var.hidden_role == "thrall" and role in Hidden):
+                    if winner == "vampires":
                         won = True
                 elif role in Village or (var.hidden_role == "villager" and role in Hidden):
                     if winner == "villagers":
@@ -659,7 +662,7 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
         channels.Main.send(messages["fstop_ping"].format(ADMIN_STOPPED))
         ADMIN_STOPPED.clear()
 
-def chk_win(var: GameState, *, end_game=True, winner=None):
+def chk_win(var: GameState, *, end_game=True, winner=None, count_absent=True):
     """ Returns True if someone won """
     global ENDGAME_COMMAND
     lpl = len(get_players(var))
@@ -681,12 +684,17 @@ def chk_win(var: GameState, *, end_game=True, winner=None):
     if var.setup_completed and not var.in_game:
         return False # some other thread already ended game probably
 
-    return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner)
+    return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner, count_absent)
 
-def chk_win_conditions(var: GameState, rolemap: dict[str, set[User]] | UserDict[str, UserSet], mainroles: dict[User, str] | UserDict[User, str], end_game=True, winner=None):
+def chk_win_conditions(var: GameState,
+                       rolemap: dict[str, set[User]] | UserDict[str, UserSet],
+                       mainroles: dict[User, str] | UserDict[User, str],
+                       end_game=True,
+                       winner=None,
+                       count_absent=True):
     """Internal handler for the chk_win function."""
     with locks.reaper:
-        if var.current_phase == "day":
+        if var.current_phase == "day" and count_absent:
             pl = set(get_players(var)) - get_absent(var)
             lpl = len(pl)
         else:
@@ -694,8 +702,10 @@ def chk_win_conditions(var: GameState, rolemap: dict[str, set[User]] | UserDict[
             lpl = len(pl)
 
         wolves = set(get_players(var, Wolf_Objective, mainroles=mainroles))
-        lwolves = len(wolves & pl)
-        lrealwolves = len(get_players(var, Village_Objective, mainroles=mainroles))
+        vampires = set(get_players(var, Vampire_Objective, mainroles=mainroles))
+        num_wolves = len(wolves & pl)
+        num_vampires = len(vampires & pl)
+        num_real_wolves = len(get_players(var, Village_Objective, mainroles=mainroles))
 
         message = ""
         if lpl < 1:
@@ -717,7 +727,7 @@ def chk_win_conditions(var: GameState, rolemap: dict[str, set[User]] | UserDict[
         #     (monster's message changes based on who would have otherwise won)
         # 5 = gamemode-specific win conditions
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
-        if not event.dispatch(var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+        if not event.dispatch(var, rolemap, mainroles, lpl, num_wolves, num_real_wolves, num_vampires):
             return chk_win_conditions(var, rolemap, mainroles, end_game, winner)
         winner = event.data["winner"]
         message = event.data["message"]

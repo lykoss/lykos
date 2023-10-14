@@ -34,7 +34,7 @@ class ChangedRolesMode(GameMode):
                 elif role == "default" and num in cats.ROLES:
                     self.CUSTOM_SETTINGS.default_role = num
                     self.CUSTOM_SETTINGS._overridden.add("default_role")
-                elif role == "hidden" and num in ("villager", "cultist"):
+                elif role == "hidden" and num in ("villager", "cultist", "thrall"):
                     self.CUSTOM_SETTINGS.hidden_role = num
                     self.CUSTOM_SETTINGS._overridden.add("hidden_role")
                 elif role in ("role reveal", "stats", "abstain"):

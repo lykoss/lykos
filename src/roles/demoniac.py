@@ -15,12 +15,9 @@ def on_send_role(evt: Event, var: GameState):
 
 # monster is at priority 4, and we want demoniac to take precedence
 @event_listener("chk_win", priority=4.1) # FIXME: Kill the priorities
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
     demoniacs = len(rolemap.get("demoniac", ()))
-    traitors = len(rolemap.get("traitor", ()))
-    cubs = len(rolemap.get("wolf cub", ()))
-
-    if not lrealwolves and not traitors and not cubs and demoniacs:
+    if not lrealwolves and demoniacs:
         evt.data["message"] = messages["demoniac_win"].format(demoniacs)
         evt.data["winner"] = "demoniacs"
 

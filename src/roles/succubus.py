@@ -103,7 +103,7 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
             evt.data["individual_win"] = True
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len([x for x in ENTRANCED if not is_dead(var, x)])
     if var.current_phase == "day" and lsuccubi and lpl - lsuccubi == lentranced:

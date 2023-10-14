@@ -2,6 +2,8 @@
 # Wolf: Defines the role as a true wolf role (usually can kill, dies when shot, kills visiting harlots, etc.)
 # Wolfchat: Defines the role as having access to wolfchat (depending on gameplay.wolfchat config settings)
 # Wolfteam: Defines the role as wolfteam for determining winners
+# Vampire: Defines the role as a true vampire role (usually able to bite, access to vampire chat)
+# Vampire Team: Defines the role as vampire team for determining winners
 # Killer: Roles which can kill other roles during the game. Roles which kill upon or after death (ms, vg) don't belong in here
 # Village: Defines the role as village for determining winners
 # Nocturnal: Defines the role as being awake at night (usually due to having commands which work at night)
@@ -16,7 +18,9 @@
 # Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
 # Team Switcher: Roles which may change teams during gameplay
 # Wolf Objective: If the number of alive players with this role is greater than or equal to the other players,
-#    the wolfteam wins. Only main roles are considered for this.
+#    the wolfteam wins. Only main roles are considered for this. All Vampire Objectives must additionally be dead.
+# Vampire Objective: If the number of alive players with this role is greater than or equal to the other players,
+#    the vampire team wins. Only main roles are considered for this. All Wolf Objectives must additionally be dead.
 # Village Objective: If all of the players with this cat are dead, the village wins.
 #    Only main roles are considered for this.
 
@@ -31,7 +35,8 @@ from src.events import Event, EventListener
 __all__ = [
     "get", "role_order", "all_cats", "all_roles", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
-    "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective", "All"
+    "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective",
+    "Vampire", "Vampire_Team", "Vampire_Objective", "All"
 ]
 
 _dict_keys = type(dict().keys())  # type: ignore
@@ -42,7 +47,7 @@ ROLE_CATS: dict[str, Category] = {}
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
 # Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)
-ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Win Stealer", "Neutral"]
+ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Vampire", "Vampire Team", "Village", "Hidden", "Win Stealer", "Neutral"]
 
 FROZEN = False
 
@@ -66,12 +71,14 @@ def role_order():
             if tag in tags:
                 buckets[tag].append(role)
                 break
-    # handle fixed ordering for wolf and villager
+    # handle fixed ordering for wolf, vampire, and villager
     buckets["Wolf"].remove("wolf")
+    buckets["Vampire"].remove("vampire")
     buckets["Village"].remove("villager")
     for tags in buckets.values():
         tags.sort()
     buckets["Wolf"].insert(0, "wolf")
+    buckets["Vampire"].insert(0, "vampire")
     buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
@@ -99,8 +106,8 @@ def _register_roles(evt: Event):
     mevt = Event("get_role_metadata", {})
     mevt.dispatch(None, "role_categories")
     for role, cats in mevt.data.items():
-        if len(cats & {"Wolfteam", "Village", "Neutral", "Hidden"}) != 1:
-            raise RuntimeError("Invalid categories for {0}: Must have exactly one of {{Wolfteam, Village, Neutral, Hidden}}, got {1}".format(role, cats))
+        if len(cats & {"Wolfteam", "Vampire Team", "Village", "Neutral", "Hidden"}) != 1:
+            raise RuntimeError("Invalid categories for {0}: Must have exactly one of {{Wolfteam, Vampire Team, Village, Neutral, Hidden}}, got {1}".format(role, cats))
         ROLES[role] = frozenset(cats)
         for cat in cats:
             if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
@@ -222,6 +229,8 @@ All = Category("All", alias="*")
 Wolf = Category("Wolf")
 Wolfchat = Category("Wolfchat")
 Wolfteam = Category("Wolfteam")
+Vampire = Category("Vampire")
+Vampire_Team = Category("Vampire Team")
 Killer = Category("Killer")
 Village = Category("Village")
 Nocturnal = Category("Nocturnal")
@@ -236,3 +245,4 @@ Innocent = Category("Innocent")
 Team_Switcher = Category("Team Switcher")
 Village_Objective = Category("Village Objective")
 Wolf_Objective = Category("Wolf Objective")
+Vampire_Objective = Category("Vampire Objective")
