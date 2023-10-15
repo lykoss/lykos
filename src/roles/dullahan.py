@@ -84,7 +84,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
 def on_night_kills(evt: Event, var: GameState):
     while KILLS:
         k, d = KILLS.popitem()
-        evt.data["victims"].append(d)
+        evt.data["victims"].add(d)
         evt.data["killers"][d].append(k)
 
 @event_listener("new_role")
