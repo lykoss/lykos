@@ -15,7 +15,7 @@ from src import users
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 
-TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_totem=True)
+TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("wolf shaman", knows_totem=True)
 
 register_wolf("wolf shaman")
 
@@ -44,11 +44,12 @@ def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, target, totem, key="shaman_success_night_known", role="wolf shaman")
+    given = give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_known", role="wolf shaman")
     if given:
         victim, target = given
         if victim is not target:
             RETARGET[wrapper.source][target] = victim
+            ORIG_TARGET_MAP[wrapper.source][totem][victim] = target
         SHAMANS[wrapper.source][totem].append(victim)
         if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
             SHAMANS[wrapper.source][totem].pop(0)

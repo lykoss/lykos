@@ -99,17 +99,24 @@ def setup_variables(rolename, *, knows_totem):
     """Setup role variables and shared events."""
     def ulf():
         # Factory method to create a DefaultUserDict[*, UserList]
-        # this can be passed into a DefaultUserDict constructor so we can make nested defaultdicts easily
+        # this can be passed into a DefaultUserDict constructor so that we can make nested defaultdicts easily
         return DefaultUserDict(UserList)
+
+    def udf():
+        # Analogue of ulf() but for UserDicts
+        return DefaultUserDict(UserDict)
+
     TOTEMS: DefaultUserDict[users.User, dict[str, int]] = DefaultUserDict(dict)
     LASTGIVEN: DefaultUserDict[users.User, DefaultUserDict[str, UserList]] = DefaultUserDict(ulf)
     SHAMANS: DefaultUserDict[users.User, DefaultUserDict[str, UserList]] = DefaultUserDict(ulf)
     RETARGET: DefaultUserDict[users.User, UserDict[users.User, users.User]] = DefaultUserDict(UserDict)
+    ORIG_TARGET_MAP: DefaultUserDict[users.User, DefaultUserDict[str, UserDict[users.User, users.User]]] = DefaultUserDict(udf)
     _rolestate[rolename] = {
         "TOTEMS": TOTEMS,
         "LASTGIVEN": LASTGIVEN,
         "SHAMANS": SHAMANS,
-        "RETARGET": RETARGET
+        "RETARGET": RETARGET,
+        "ORIG_TARGET_MAP": ORIG_TARGET_MAP
     }
 
     @event_listener("reset", listener_id="shamans.<{}>.on_reset".format(rolename))
@@ -118,11 +125,13 @@ def setup_variables(rolename, *, knows_totem):
         LASTGIVEN.clear()
         SHAMANS.clear()
         RETARGET.clear()
+        ORIG_TARGET_MAP.clear()
 
     @event_listener("begin_day", listener_id="shamans.<{}>.on_begin_day".format(rolename))
     def on_begin_day(evt: Event, var: GameState):
         SHAMANS.clear()
         RETARGET.clear()
+        ORIG_TARGET_MAP.clear()
 
     @event_listener("revealroles_role", listener_id="shamans.<{}>.revealroles_role".format(rolename))
     def on_revealroles(evt: Event, var: GameState, user, role):
@@ -144,8 +153,8 @@ def setup_variables(rolename, *, knows_totem):
         LASTGIVEN.clear()
         for shaman, given in SHAMANS.items():
             for totem, targets in given.items():
-                for target in targets:
-                    victim = RETARGET[shaman].get(target, target)
+                for victim in targets:
+                    target = ORIG_TARGET_MAP[shaman][totem].get(victim, victim)
                     if not victim:
                         continue
                     if totem == "death": # this totem stacks
@@ -194,18 +203,22 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("del_player", listener_id="shamans.<{}>.del_player".format(rolename))
     def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+        del SHAMANS[:player:]
         for a, b in list(SHAMANS.items()):
-            if player is a:
-                del SHAMANS[a]
-            else:
-                for totem, c in b.items():
-                    if player in c:
-                        SHAMANS[a][totem].remove(player)
+            for totem, c in b.items():
+                if player in c:
+                    SHAMANS[a][totem].remove(player)
         del RETARGET[:player:]
         for a, b in list(RETARGET.items()):
-            for c, d in list(b.items()):
+            for c, d in b.items():
                 if player in (c, d):
                     del RETARGET[a][c]
+        del ORIG_TARGET_MAP[:player:]
+        for a, b in list(ORIG_TARGET_MAP.items()):
+            for totem, c in b.items():
+                for d, e in c.items():
+                    if player in (d, e):
+                        del ORIG_TARGET_MAP[a][totem][d]
 
     @event_listener("chk_nightdone", listener_id="shamans.<{}>.chk_nightdone".format(rolename))
     def on_chk_nightdone(evt: Event, var: GameState):
@@ -279,7 +292,7 @@ def setup_variables(rolename, *, knows_totem):
             if evt.data["role"] == rolename and var.current_phase == "night" and user not in SHAMANS:
                 evt.data["messages"].append(totem_message(TOTEMS[user]))
 
-    return (TOTEMS, LASTGIVEN, SHAMANS, RETARGET)
+    return TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP
 
 def totem_message(totems, count_only=False):
     totemcount = sum(totems.values())

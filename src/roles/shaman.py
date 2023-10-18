@@ -14,7 +14,7 @@ from src.roles.helper.shamans import setup_variables, get_totem_target, give_tot
 from src.status import is_silent
 from src import users
 
-TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("shaman", knows_totem=True)
+TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("shaman", knows_totem=True)
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
 def shaman_totem(wrapper: MessageDispatcher, message: str):
@@ -41,11 +41,12 @@ def shaman_totem(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, target, totem, key="shaman_success_night_known", role="shaman")
+    given = give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_known", role="shaman")
     if given:
         victim, target = given
         if victim is not target:
             RETARGET[wrapper.source][target] = victim
+            ORIG_TARGET_MAP[wrapper.source][totem][victim] = target
         SHAMANS[wrapper.source][totem].append(victim)
         if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
             SHAMANS[wrapper.source][totem].pop(0)
