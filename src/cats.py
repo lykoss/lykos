@@ -28,12 +28,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
+import typing
 
 from src.messages._messages import Messages as _Messages
 from src.events import Event, EventListener
 
+if typing.TYPE_CHECKING:
+    from src.gamestate import GameState
+
 __all__ = [
-    "get", "role_order", "all_cats", "all_roles", "Category",
+    "get", "get_team", "role_order", "all_cats", "all_roles", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective",
     "Vampire", "Vampire_Team", "Vampire_Objective", "All"
@@ -52,6 +56,7 @@ ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Vampire", "Vampire Team", "Villag
 FROZEN = False
 
 ROLES = {}
+TEAMS: set[Category] = set()
 
 _internal_en = _Messages(override="en")
 
@@ -101,13 +106,31 @@ def all_roles() -> dict[str, list[Category]]:
         roles[role] = [next(iter(main_cat))] + sorted(iter(cats), key=str)
     return roles
 
+def get_team(var: GameState, role: str) -> Category:
+    if not FROZEN:
+        raise RuntimeError("Fatal: Role categories are not ready")
+    if Hidden in TEAMS and role in Hidden:
+        role = var.hidden_role
+    for team in TEAMS:
+        if role in team:
+            return team
+
 def _register_roles(evt: Event):
     global FROZEN
-    mevt = Event("get_role_metadata", {})
-    mevt.dispatch(None, "role_categories")
-    for role, cats in mevt.data.items():
-        if len(cats & {"Wolfteam", "Vampire Team", "Village", "Neutral", "Hidden"}) != 1:
-            raise RuntimeError("Invalid categories for {0}: Must have exactly one of {{Wolfteam, Vampire Team, Village, Neutral, Hidden}}, got {1}".format(role, cats))
+    team_evt = Event("get_role_metadata", {
+        "teams": {"Wolfteam", "Vampire Team", "Village", "Neutral", "Hidden"}
+    })
+    team_evt.dispatch(None, "team_categories")
+    teams = set(team_evt.data["teams"])
+    for cat in teams:
+        if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
+            raise ValueError("{0!r} is not a valid role category".format(cat))
+
+    evt = Event("get_role_metadata", {})
+    evt.dispatch(None, "role_categories")
+    for role, cats in evt.data.items():
+        if len(cats & teams) != 1:
+            raise RuntimeError("Invalid categories for {0}: Must have exactly one team defined".format(role))
         ROLES[role] = frozenset(cats)
         for cat in cats:
             if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
@@ -118,6 +141,9 @@ def _register_roles(evt: Event):
     for cat in ROLE_CATS.values():
         cat.freeze()
     FROZEN = True
+
+    for cat in teams:
+        TEAMS.add(ROLE_CATS[cat])
 
 EventListener(_register_roles, priority=1).install("init")
 
@@ -183,12 +209,17 @@ class Category:
     def __repr__(self):
         return "Role category: {0}".format(self.name)
 
-    def plural(self):
+    def plural_roles(self):
         """Return the English plural versions of roles for internal use."""
         values = set()
         for role in self:
             values.add(_internal_en.raw("_roles", role)[1])
         return values
+
+    @property
+    def plural_name(self):
+        """Return the English plural version of this category's name for internal use."""
+        return _internal_en.raw("_role_categories", self.name)[1]
 
     def __invert__(self):
         new = self.from_combination(All, self, "", set.difference_update)
@@ -246,3 +277,4 @@ Team_Switcher = Category("Team Switcher")
 Village_Objective = Category("Village Objective")
 Wolf_Objective = Category("Wolf Objective")
 Vampire_Objective = Category("Vampire Objective")
+Evil = Category("Evil")

@@ -23,8 +23,13 @@ def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
     def on_send_role(evt: Event, var: GameState):
         values = []
 
-        for t in types:
+        for i, t in enumerate(types):
+            # if the game didn't start with any of this type of role, hide it from the output
+            # for safety, we'll always display the first type listed even if there aren't any of that type
             cat = cats.get(t)
+            orig_players = get_players(var, cat, mainroles=var.original_main_roles)
+            if i > 0 and not orig_players:
+                continue
             players = get_players(var, cat)
             values.append((len(players), t))
 

@@ -81,4 +81,4 @@ def on_reset(evt: Event, var: GameState):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy", "Wolf Objective"}
+        evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy", "Wolf Objective", "Evil"}

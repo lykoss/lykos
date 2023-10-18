@@ -185,7 +185,7 @@ def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         evt.data["vampire"] = min(len(var.vampire_drained), len(get_all_players(var, ("vampire",))))
     elif kind == "role_categories":
-        evt.data["vampire"] = {"Vampire", "Vampire Team", "Killer", "Nocturnal", "Vampire Objective", "Village Objective"}
+        evt.data["vampire"] = {"Vampire", "Vampire Team", "Killer", "Nocturnal", "Vampire Objective", "Village Objective", "Evil"}
 
 _bite_cmds = ("bite", "retract")
 

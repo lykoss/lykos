@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from src.cats import Neutral, Wolfteam
+from src.cats import Neutral, Evil
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
@@ -40,7 +40,7 @@ def see(wrapper: MessageDispatcher, message: str):
     targrole = evt.data["role"]
 
     aura = "blue"
-    if targrole in Wolfteam:
+    if targrole in Evil:
         aura = "red"
     elif targrole in Neutral:
         aura = "grey"

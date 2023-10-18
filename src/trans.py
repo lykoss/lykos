@@ -18,7 +18,8 @@ from src.status import is_silent, is_dying, try_protection, add_dying, kill_play
 from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
-from src.cats import Wolfteam, Vampire_Team, Hidden, Village, Win_Stealer, Wolf_Objective, Vampire_Objective, Village_Objective, role_order
+from src.cats import (Wolfteam, Vampire_Team, Hidden, Village, Win_Stealer, Wolf_Objective, Vampire_Objective,
+                      Village_Objective, role_order, get_team)
 from src import channels, users, locks, config, db, reaper, relay
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
@@ -548,7 +549,7 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
         player_list = []
 
         if winner != "" or log:
-            is_win_stealer = winner in Win_Stealer.plural()
+            is_win_stealer = winner in Win_Stealer.plural_roles()
             if additional_winners is not None:
                 winners.update(additional_winners)
 
@@ -556,17 +557,9 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
             for player, role in mainroles.items():
                 if player in reaper.DCED_LOSERS or winner == "":
                     continue
-                won = False
-                # determine default team win for wolves/vampires/village
-                if role in Wolfteam or (var.hidden_role == "cultist" and role in Hidden):
-                    if winner == "wolves":
-                        won = True
-                elif role in Vampire_Team or (var.hidden_role == "thrall" and role in Hidden):
-                    if winner == "vampires":
-                        won = True
-                elif role in Village or (var.hidden_role == "villager" and role in Hidden):
-                    if winner == "villagers":
-                        won = True
+                # determine default team win
+                won = get_team(var, role).plural_name == winner
+
                 # Let events modify this as necessary.
                 # Neutral roles will need to listen in on this to determine team wins
                 event = Event("team_win", {"team_win": won})

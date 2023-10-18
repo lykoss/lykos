@@ -9,4 +9,4 @@ register_wolf("cult leader")
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["cult leader"] = {"Wolfchat", "Wolfteam"}
+        evt.data["cult leader"] = {"Wolfchat", "Wolfteam", "Evil"}

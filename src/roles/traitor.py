@@ -120,4 +120,4 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["traitor"] = {"Wolfchat", "Wolfteam", "Wolf Objective"}
+        evt.data["traitor"] = {"Wolfchat", "Wolfteam", "Wolf Objective", "Evil"}
