@@ -77,14 +77,23 @@ def role_order():
                 buckets[tag].append(role)
                 break
     # handle fixed ordering for wolf, vampire, and villager
-    buckets["Wolf"].remove("wolf")
-    buckets["Vampire"].remove("vampire")
-    buckets["Village"].remove("villager")
+    have_wolf = "Wolf" in buckets and "wolf" in buckets["Wolf"]
+    have_vampire = "Vampire" in buckets and "vampire" in buckets["Vampire"]
+    have_villager = "Village" in buckets and "villager" in buckets["Village"]
+    if have_wolf:
+        buckets["Wolf"].remove("wolf")
+    if have_vampire:
+        buckets["Vampire"].remove("vampire")
+    if have_villager:
+        buckets["Village"].remove("villager")
     for tags in buckets.values():
         tags.sort()
-    buckets["Wolf"].insert(0, "wolf")
-    buckets["Vampire"].insert(0, "vampire")
-    buckets["Village"].append("villager")
+    if have_wolf:
+        buckets["Wolf"].insert(0, "wolf")
+    if have_vampire:
+        buckets["Vampire"].insert(0, "vampire")
+    if have_villager:
+        buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
 def all_cats() -> dict[str, Category]:
@@ -101,7 +110,7 @@ def all_roles() -> dict[str, list[Category]]:
     # followed by all other categories in alphabetical order
     for role, tags in ROLES.items():
         cats = set(ROLE_CATS[tag] for tag in tags)
-        main_cat = cats & {Wolfteam, Village, Neutral, Hidden}
+        main_cat = cats & TEAMS
         cats.difference_update(main_cat)
         roles[role] = [next(iter(main_cat))] + sorted(iter(cats), key=str)
     return roles
