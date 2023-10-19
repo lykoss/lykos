@@ -237,7 +237,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
         evt.data["acted"].append(fake)
 
 @event_listener("wolf_notify")
-def on_transition_night_end(evt: Event, var: GameState, role):
+def on_wolf_notify(evt: Event, var: GameState, role):
     # roles allowed to talk in wolfchat
     talkroles = get_talking_roles()
 
@@ -261,7 +261,7 @@ def on_transition_night_end(evt: Event, var: GameState, role):
 
     wolves = get_players(var, (role,))
     for wolf in wolves:
-        wolf.queue_message(messages["wolfchat_notify_{0}".format(wccond)])
+        wolf.queue_message(messages["wolfchat_notify_{0}".format(wccond)].format("Wolf"))
     User.send_messages()
 
 @event_listener("begin_day")

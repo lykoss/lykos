@@ -82,4 +82,4 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Spy", "Village Objective", "Wolf Objective"}
+        evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Spy", "Village Objective", "Wolf Objective", "Evil"}

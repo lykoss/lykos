@@ -97,7 +97,7 @@ def retract(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["piper_retract"])
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
     # lpl doesn't included wounded/sick people or consecrating priests
     # whereas we want to ensure EVERYONE (even wounded people) are charmed for piper win
     pipers = rolemap.get("piper", set())

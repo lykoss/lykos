@@ -296,7 +296,7 @@ class GameMode:
 
     # Here so any game mode can use it
     # FIXME: lovers should be a status or something more generic so we don't need to import matchmaker here
-    def lovers_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def lovers_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         winner = evt.data["winner"]
         if winner in Win_Stealer:
             return # fool won, lovers can't win even if they would
@@ -311,7 +311,7 @@ class GameMode:
             evt.data["winner"] = "lovers"
             evt.data["message"] = messages["lovers_win"]
 
-    def all_dead_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def all_dead_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]

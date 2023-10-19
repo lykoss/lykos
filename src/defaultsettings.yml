@@ -782,7 +782,7 @@ gameplay: &gameplay
       _desc: >
         Many wolf roles have access to wolfchat, which allows them to communicate with each other throughout the
         night and day in private through the bot. This section allows for implementing restrictions on when wolfchat
-        may be used and who is able to use it.
+        may be used and who is able to use it. These settings also apply to vampire chat, where sensible.
       _type: dict
       _default:
         disable_day:

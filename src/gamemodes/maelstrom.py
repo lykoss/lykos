@@ -8,7 +8,7 @@ from src.gamestate import GameState
 from src.events import Event, EventListener
 from src.trans import chk_win_conditions
 from src import channels, users
-from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Killer
+from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Vampire_Objective, Killer
 
 @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
@@ -79,17 +79,20 @@ class MaelstromMode(GameMode):
         lpl = len(villagers)
         addroles = Counter()
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
-        lwolves = 1
+        num_wolves = 1
+        num_vampires = 0
         roles = list(self.roles)
         for i in range(1, lpl):
-            if lwolves >= (lpl / 2) - 1:
+            if num_wolves + num_vampires >= (lpl / 2) - 1:
                 # Make sure game does not end immediately
-                role = random.choice(list(set(roles) - Wolf_Objective))
+                role = random.choice(list(set(roles) - Wolf_Objective - Vampire_Objective))
             else:
                 role = random.choice(roles)
             addroles[role] += 1
             if role in Wolf_Objective:
-                lwolves += 1
+                num_wolves += 1
+            if role in Vampire_Objective:
+                num_vampires += 1
 
         if do_templates:
             addroles["gunner/sharpshooter"] = random.randrange(6)

@@ -5,7 +5,7 @@ import re
 from typing import Optional
 
 from src import users
-from src.cats import Wolf, Win_Stealer
+from src.cats import Vampire, Wolf, Win_Stealer
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
@@ -72,7 +72,7 @@ def on_night_kills(evt: Event, var: GameState):
         # important, otherwise our del_player listener instructs vigilante to kill again
         del KILLS[vigilante]
 
-        if get_main_role(var, target) not in Wolf | Win_Stealer:
+        if get_main_role(var, target) not in Wolf | Vampire | Win_Stealer:
             evt.data["kill_priorities"]["@vigilante"] = 15
             evt.data["victims"].add(vigilante)
             evt.data["killers"][vigilante].append("@vigilante")

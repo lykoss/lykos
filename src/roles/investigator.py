@@ -4,7 +4,7 @@ import random
 import re
 from typing import Optional
 
-from src.cats import Neutral, Wolfteam
+from src.cats import get_team
 from src.containers import UserSet
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -55,24 +55,8 @@ def investigate(wrapper: MessageDispatcher, message: str):
     evt.dispatch(var, wrapper.source, target2, "investigator")
     t2role = evt.data["role"]
 
-    # FIXME: make a standardized way of getting team affiliation, and make
-    # augur and investigator both use it (and make it events-aware so other
-    # teams can be added more easily)
-    if t1role in Wolfteam:
-        t1role = "red"
-    elif t1role in Neutral:
-        t1role = "grey"
-    else:
-        t1role = "blue"
-
-    if t2role in Wolfteam:
-        t2role = "red"
-    elif t2role in Neutral:
-        t2role = "grey"
-    else:
-        t2role = "blue"
-
-    evt = Event("get_team_affiliation", {"same": (t1role == t2role)})
+    same = get_team(var, t1role) is get_team(var, t2role)
+    evt = Event("get_team_affiliation", {"same": same})
     evt.dispatch(var, target1, target2)
 
     if evt.data["same"]:

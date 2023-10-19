@@ -5,7 +5,7 @@ from src.gamestate import GameState
 from src.events import EventListener, Event
 from src.trans import chk_win_conditions
 from src import users
-from src.cats import All, Wolf, Wolf_Objective, Killer
+from src.cats import All, Wolf, Wolf_Objective, Vampire_Objective, Killer
 
 @game_mode("random", minp=8, maxp=24, likelihood=0)
 class RandomMode(GameMode):
@@ -48,17 +48,21 @@ class RandomMode(GameMode):
         lpl = len(villagers)
         addroles = evt.data["addroles"]
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
-        lwolves = 1
-        roles = list(All - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
+        num_wolves = 1
+        num_vampires = 0
+        roles = list(All - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "thrall", "amnesiac"})
         for i in range(1, lpl):
-            if lwolves >= (lpl / 2) - 1:
+            if num_wolves + num_vampires >= (lpl / 2) - 1:
                 # Make sure game does not end immediately
-                role = random.choice(list(set(roles) - Wolf_Objective))
+                role = random.choice(list(set(roles) - Wolf_Objective - Vampire_Objective))
             else:
                 role = random.choice(roles)
             addroles[role] += 1
             if role in Wolf_Objective:
-                lwolves += 1
+                num_wolves += 1
+            if role in Vampire_Objective:
+                num_vampires += 1
+
         addroles["gunner/sharpshooter"] = random.randrange(int(len(villagers) ** 1.2 / 4))
         addroles["assassin"] = random.randrange(max(int(len(villagers) ** 1.2 / 8), 1))
 

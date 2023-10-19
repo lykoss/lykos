@@ -224,7 +224,7 @@ class BorealMode(GameMode):
                 # gave to a player
                 self.totem_tracking[target] -= 1
 
-    def on_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def on_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         if self.village_starve == self.max_village_starve and var.current_phase == "day":
             # if village didn't feed the NPCs enough nights, the starving tribe members destroy themselves from within
             # this overrides built-in win conds (such as all wolves being dead)

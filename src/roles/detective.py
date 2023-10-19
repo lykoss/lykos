@@ -46,7 +46,7 @@ def investigate(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["investigate_success"].format(target, targrole))
 
     if random.randrange(0, 100) < config.Main.get("gameplay.safes.detective_reveal"):  # a 2/5 chance (changeable in settings)
-        # The detective's identity is compromised! Let the opposing team know
+        # The detective's identity is compromised! Let the wolves know
         if get_main_role(var, wrapper.source) in Wolfteam:
             to_notify = get_players(var, Safe)
         else:

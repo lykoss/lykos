@@ -25,7 +25,7 @@ class EvilVillageMode(GameMode):
             "chk_win": EventListener(self.chk_win)
         }
 
-    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         lsafes = len(get_players(var, Village, mainroles=mainroles))
         lcultists = len(get_players(var, ["cultist"], mainroles=mainroles))
         evt.stop_processing = True

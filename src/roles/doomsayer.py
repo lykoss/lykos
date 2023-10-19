@@ -84,8 +84,9 @@ def on_chk_nightdone(evt: Event, var: GameState):
 def on_transition_day_begin(evt: Event, var: GameState):
     for target in SICK.values():
         target.queue_message(messages["player_sick"])
-    if SICK:
-        User.send_messages()
+        status.add_absent(var, target, "illness")
+        status.add_silent(var, target)
+    User.send_messages()
 
 @event_listener("night_kills")
 def on_night_kills(evt: Event, var: GameState):
@@ -109,11 +110,6 @@ def on_transition_night_end(evt: Event, var: GameState):
 
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):
-    for sick in SICK.values():
-        status.add_absent(var, sick, "illness")
-        status.add_silent(var, sick)
-        move_player_home(var, sick)
-
     # clear out LASTSEEN for people that didn't see last night
     for doom in list(LASTSEEN.keys()):
         if doom not in SEEN:
@@ -132,4 +128,4 @@ def on_reset(evt: Event, var: GameState):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["doomsayer"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective"}
+        evt.data["doomsayer"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective", "Evil"}

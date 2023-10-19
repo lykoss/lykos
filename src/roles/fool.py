@@ -28,7 +28,14 @@ def on_lynch(evt: Event, var: GameState, votee, voters):
         evt.stop_processing = True
 
 @event_listener("chk_win", priority=0)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int):
+def on_chk_win(evt: Event,
+               var: GameState,
+               role_map: dict[str, set[User]],
+               main_roles: dict[User, str],
+               num_players: int,
+               num_wolves: int,
+               num_real_wolves: int,
+               num_vampires: int):
     if evt.data["winner"] == "fools":
         evt.data["message"] = messages["fool_win"]
 

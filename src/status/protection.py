@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import random
 from typing import Optional
+from dataclasses import dataclass
 
 from src.containers import UserDict, DefaultUserDict
 from src.functions import get_players
@@ -10,41 +12,69 @@ from src.cats import All, Category
 from src.users import User
 from src.gamestate import GameState
 
-__all__ = ["add_protection", "try_protection", "remove_all_protections"]
+__all__ = ["add_protection", "try_protection", "remove_all_protections", "ProtectionEntry"]
 
-PROTECTIONS: UserDict[User, UserDict[Optional[User], list[tuple[Category | set[str], str]]]] = UserDict()
+@dataclass(frozen=True)
+class ProtectionEntry:
+    scope: Category | set[str]
+    protector_role: str
+    priority: int
 
-def add_protection(var: GameState, target: User, protector: Optional[User], protector_role: str, scope: Category | set[str] = All):
-    """Add a protection to the target affecting the relevant scope."""
+PROTECTIONS: UserDict[User, UserDict[Optional[User], list[ProtectionEntry]]] = UserDict()
+
+def add_protection(var: GameState,
+                   target: User,
+                   protector: Optional[User],
+                   protector_role: str,
+                   scope: Category | set[str] = All,
+                   priority: int = 0):
+    """ Add a protection to the target affecting the relevant scope.
+
+    :param var: Game state
+    :param target: Player to protect
+    :param protector: Who is protecting the target (potentially None)
+    :param protector_role: Role of the protector
+    :param scope: Protection scope. An attacker must belong to one of these roles for the protection to work.
+    :param priority: Protection priority. Lower numbers apply before higher numbers. Ties are determined randomly.
+    """
     if target not in get_players(var):
         return
 
     if target not in PROTECTIONS:
         PROTECTIONS[target] = DefaultUserDict(list)
 
-    prot_entry = (scope, protector_role)
+    prot_entry = ProtectionEntry(scope, protector_role, priority)
     PROTECTIONS[target][protector].append(prot_entry)
 
 def try_protection(var: GameState, target: User, attacker: Optional[User], attacker_role: str, reason: str):
     """Attempt to protect the player, and return a list of messages or None."""
-    prots = []
+    prots: list[tuple[Optional[User], ProtectionEntry]] = []
     for protector, entries in PROTECTIONS.get(target, {}).items():
-        for scope, protector_role in entries:
-            if attacker_role in scope:
-                entry = (protector, protector_role, scope)
-                prots.append(entry)
+        for entry in entries:
+            if attacker_role in entry.scope:
+                prots.append((protector, entry))
 
     try_evt = Event("try_protection", {"protections": prots, "messages": []})
     if not try_evt.dispatch(var, target, attacker, attacker_role, reason) or not try_evt.data["protections"]:
         return None
 
-    protector, protector_role, scope = try_evt.data["protections"].pop(0)
+    # sort protections in the order in which they'll be applied
+    # first by priority (low to high), then randomized
+    prots = []
+    priority = None
+    for protector, entry in try_evt.data["protections"]:
+        if priority is None or entry.priority < priority:
+            prots.clear()
+            priority = entry.priority
+        elif entry.priority > priority:
+            continue
 
-    PROTECTIONS[target][protector].remove((scope, protector_role))
+        prots.append((protector, entry))
 
+    protector, entry = random.choice(prots)
+    PROTECTIONS[target][protector].remove(entry)
     prot_evt = Event("player_protected", {"messages": try_evt.data["messages"]})
-    prot_evt.dispatch(var, target, attacker, attacker_role, protector, protector_role, reason)
-
+    prot_evt.dispatch(var, target, attacker, attacker_role, protector, entry.protector_role, reason)
     return prot_evt.data["messages"]
 
 def remove_all_protections(var: GameState, target: User, attacker: User, attacker_role: str, reason: str, scope: Category | set[str] = All):
@@ -53,12 +83,12 @@ def remove_all_protections(var: GameState, target: User, attacker: User, attacke
         return
 
     for protector, entries in list(PROTECTIONS[target].items()):
-        for cat, protector_role in entries:
-            if scope & cat:
+        for entry in entries:
+            if scope & entry.scope:
                 evt = Event("remove_protection", {"remove": False})
-                evt.dispatch(var, target, attacker, attacker_role, protector, protector_role, reason)
+                evt.dispatch(var, target, attacker, attacker_role, protector, entry.protector_role, reason)
                 if evt.data["remove"]:
-                    PROTECTIONS[target][protector].remove((cat, protector_role))
+                    PROTECTIONS[target][protector].remove(entry)
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
