@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_targe
 from src.decorators import command
 from src.containers import UserSet, UserDict
 from src.messages import messages
-from src.status import try_misdirection, try_exchange, add_protection, add_absent, add_silent
+from src.status import try_misdirection, try_exchange, add_protection, add_absent
 from src.events import Event, event_listener
 from src.users import User
 from src.cats import Vampire
@@ -156,7 +156,6 @@ def on_player_protected(evt: Event,
         var.vampire_drained.add(target)
         target.send(messages["vampire_drained"])
         add_absent(var, target, "drained")
-        add_silent(var, target)
 
 @event_listener("add_lycanthropy")
 def on_add_lycanthropy(evt: Event, var: GameState, target):
