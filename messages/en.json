@@ -110,6 +110,7 @@
         "masquerade": "masquerade",
         "mudkip": "mudkip",
         "noreveal": "noreveal",
+        "pactbreaker": "pactbreaker",
         "random": "random",
         "rapidfire": "rapidfire",
         "roles": "roles",
@@ -230,6 +231,9 @@
         "south": ["south", "s"],
         "west": ["west", "w"],
         "feed": ["feed"],
+        "graveyard": ["graveyard"],
+        "forest": ["forest"],
+        "square": ["square"],
 
         "leave opt force": ["-force", "--force"],
 
