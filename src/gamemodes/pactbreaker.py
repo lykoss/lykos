@@ -5,7 +5,7 @@ import itertools
 from typing import Iterable
 
 from src import users
-from src.users import User
+from src.users import User, FakeUser
 from src.containers import UserSet, UserDict, DefaultUserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -16,9 +16,10 @@ from src.functions import get_players, get_main_role, get_target, change_role
 from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 from src.messages import messages
-from src.locations import move_player, get_home, VillageSquare, Graveyard, Forest
-from src.roles.helper.wolves import send_wolfchat_message
-from src.roles.vampire import send_vampire_chat_message
+from src.locations import move_player, get_home, Location, VillageSquare, Graveyard, Forest
+from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
+from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
+from src.roles.vigilante import vigilante_kill, vigilante_retract, vigilante_pass
 from src.status import add_dying
 
 @game_mode("pactbreaker", minp=6, maxp=24, likelihood=0)
@@ -41,6 +42,7 @@ class PactBreakerMode(GameMode):
         }
         self.EVENTS = {
             "wolf_numkills": EventListener(self.on_wolf_numkills),
+            "chk_nightdone": EventListener(self.on_chk_nightdone),
             "chk_win": EventListener(self.on_chk_win),
             "team_win": EventListener(self.on_team_win),
         }
@@ -51,6 +53,7 @@ class PactBreakerMode(GameMode):
         def dfd():
             return DefaultUserDict(set)
 
+        self.visiting: UserDict[User, Location] = UserDict()
         self.active_players = UserSet()
         self.hobbies: UserDict[User, str] = UserDict()
         # evidence strings: hobby, house, graveyard, forest, hard
@@ -61,11 +64,39 @@ class PactBreakerMode(GameMode):
 
     def startup(self):
         super().startup()
+        self.active_players.clear()
+        self.hobbies.clear()
+        self.collected_evidence.clear()
+        self.visiting.clear()
+        # register !visit and !pass, remove all role commands
         self.visit_command.register()
+        self.pass_command.register()
+        wolf_kill.remove()
+        wolf_retract.remove()
+        vampire_bite.remove()
+        vampire_retract.remove()
+        vigilante_kill.remove()
+        vigilante_retract.remove()
+        vigilante_pass.remove()
 
     def teardown(self):
         super().teardown()
         self.visit_command.remove()
+        self.pass_command.remove()
+        wolf_kill.register()
+        wolf_retract.register()
+        vampire_bite.register()
+        vampire_retract.register()
+        vigilante_kill.register()
+        vigilante_retract.register()
+        vigilante_pass.register()
+
+    def on_chk_nightdone(self, evt: Event, var: GameState):
+        evt.data["acted"].clear()
+        evt.data["nightroles"].clear()
+        evt.data["acted"].extend(self.visiting)
+        evt.data["nightroles"].extend(self.active_players)
+        evt.stop_processing = True
 
     def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0
@@ -95,37 +126,39 @@ class PactBreakerMode(GameMode):
 
     def stay_home(self, wrapper: MessageDispatcher, message: str):
         """Stay at home tonight."""
-        pass
+        self.visiting[wrapper.source] = get_home(wrapper.source.game_state, wrapper.source)
+        wrapper.pm(messages["pactbreaker_pass"])
 
     def visit(self, wrapper: MessageDispatcher, message: str):
         """Visit a location to collect evidence."""
         var = wrapper.game_state
         prefix = re.split(" +", message)[0]
-        graveyard_aliases = messages.raw("_commands", "graveyard")
-        forest_aliases = messages.raw("_commands", "forest")
-        square_aliases = messages.raw("_commands", "square")
-        match_only = None
-        if ":" in prefix:
-            m = users.complete_match(prefix.split(":", maxsplit=1)[1])
-            if m and m.get() is users.Bot:
-                match_only = "locations"
-            else:
-                match_only = "users"
+        aliases = {
+            "graveyard": messages.raw("_commands", "graveyard"),
+            "forest": messages.raw("_commands", "forest"),
+            "square": messages.raw("_commands", "square"),
+        }
 
-        if match_only == "users":
-            player = get_target(wrapper, prefix, allow_self=True)
-            if not player:
-                return
-            target = get_home(var, player)
-        elif match_only == "locations":
-            m = match_all(prefix, itertools.chain(graveyard_aliases, forest_aliases, square_aliases))
-            if m:
-                if m.get() in graveyard_aliases:
-                    target = Graveyard
-                elif m.get() in forest_aliases:
-                    target = Forest
-                else:
-                    target = VillageSquare
-            else:
-                # ambiguous or no matches; give user suggestions if ambiguous
-                return
+        # We do a user match here, but since we also support locations, we make fake users for them
+        # it's rather hacky, but the most elegant implementation since it allows for correct disambiguation messages
+        # These fakes all use the bot account to ensure they are selectable even when someone has the same nick
+        scope = get_players(var)
+        scope.extend(FakeUser(None, als, loc, loc, users.Bot.account) for loc, x in aliases.items() for als in x)
+        target_player = get_target(var, prefix, allow_self=True, scope=scope)
+        if not target_player:
+            return
+
+        if target_player.account == users.Bot.account:
+            target_location = Location(target_player.host)
+            is_special = True
+        else:
+            target_location = get_home(var, target_player)
+            is_special = False
+
+        self.visiting[wrapper.source] = target_location
+        if is_special:
+            wrapper.pm(messages["pactbreaker_visiting_special"].format(target_location.name))
+        elif target_player is wrapper.source:
+            wrapper.pm(messages["pactbreaker_pass"])
+        else:
+            wrapper.pm(messages["pactbreaker_visiting_house"].format(target_location.name))
