@@ -17,6 +17,7 @@ from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 from src.messages import messages
 from src.locations import move_player, get_home, Location, VillageSquare, Graveyard, Forest
+from src.cats import Wolf, Vampire
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
 from src.roles.vigilante import vigilante_kill, vigilante_retract, vigilante_pass
@@ -155,6 +156,54 @@ class PactBreakerMode(GameMode):
             target_location = get_home(var, target_player)
             is_special = False
 
+        player_role = get_main_role(var, wrapper.source)
+        target_role = None if target_player.is_fake else get_main_role(var, target_player)
+
+        # check if there's anything useful for the player to do here
+        # wolves can always go to forest to hunt; ditto vampires for graveyard
+        # others can only go to those locations if they haven't gotten that type of evidence for all remaining
+        # players of that respective role.
+        # visiting the square is meaningless if nobody is in the stocks
+        # visiting a house only matters if the player doesn't have hard evidence for that target yet,
+        # except for vigilantes (who can kill when visiting someone's occupied house with hard evidence)
+        # or non-vampires (who can destroy the coffin of unoccupied vamp houses with hard evidence)
+        valid = False
+        if target_location is Forest:
+            wolves = get_players(var, Wolf)
+            if wrapper.source in wolves:
+                valid = True
+            else:
+                for wolf in wolves:
+                    if "forest" not in self.collected_evidence[wrapper.source][wolf]:
+                        valid = True
+                        break
+        elif target_location is Graveyard:
+            vamps = get_players(var, Vampire)
+            if wrapper.source in vamps:
+                valid = True
+            else:
+                for vamp in vamps:
+                    if "graveyard" not in self.collected_evidence[wrapper.source][vamp]:
+                        valid = True
+                        break
+        elif target_location is VillageSquare:
+            # people in the stocks aren't active players
+            if len(self.active_players) < len(get_players(var)):
+                valid = True
+        elif "hard" in self.collected_evidence[wrapper.source][target_player]:
+            if player_role == "vigilante" and target_role in Wolf | Vampire:
+                valid = True
+            elif player_role not in Vampire and target_role in Vampire:
+                valid = True
+        else:
+            # visiting a house and we don't have hard evidence on the target yet
+            valid = True
+
+        if not valid:
+            key = "pactbreaker_no_visit_special" if is_special else "pactbreaker_no_visit_house"
+            wrapper.pm(messages[key].format(target_location.name))
+            return
+
         self.visiting[wrapper.source] = target_location
         if is_special:
             wrapper.pm(messages["pactbreaker_visiting_special"].format(target_location.name))
@@ -162,3 +211,22 @@ class PactBreakerMode(GameMode):
             wrapper.pm(messages["pactbreaker_pass"])
         else:
             wrapper.pm(messages["pactbreaker_visiting_house"].format(target_location.name))
+
+        # relay to wolfchat/vampire chat as appropriate
+        if player_role in Wolf:
+            key = "pactbreaker_relay_visit_special" if is_special else "pactbreaker_relay_visit_house"
+            # command is "kill" so that this is relayed even if gameplay.wolfchat.only_kill_command is true
+            send_wolfchat_message(var,
+                                  wrapper.source,
+                                  messages[key].format(wrapper.source, target_location.name),
+                                  Wolf,
+                                  role="wolf",
+                                  command="kill")
+        elif player_role in Vampire:
+            key = "pactbreaker_relay_visit_special" if is_special else "pactbreaker_relay_visit_house"
+            # same logic as wolfchat for why we use "bite" as the command here
+            send_vampire_chat_message(var,
+                                      wrapper.source,
+                                      messages[key].format(wrapper.source, target_location.name),
+                                      Vampire,
+                                      cmd="bite")
