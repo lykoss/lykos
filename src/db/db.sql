@@ -154,7 +154,9 @@ CREATE TABLE game_player (
     -- 1 if the player has an individual win for this game
     indiv_win BOOLEAN NOT NULL,
     -- 1 if the player died due to a dc (kick, quit, idled out)
-    dced BOOLEAN NOT NULL
+    dced BOOLEAN NOT NULL,
+    -- 0 if the game should not be counted towards win statistics
+    count_game BOOLEAN NOT NULL DEFAULT 1
 );
 
 CREATE INDEX game_player_game_idx ON game_player (game);
