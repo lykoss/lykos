@@ -231,7 +231,6 @@
         "south": ["south", "s"],
         "west": ["west", "w"],
         "feed": ["feed"],
-        "graveyard": ["graveyard"],
         "forest": ["forest"],
         "square": ["square"],
 
@@ -1428,6 +1427,39 @@
     "boreal_revealroles": "hunger level {0}",
     "sustenance_totem": "The player who is given the sustenance totem will not starve naturally tonight. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\".",
     "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\".",
+    "pactbreaker_vigilante_win": "Game over! The village has eliminated the vampires and wolves, allowing them to live in peace moving forwards.",
+    "pactbreaker_wolf_win": "Game over! The village has dealt with the vampires and ousted the vigilante, allowing them to re-establish their protection pact with the wolves.",
+    "pactbreaker_vampire_win": "Game over! The vampires have overrun the village and eliminated their competition, making them the new masters of the town.",
+    "pactbreaker_visiting_forest": "You have chosen to visit the forest tonight.",
+    "pactbreaker_visiting_square": "You have chosen to visit the village square tonight.",
+    "pactbreaker_visiting_house": "You have chosen to visit {0}'s house tonight.",
+    "pactbreaker_relay_visit_forest": "{0:@} is visiting the forest tonight.",
+    "pactbreaker_relay_visit_square": "{0:@} is visiting the village square tonight.",
+    "pactbreaker_relay_visit_house": "{0:@} is visiting {1}'s house tonight.",
+    "pactbreaker_hobby_evidence_1": [
+        "While searching through {0}'s house, you discover needles and balls of yarn. It appears they enjoy knitting!",
+        "While searching through {0}'s house, you discover multiple full bookshelves. It appears they enjoy reading!",
+        "While searching through {0}'s house, you discover a pantry full of exotic ingredients. It appears they enjoy cooking!",
+        "While searching through {0}'s house, you discover a large backpack and a tent. It appears they enjoy camping!",
+        "While searching through {0}'s house, you discover a workshop filled with lumber and tools. It appears they enjoy woodworking!",
+        "While searching through {0}'s house, you discover multiple canvases in various states of completion. It appears they enjoy painting!"
+    ],
+    "pactbreaker_hobby_evidence_2": [
+        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them knitting!",
+        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them reading!",
+        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them cooking!",
+        "{0} seems to have stayed home tonight, so you remain hidden outside. You spot a tent in their backyard that appears to be airing out, so you assume that they enjoy camping!",
+        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them woodworking!",
+        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them painting!"
+    ],
+    "pactbreaker_forest_evidence": [
+        "While investigating the forest, you discover a mitten caught in a bush. It appears that one of the {=wolf!role:plural} is into knitting!",
+        "While investigating the forest, you discover a book lost in a creek. It appears that one of the {=wolf!role:plural} enjoys reading!",
+        "While investigating the forest, you discover a broken jar of spices alongside a path. It appears that one of the {=wolf!role:plural} is into cooking!",
+        "While investigating the forest, you discover the remains of a campfire in a clearing. It appears that one of the {=wolf!role:plural} is into camping!",
+        "While investigating the forest, you discover a well-made birdhouse hanging from a tree. It appears that one of the {=wolf!role:plural} is into woodworking!",
+        "While investigating the forest, you discover splatters of paint among the foliage. It appears that one of the {=wolf!role:plural} is into painting!"
+    ],
     "roles_players": "There {=is,are:plural({0})} {0:bold} playing.",
     "roles_gamemode": "Using the {0} game mode.",
     "roles_need_gamemode": "Please specify a game mode by using \"{=roles!command:!} <mode>\".",

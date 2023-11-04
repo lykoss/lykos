@@ -15,8 +15,8 @@ from src.match import match_all
 from src.functions import get_players, get_main_role, get_target, change_role
 from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
-from src.messages import messages
-from src.locations import move_player, get_home, Location, VillageSquare, Graveyard, Forest
+from src.messages import messages, LocalRole
+from src.locations import move_player, get_home, Location, VillageSquare, Forest
 from src.cats import Wolf, Vampire
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
@@ -46,6 +46,7 @@ class PactBreakerMode(GameMode):
             "chk_nightdone": EventListener(self.on_chk_nightdone),
             "chk_win": EventListener(self.on_chk_win),
             "team_win": EventListener(self.on_team_win),
+            "start_game": EventListener(self.on_start_game),
         }
 
         self.MESSAGE_OVERRIDES = {
@@ -57,11 +58,17 @@ class PactBreakerMode(GameMode):
         self.visiting: UserDict[User, Location] = UserDict()
         self.active_players = UserSet()
         self.hobbies: UserDict[User, str] = UserDict()
-        # evidence strings: hobby, house, graveyard, forest, hard
+        # evidence strings: hobby, forest, hard
         self.collected_evidence: DefaultUserDict[User, DefaultUserDict[User, set]] = DefaultUserDict(dfd)
         kwargs = dict(chan=False, pm=True, playing=True, phases=("night",), users=self.active_players, register=False)
         self.pass_command = command("pass", **kwargs)(self.stay_home)
         self.visit_command = command("visit", **kwargs)(self.visit)
+
+        self.hobby_evidence_1 = messages.raw("pactbreaker_hobby_evidence_1")
+        self.hobby_evidence_2 = messages.raw("pactbreaker_hobby_evidence_2")
+        self.forest_evidence = messages.raw("pactbreaker_forest_evidence")
+        assert len(self.hobby_evidence_1) >= 3
+        assert len(self.hobby_evidence_1) == len(self.hobby_evidence_2) == len(self.forest_evidence)
 
     def startup(self):
         super().startup()
@@ -92,6 +99,10 @@ class PactBreakerMode(GameMode):
         vigilante_retract.register()
         vigilante_pass.register()
 
+    def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
+        # assign hobbies to players
+        pass
+
     def on_chk_nightdone(self, evt: Event, var: GameState):
         evt.data["acted"].clear()
         evt.data["nightroles"].clear()
@@ -113,13 +124,14 @@ class PactBreakerMode(GameMode):
                 evt.data["winner"] = None
             else:
                 # All vigilantes are dead, so this is an actual win
-                # Message keys used: pactbreaker_wolves_win pactbreaker_vampires_win
-                evt.data["message"] = messages["pactbreaker_{0}_win".format(evt.data["winner"])]
+                # Message keys used: pactbreaker_wolf_win pactbreaker_vampire_win
+                key = LocalRole.from_en(evt.data["winner"]).singular
+                evt.data["message"] = messages["pactbreaker_{0}_win".format(key)]
         elif num_vigilantes == 0 and lvampires == 0:
             # wolves (and villagers) win even if there is a minority of wolves as long as
             # the vigilantes and vampires are all dead
             evt.data["winner"] = "wolves"
-            evt.data["message"] = messages["pactbreaker_wolves_win"]
+            evt.data["message"] = messages["pactbreaker_wolf_win"]
 
     def on_team_win(self, evt: Event, var: GameState, player: User, main_role: str, all_roles: Iterable[str], winner: str):
         if winner == "wolves" and main_role == "villager":
@@ -128,14 +140,13 @@ class PactBreakerMode(GameMode):
     def stay_home(self, wrapper: MessageDispatcher, message: str):
         """Stay at home tonight."""
         self.visiting[wrapper.source] = get_home(wrapper.source.game_state, wrapper.source)
-        wrapper.pm(messages["pactbreaker_pass"])
+        wrapper.pm(messages["no_visit"])
 
     def visit(self, wrapper: MessageDispatcher, message: str):
         """Visit a location to collect evidence."""
         var = wrapper.game_state
         prefix = re.split(" +", message)[0]
         aliases = {
-            "graveyard": messages.raw("_commands", "graveyard"),
             "forest": messages.raw("_commands", "forest"),
             "square": messages.raw("_commands", "square"),
         }
@@ -152,81 +163,38 @@ class PactBreakerMode(GameMode):
         if target_player.account == users.Bot.account:
             target_location = Location(target_player.host)
             is_special = True
+        elif target_player is wrapper.source:
+            self.stay_home(wrapper, message)
+            return
         else:
             target_location = get_home(var, target_player)
             is_special = False
 
-        player_role = get_main_role(var, wrapper.source)
-        target_role = None if target_player.is_fake else get_main_role(var, target_player)
-
-        # check if there's anything useful for the player to do here
-        # wolves can always go to forest to hunt; ditto vampires for graveyard
-        # others can only go to those locations if they haven't gotten that type of evidence for all remaining
-        # players of that respective role.
-        # visiting the square is meaningless if nobody is in the stocks
-        # visiting a house only matters if the player doesn't have hard evidence for that target yet,
-        # except for vigilantes (who can kill when visiting someone's occupied house with hard evidence)
-        # or non-vampires (who can destroy the coffin of unoccupied vamp houses with hard evidence)
-        valid = False
-        if target_location is Forest:
-            wolves = get_players(var, Wolf)
-            if wrapper.source in wolves:
-                valid = True
-            else:
-                for wolf in wolves:
-                    if "forest" not in self.collected_evidence[wrapper.source][wolf]:
-                        valid = True
-                        break
-        elif target_location is Graveyard:
-            vamps = get_players(var, Vampire)
-            if wrapper.source in vamps:
-                valid = True
-            else:
-                for vamp in vamps:
-                    if "graveyard" not in self.collected_evidence[wrapper.source][vamp]:
-                        valid = True
-                        break
-        elif target_location is VillageSquare:
-            # people in the stocks aren't active players
-            if len(self.active_players) < len(get_players(var)):
-                valid = True
-        elif "hard" in self.collected_evidence[wrapper.source][target_player]:
-            if player_role == "vigilante" and target_role in Wolf | Vampire:
-                valid = True
-            elif player_role not in Vampire and target_role in Vampire:
-                valid = True
-        else:
-            # visiting a house and we don't have hard evidence on the target yet
-            valid = True
-
-        if not valid:
-            key = "pactbreaker_no_visit_special" if is_special else "pactbreaker_no_visit_house"
-            wrapper.pm(messages[key].format(target_location.name))
-            return
-
         self.visiting[wrapper.source] = target_location
         if is_special:
-            wrapper.pm(messages["pactbreaker_visiting_special"].format(target_location.name))
-        elif target_player is wrapper.source:
-            wrapper.pm(messages["pactbreaker_pass"])
+            wrapper.pm(messages["pactbreaker_visiting_{0}".format(target_location.name)])
         else:
             wrapper.pm(messages["pactbreaker_visiting_house"].format(target_location.name))
 
         # relay to wolfchat/vampire chat as appropriate
+        if is_special:
+            relay_key = "pactbreaker_relay_visit_{0}".format(target_location.name)
+        else:
+            relay_key = "pactbreaker_relay_visit_house"
+
+        player_role = get_main_role(var, wrapper.source)
         if player_role in Wolf:
-            key = "pactbreaker_relay_visit_special" if is_special else "pactbreaker_relay_visit_house"
             # command is "kill" so that this is relayed even if gameplay.wolfchat.only_kill_command is true
             send_wolfchat_message(var,
                                   wrapper.source,
-                                  messages[key].format(wrapper.source, target_location.name),
+                                  messages[relay_key].format(wrapper.source, target_location.name),
                                   Wolf,
                                   role="wolf",
                                   command="kill")
         elif player_role in Vampire:
-            key = "pactbreaker_relay_visit_special" if is_special else "pactbreaker_relay_visit_house"
             # same logic as wolfchat for why we use "bite" as the command here
             send_vampire_chat_message(var,
                                       wrapper.source,
-                                      messages[key].format(wrapper.source, target_location.name),
+                                      messages[relay_key].format(wrapper.source, target_location.name),
                                       Vampire,
                                       cmd="bite")

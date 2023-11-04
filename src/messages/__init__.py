@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Optional, Any
 from abc import ABC, abstractmethod
 
@@ -12,6 +13,7 @@ __all__ = ["messages", "message_formatter",
            "LocalRole", "LocalMode", "LocalTotem"]
 
 messages = _messages.Messages()
+_internal_en = _messages.Messages(override="en")
 
 class LocalKeyValueWrapper(ABC):
     def __init__(self, key: str, custom: Any):
@@ -44,6 +46,20 @@ class LocalRole(LocalKeyValueWrapper):
 
     def _resolve(self, number: int) -> str:
         return Message("*", "{0!role:plural({1})}").format(self.key, number)
+
+    @classmethod
+    def from_en(cls, role: str) -> LocalRole:
+        """ Return the role given a version of the internal (English) role name
+
+        :param role: An English version of the role (which may be singular or plural)
+        :return: LocalRole instance for the current language
+        """
+        all_roles = _internal_en.raw("_roles")
+        for key, vals in all_roles.items():
+            if role in vals:
+                return LocalRole(key)
+
+        raise ValueError("No role named {0} exists".format(role))
 
     @property
     def local(self) -> str:
