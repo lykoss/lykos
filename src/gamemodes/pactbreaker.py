@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import re
 import itertools
 from typing import Iterable
@@ -30,6 +31,7 @@ class PactBreakerMode(GameMode):
         super().__init__(arg)
         self.CUSTOM_SETTINGS.limit_abstain = False
         self.CUSTOM_SETTINGS.self_lynch_allowed = False
+        self.CUSTOM_SETTINGS.always_pm_role = True
         self.ROLE_GUIDE = {
             6: ["wolf", "vampire", "vigilante"],
             8: ["wolf(2)"],
@@ -47,9 +49,15 @@ class PactBreakerMode(GameMode):
             "chk_win": EventListener(self.on_chk_win),
             "team_win": EventListener(self.on_team_win),
             "start_game": EventListener(self.on_start_game),
+            "send_role": EventListener(self.on_send_role, priority=10)
         }
 
         self.MESSAGE_OVERRIDES = {
+            # all of these include pactbreaker_notify at the end of them to inform about the visit and pass commands
+            "wolf_notify": "pactbreaker_wolf_notify",
+            "vampire_notify": "pactbreaker_vampire_notify",
+            "vigilante_notify": "pactbreaker_vigilante_notify",
+            "villager_notify": "pactbreaker_villager_notify",
         }
 
         def dfd():
@@ -57,18 +65,19 @@ class PactBreakerMode(GameMode):
 
         self.visiting: UserDict[User, Location] = UserDict()
         self.active_players = UserSet()
-        self.hobbies: UserDict[User, str] = UserDict()
+        self.hobbies: UserDict[User, int] = UserDict()
         # evidence strings: hobby, forest, hard
         self.collected_evidence: DefaultUserDict[User, DefaultUserDict[User, set]] = DefaultUserDict(dfd)
-        kwargs = dict(chan=False, pm=True, playing=True, phases=("night",), users=self.active_players, register=False)
+        kwargs = dict(chan=False, pm=True, playing=True, phases=("night",), register=False)
         self.pass_command = command("pass", **kwargs)(self.stay_home)
         self.visit_command = command("visit", **kwargs)(self.visit)
 
+        self.hobby_message = messages.raw("pactbreaker_hobby")
         self.hobby_evidence_1 = messages.raw("pactbreaker_hobby_evidence_1")
         self.hobby_evidence_2 = messages.raw("pactbreaker_hobby_evidence_2")
         self.forest_evidence = messages.raw("pactbreaker_forest_evidence")
-        assert len(self.hobby_evidence_1) >= 3
-        assert len(self.hobby_evidence_1) == len(self.hobby_evidence_2) == len(self.forest_evidence)
+        assert len(self.hobby_message) >= 5
+        assert len(self.hobby_message) == len(self.hobby_evidence_1) == len(self.hobby_evidence_2) == len(self.forest_evidence)
 
     def startup(self):
         super().startup()
@@ -100,8 +109,41 @@ class PactBreakerMode(GameMode):
         vigilante_pass.register()
 
     def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
+        # mark every player as active at start of game
+        pl = get_players(var)
+        self.active_players.update(pl)
+
         # assign hobbies to players
-        pass
+        # number of hobbies in play = max(2, number of wolves)
+        wolves = get_players(var, ("wolf",))
+        num_hobbies = max(2, len(wolves))
+        total_hobbies = len(self.hobby_message)
+        hobby_indexes = random.sample(range(total_hobbies), num_hobbies)
+
+        random.shuffle(wolves)
+        for i, player in enumerate(wolves):
+            pl.remove(player)
+            self.hobbies[player] = hobby_indexes[i]
+
+        i = 0
+        random.shuffle(pl)
+        for player in pl:
+            self.hobbies[player] = hobby_indexes[i]
+            i = (i + 1) % num_hobbies
+
+    def on_send_role(self, evt: Event, var: GameState):
+        pl = get_players(var)
+        for player in pl:
+            # wolf, vigilante, and vampire already got a player list from their send_role event,
+            # so only give this to villagers
+            if get_main_role(var, player) == "villager":
+                ps = pl[:]
+                random.shuffle(ps)
+                ps.remove(player)
+                player.send(messages["players_list"].format(ps))
+            # on first night, inform the player of their hobby
+            if var.night_count == 1:
+                player.send(self.hobby_message[self.hobbies[player]])
 
     def on_chk_nightdone(self, evt: Event, var: GameState):
         evt.data["acted"].clear()
@@ -132,6 +174,10 @@ class PactBreakerMode(GameMode):
             # the vigilantes and vampires are all dead
             evt.data["winner"] = "wolves"
             evt.data["message"] = messages["pactbreaker_wolf_win"]
+        elif lvampires >= lpl / 2:
+            # vampires can win even with wolves and vigilante alive if they outnumber the village
+            evt.data["winner"] = "vampires"
+            evt.data["message"] = messages["pactbreaker_vampire_win"]
 
     def on_team_win(self, evt: Event, var: GameState, player: User, main_role: str, all_roles: Iterable[str], winner: str):
         if winner == "wolves" and main_role == "villager":
@@ -144,6 +190,10 @@ class PactBreakerMode(GameMode):
 
     def visit(self, wrapper: MessageDispatcher, message: str):
         """Visit a location to collect evidence."""
+        if wrapper.source not in self.active_players:
+            wrapper.pm(messages["pactbreaker_no_visit"])
+            return
+
         var = wrapper.game_state
         prefix = re.split(" +", message)[0]
         aliases = {
