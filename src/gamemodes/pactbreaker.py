@@ -5,14 +5,13 @@ import re
 from collections import defaultdict
 from typing import Iterable
 
-from src import users
+from src import users, channels
 from src.users import User, FakeUser
 from src.containers import UserSet, UserDict, DefaultUserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event
 from src.events import EventListener
-from src.match import match_all
 from src.functions import get_players, get_main_role, get_target, change_role
 from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
@@ -22,7 +21,6 @@ from src.cats import Wolf, Vampire
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
 from src.roles.vigilante import vigilante_kill, vigilante_retract, vigilante_pass
-from src.status import add_dying
 
 @game_mode("pactbreaker", minp=6, maxp=24, likelihood=0)
 class PactBreakerMode(GameMode):
@@ -51,9 +49,15 @@ class PactBreakerMode(GameMode):
             "start_game": EventListener(self.on_start_game),
             "send_role": EventListener(self.on_send_role, priority=10),
             "transition_day_begin": EventListener(self.on_transition_day_begin),
+            "night_kills": EventListener(self.on_night_kills),
+            "update_stats": EventListener(self.on_update_stats),
+            "begin_day": EventListener(self.on_begin_day),
+            "transition_night_begin": EventListener(self.on_transition_night_begin),
+            "lynch": EventListener(self.on_lynch),
         }
 
         self.MESSAGE_OVERRIDES = {
+            "villagers_vote": "pactbreaker_villagers_vote",
             # all of these include pactbreaker_notify at the end of them to inform about the visit and pass commands
             "wolf_notify": "pactbreaker_wolf_notify",
             "vampire_notify": "pactbreaker_vampire_notify",
@@ -67,6 +71,7 @@ class PactBreakerMode(GameMode):
         self.visiting: UserDict[User, Location] = UserDict()
         # only populated/used during transition_day so it doesn't need to be a user container
         self.night_kills: dict[User, User] = {}
+        self.drained = UserSet()
         self.active_players = UserSet()
         self.hobbies: UserDict[User, int] = UserDict()
         # evidence strings: hobby, forest, hard
@@ -155,6 +160,12 @@ class PactBreakerMode(GameMode):
         evt.data["nightroles"].extend(self.active_players)
         evt.stop_processing = True
 
+    def on_transition_night_begin(self, evt: Event, var: GameState):
+        # figure out who is in the stocks (if anyone)
+        stocks_players = set(get_players(var)) - self.active_players
+        for player in stocks_players:
+            move_player(var, player, VillageSquare)
+
     def on_transition_day_begin(self, evt: Event, var: GameState):
         # resolve night visits on a per-location basis
         self.night_kills.clear()
@@ -218,6 +229,8 @@ class PactBreakerMode(GameMode):
                     for i in range(len(visitors) - 5):
                         deck.append(("empty-handed", None))
 
+                # at most one person can be in the stocks; this simplifies some later logic
+                target = list(stocks_players)[0] if stocks_players else None
                 random.shuffle(deck)
                 for i, visitor in enumerate(visitors):
                     role = get_main_role(var, visitor)
@@ -228,27 +241,46 @@ class PactBreakerMode(GameMode):
                         card = "evidence" if stocks_players else "empty-handed"
 
                     if role == "wolf" and card == "evidence":
-                        # wolves kill all players in the stocks (even vampires)
-                        # no messages for stocks deaths since wolves override vampires, etc.
-                        # and we don't want to give duplicate or inaccurate messages
-                        for target in stocks_players:
+                        # wolves kill the player in the stocks (even vampires)
+                        if target in self.night_kills:
+                            killer_role = get_main_role(var, self.night_kills[target])
+                            if killer_role in ("wolf", "vigilante"):
+                                # target is already being killed; treat as empty-handed instead
+                                visitor.send(messages["pactbreaker_square_empty"])
+                            else:
+                                visitor.send(messages["pactbreaker_hunter_square"].format(target))
+                                self.night_kills[target] = visitor
+                        else:
+                            visitor.send(messages["pactbreaker_hunter_square"].format(target))
                             self.night_kills[target] = visitor
                     elif role == "vampire" and card == "evidence":
-                        # vampires drain all players in the stocks
+                        # vampires drain the player in the stocks
                         # this is tracked in night_deaths and resolved to a drain later,
                         # so that wolves/vigilantes can override with actual kills
-                        for target in stocks_players:
-                            if target not in self.night_kills:
-                                self.night_kills[target] = visitor
+                        if target not in self.night_kills:
+                            self.night_kills[target] = visitor
+                        else:
+                            # target is already being killed; treat as empty-handed instead
+                            visitor.send(messages["pactbreaker_square_empty"])
                     elif role == "vigilante" and card == "evidence":
-                        # vigilantes kill players in the stocks if they have hard evidence on them,
+                        # vigilantes kill the player in the stocks if they have hard evidence on them,
                         # otherwise they gain hard evidence
-                        for target in stocks_players:
-                            if "hard" in self.collected_evidence[visitor][target]:
-                                self.night_kills[target] = visitor
+                        if "hard" in self.collected_evidence[visitor][target]:
+                            target_role = get_main_role(var, target)
+                            if target in self.night_kills:
+                                killer_role = get_main_role(var, self.night_kills[target])
+                                if killer_role in ("wolf", "vigilante"):
+                                    # target is already being killed; treat as empty-handed instead
+                                    visitor.send(messages["pactbreaker_square_empty"])
+                                else:
+                                    visitor.send(messages["pactbreaker_square_kill"].format(target, target_role))
+                                    self.night_kills[target] = visitor
                             else:
-                                self.collected_evidence[visitor][target].add("hard")
-                                visitor.send(messages["pactbreaker_stocks"].format(target, get_main_role(var, target)))
+                                visitor.send(messages["pactbreaker_square_kill"].format(target, target_role))
+                                self.night_kills[target] = visitor
+                        else:
+                            self.collected_evidence[visitor][target].add("hard")
+                            visitor.send(messages["pactbreaker_stocks"].format(target, get_main_role(var, target)))
                     elif card == "evidence":
                         # villagers gain hard evidence on the players in the stocks
                         for target in stocks_players:
@@ -302,7 +334,7 @@ class PactBreakerMode(GameMode):
                         # vigilantes will murder a known wolf or vampire if they're home
                         self.night_kills[owner] = visitor
                     elif (not is_home and "hard" in self.collected_evidence[visitor][owner]
-                         and owner_role == "vampire" and role != "vampire"):
+                          and owner_role == "vampire" and role != "vampire"):
                         # non-vampires will destroy known vampires that aren't home
                         self.night_kills[owner] = visitor
                     elif "hobby" not in self.collected_evidence[visitor][owner]:
@@ -325,8 +357,54 @@ class PactBreakerMode(GameMode):
                     else:
                         visitor.send(messages["pactbreaker_house_empty_1"].format(owner))
 
+    def on_night_kills(self, evt: Event, var: GameState):
+        for victim, killer in self.night_kills.items():
+            victim_role = get_main_role(var, victim)
+            killer_role = get_main_role(var, killer)
+            if killer_role == "vampire" and victim not in self.drained:
+                # first hit from a vampire drains the target instead of killing them
+                self.drained.add(victim)
+                victim.send(messages["pactbreaker_drained"])
+                killer.send(messages["pactbreaker_drain"].format(victim))
+            elif killer_role == "vampire" and victim_role == "vigilante":
+                # if the vampire fully drains a vigilante, they turn into a vampire instead of dying
+                killer.send(messages["pactbreaker_drain_turn"].format(victim))
+                change_role(var, victim, victim_role, "vampire", message="pactbreaker_vigilante_turn")
+                # get rid of the new vampire's drained condition and all hard evidence against the former vigilante
+                self.drained.discard(victim)
+                for collector, evidence in self.collected_evidence.items():
+                    evidence[victim].discard("hard")
+            elif killer_role == "vampire":
+                # death, but also give messages
+                evt.data["victims"].add(victim)
+                evt.data["killers"][victim].append(killer)
+                victim.send(messages["pactbreaker_drained_dead"])
+                killer.send(messages["pactbreaker_drain_kill"].format(victim))
+            else:
+                # actual death
+                evt.data["victims"].add(victim)
+                evt.data["killers"][victim].append(killer)
+
+        # not needed anymore; don't keep the user refs in here around longer than needed
+        self.night_kills.clear()
+
+    def on_begin_day(self, evt: Event, var: GameState):
+        # every player is active again (stocks only lasts for one night)
+        self.active_players.clear()
+        self.active_players.update(get_players(var))
+
+    def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
+        channels.Main.send(messages["pactbreaker_vote"].format(votee))
+        self.active_players.discard(votee)
+        # don't kill the votee
+        evt.prevent_default = True
+
     def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0
+
+    def on_update_stats(self, evt: Event, var: GameState, player, main_role, reveal_role, all_roles):
+        if main_role == "vampire":
+            evt.data["possible"].add("vigilante")
 
     def on_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         num_vigilantes = len(get_players(var, ("vigilante",), mainroles=mainroles))
@@ -374,9 +452,9 @@ class PactBreakerMode(GameMode):
             "square": messages.raw("_commands", "square"),
         }
 
-        # We do a user match here, but since we also support locations, we make fake users for them
-        # it's rather hacky, but the most elegant implementation since it allows for correct disambiguation messages
-        # These fakes all use the bot account to ensure they are selectable even when someone has the same nick
+        # We do a user match here, but since we also support locations, we make fake users for them.
+        # It's rather hacky, but the most elegant implementation since it allows for correct disambiguation messages.
+        # These fakes all use the bot account to ensure they are selectable even when someone has the same nick.
         scope = get_players(var)
         scope.extend(FakeUser(None, als, loc, loc, users.Bot.account) for loc, x in aliases.items() for als in x)
         target_player = get_target(var, prefix, allow_self=True, scope=scope)
