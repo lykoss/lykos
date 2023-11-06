@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import re
-import itertools
+from collections import defaultdict
 from typing import Iterable
 
 from src import users
@@ -49,7 +49,8 @@ class PactBreakerMode(GameMode):
             "chk_win": EventListener(self.on_chk_win),
             "team_win": EventListener(self.on_team_win),
             "start_game": EventListener(self.on_start_game),
-            "send_role": EventListener(self.on_send_role, priority=10)
+            "send_role": EventListener(self.on_send_role, priority=10),
+            "transition_day_begin": EventListener(self.on_transition_day_begin),
         }
 
         self.MESSAGE_OVERRIDES = {
@@ -64,6 +65,8 @@ class PactBreakerMode(GameMode):
             return DefaultUserDict(set)
 
         self.visiting: UserDict[User, Location] = UserDict()
+        # only populated/used during transition_day so it doesn't need to be a user container
+        self.night_kills: dict[User, User] = {}
         self.active_players = UserSet()
         self.hobbies: UserDict[User, int] = UserDict()
         # evidence strings: hobby, forest, hard
@@ -151,6 +154,176 @@ class PactBreakerMode(GameMode):
         evt.data["acted"].extend(self.visiting)
         evt.data["nightroles"].extend(self.active_players)
         evt.stop_processing = True
+
+    def on_transition_day_begin(self, evt: Event, var: GameState):
+        # resolve night visits on a per-location basis
+        self.night_kills.clear()
+        visited: dict[Location, set[User]] = defaultdict(set)
+        for player, location in self.visiting.items():
+            visited[location].add(player)
+
+        for location, visitors in visited.items():
+            if not visitors:
+                continue
+
+            if location is Forest:
+                wolves = get_players(var, ("wolf",))
+                non_wolves = [x for x in visitors if x not in wolves]
+                deck = []
+                for wolf in wolves:
+                    deck.append(("evidence", wolf))
+                    deck.append(("hunted" if wolf in visitors else "evidence", wolf))
+                while len(deck) < max(10, len(non_wolves)):
+                    deck.append(("empty-handed", None))
+
+                random.shuffle(deck)
+                for i, visitor in enumerate(non_wolves):
+                    role = get_main_role(var, visitor)
+                    card, wolf = deck[i]
+                    if card == "evidence" or (card == "hunted" and role == "vigilante"):
+                        if "forest" in self.collected_evidence[visitor][wolf]:
+                            # already got forest evidence for this wolf; treat as empty-handed instead
+                            visitor.send(messages["pactbreaker_forest_empty"])
+                        else:
+                            self.collected_evidence[visitor][wolf].add("forest")
+                            visitor.send(self.forest_evidence[self.hobbies[wolf]])
+                    elif card == "hunted" and role == "vampire":
+                        self.collected_evidence[wolf][visitor].add("hard")
+                        wolf.send(messages["pactbreaker_hunter_vampire"].format(visitor))
+                        wolf.send(messages["pactbreaker_hunted_vampire"])
+                    elif card == "hunted":
+                        self.night_kills[visitor] = wolf
+                        wolf.send(messages["pactbreaker_hunter"].format(visitor))
+                        visitor.send(messages["pactbreaker_hunted"])
+                    else:
+                        visitor.send(messages["pactbreaker_forest_empty"])
+            elif location is VillageSquare:
+                deck = []
+                # figure out who is in the stocks (if anyone)
+                stocks_players = set(get_players(var)) - self.active_players
+                if stocks_players:
+                    deck.append(("evidence", None))
+                    deck.append(("evidence", None))
+                for visitor in visitors:
+                    role = get_main_role(var, visitor)
+                    if role == "wolf":
+                        deck.append(("hunted", visitor))
+                    elif role == "vampire":
+                        deck.append(("drained", visitor))
+                    elif role == "vigilante":
+                        deck.append(("exposed", visitor))
+                while len(deck) < 5:
+                    deck.append(("empty-handed", None))
+                if len(visitors) > 5:
+                    for i in range(len(visitors) - 5):
+                        deck.append(("empty-handed", None))
+
+                random.shuffle(deck)
+                for i, visitor in enumerate(visitors):
+                    role = get_main_role(var, visitor)
+                    card, actor = deck[i]
+                    # certain roles treat their own cards as evidence instead (or empty-handed if stocks are empty)
+                    if ((role == "wolf" and card == "hunted") or (role == "vampire" and card == "drained")
+                       or (role == "vigilante" and card == "exposed")):
+                        card = "evidence" if stocks_players else "empty-handed"
+
+                    if role == "wolf" and card == "evidence":
+                        # wolves kill all players in the stocks (even vampires)
+                        # no messages for stocks deaths since wolves override vampires, etc.
+                        # and we don't want to give duplicate or inaccurate messages
+                        for target in stocks_players:
+                            self.night_kills[target] = visitor
+                    elif role == "vampire" and card == "evidence":
+                        # vampires drain all players in the stocks
+                        # this is tracked in night_deaths and resolved to a drain later,
+                        # so that wolves/vigilantes can override with actual kills
+                        for target in stocks_players:
+                            if target not in self.night_kills:
+                                self.night_kills[target] = visitor
+                    elif role == "vigilante" and card == "evidence":
+                        # vigilantes kill players in the stocks if they have hard evidence on them,
+                        # otherwise they gain hard evidence
+                        for target in stocks_players:
+                            if "hard" in self.collected_evidence[visitor][target]:
+                                self.night_kills[target] = visitor
+                            else:
+                                self.collected_evidence[visitor][target].add("hard")
+                                visitor.send(messages["pactbreaker_stocks"].format(target, get_main_role(var, target)))
+                    elif card == "evidence":
+                        # villagers gain hard evidence on the players in the stocks
+                        for target in stocks_players:
+                            self.collected_evidence[visitor][target].add("hard")
+                            visitor.send(messages["pactbreaker_stocks"].format(target, get_main_role(var, target)))
+                    elif role == "vampire" and card == "hunted":
+                        # vampires give wolves hard evidence when a hunted card is drawn
+                        actor.send(messages["pactbreaker_hunter_vampire"].format(visitor))
+                        visitor.send(messages["pactbreaker_hunted_vampire"])
+                    elif card == "hunted":
+                        # vigilantes and villagers get killed by the wolf
+                        self.night_kills[visitor] = actor
+                        actor.send(messages["pactbreaker_hunter"].format(visitor))
+                        visitor.send(messages["pactbreaker_hunted"])
+                    elif card == "drained":
+                        # non-vampires get drained by the vampire (messages deferred until night kill resolution)
+                        self.night_kills[visitor] = actor
+                    elif card == "exposed":
+                        # non-vigilantes gain hard evidence about the vigilante
+                        # (the vigilante is not aware of this)
+                        self.collected_evidence[visitor][actor].add("hard")
+                        visitor.send(messages["pactbreaker_exposed"].format(actor))
+                    else:
+                        visitor.send(messages["pactbreaker_square_empty"])
+            else:
+                # location is a house
+                owner = None
+                for player in get_players(var):
+                    if get_home(var, player) is location:
+                        owner = player
+                        break
+
+                assert owner is not None
+                is_home = owner in visitors
+                visitors.discard(owner)
+                owner_role = get_main_role(var, owner)
+                deck = ["empty-handed",
+                        "empty-handed",
+                        "empty-handed",
+                        "empty-handed" if owner_role in ("villager", "vampire", "vigilante") else "evidence",
+                        "empty-handed" if owner_role == "villager" or is_home else "evidence"]
+                if len(visitors) > 5:
+                    for i in range(len(visitors) - 5):
+                        deck.append("empty-handed")
+                random.shuffle(deck)
+                for i, visitor in enumerate(visitors):
+                    card = deck[i]
+                    role = get_main_role(var, visitor)
+                    if (is_home and role == "vigilante" and "hard" in self.collected_evidence[visitor][owner]
+                       and owner_role in ("wolf", "vampire")):
+                        # vigilantes will murder a known wolf or vampire if they're home
+                        self.night_kills[owner] = visitor
+                    elif (not is_home and "hard" in self.collected_evidence[visitor][owner]
+                         and owner_role == "vampire" and role != "vampire"):
+                        # non-vampires will destroy known vampires that aren't home
+                        self.night_kills[owner] = visitor
+                    elif "hobby" not in self.collected_evidence[visitor][owner]:
+                        # if the visitor doesn't have hobby evidence yet, that's what they get
+                        # 100% chance if the owner isn't home, 50% if they are
+                        if not is_home:
+                            self.collected_evidence[visitor][owner].add("hobby")
+                            visitor.send(self.hobby_evidence_1[self.hobbies[owner]].format(owner))
+                        elif random.choice([True, False]):
+                            self.collected_evidence[visitor][owner].add("hobby")
+                            visitor.send(self.hobby_evidence_2[self.hobbies[owner]].format(owner))
+                    elif card == "evidence":
+                        self.collected_evidence[visitor][owner].add("hard")
+                        if not is_home:
+                            visitor.send(messages["pactbreaker_house_evidence_1"].format(owner, owner_role))
+                        else:
+                            visitor.send(messages["pactbreaker_house_evidence_2"].format(owner, owner_role))
+                    elif is_home:
+                        visitor.send(messages["pactbreaker_house_empty_2"].format(owner))
+                    else:
+                        visitor.send(messages["pactbreaker_house_empty_1"].format(owner))
 
     def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0

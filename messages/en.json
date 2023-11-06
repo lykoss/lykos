@@ -1442,6 +1442,18 @@
     "pactbreaker_relay_visit_forest": "{0:@} is visiting the forest tonight.",
     "pactbreaker_relay_visit_square": "{0:@} is visiting the village square tonight.",
     "pactbreaker_relay_visit_house": "{0:@} is visiting {1}'s house tonight.",
+    "pactbreaker_forest_empty": "Your search of the forest last night did not turn up any useful evidence.",
+    "pactbreaker_square_empty": "Your search of the village square last night did not turn up any useful evidence.",
+    "pactbreaker_hunter_vampire": "Prowling the area last night, you come across {0:@} in the dim moonlight and launch an attack. However, they quickly rebuff you and escape, a sure sign that they are {=vampire!role:article} {=vampire!role:bold}.",
+    "pactbreaker_hunted_vampire": "While out last night, you are suddenly pounced upon by a large werewolf! You manage to escape, but are positive they now know of your vampirism as anyone else would have certainly died from the attack.",
+    "pactbreaker_hunter": "Prowling the area last night, you come across {0:@} in the dim moonlight and launch an attack. They are too surprised to run or fight back, and quickly die from the onslaught.",
+    "pactbreaker_hunted": "While out last night, you are suddenly pounced upon by a large werewolf! It is the last thing you see...",
+    "pactbreaker_stocks": "Examining {0:@} while they are in the stocks leads you to the conclusion that they are {1!role:article} {1!role:bold}!",
+    "pactbreaker_exposed": "You spot {0:@} while out last night and note the silver crossbow they appear to be carrying. It seems they are {=vigilante!role:article} {=vigilante!role:bold}!",
+    "pactbreaker_house_evidence_1": "While searching through {0:@}'s house, you discover proof that they are {1!role:article} {1!role:bold}!",
+    "pactbreaker_house_evidence_2": "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, you discover proof that they are {1!role:article} {1!role:bold}!",
+    "pactbreaker_house_empty_1": "Your search of {0:@}'s house last night did not turn up any useful evidence.",
+    "pactbreaker_house_empty_2": "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. However, you were unable to discover any useful evidence through your observations.",
     "pactbreaker_hobby_message": [
         "In your free time, you enjoy knitting. Everyone else has a hobby too, which you can discover by visiting their house.",
         "In your free time, you enjoy reading. Everyone else has a hobby too, which you can discover by visiting their house.",
@@ -1451,20 +1463,20 @@
         "In your free time, you enjoy painting. Everyone else has a hobby too, which you can discover by visiting their house."
     ],
     "pactbreaker_hobby_evidence_1": [
-        "While searching through {0}'s house, you discover needles and balls of yarn. It appears they enjoy knitting!",
-        "While searching through {0}'s house, you discover multiple full bookshelves. It appears they enjoy reading!",
-        "While searching through {0}'s house, you discover a pantry full of exotic ingredients. It appears they enjoy cooking!",
-        "While searching through {0}'s house, you discover a large backpack and a tent. It appears they enjoy camping!",
-        "While searching through {0}'s house, you discover a workshop filled with lumber and tools. It appears they enjoy woodworking!",
-        "While searching through {0}'s house, you discover multiple canvases in various states of completion. It appears they enjoy painting!"
+        "While searching through {0:@}'s house, you discover needles and balls of yarn. It appears they enjoy knitting!",
+        "While searching through {0:@}'s house, you discover multiple full bookshelves. It appears they enjoy reading!",
+        "While searching through {0:@}'s house, you discover a pantry full of exotic ingredients. It appears they enjoy cooking!",
+        "While searching through {0:@}'s house, you discover a large backpack and a tent. It appears they enjoy camping!",
+        "While searching through {0:@}'s house, you discover a workshop filled with lumber and tools. It appears they enjoy woodworking!",
+        "While searching through {0:@}'s house, you discover multiple canvases in various states of completion. It appears they enjoy painting!"
     ],
     "pactbreaker_hobby_evidence_2": [
-        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them knitting!",
-        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them reading!",
-        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them cooking!",
-        "{0} seems to have stayed home tonight, so you remain hidden outside. You spot a tent in their backyard that appears to be airing out, so you assume that they enjoy camping!",
-        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them woodworking!",
-        "{0} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them painting!"
+        "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them knitting!",
+        "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them reading!",
+        "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them cooking!",
+        "{0:@} seems to have stayed home tonight, so you remain hidden outside. You spot a tent in their backyard that appears to be airing out, so you assume that they enjoy camping!",
+        "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them woodworking!",
+        "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. Your patience pays off, as you see them painting!"
     ],
     "pactbreaker_forest_evidence": [
         "While investigating the forest, you discover a mitten caught in a bush. It appears that one of the {=wolf!role:plural} is into knitting!",
