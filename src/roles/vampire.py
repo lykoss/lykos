@@ -100,8 +100,15 @@ def on_send_role(evt: Event, var: GameState):
         vampire.send(messages["vampire_notify"])
         if var.next_phase == "night":
             vampire.send(messages["players_list"].format(get_vampire_list(var, vampire)))
-        if cond > 0:
-            vampire.send(messages["wolfchat_notify_{0}".format(cond)].format("Vampire"))
+
+    # only main role vampires get access to vampire chat
+    vampires = get_players(var, ("vampire",))
+    if len(vampires) < 2 or cond == 0:
+        return
+
+    for vampire in vampires:
+        vampire.queue_message(messages["wolfchat_notify_{0}".format(cond)].format("Vampire"))
+    User.send_messages()
 
 @event_listener("new_role")
 def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):

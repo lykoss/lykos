@@ -80,12 +80,12 @@ class PactBreakerMode(GameMode):
         self.pass_command = command("pass", **kwargs)(self.stay_home)
         self.visit_command = command("visit", **kwargs)(self.visit)
 
-        self.hobby_message = messages.raw("pactbreaker_hobby")
-        self.hobby_evidence_1 = messages.raw("pactbreaker_hobby_evidence_1")
-        self.hobby_evidence_2 = messages.raw("pactbreaker_hobby_evidence_2")
-        self.forest_evidence = messages.raw("pactbreaker_forest_evidence")
-        assert len(self.hobby_message) >= 5
-        assert len(self.hobby_message) == len(self.hobby_evidence_1) == len(self.hobby_evidence_2) == len(self.forest_evidence)
+        hobby_message = messages.raw("pactbreaker_hobby_message")
+        hobby_evidence_1 = messages.raw("pactbreaker_hobby_evidence_1")
+        hobby_evidence_2 = messages.raw("pactbreaker_hobby_evidence_2")
+        forest_evidence = messages.raw("pactbreaker_forest_evidence")
+        assert len(hobby_message) >= 3
+        assert len(hobby_message) == len(hobby_evidence_1) == len(hobby_evidence_2) == len(forest_evidence)
 
     def startup(self):
         super().startup()
@@ -122,17 +122,11 @@ class PactBreakerMode(GameMode):
         self.active_players.update(pl)
 
         # assign hobbies to players
-        # number of hobbies in play = max(2, number of wolves)
-        wolves = get_players(var, ("wolf",))
-        num_hobbies = max(2, len(wolves))
-        total_hobbies = len(self.hobby_message)
+        # between 2-3 hobbies in any particular game, depending on the number of wolves
+        num_wolves = len(get_players(var, ("wolf",)))
+        num_hobbies = min(3, max(2, num_wolves))
+        total_hobbies = len(messages.raw("pactbreaker_hobby_message"))
         hobby_indexes = random.sample(range(total_hobbies), num_hobbies)
-
-        random.shuffle(wolves)
-        for i, player in enumerate(wolves):
-            pl.remove(player)
-            self.hobbies[player] = hobby_indexes[i]
-
         i = 0
         random.shuffle(pl)
         for player in pl:
@@ -151,7 +145,7 @@ class PactBreakerMode(GameMode):
                 player.send(messages["players_list"].format(ps))
             # on first night, inform the player of their hobby
             if var.night_count == 1:
-                player.send(self.hobby_message[self.hobbies[player]])
+                player.send(messages.get("pactbreaker_hobby_message", self.hobbies[player]))
 
     def on_chk_nightdone(self, evt: Event, var: GameState):
         evt.data["acted"].clear()
@@ -197,7 +191,7 @@ class PactBreakerMode(GameMode):
                             visitor.send(messages["pactbreaker_forest_empty"])
                         else:
                             self.collected_evidence[visitor][wolf].add("forest")
-                            visitor.send(self.forest_evidence[self.hobbies[wolf]])
+                            visitor.send(messages.get("pactbreaker_forest_evidence", self.hobbies[wolf]))
                     elif card == "hunted" and role == "vampire":
                         self.collected_evidence[wolf][visitor].add("hard")
                         wolf.send(messages["pactbreaker_hunter_vampire"].format(visitor))
@@ -231,6 +225,7 @@ class PactBreakerMode(GameMode):
 
                 # at most one person can be in the stocks; this simplifies some later logic
                 target = list(stocks_players)[0] if stocks_players else None
+                target_role = get_main_role(var, target)
                 random.shuffle(deck)
                 for i, visitor in enumerate(visitors):
                     role = get_main_role(var, visitor)
@@ -242,7 +237,10 @@ class PactBreakerMode(GameMode):
 
                     if role == "wolf" and card == "evidence":
                         # wolves kill the player in the stocks (even vampires)
-                        if target in self.night_kills:
+                        if target_role == "wolf":
+                            # but don't kill other wolves
+                            visitor.send(messages["pactbreaker_square_empty"])
+                        elif target in self.night_kills:
                             killer_role = get_main_role(var, self.night_kills[target])
                             if killer_role in ("wolf", "vigilante"):
                                 # target is already being killed; treat as empty-handed instead
@@ -257,7 +255,10 @@ class PactBreakerMode(GameMode):
                         # vampires drain the player in the stocks
                         # this is tracked in night_deaths and resolved to a drain later,
                         # so that wolves/vigilantes can override with actual kills
-                        if target not in self.night_kills:
+                        if target_role == "vampire":
+                            # but don't drain other vampires
+                            visitor.send(messages["pactbreaker_square_empty"])
+                        elif target not in self.night_kills:
                             self.night_kills[target] = visitor
                         else:
                             # target is already being killed; treat as empty-handed instead
@@ -266,7 +267,6 @@ class PactBreakerMode(GameMode):
                         # vigilantes kill the player in the stocks if they have hard evidence on them,
                         # otherwise they gain hard evidence
                         if "hard" in self.collected_evidence[visitor][target]:
-                            target_role = get_main_role(var, target)
                             if target in self.night_kills:
                                 killer_role = get_main_role(var, self.night_kills[target])
                                 if killer_role in ("wolf", "vigilante"):
@@ -316,14 +316,16 @@ class PactBreakerMode(GameMode):
                 assert owner is not None
                 is_home = owner in visitors
                 visitors.discard(owner)
+                num_visitors = len(visitors)
+                num_vampires = len([x for x in visitors if get_main_role(var, x) == "vampire"])
                 owner_role = get_main_role(var, owner)
                 deck = ["empty-handed",
                         "empty-handed",
                         "empty-handed",
                         "empty-handed" if owner_role in ("villager", "vampire", "vigilante") else "evidence",
                         "empty-handed" if owner_role == "villager" or is_home else "evidence"]
-                if len(visitors) > 5:
-                    for i in range(len(visitors) - 5):
+                if num_visitors > 5:
+                    for i in range(num_visitors - 5):
                         deck.append("empty-handed")
                 random.shuffle(deck)
                 for i, visitor in enumerate(visitors):
@@ -333,19 +335,25 @@ class PactBreakerMode(GameMode):
                        and owner_role in ("wolf", "vampire")):
                         # vigilantes will murder a known wolf or vampire if they're home
                         self.night_kills[owner] = visitor
+                        visitor.send(messages["pactbreaker_house_kill"].format(owner, owner_role))
+                        owner.send(messages["pactbreaker_house_killed"])
                     elif (not is_home and "hard" in self.collected_evidence[visitor][owner]
                           and owner_role == "vampire" and role != "vampire"):
-                        # non-vampires will destroy known vampires that aren't home
+                        # non-vampires destroy known vampires that aren't home
+                        # no message to the vampire yet because I can't figure out a good way to do this;
+                        # might need to re-do the entire night death message system to postpone them until night_kills
+                        # (e.g. vampire might be in stocks and murdered more directly by vigilante)
                         self.night_kills[owner] = visitor
+                        visitor.send(messages["pactbreaker_house_vampire"].format(owner))
                     elif "hobby" not in self.collected_evidence[visitor][owner]:
                         # if the visitor doesn't have hobby evidence yet, that's what they get
                         # 100% chance if the owner isn't home, 50% if they are
                         if not is_home:
                             self.collected_evidence[visitor][owner].add("hobby")
-                            visitor.send(self.hobby_evidence_1[self.hobbies[owner]].format(owner))
+                            visitor.send(messages.get("pactbreaker_hobby_evidence_1", self.hobbies[owner]).format(owner))
                         elif random.choice([True, False]):
                             self.collected_evidence[visitor][owner].add("hobby")
-                            visitor.send(self.hobby_evidence_2[self.hobbies[owner]].format(owner))
+                            visitor.send(messages.get("pactbreaker_hobby_evidence_2", self.hobbies[owner]).format(owner))
                     elif card == "evidence":
                         self.collected_evidence[visitor][owner].add("hard")
                         if not is_home:
@@ -356,6 +364,17 @@ class PactBreakerMode(GameMode):
                         visitor.send(messages["pactbreaker_house_empty_2"].format(owner))
                     else:
                         visitor.send(messages["pactbreaker_house_empty_1"].format(owner))
+
+                if num_vampires > 0 and num_vampires >= num_visitors / 2:
+                    # vampires outnumber non-vampires; drain the non-vampires
+                    vampires = [x for x in visitors if get_main_role(var, x) == "vampire"]
+                    i = 0
+                    for visitor in visitors:
+                        if get_main_role(var, visitor) == "vampire":
+                            continue
+                        if visitor not in self.night_kills:
+                            self.night_kills[visitor] = vampires[i]
+                            i += 1
 
     def on_night_kills(self, evt: Event, var: GameState):
         for victim, killer in self.night_kills.items():
@@ -488,7 +507,7 @@ class PactBreakerMode(GameMode):
             # command is "kill" so that this is relayed even if gameplay.wolfchat.only_kill_command is true
             send_wolfchat_message(var,
                                   wrapper.source,
-                                  messages[relay_key].format(wrapper.source, target_location.name),
+                                  messages[relay_key].format(wrapper.source, target_player),
                                   Wolf,
                                   role="wolf",
                                   command="kill")
@@ -496,6 +515,6 @@ class PactBreakerMode(GameMode):
             # same logic as wolfchat for why we use "bite" as the command here
             send_vampire_chat_message(var,
                                       wrapper.source,
-                                      messages[relay_key].format(wrapper.source, target_location.name),
+                                      messages[relay_key].format(wrapper.source, target_player),
                                       Vampire,
                                       cmd="bite")
