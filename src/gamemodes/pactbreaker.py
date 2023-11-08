@@ -225,7 +225,7 @@ class PactBreakerMode(GameMode):
 
                 # at most one person can be in the stocks; this simplifies some later logic
                 target = list(stocks_players)[0] if stocks_players else None
-                target_role = get_main_role(var, target)
+                target_role = get_main_role(var, target) if target else None
                 random.shuffle(deck)
                 for i, visitor in enumerate(visitors):
                     role = get_main_role(var, visitor)
@@ -365,7 +365,7 @@ class PactBreakerMode(GameMode):
                     else:
                         visitor.send(messages["pactbreaker_house_empty_1"].format(owner))
 
-                if num_vampires > 0 and num_vampires >= num_visitors / 2:
+                if not is_home and num_vampires > 0 and num_vampires >= num_visitors / 2:
                     # vampires outnumber non-vampires; drain the non-vampires
                     vampires = [x for x in visitors if get_main_role(var, x) == "vampire"]
                     i = 0
@@ -494,7 +494,7 @@ class PactBreakerMode(GameMode):
         if is_special:
             wrapper.pm(messages["pactbreaker_visiting_{0}".format(target_location.name)])
         else:
-            wrapper.pm(messages["pactbreaker_visiting_house"].format(target_location.name))
+            wrapper.pm(messages["pactbreaker_visiting_house"].format(target_player))
 
         # relay to wolfchat/vampire chat as appropriate
         if is_special:
