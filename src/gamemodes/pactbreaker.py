@@ -54,6 +54,7 @@ class PactBreakerMode(GameMode):
             "begin_day": EventListener(self.on_begin_day),
             "transition_night_begin": EventListener(self.on_transition_night_begin),
             "lynch": EventListener(self.on_lynch),
+            "del_player": EventListener(self.on_del_player),
         }
 
         self.MESSAGE_OVERRIDES = {
@@ -91,6 +92,8 @@ class PactBreakerMode(GameMode):
         super().startup()
         self.active_players.clear()
         self.hobbies.clear()
+        self.drained.clear()
+        self.night_kills.clear()
         self.collected_evidence.clear()
         self.visiting.clear()
         # register !visit and !pass, remove all role commands
@@ -115,6 +118,19 @@ class PactBreakerMode(GameMode):
         vigilante_kill.register()
         vigilante_retract.register()
         vigilante_pass.register()
+
+    def on_del_player(self, evt: Event, var: GameState, player, all_roles, death_triggers):
+        # self.night_kills isn't updated because it is short-lived
+        # and won't have del_player run in the middle of it in a way that matters
+        self.active_players.discard(player)
+        self.drained.discard(player)
+        del self.hobbies[:player:]
+        del self.visiting[:player:]
+        if player in self.collected_evidence:
+            del self.collected_evidence[player]
+        for p, stuff in self.collected_evidence.items():
+            if player in stuff:
+                del stuff[player]
 
     def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
         # mark every player as active at start of game
@@ -404,13 +420,12 @@ class PactBreakerMode(GameMode):
                 evt.data["victims"].add(victim)
                 evt.data["killers"][victim].append(killer)
 
-        # not needed anymore; don't keep the user refs in here around longer than needed
-        self.night_kills.clear()
-
     def on_begin_day(self, evt: Event, var: GameState):
         # every player is active again (stocks only lasts for one night)
         self.active_players.clear()
         self.active_players.update(get_players(var))
+        self.visiting.clear()
+        self.night_kills.clear()
 
     def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
         channels.Main.send(messages["pactbreaker_vote"].format(votee))
