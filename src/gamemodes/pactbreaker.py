@@ -404,7 +404,7 @@ class PactBreakerMode(GameMode):
             elif killer_role == "vampire" and victim_role == "vigilante":
                 # if the vampire fully drains a vigilante, they turn into a vampire instead of dying
                 killer.send(messages["pactbreaker_drain_turn"].format(victim))
-                change_role(var, victim, victim_role, "vampire", message="pactbreaker_vigilante_turn")
+                change_role(var, victim, victim_role, "vampire", message="pactbreaker_drain_turn")
                 # get rid of the new vampire's drained condition and all hard evidence against the former vigilante
                 self.drained.discard(victim)
                 for collector, evidence in self.collected_evidence.items():
