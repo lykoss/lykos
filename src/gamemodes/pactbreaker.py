@@ -491,7 +491,7 @@ class PactBreakerMode(GameMode):
         # These fakes all use the bot account to ensure they are selectable even when someone has the same nick.
         scope = get_players(var)
         scope.extend(FakeUser(None, als, loc, loc, users.Bot.account) for loc, x in aliases.items() for als in x)
-        target_player = get_target(var, prefix, allow_self=True, scope=scope)
+        target_player = get_target(wrapper, prefix, allow_self=True, scope=scope)
         if not target_player:
             return
 
