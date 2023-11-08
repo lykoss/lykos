@@ -80,7 +80,7 @@ def fday(wrapper: MessageDispatcher, message: str):
 def begin_day(var: GameState):
     # Reset nighttime variables
     var.end_phase_transition()
-    msg = messages["villagers_lynch"].format(len(get_players(var)) // 2 + 1)
+    msg = messages["villagers_vote"].format(len(get_players(var)) // 2 + 1)
     channels.Main.send(msg)
 
     global DAY_ID

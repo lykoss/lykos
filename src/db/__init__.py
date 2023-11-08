@@ -11,7 +11,6 @@ from collections import defaultdict
 from datetime import datetime
 
 from src import users
-from src.utilities import singular
 from src.messages import messages, LocalRole
 from src.cats import role_order
 
@@ -436,8 +435,8 @@ def get_game_stats(mode, size):
         elif row[0] == "everyone":
             winner = messages["db_gstats_everyone"]
         else:
-            # FIXME: kill off singular() and convert the db to just store the role key directly instead of a plural
-            winner = LocalRole(singular(row[0])).singular.title()
+            # FIXME: convert the db to just store the role key directly instead of a plural
+            winner = LocalRole.from_en(row[0]).singular.title()
 
         bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
     bits.append(messages["db_gstats_total"].format(total_games))

@@ -32,6 +32,8 @@ class Formatter(string.Formatter):
     - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
     - New convert type "!totem" to indicate the value is a totem name (and will be translated appropriately).
     - New convert type "!cat" to indicate the value is a role category name (and will be translated appropriately).
+    - New convert type "!phase" to indicate the value is a game phase name (and will be translated appropriately).
+    - New convert type "!message" to indicate the value is a message key; it will be recursively expanded.
     """
     def get_value(self, key, args, kwargs):
         try:
@@ -150,6 +152,8 @@ class Formatter(string.Formatter):
             return messages.raw("_role_categories", value)
         if conversion == "phase":
             return messages.raw("_phases", value)
+        if conversion == "message":
+            return messages[value].format()
 
         # not one of our custom things
         return super().convert_field(value, conversion)

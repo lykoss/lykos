@@ -75,14 +75,21 @@ def get_participants(var: Optional[GameState | PregameState]) -> list[User]:
     evt.dispatch(var)
     return evt.data["players"]
 
-def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = False, allow_bot: bool = False, not_self_message: str = "no_target_self") -> Optional[User]:
+def get_target(wrapper: MessageDispatcher,
+               message: str,
+               *,
+               allow_self: bool = False,
+               allow_bot: bool = False,
+               not_self_message: str = "no_target_self",
+               scope: Optional[Iterable[User]] = None) -> Optional[User]:
     """Autocomplete a target for an in-game command.
 
-    :param MessageDispatcher wrapper: Message context
-    :param str message: Text to complete against
-    :param bool allow_self: Whether to allow the current player as the target
-    :param bool allow_bot: Whether to allow the bot as the target
-    :param str not_self_message: If allow_self is False, the message key to output if we matched ourselves
+    :param wrapper: Message context
+    :param message: Text to complete against
+    :param allow_self: Whether to allow the current player as the target
+    :param allow_bot: Whether to allow the bot as the target
+    :param not_self_message: If allow_self is False, the message key to output if we matched ourselves
+    :param scope: Scope to search through, modified per allow_self and allow_bot. If None, searches all alive players.
     :returns: The matched target, or None if no matches
     :rtype: Optional[User]
     """
@@ -91,7 +98,11 @@ def get_target(wrapper: MessageDispatcher, message: str, *, allow_self: bool = F
         wrapper.pm(messages["not_enough_parameters"])
         return
 
-    players = get_players(wrapper.game_state)
+    if scope is None:
+        players = get_players(wrapper.game_state)
+    else:
+        players = list(scope)
+
     if not allow_self and wrapper.source in players:
         players.remove(wrapper.source)
 

@@ -26,7 +26,7 @@ LYNCHED: int = 0
 
 @command("lynch", playing=True, pm=True, phases=("day",))
 def lynch(wrapper: MessageDispatcher, message: str):
-    """Use this to vote for a candidate to be lynched."""
+    """Use this to vote for a candidate to be killed."""
     if not message:
         show_votes.func(wrapper, message)
         return
@@ -94,7 +94,7 @@ def no_lynch(wrapper: MessageDispatcher, message: str):
 
 @command("retract", phases=("day", "join"))
 def retract(wrapper: MessageDispatcher, message: str):
-    """Takes back your vote during the day (for whom to lynch)."""
+    """Takes back your vote during the day."""
     var = wrapper.game_state
     if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED or var.current_phase != "day":
         return

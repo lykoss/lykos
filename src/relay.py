@@ -145,7 +145,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
             VAMPCHAT_SPECTATE.discard(wrapper.source)
         else:
             DEADCHAT_SPECTATE.discard(wrapper.source)
-        wrapper.pm(messages["spectate_off"].format(what))
+        wrapper.pm(messages["spectate_off".format(what)])
     else:
         if what in ("wolfchat", "vampchat"):
             if what == "wolfchat":
