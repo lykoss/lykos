@@ -447,7 +447,7 @@ class PactBreakerMode(GameMode):
             evt.data["message"] = messages["pactbreaker_vigilante_win"]
         elif evt.data["winner"] in ("wolves", "vampires"):
             # This isn't a win unless all vigilantes are dead
-            if num_vigilantes == 0:
+            if num_vigilantes > 0:
                 evt.data["winner"] = None
             else:
                 # All vigilantes are dead, so this is an actual win
