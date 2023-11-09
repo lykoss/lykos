@@ -470,6 +470,10 @@ class PactBreakerMode(GameMode):
 
     def stay_home(self, wrapper: MessageDispatcher, message: str):
         """Stay at home tonight."""
+        if wrapper.source not in self.active_players:
+            wrapper.pm(messages["pactbreaker_no_visit"])
+            return
+
         self.visiting[wrapper.source] = get_home(wrapper.source.game_state, wrapper.source)
         wrapper.pm(messages["no_visit"])
 
