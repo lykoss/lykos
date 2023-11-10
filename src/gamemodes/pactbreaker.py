@@ -446,11 +446,11 @@ class PactBreakerMode(GameMode):
         if evt.data["winner"] == "villagers":
             evt.data["message"] = messages["pactbreaker_vigilante_win"]
         elif evt.data["winner"] in ("wolves", "vampires"):
-            # This isn't a win unless all vigilantes are dead
-            if num_vigilantes > 0:
+            # Wolves don't win unless all vigilantes are dead
+            if evt.data["winner"] == "wolves" and num_vigilantes > 0:
                 evt.data["winner"] = None
             else:
-                # All vigilantes are dead, so this is an actual win
+                # Wolves won and all vigilantes are dead, or vampire met normal win cond, so this is an actual win
                 # Message keys used: pactbreaker_wolf_win pactbreaker_vampire_win
                 key = LocalRole.from_en(evt.data["winner"]).singular
                 evt.data["message"] = messages["pactbreaker_{0}_win".format(key)]
