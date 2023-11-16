@@ -546,4 +546,4 @@ def on_reset(evt: Event, var: GameState):
     FORCE_ROLES.clear()
     WAIT_TOKENS = 0
     WAIT_LAST = 0
-    CAN_START_TIME = 0
+    CAN_START_TIME = datetime.now()
