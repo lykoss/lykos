@@ -205,18 +205,18 @@ def setup_variables(rolename, *, knows_totem):
     def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
         del SHAMANS[:player:]
         for a, b in list(SHAMANS.items()):
-            for totem, c in b.items():
+            for totem, c in list(b.items()):
                 if player in c:
                     SHAMANS[a][totem].remove(player)
         del RETARGET[:player:]
         for a, b in list(RETARGET.items()):
-            for c, d in b.items():
+            for c, d in list(b.items()):
                 if player in (c, d):
                     del RETARGET[a][c]
         del ORIG_TARGET_MAP[:player:]
         for a, b in list(ORIG_TARGET_MAP.items()):
-            for totem, c in b.items():
-                for d, e in c.items():
+            for totem, c in list(b.items()):
+                for d, e in list(c.items()):
                     if player in (d, e):
                         del ORIG_TARGET_MAP[a][totem][d]
 
