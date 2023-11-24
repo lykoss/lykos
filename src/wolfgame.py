@@ -1068,7 +1068,13 @@ def myrole(wrapper: MessageDispatcher, message: str):
         return
     role = evt.data["role"]
 
-    wrapper.pm(messages["show_role"].format(role))
+    badguys = get_all_players(Wolfchat)
+    cursed = get_all_players(("cursed villager",))
+
+    if wrapper.source in badguys and wrapper.source in cursed:
+        wrapper.pm(messages["show_role_cursed"].format(role))
+    else:
+        wrapper.pm(messages["show_role"].format(role))
 
     for msg in evt.data["messages"]:
         wrapper.pm(msg)
