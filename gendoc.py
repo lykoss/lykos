@@ -136,7 +136,7 @@ def generate_gamemodes_page():
     }
     total_likelihood = 0
     for mode, min_players, max_players, likelihood in GAME_MODES.values():
-        if mode.name in ("roles", "random", "maelstrom"):
+        if mode.name in ("roles",):
             continue
         mode_inst = mode()
         role_guide = {}
@@ -178,7 +178,8 @@ def generate_gamemodes_page():
             c[default_role] = i - sum(v for k, v in c.items() if k not in exclude)
             role_guide[i] = {k: v for k, v in c.items()}
         mode_obj["role guide"] = role_guide
-        mode_obj["secondary roles"] = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
+        secondary_roles = sorted(iter(mode_inst.SECONDARY_ROLES.keys() & seen_roles))
+        mode_obj["secondary roles"] = {r: str(mode_inst.SECONDARY_ROLES[r]) for r in secondary_roles}
         mode_obj["role sets"] = {k: v for k, v in mode_inst.ROLE_SETS.items() if k in seen_roles}
         obj["modes"][mode.name] = mode_obj
 
