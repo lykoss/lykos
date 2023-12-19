@@ -82,6 +82,9 @@ class event_listener:
         else:
             return self.func(*args, **kwargs)
 
+    def install(self):
+        self.listener.install(self.event)
+
     def remove(self):
         self.listener.remove(self.event)
 

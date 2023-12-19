@@ -1474,6 +1474,9 @@
     "pactbreaker_vote": [
         "The village has decided to lock {0:@} into the stocks until tomorrow."
     ],
+    "pactbreaker_stocks_escape": [
+        "The village has decided to lock {0:@} into the stocks until tomorrow. However, it seems that shortly after the village left for the night, they managed to free themselves..."
+    ],
     "roles_players": "There {=is,are:plural({0})} {0:bold} playing.",
     "roles_gamemode": "Using the {0} game mode.",
     "roles_need_gamemode": "Please specify a game mode by using \"{=roles!command:!} <mode>\".",

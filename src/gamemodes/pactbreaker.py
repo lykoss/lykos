@@ -10,17 +10,17 @@ from src.users import User, FakeUser
 from src.containers import UserSet, UserDict, DefaultUserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
-from src.events import Event
-from src.events import EventListener
+from src.events import Event, EventListener
 from src.functions import get_players, get_main_role, get_target, change_role
 from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 from src.messages import messages, LocalRole
 from src.locations import move_player, get_home, Location, VillageSquare, Forest
 from src.cats import Wolf, Vampire
-from src.status import add_protection
+from src.status import add_protection, add_lynch_immunity
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
+from src.roles.vampire import on_player_protected as vampire_drained
 from src.roles.vigilante import vigilante_kill, vigilante_retract, vigilante_pass
 
 @game_mode("pactbreaker", minp=6, maxp=24, likelihood=0)
@@ -57,6 +57,8 @@ class PactBreakerMode(GameMode):
             "begin_day": EventListener(self.on_begin_day),
             "transition_night_begin": EventListener(self.on_transition_night_begin),
             "lynch": EventListener(self.on_lynch),
+            "abstain": EventListener(self.on_abstain),
+            "lynch_immunity": EventListener(self.on_lynch_immunity),
             "del_player": EventListener(self.on_del_player),
         }
 
@@ -74,6 +76,7 @@ class PactBreakerMode(GameMode):
         self.visiting: UserDict[User, Location] = UserDict()
         self.drained = UserSet()
         self.voted: DefaultUserDict[User, int] = DefaultUserDict(int)
+        self.last_voted: Optional[User] = None
         self.active_players = UserSet()
         self.collected_evidence: DefaultUserDict[User, UserSet] = DefaultUserDict(UserSet)
         dfd = lambda: DefaultUserDict(int)
@@ -95,10 +98,12 @@ class PactBreakerMode(GameMode):
         # register !visit and !pass, remove all role commands
         self.visit_command.register()
         self.pass_command.register()
+        self.last_voted = None
         wolf_kill.remove()
         wolf_retract.remove()
         vampire_bite.remove()
         vampire_retract.remove()
+        vampire_drained.remove()
         vigilante_kill.remove()
         vigilante_retract.remove()
         vigilante_pass.remove()
@@ -111,6 +116,7 @@ class PactBreakerMode(GameMode):
         wolf_retract.register()
         vampire_bite.register()
         vampire_retract.register()
+        vampire_drained.install()
         vigilante_kill.register()
         vigilante_retract.register()
         vigilante_pass.register()
@@ -129,6 +135,8 @@ class PactBreakerMode(GameMode):
             others.discard(player)
         for _, others in self.visit_count.items():
             del others[:player:]
+        if self.last_voted is player:
+            self.last_voted = None
 
     def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
         # mark every player as active at start of game
@@ -464,7 +472,8 @@ class PactBreakerMode(GameMode):
             else:
                 # we can no longer tell whether or not the owner stayed home; they've already been
                 # cleared from visitor lists. So, always give the message as if house was unoccupied
-                player.send(messages["pactbreaker_house_empty_1"])
+                owner = [x for x in get_players(var) if get_home(var, x) is location][0]
+                player.send(messages["pactbreaker_house_empty_1"].format(owner))
 
         self.night_kill_messages.clear()
 
@@ -473,14 +482,26 @@ class PactBreakerMode(GameMode):
         self.active_players.clear()
         self.active_players.update(get_players(var))
         self.visiting.clear()
+        # if someone was locked up last night, ensure they can't be locked up again tonight
+        if self.last_voted is not None:
+            add_lynch_immunity(var, self.last_voted, "pactbreaker")
 
     def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
+        self.last_voted = votee
         self.voted[votee] += 1
         if self.voted[votee] < 3:
             channels.Main.send(messages["pactbreaker_vote"].format(votee))
             self.active_players.discard(votee)
             # don't kill the votee
             evt.prevent_default = True
+
+    def on_abstain(self, evt: Event, var: GameState):
+        self.last_voted = None
+
+    def on_lynch_immunity(self, evt: Event, var: GameState, player: User, reason: str):
+        if reason == "pactbreaker":
+            channels.Main.send(messages["pactbreaker_stocks_escape"].format(player))
+            evt.data["immune"] = True
 
     def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0
