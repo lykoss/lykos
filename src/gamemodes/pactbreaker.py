@@ -439,7 +439,7 @@ class PactBreakerMode(GameMode):
         if killer_role == "vampire":
             victim.send(messages["pactbreaker_drained_dead"])
             killer.send(messages["pactbreaker_drain_kill"].format(victim))
-        elif killer_role == "wolf" and victim not in self.active_players:
+        elif killer_role == "wolf" and victim not in self.active_players and self.night_kill_messages[killer] is VillageSquare:
             victim.send(messages["pactbreaker_hunted"])
             killer.send(messages["pactbreaker_hunter_square"].format(victim))
         elif victim_role == "vampire" and self.night_kill_messages[killer] is get_home(var, victim):
