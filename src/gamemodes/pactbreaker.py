@@ -309,7 +309,7 @@ class PactBreakerMode(GameMode):
                     if shared_evidence - self.collected_evidence[visitor]:
                         entries = []
                         for target in shared_evidence - self.collected_evidence[visitor]:
-                            entries.append(messages["players_list_entry"].format(target, "", get_main_role(var, target)))
+                            entries.append(messages["players_list_entry"].format(target, "", (get_main_role(var, target),)))
                         visitor.send(messages["pactbreaker_square_share"].format(entries))
                         self.collected_evidence[visitor].update(shared_evidence)
                     else:
@@ -335,9 +335,9 @@ class PactBreakerMode(GameMode):
                 owner_role = get_main_role(var, owner)
                 deck = ["empty-handed",
                         "empty-handed",
-                        "empty-handed",
-                        "empty-handed" if owner_role in ("villager", "vampire", "vigilante") else "evidence",
-                        "empty-handed" if owner_role == "villager" or is_home else "evidence"]
+                        "empty-handed" if owner_role != "wolf" else "evidence",
+                        "empty-handed" if owner_role == "vampire" or is_home else "evidence",
+                        "empty-handed" if is_home else "evidence"]
                 if total_draws > 5:
                     for i in range(total_draws - 5):
                         deck.append("empty-handed")
