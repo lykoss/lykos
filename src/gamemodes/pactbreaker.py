@@ -495,7 +495,7 @@ class PactBreakerMode(GameMode):
             # don't kill the votee
             evt.prevent_default = True
 
-    def on_abstain(self, evt: Event, var: GameState):
+    def on_abstain(self, evt: Event, var: GameState, abstains):
         self.last_voted = None
 
     def on_lynch_immunity(self, evt: Event, var: GameState, player: User, reason: str):
