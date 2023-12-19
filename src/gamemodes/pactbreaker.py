@@ -73,6 +73,7 @@ class PactBreakerMode(GameMode):
         self.night_kill_messages: dict[User, Location] = {}
         self.visiting: UserDict[User, Location] = UserDict()
         self.drained = UserSet()
+        self.voted: DefaultUserDict[User, int] = DefaultUserDict(int)
         self.active_players = UserSet()
         self.collected_evidence: DefaultUserDict[User, UserSet] = DefaultUserDict(UserSet)
         dfd = lambda: DefaultUserDict(int)
@@ -87,6 +88,7 @@ class PactBreakerMode(GameMode):
         super().startup()
         self.night_kill_messages.clear()
         self.active_players.clear()
+        self.voted.clear()
         self.drained.clear()
         self.collected_evidence.clear()
         self.visiting.clear()
@@ -119,10 +121,14 @@ class PactBreakerMode(GameMode):
         self.active_players.discard(player)
         self.drained.discard(player)
         del self.visiting[:player:]
+        del self.voted[:player:]
+        del self.visit_count[:player:]
         if player in self.collected_evidence.items():
             del self.collected_evidence[player]
         for _, others in self.collected_evidence.items():
             others.discard(player)
+        for _, others in self.visit_count.items():
+            del others[:player:]
 
     def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
         # mark every player as active at start of game
@@ -306,12 +312,12 @@ class PactBreakerMode(GameMode):
                         # nobody has evidence to share, so everyone treats this as empty-handed instead
                         visitor.send(messages["pactbreaker_square_empty"])
                         continue
-                    if shared_evidence - self.collected_evidence[visitor]:
+                    if shared_evidence - self.collected_evidence[visitor] - {visitor}:
                         entries = []
-                        for target in shared_evidence - self.collected_evidence[visitor]:
+                        for target in shared_evidence - self.collected_evidence[visitor] - {visitor}:
                             entries.append(messages["players_list_entry"].format(target, "", (get_main_role(var, target),)))
                         visitor.send(messages["pactbreaker_square_share"].format(entries))
-                        self.collected_evidence[visitor].update(shared_evidence)
+                        self.collected_evidence[visitor].update(shared_evidence - {visitor})
                     else:
                         visitor.send(messages["pactbreaker_square_share_nothing"])
             else:
@@ -336,7 +342,7 @@ class PactBreakerMode(GameMode):
                 deck = ["empty-handed",
                         "empty-handed",
                         "empty-handed" if owner_role != "wolf" else "evidence",
-                        "empty-handed" if owner_role == "vampire" or is_home else "evidence",
+                        "empty-handed" if owner_role in ("vampire", "wolf") or is_home else "evidence",
                         "empty-handed" if is_home else "evidence"]
                 if total_draws > 5:
                     for i in range(total_draws - 5):
@@ -469,10 +475,12 @@ class PactBreakerMode(GameMode):
         self.visiting.clear()
 
     def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
-        channels.Main.send(messages["pactbreaker_vote"].format(votee))
-        self.active_players.discard(votee)
-        # don't kill the votee
-        evt.prevent_default = True
+        self.voted[votee] += 1
+        if self.voted[votee] < 3:
+            channels.Main.send(messages["pactbreaker_vote"].format(votee))
+            self.active_players.discard(votee)
+            # don't kill the votee
+            evt.prevent_default = True
 
     def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0
