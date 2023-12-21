@@ -195,7 +195,9 @@ class PactBreakerMode(GameMode):
                 deck = []
                 for wolf in wolves:
                     deck.append(("evidence", wolf))
-                    deck.append(("hunted" if wolf in visitors else "evidence", wolf))
+                    deck.append(("evidence", wolf))
+                    if wolf in visitors:
+                        deck.append(("hunted", wolf))
                 while len(deck) < max(10, len(non_wolves)):
                     deck.append(("empty-handed", None))
 
@@ -203,7 +205,7 @@ class PactBreakerMode(GameMode):
                 for i, visitor in enumerate(non_wolves):
                     role = get_main_role(var, visitor)
                     card, wolf = deck[i]
-                    if card == "evidence" or (card == "hunted" and role == "vigilante"):
+                    if card == "evidence":
                         wolf_list = [wolf]
                         choices = [x for x in get_players(var) if x not in (wolf, visitor)]
                         if role != "vigilante" and len(choices) >= 4:
