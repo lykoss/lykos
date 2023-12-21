@@ -233,6 +233,8 @@ class PactBreakerMode(GameMode):
                     if role == "wolf":
                         deck.append(("hunted", visitor))
                     elif role == "vampire":
+                        # vampires have a higher chance of draining people when hunting in the square
+                        deck.append(("drained", visitor))
                         deck.append(("drained", visitor))
                     elif role == "vigilante":
                         deck.append(("exposed", visitor))
@@ -250,8 +252,10 @@ class PactBreakerMode(GameMode):
                 for i, visitor in enumerate(visitors):
                     role = get_main_role(var, visitor)
                     card, actor = deck[i]
-                    # certain roles treat their own cards as evidence instead (or empty-handed if stocks are empty)
-                    if role == "wolf" and card == "hunted":
+                    # killing roles with evidence on the person in the stocks treat drawing an evidence
+                    # card as drawing the card that lets them kill the person in the stocks instead
+                    evidence_special = card == "evidence" and target in self.collected_evidence[visitor]
+                    if role == "wolf" and (card == "hunted" or evidence_special):
                         # wolves kill the player in the stocks (even vampires)
                         if not target or target_role == "wolf":
                             # but don't kill other wolves
@@ -260,7 +264,7 @@ class PactBreakerMode(GameMode):
                             evt.data["victims"].add(target)
                             evt.data["killers"][target].append(visitor)
                             self.night_kill_messages[visitor] = location
-                    elif role == "vampire" and card == "drained":
+                    elif role == "vampire" and (card == "drained" or evidence_special):
                         # vampires fully drain the player in the stocks
                         if not target or target_role == "vampire":
                             # but don't drain other vampires
@@ -270,7 +274,7 @@ class PactBreakerMode(GameMode):
                             evt.data["killers"][target].append(visitor)
                             evt.data["kill_priorities"][actor] = 10
                             self.night_kill_messages[visitor] = location
-                    elif role == "vigilante" and card == "exposed":
+                    elif role == "vigilante" and (card == "exposed" or evidence_special):
                         # vigilantes kill the player in the stocks if they have hard evidence on them,
                         # otherwise they gain hard evidence
                         if not target:
@@ -345,12 +349,13 @@ class PactBreakerMode(GameMode):
                     self.visit_count[visitor][owner] += 1
                     total_draws += self.visit_count[visitor][owner]
 
-                num_vampires = len([x for x in visitors if get_main_role(var, x) == "vampire"])
+                vampires = [x for x in visitors if get_main_role(var, x) == "vampire"]
+                num_vampires = len(vampires)
                 owner_role = get_main_role(var, owner)
                 deck = ["empty-handed",
                         "empty-handed",
                         "empty-handed" if owner_role != "wolf" else "evidence",
-                        "empty-handed" if owner_role in ("vampire", "wolf") or is_home else "evidence",
+                        "empty-handed" if owner_role != "villager" or is_home else "evidence",
                         "empty-handed" if is_home else "evidence"]
                 if total_draws > 5:
                     for i in range(total_draws - 5):
@@ -362,9 +367,11 @@ class PactBreakerMode(GameMode):
                     cards = deck[i:i+draws]
                     i += draws
                     role = get_main_role(var, visitor)
-                    if (is_home and role == "vigilante" and owner in self.collected_evidence[visitor]
-                       and owner_role in ("wolf", "vampire")):
+                    vigilante_luck = random.random() < 0.4
+                    if ((vigilante_luck or is_home) and role == "vigilante"
+                       and owner in self.collected_evidence[visitor] and owner_role in ("wolf", "vampire")):
                         # vigilantes will murder a known wolf or vampire if they're home
+                        # (and sometimes even if they're not)
                         evt.data["victims"].add(owner)
                         evt.data["killers"][owner].append(visitor)
                         self.night_kill_messages[visitor] = location
@@ -394,7 +401,6 @@ class PactBreakerMode(GameMode):
 
                 if not is_home and num_vampires > 0 and num_vampires >= num_visitors / 2:
                     # vampires outnumber non-vampires; drain the non-vampires
-                    vampires = [x for x in visitors if get_main_role(var, x) == "vampire"]
                     i = 0
                     for visitor in visitors:
                         if get_main_role(var, visitor) == "vampire":
@@ -403,6 +409,7 @@ class PactBreakerMode(GameMode):
                         evt.data["killers"][visitor].append(vampires[i])
                         evt.data["kill_priorities"][vampires[i]] = 10
                         self.night_kill_messages[vampires[i]] = location
+                        i += 1
 
     def on_player_protected(self,
                             evt: Event,
