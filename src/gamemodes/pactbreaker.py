@@ -72,7 +72,7 @@ class PactBreakerMode(GameMode):
         }
 
         # messages to send on night kills; only populated during transition_day so user containers are unnecessary
-        self.night_kill_messages: dict[User, Location] = {}
+        self.night_kill_messages: dict[tuple[User, User], Optional[Location]] = {}
         self.visiting: UserDict[User, Location] = UserDict()
         self.drained = UserSet()
         self.voted: DefaultUserDict[User, int] = DefaultUserDict(int)
@@ -223,7 +223,7 @@ class PactBreakerMode(GameMode):
                     elif card == "hunted":
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(wolf)
-                        self.night_kill_messages[wolf] = location
+                        self.night_kill_messages[(wolf, visitor)] = location
                     else:
                         visitor.send(messages["pactbreaker_forest_empty"])
             elif location is VillageSquare:
@@ -265,7 +265,7 @@ class PactBreakerMode(GameMode):
                         else:
                             evt.data["victims"].add(target)
                             evt.data["killers"][target].append(visitor)
-                            self.night_kill_messages[visitor] = location
+                            self.night_kill_messages[(visitor, target)] = location
                     elif role == "vampire" and (card == "drained" or evidence_special):
                         # vampires fully drain the player in the stocks
                         if not target or target_role == "vampire":
@@ -275,7 +275,7 @@ class PactBreakerMode(GameMode):
                             evt.data["victims"].add(target)
                             evt.data["killers"][target].append(visitor)
                             evt.data["kill_priorities"][actor] = 10
-                            self.night_kill_messages[visitor] = location
+                            self.night_kill_messages[(visitor, target)] = location
                     elif role == "vigilante" and (card == "exposed" or evidence_special):
                         # vigilantes kill the player in the stocks if they have hard evidence on them,
                         # otherwise they gain hard evidence
@@ -285,7 +285,7 @@ class PactBreakerMode(GameMode):
                         elif target in self.collected_evidence[visitor]:
                             evt.data["victims"].add(target)
                             evt.data["killers"][target].append(visitor)
-                            self.night_kill_messages[visitor] = location
+                            self.night_kill_messages[(visitor, target)] = location
                         else:
                             # vigilante is the only role capable of gaining evidence from people in the stocks
                             self.collected_evidence[visitor].add(target)
@@ -298,13 +298,13 @@ class PactBreakerMode(GameMode):
                         # vigilantes and villagers get killed by the wolf
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(actor)
-                        self.night_kill_messages[actor] = location
+                        self.night_kill_messages[(actor, visitor)] = location
                     elif card == "drained":
                         # non-vampires get drained by the vampire
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(actor)
                         evt.data["kill_priorities"][actor] = 10
-                        self.night_kill_messages[actor] = location
+                        self.night_kill_messages[(actor, visitor)] = location
                     elif card == "exposed":
                         # non-vigilantes gain evidence about the vigilante
                         # (the vigilante is not aware of this)
@@ -376,14 +376,14 @@ class PactBreakerMode(GameMode):
                         # (and sometimes even if they're not)
                         evt.data["victims"].add(owner)
                         evt.data["killers"][owner].append(visitor)
-                        self.night_kill_messages[visitor] = location
+                        self.night_kill_messages[(visitor, owner)] = location
                     elif (not is_home and owner in self.collected_evidence[visitor]
                           and owner_role == "vampire" and role != "vampire"):
                         # non-vampires destroy known vampires that aren't home
                         evt.data["victims"].add(owner)
                         evt.data["killers"][owner].append(visitor)
                         evt.data["kill_priorities"][visitor] = 5
-                        self.night_kill_messages[visitor] = location
+                        self.night_kill_messages[(visitor, owner)] = location
                     elif "evidence" in cards:
                         self.collected_evidence[visitor].add(owner)
                         if not is_home:
@@ -395,7 +395,7 @@ class PactBreakerMode(GameMode):
                         evt.data["victims"].add(owner)
                         evt.data["killers"][owner].append(visitor)
                         evt.data["kill_priorities"][visitor] = 10
-                        self.night_kill_messages[visitor] = location
+                        self.night_kill_messages[(visitor, owner)] = location
                     elif is_home:
                         visitor.send(messages["pactbreaker_house_empty_2"].format(owner))
                     else:
@@ -410,7 +410,7 @@ class PactBreakerMode(GameMode):
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(vampires[i])
                         evt.data["kill_priorities"][vampires[i]] = 10
-                        self.night_kill_messages[vampires[i]] = location
+                        self.night_kill_messages[(vampires[i], visitor)] = location
                         i += 1
 
     def on_player_protected(self,
@@ -426,7 +426,8 @@ class PactBreakerMode(GameMode):
             self.drained.add(target)
             attacker.send(messages["pactbreaker_drain"].format(target))
             target.send(messages["pactbreaker_drained"])
-            del self.night_kill_messages[attacker]
+            # mark that the player has successfully killed so we don't give them an empty-handed message later
+            self.night_kill_messages[(attacker, target)] = None
         elif protector_role == "vigilante":
             # if the vampire fully drains a vigilante, they might turn into a vampire instead of dying
             # this protection triggering means they should turn
@@ -444,23 +445,24 @@ class PactBreakerMode(GameMode):
     def on_night_death_message(self, evt: Event, var: GameState, victim: User, killer: User | str):
         victim_role = get_main_role(var, victim)
         killer_role = get_main_role(var, killer)
+        location = self.night_kill_messages[(killer, victim)]
 
         if killer_role == "vampire":
             victim.send(messages["pactbreaker_drained_dead"])
             killer.send(messages["pactbreaker_drain_kill"].format(victim))
-        elif killer_role == "wolf" and victim not in self.active_players and self.night_kill_messages[killer] is VillageSquare:
+        elif killer_role == "wolf" and victim not in self.active_players and location is VillageSquare:
             victim.send(messages["pactbreaker_hunted"])
             killer.send(messages["pactbreaker_hunter_square"].format(victim))
-        elif victim_role == "vampire" and self.night_kill_messages[killer] is get_home(var, victim):
+        elif victim_role == "vampire" and location is get_home(var, victim):
             victim.send(messages["pactbreaker_house_daylight"])
             killer.send(messages["pactbreaker_house_vampire"].format(victim))
         elif killer_role == "wolf":
             victim.send(messages["pactbreaker_hunted"])
             killer.send(messages["pactbreaker_hunter"].format(victim))
-        elif killer_role == "vigilante" and self.night_kill_messages[killer] is get_home(var, victim):
+        elif killer_role == "vigilante" and location is get_home(var, victim):
             victim.send(messages["pactbreaker_bolted"])
             killer.send(messages["pactbreaker_house_kill"].format(victim, victim_role))
-        elif killer_role == "vigilante" and self.night_kill_messages[killer] is VillageSquare:
+        elif killer_role == "vigilante" and location is VillageSquare:
             victim.send(messages["pactbreaker_bolted"])
             killer.send(messages["pactbreaker_square_kill"].format(victim, victim_role))
         else:
@@ -468,12 +470,18 @@ class PactBreakerMode(GameMode):
             raise RuntimeError("Unknown night death situation")
 
         # mark that the player has successfully killed so we don't give them an empty-handed message later
-        del self.night_kill_messages[killer]
+        self.night_kill_messages[(killer, victim)] = None
 
     def on_transition_day_resolve(self, evt: Event, var: GameState, dead: set[User], killers: dict[User, User | str]):
-        # anyone remaining in this set was meant to kill someone but got their kill pre-empted by someone else
+        # check for players meant to kill someone but got their kill pre-empted by someone else
         # report the appropriate empty-handed message to them instead
-        for player, location in self.night_kill_messages.items():
+        # this happens if *all* of their entries still have a location defined
+        killed = {p for (p, _), l in self.night_kill_messages.items() if l is None}
+
+        for (player, _), location in self.night_kill_messages.items():
+            if player in killed:
+                continue
+
             if location is Forest:
                 player.send(messages["pactbreaker_forest_empty"])
             elif location is VillageSquare:
