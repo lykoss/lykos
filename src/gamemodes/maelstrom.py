@@ -54,7 +54,7 @@ class MaelstromMode(GameMode):
             for x in selected:
                 villagers.remove(x)
                 new_evt.data["role"] = role
-                new_evt.dispatch(var, x, var._original_main_roles[x])
+                new_evt.dispatch(var, x, var.original_main_roles[x])
                 var.roles[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
@@ -62,18 +62,19 @@ class MaelstromMode(GameMode):
             if role in self.SECONDARY_ROLES:
                 continue
             for p in pl:
-                # discard them from all non-secondary roles, we don't have a reliable
-                # means of tracking their previous role (due to traitor turning, exchange
-                # totem, etc.), so we need to iterate through everything.
-                # also this touches the underlying _original_[main_]roles mappings... shh
-                for r in var.original_roles:
-                    if r in self.SECONDARY_ROLES:
-                        continue
-                    var._original_roles[r].discard(p)
-                var._original_roles[role].add(p)
+                if var.setup_completed:
+                    # discard them from all non-secondary roles, we don't have a reliable
+                    # means of tracking their previous role (due to traitor turning, exchange
+                    # totem, etc.), so we need to iterate through everything.
+                    # also this touches the underlying _original_[main_]roles mappings... shh
+                    for r in var.original_roles:
+                        if r in self.SECONDARY_ROLES:
+                            continue
+                        var._original_roles[r].discard(p)
+                    var._original_roles[role].add(p)
+                    var._original_main_roles[p] = role
                 var.final_roles[p] = role
                 var.main_roles[p] = role
-                var._original_main_roles[p] = role
 
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers)
