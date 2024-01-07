@@ -94,17 +94,18 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         del TARGETS[player]
 
     if player not in TARGETS and evt.data["role"] == "dullahan":
-        ps = get_players(var)
-        max_targets = math.ceil(8.1 * math.log(len(ps), 10) - 5)
+        pl = get_players(var)
+        max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         TARGETS[player] = UserSet()
 
-        dull_targets = Event("dullahan_targets", {"targets": TARGETS[player]}) # support sleepy
+        dull_targets = Event("dullahan_targets", {"targets": set(), "exclude": set()})
         dull_targets.dispatch(var, player, max_targets)
+        TARGETS[player].update(evt.data["targets"] - evt.data["exclude"])
 
-        ps.remove(player)
-        while len(TARGETS[player]) < max_targets:
-            target = random.choice(ps)
-            ps.remove(target)
+        pl = list(set(pl) - evt.data["exclude"] - {player})
+        while pl and len(TARGETS[player]) < max_targets:
+            target = random.choice(pl)
+            pl.remove(target)
             TARGETS[player].add(target)
 
 @event_listener("swap_role_state")

@@ -18,7 +18,7 @@ class SleepyMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            10: ["wolf", "werecrow", "traitor", "cultist", "seer", "prophet", "priest", "dullahan", "cursed villager", "blessed villager"],
+            10: ["wolf", "werecrow", "cultist", "seer", "prophet", "priest", "dullahan", "cursed villager", "blessed villager"],
             12: ["wolf(2)", "vigilante"],
             15: ["wolf(3)", "detective", "vengeful ghost"],
             18: ["wolf(4)", "harlot", "monster"],
@@ -80,7 +80,14 @@ class SleepyMode(GameMode):
         self.on_path.clear()
 
     def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
-        evt.data["targets"].update(var.roles["priest"])
+        evt.data["targets"].update(get_players(var, ("priest",)))
+        evt.data["exclude"].update(get_players(var, ("werecrow",)))
+        # also exclude half the wolves (counting crow, rounded down) to ensure dulla doesn't just completely murder wolfteam
+        wolves = set(get_players(var, ("wolf",)))
+        num_exclusions = int((len(wolves) + 1) / 2)
+        if num_exclusions > 0:
+            evt.data["exclude"].update(random.sample(list(wolves), num_exclusions))
+            wolves.difference_update(evt.data["exclude"])
 
     def setup_nightmares(self, evt: Event, var: GameState):
         pl = get_players(var)
@@ -124,8 +131,19 @@ class SleepyMode(GameMode):
                 f1dir.remove("s")
                 f2dir.remove("s")
             self.correct[target][i] = random.choice(corrdir)
-            self.fake1[target][i] = random.choice(f1dir)
-            self.fake2[target][i] = random.choice(f2dir)
+            # ensure fake1 and correct share the first choice but have different second choices
+            # and ensure fake2 has a different first choice from everything else
+            if i == 0:
+                self.fake1[target][i] = self.correct[target][i]
+                f2dir.remove(self.correct[target][i])
+                self.fake2[target][i] = random.choice(f2dir)
+            elif i == 1:
+                f1dir.remove(self.correct[target][i])
+                self.fake1[target][i] = random.choice(f1dir)
+                self.fake2[target][i] = random.choice(f2dir)
+            else:
+                self.fake1[target][i] = random.choice(f1dir)
+                self.fake2[target][i] = random.choice(f2dir)
         self.prev_direction[target] = "n"
         self.start_direction[target] = "n"
         self.on_path[target] = set()
