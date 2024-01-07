@@ -28,9 +28,9 @@ class SleepyMode(GameMode):
         self.NIGHTMARE_MAX = 1
         self.TURN_CHANCE = 3/5
         # Make sure priest is always prophet AND blessed, and that drunk is always gunner
-        self.SECONDARY_ROLES["blessed villager"] = ["priest"]
-        self.SECONDARY_ROLES["prophet"] = ["priest"]
-        self.SECONDARY_ROLES["gunner"] = ["village drunk"]
+        self.SECONDARY_ROLES["blessed villager"] = {"priest"}
+        self.SECONDARY_ROLES["prophet"] = {"priest"}
+        self.SECONDARY_ROLES["gunner"] = {"village drunk"}
         self.EVENTS = {
             "dullahan_targets": EventListener(self.dullahan_targets),
             "transition_night_begin": EventListener(self.setup_nightmares),
