@@ -4,9 +4,6 @@ import os.path
 import glob
 import importlib
 
-# get built-in roles
-import src.roles
-
 path = os.path.dirname(os.path.abspath(__file__))
 search = os.path.join(path, "*.py")
 

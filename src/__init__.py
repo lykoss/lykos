@@ -29,27 +29,16 @@ from src import gamejoin, pregame
 from src import votes
 from src import trans
 from src import gamecmds, wolfgame
+from src import roles, gamemodes
 
-# Import the user-defined game modes
-# These are not required, so failing to import it doesn't matter
-# The file then imports our game modes
-# Fall back to importing our game modes if theirs fail
-# Do the same with roles
-
-try:
-    import roles as custom_roles # type: ignore
-    if not custom_roles.CUSTOM_ROLES_DEFINED:
-        raise AttributeError()
-except (ModuleNotFoundError, AttributeError):
-    from src import roles
+# Import the user-defined roles, as well as builtins if custom roles don't exist or they want them
+import roles as custom_roles # type: ignore
+if not getattr(custom_roles, "CUSTOM_ROLES_DEFINED", False):
     roles.import_builtin_roles()
 
-try:
-    import gamemodes as custom_gamemodes # type: ignore
-    if not custom_gamemodes.CUSTOM_MODES_DEFINED:
-        raise AttributeError()
-except (ModuleNotFoundError, AttributeError):
-    from src import gamemodes
+# Import the user-defined modes, as well as builtins if custom modes don't exist or they want them
+import gamemodes as custom_gamemodes # type: ignore
+if not getattr(custom_gamemodes, "CUSTOM_MODES_DEFINED", False):
     gamemodes.import_builtin_modes()
 
 # Import user-defined hooks
