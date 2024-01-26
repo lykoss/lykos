@@ -371,7 +371,7 @@ def get_player_totals(acc):
     #ordered role stats
     totals = [messages["db_role_games"].format(r, *tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
-    totals += [messages["db_role_games"].format(r, t) for r, t in tmp.items() if r not in order]
+    totals += [messages["db_role_games"].format(r, *t) for r, t in tmp.items() if r not in order]
     count_games = _countable_games(peid)
     if count_games == 0:
         wonp = 1
