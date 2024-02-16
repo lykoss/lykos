@@ -217,12 +217,21 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
         needed = avail // 2 + 1
 
         to_vote = []
+        plurality = []
+        max_count = 0
 
         for votee, voters in VOTES.items():
             votes = (set(voters) | get_forced_votes(var, votee)) - get_forced_abstains(var)
-            if sum(get_vote_weight(var, x) for x in votes) >= needed:
-                to_vote.append(votee)
-                break
+            count = sum(get_vote_weight(var, x) for x in votes)
+            if count > max_count:
+                max_count = count
+                plurality = [votee]
+            elif count == max_count:
+                plurality.append(votee)
+
+        if max_count >= needed:
+            assert len(plurality) == 1
+            to_vote = plurality
 
         behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": timeout}, votes=VOTES, players=avail)
         behaviour_evt.dispatch(var)
@@ -236,29 +245,15 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             if len((ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var)) >= avail / 2:
                 abstaining = True
             elif force:
-                voting = []
-                if VOTES:
-                    plurality = [(x, len(y)) for x, y in VOTES.items()]
-                    plurality.sort(key=lambda x: x[1])
-                    votee, value = plurality.pop()
-                    max_value = value
-                    # Fetch all of the highest ties, exit out if we find someone lower
-                    # If everyone is tied, then at some point plurality will be empty,
-                    # but the values will still be at the max. Everything's fine, just break
-                    while value == max_value:
-                        voting.append(votee)
-                        if not plurality:
-                            break
-                        votee, value = plurality.pop()
-
-                if len(voting) == 1:
-                    to_vote.append(voting[0])
-                elif voting and kill_ties:
-                    if set(voting) == set(get_players(var)): # killing everyone off? have you considered not doing that
+                if len(plurality) == 1:
+                    to_vote = plurality
+                elif plurality and kill_ties:
+                    if set(plurality) == set(get_players(var)): # killing everyone off? have you considered not doing that
                         abstaining = True
                     else:
-                        to_vote.extend(voting)
-                elif not admin_forced:
+                        to_vote.extend(plurality)
+                elif not timeout:
+                    # fnight counts as a timeout, so we want sunset instead of village_abstain
                     abstaining = True
 
         if abstaining:
@@ -269,8 +264,11 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             abstain_evt = Event("abstain", {})
             abstain_evt.dispatch(var, (ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var))
 
-            global ABSTAINED
-            ABSTAINED = True
+            if not admin_forced:
+                # if this is an admin-forced abstain that isn't also a timeout (currently doesn't exist in the bot),
+                # then don't count the abstention against the village
+                global ABSTAINED
+                ABSTAINED = True
             channels.Main.send(messages["village_abstain"])
 
             from src.trans import transition_night
