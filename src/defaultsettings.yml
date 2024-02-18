@@ -1227,16 +1227,22 @@ warnings.sanction.scalestasis: &warnings.sanction.scalestasis
   _default:
     a:
       _desc: Quadradic scaling factor
-      _type: float
-      _default: 0.0
+      _type:
+        - float
+        - int
+      _default: 0
     b:
       _desc: Linear scaling factor
-      _type: float
-      _default: 1.0
+      _type:
+        - float
+        - int
+      _default: 1
     c:
       _desc: Constant scaling factor
-      _type: float
-      _default: 0.0
+      _type:
+        - float
+        - int
+      _default: 0
 
 warnings.sanction: &warnings.sanction
   _name: warnings.sanction
