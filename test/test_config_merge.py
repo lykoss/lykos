@@ -535,3 +535,12 @@ class TestConfigMerge(TestCase):
             self.assertRaises(TypeError, merge, metadata, Empty, None)
         with self.subTest("poorly-specified constructor (metadata issue)"):
             self.assertRaises(TypeError, merge, metadata, Empty, 4)
+
+    def test_default_multitype(self):
+        metadata = {"_type": ["int", "float"], "_default": None}
+        with self.subTest("first"):
+            metadata["_default"] = 3
+            self.assertEqual(merge(metadata, Empty, Empty), 3)
+        with self.subTest("second"):
+            metadata["_default"] = 2.7
+            self.assertEqual(merge(metadata, Empty, Empty), 2.7)

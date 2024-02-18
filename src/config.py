@@ -556,7 +556,7 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
             assert t is not None
             try:
                 return merge(metadata, base, settings, *path, type_override=t)
-            except TypeError as e2:
+            except (TypeError, AssertionError) as e2:
                 e2.__cause__ = e1
                 e1 = e2
         else:
