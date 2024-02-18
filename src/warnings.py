@@ -46,7 +46,7 @@ def _get_auto_sanctions(sanctions, prev, cur):
                 a = sanc["scalestasis"]["a"]
                 b = sanc["scalestasis"]["b"]
                 c = sanc["scalestasis"]["c"]
-                amt = (a * cur * cur) + (b * cur) + c
+                amt = int((a * cur * cur) + (b * cur) + c)
                 if "stasis" not in sanctions:
                     sanctions["stasis"] = amt
                 else:

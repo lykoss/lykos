@@ -1227,16 +1227,16 @@ warnings.sanction.scalestasis: &warnings.sanction.scalestasis
   _default:
     a:
       _desc: Quadradic scaling factor
-      _type: int
-      _default: 0
+      _type: float
+      _default: 0.0
     b:
       _desc: Linear scaling factor
-      _type: int
-      _default: 1
+      _type: float
+      _default: 1.0
     c:
       _desc: Constant scaling factor
-      _type: int
-      _default: 0
+      _type: float
+      _default: 0.0
 
 warnings.sanction: &warnings.sanction
   _name: warnings.sanction
@@ -1302,18 +1302,16 @@ warnings: &warnings
       _type: list
       _merge: replace
       _default:
-        - min: 6
-          max: 10
+        - min: 2
+          max: 9
           stasis: 1
-        - min: 11
-          max: 15
           scalestasis:
-            a: 0
-            b: 1
-            c: -8
-        - min: 16
-          max: 16
-          tempban: 8
+            a: 0.15
+            b: 0.21
+            c: -1
+        - min: 10
+          max: 10
+          tempban: 5
       _items:
         _type: *warnings.sanction
 
