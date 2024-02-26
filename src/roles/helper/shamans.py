@@ -517,31 +517,37 @@ def on_transition_night_end(evt: Event, var: GameState):
     # These are the totems of the *previous* nights
     # We need to add them here otherwise transition_night_begin
     # will remove them before they even get used
-    for player in LYCANTHROPY:
+    ps = get_all_players(var)
+    for player in LYCANTHROPY & ps:
         status.add_lycanthropy(var, player)
-    for player in PESTILENCE:
+    for player in PESTILENCE & ps:
         status.add_disease(var, player)
 
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):
     # Apply totem effects that need to begin on day proper
-    for player in NARCOLEPSY:
+    ps = get_all_players(var)
+    for player in NARCOLEPSY & ps:
         status.add_absent(var, player, "totem")
         move_player_home(var, player)
     for player in IMPATIENCE:
-        status.add_force_vote(var, player, get_all_players(var) - {player})
+        if player in ps:
+            status.add_force_vote(var, player, ps - {player})
     for player in PACIFISM:
-        status.add_force_abstain(var, player)
-    for player in INFLUENCE:
+        if player in ps:
+            status.add_force_abstain(var, player)
+    for player in INFLUENCE & ps:
         status.add_vote_weight(var, player)
-    for player in REVEALING:
+    for player in REVEALING & ps:
         status.add_lynch_immunity(var, player, "totem")
+    for player in EXCHANGE & ps:
+        status.add_exchange(var, player)
+    # misdirection, luck, and silence can still be applied to dead players
+    # so that there is interaction with activated VG
     for player in MISDIRECTION:
         status.add_misdirection(var, player, as_actor=True)
     for player in LUCK:
         status.add_misdirection(var, player, as_target=True)
-    for player in EXCHANGE:
-        status.add_exchange(var, player)
     for player in SILENCE:
         status.add_silent(var, player)
 
