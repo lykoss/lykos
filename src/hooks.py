@@ -789,9 +789,10 @@ def on_quit(cli, rawnick, reason):
     """
 
     user = users.get(rawnick, allow_bot=True, update=True)
-    user.disconnected = True
     Event("server_quit", {}).dispatch(user, reason)
 
+    # removing the user from all channels marks them as a ghost if they're playing,
+    # so doing that explicitly here is unnecessary
     for chan in set(user.channels):
         if user is users.Bot:
             chan.clear()
