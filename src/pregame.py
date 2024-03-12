@@ -260,6 +260,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
                     del defroles[srole]
         if not defroles:
             wrapper.send(messages["no_settings_defined"].format(wrapper.source, lv))
+            stop_game(ingame_state, abort=True, log=False)
             return
         for role, num in defroles.items():
             # if an event defined this role, use that number. Otherwise use the number from ROLE_GUIDE
