@@ -382,7 +382,8 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
             return value
 
     elif settings_type == "float":
-        if settings is not Empty and not isinstance(settings, float):
+        # Treat literal ints as floats too for ease of writing settings
+        if settings is not Empty and not isinstance(settings, float) and type(settings) is not int:
             raise TypeError("Expected type float for path '{}', got {} instead".format(".".join(path), type(settings)))
         # float supports three merge types: replace (default), max, min
         if merge_type is None:
@@ -398,6 +399,8 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
         else:
             value = metadata["_default"]
 
+        if type(value) is int:
+            value = float(value)
         assert isinstance(value, float)
         if merge_type == "replace":
             return value

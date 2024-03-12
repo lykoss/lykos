@@ -368,7 +368,7 @@ class TestConfigMerge(TestCase):
         with self.subTest("value required"):
             self.assertRaises(TypeError, merge, metadata, Empty, Empty)
         with self.subTest("invalid type"):
-            self.assertRaises(TypeError, merge, metadata, Empty, 2)
+            # ints are also valid floats, so do not test for that here
             self.assertRaises(TypeError, merge, metadata, Empty, "2.0")
             self.assertRaises(TypeError, merge, metadata, Empty, [])
             self.assertRaises(TypeError, merge, metadata, Empty, {})
@@ -540,7 +540,26 @@ class TestConfigMerge(TestCase):
         metadata = {"_type": ["int", "float"], "_default": None}
         with self.subTest("first"):
             metadata["_default"] = 3
-            self.assertEqual(merge(metadata, Empty, Empty), 3)
+            test = merge(metadata, Empty, Empty)
+            self.assertEqual(test, 3)
+            self.assertIsInstance(test, int)
         with self.subTest("second"):
             metadata["_default"] = 2.7
             self.assertEqual(merge(metadata, Empty, Empty), 2.7)
+
+    def test_coerce_int_to_float(self):
+        metadata = {"_type": "float", "_default": None}
+        with self.subTest("as default"):
+            metadata["_default"] = 1
+            test = merge(metadata, Empty, Empty)
+            self.assertEqual(test, 1.0)
+            self.assertIsInstance(test, float)
+        with self.subTest("as base"):
+            metadata["_default"] = 1.0
+            test = merge(metadata, 2, Empty)
+            self.assertEqual(test, 2.0)
+            self.assertIsInstance(test, float)
+        with self.subTest("as settings"):
+            test = merge(metadata, Empty, 3)
+            self.assertEqual(test, 3.0)
+            self.assertIsInstance(test, float)
