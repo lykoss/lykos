@@ -232,15 +232,10 @@ def _restart_program(mode=None):
     python = sys.executable
 
     # FIXME: should maintain the same --config option
-    if mode is not None:
-        print(mode)
-        assert mode in ("debug",)
-        os.execl(python, python, sys.argv[0], "--{0}".format(mode))
-    else:
-        args = []
-        if config.Main.get("debug.enabled"):
-            args.append("--debug")
-        os.execl(python, python, sys.argv[0], *args)
+    args = []
+    if (mode != "normal" and config.Main.get("debug.enabled")) or mode == "debug":
+        args.append("--debug")
+    os.execl(python, python, sys.argv[0], *args)
 
 @command("frestart", flag="D", pm=True)
 def restart_program(wrapper: MessageDispatcher, message: str):
@@ -278,7 +273,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
         if first_arg.endswith("mode") and first_arg != "mode":
             mode = first_arg.replace("mode", "")
 
-            valid_modes = ("normal", "verbose", "debug")
+            valid_modes = ("normal", "debug")
 
             if mode not in valid_modes:
                 wrapper.pm(messages["invalid_restart_mode"].format(mode, valid_modes))
