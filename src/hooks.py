@@ -166,7 +166,9 @@ def end_who(cli, bot_server, bot_nick, target, rest):
     else:
         target.dispatch_queue()
 
-    old = _who_old.get(target.name, target)
+    old = None
+    if target is not None:
+        old = _who_old.get(target.name, target)
     _who_old.clear()
     Event("who_end", {}, old=old).dispatch(target)
 

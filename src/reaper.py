@@ -75,7 +75,7 @@ def reaper(var: GameState, gameid: int):
                 # part_death, part_death_no_reveal, part_warning
                 # account_death, account_death_no_reveal, account_warning
                 channels.Main.send(messages[f"{what}_death{reveal}"].format(dcedplayer, revealrole))
-                if var.current_phase != "join":
+                if config.Main.get("reaper.autowarn") and var.current_phase != "join":
                     NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                     add_warning(dcedplayer,
                                 config.Main.get(f"reaper.{what}.points"),
@@ -120,7 +120,7 @@ def reaper(var: GameState, gameid: int):
                     channels.Main.send(messages[f"idle_death{reveal}"].format(user, get_reveal_role(var, user)))
                     if var.in_game:
                         DCED_LOSERS.add(user)
-                    if config.Main.get("reaper.idle.enabled"):
+                    if config.Main.get("reaper.autowarn") and config.Main.get("reaper.idle.enabled"):
                         NIGHT_IDLED.discard(user) # don't double-dip if they idled out night as well
                         add_warning(user, config.Main.get("reaper.idle.points"), users.Bot, messages["idle_warning"], expires=config.Main.get("reaper.idle.expiration"))
                     add_dying(var, user, "bot", "idle", death_triggers=False)
@@ -198,7 +198,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
     # Add warnings for people that idled out night
-    if config.Main.get("reaper.night_idle.enabled"):
+    if config.Main.get("reaper.autowarn") and config.Main.get("reaper.night_idle.enabled"):
         for player in NIGHT_IDLED:
             if player.is_fake:
                 continue

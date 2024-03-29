@@ -79,6 +79,8 @@ class print_traceback:
         if _local.handler is None:
             _local.handler = chain_exceptions(exc_value)
 
+        user_data_level = config.Main.get("telemetry.errors.user_data_level")
+        channel_data_level = config.Main.get("telemetry.errors.user_data_level")
         traceback_verbosity = config.Main.get("telemetry.errors.traceback_verbosity")
         if traceback_verbosity > 0:
             word = "\nLocal variables from frame #{0} (in {1}):\n"
@@ -159,7 +161,7 @@ class print_traceback:
                     variables.append("{0} = {1!r}".format(key, value))
 
         # dump full list of known users with verbose output, as everything above has truncated output for readability
-        if config.Main.get("telemetry.errors.user_data_level") > 1:
+        if user_data_level > 1:
             import src.users
             variables.append("\nAll connected users:\n")
             for user in src.users.users():
@@ -183,7 +185,14 @@ class print_traceback:
 
         # sanitize paths in tb: convert backslash to forward slash and remove prefixes from src and library paths
         variables[1] = variables[1].replace("\\", "/")
-        variables[1] = re.sub(r'File "[^"]*/(src|gamemodes|oyoyo|roles|[Ll]ib|wolfbot)', r'File "/\1', variables[1])
+        variables[1] = re.sub(r'File "[^"]*?/(src|gamemodes|oyoyo|messages|hooks|roles|[Ll]ib|wolfbot)', r'File "/\1', variables[1])
+
+        # the exception message may leak user/channel data since it was stringified without our custom "for_tb" format
+        if user_data_level < 2:
+            variables[1] = re.sub(r'User\(([^,]+),.*\)', r'User(\1)' if user_data_level == 1 else "User(?)", variables[1])
+
+        if channel_data_level < 1:
+            variables[1] = re.sub(r'Channel\(.*\)', "Channel(?)", variables[1])
 
         # sanitize values within local frames
         if len(variables) > 3:

@@ -164,3 +164,14 @@ gameplay:
     notice: true
     # Include which user is spectating in the above alert, if enabled.
     include_user: false
+
+# Reaper. Users that leave during the game or are otherwise idle will be automatically removed from the game
+# after a period of time (by killing them in-game). This allows a game to continue onwards with the active players
+# rather than being in a standstill. It is recommended to keep the reaper enabled for this reason, however the reaper
+# will also automatically issue warning points to users by default, which can eventually cause stasis (aka time-outs)
+# or temporary bans from the channel.
+reaper:
+  # Whether or not the reaper is enabled. If disabled, idle or disconnected users are NOT automatically killed
+  enabled: true
+  # If the reaper is enabled, should it issue automatic warning points to people it kills?
+  autowarn: true

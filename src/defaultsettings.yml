@@ -1076,6 +1076,14 @@ reaper: &reaper
       _desc: Whether or not the reaper is enabled. If disabled, nobody will idle out or get automatic warnings.
       _type: bool
       _default: true
+    autowarn:
+      _desc: >
+        Whether or not to automatically issue warnings to users who are killed by the reaper. If disabled,
+        users will still be removed from the game and are guaranteed a game loss, but there will be no further
+        consequences applied to them. If this setting is disabled, the various points settings elsewhere in reaper
+        settings have no effect.
+      _type: bool
+      _default: true
     idle:
       _desc: >
         Idle time is defined as how long it has been since the user has spoken in channel. If gameplay.nightchat
