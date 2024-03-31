@@ -313,7 +313,7 @@ def warn_ack(wrapper: MessageDispatcher, args):
     db.acknowledge_warning(args.id)
     wrapper.reply(messages["fwarn_done"])
 
-def warn_help(var, wrapper, args):
+def warn_help(wrapper: MessageDispatcher, args):
     if args.command in _wl:
         wrapper.reply(messages["warn_list_syntax"])
     elif args.command in _wv:
