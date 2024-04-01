@@ -88,6 +88,11 @@ class Services_Base:
     def supports_ghost(self):
         return bool(self.ghost)
 
+    # supports changing account after one is already logged in
+    # (we assume one is always able to log in if not currently authed)
+    def supports_account_change(self):
+        return True
+
 class Services_Anope(Services_Base):
     name = "anope"
     nickserv = "NickServ"
@@ -118,3 +123,6 @@ class Services_Undernet(Services_Base):
     name = "undernet"
     nickserv = "x@channels.undernet.org"
     command = "LOGIN {account} {password}"
+
+    def supports_account_change(self):
+        return False

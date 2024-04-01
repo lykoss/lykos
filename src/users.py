@@ -10,6 +10,7 @@ from src import config, db
 from src.events import Event, EventListener
 from src.debug import CheckedDict, CheckedSet, handle_error
 from src.match import Match
+from src.transport.irc import get_services
 
 if TYPE_CHECKING:
     from src.containers import UserSet, UserDict, UserList
@@ -227,6 +228,8 @@ def _update_account(evt, user):
     if evt.params.old in _pending_account_updates:
         updates = list(_pending_account_updates[evt.params.old].items())
         del _pending_account_updates[evt.params.old]
+        # update user's account timestamp even if it didn't change
+        user.account_timestamp = time.time()
         for command, callback in updates:
             # handle_error swallows exceptions so that a callback raising an exception
             # does not prevent other registered callbacks from running
@@ -587,8 +590,10 @@ class User(IRCContext):
             callback(self)
             return
 
-        if self.account and self.account_timestamp > time.time() - 900:
-            # account data is less than 15 minutes old, use existing data instead of refreshing
+        services = get_services()
+        if self.account and (not services.supports_account_change() or self.account_timestamp > time.time() - 900):
+            # account data is less than 15 minutes old or we can't change accounts on this ircd,
+            # use existing data instead of refreshing
             callback(self)
             return
 
