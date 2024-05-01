@@ -339,7 +339,8 @@ def replace(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    if wrapper.source in get_players(var):
+    pl = get_players(var)
+    if wrapper.source in pl:
         wrapper.pm(messages["you_already_playing"])
         return
 
@@ -347,12 +348,12 @@ def replace(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["not_logged_in"])
         return
 
-    pl = get_participants(var)
+    participants = get_participants(var)
     target: Optional[User] = None
 
     for user in var.players:
         if context.equals(user.account, wrapper.source.account):
-            if user is wrapper.source or user not in pl:
+            if user is wrapper.source or user not in participants:
                 continue
             elif target is None:
                 target = user
@@ -370,7 +371,7 @@ def replace(wrapper: MessageDispatcher, message: str):
 
         cmodes = []
 
-        if config.Main.get("gameplay.nightchat") or var.current_phase != "night":
+        if (config.Main.get("gameplay.nightchat") or var.current_phase != "night") and target in pl:
             cmodes += [("-v", target), ("+v", wrapper.source)]
 
         toggle_modes = config.Main.get("transports[0].channels.main.auto_mode_toggle", ())
