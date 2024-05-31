@@ -529,6 +529,7 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
         return
 
     ps = get_players(var)
+    num_remaining = len(ps) - 1
     # Only mark living players as disconnected, unless they were kicked
     if (user in ps or what == "kick") and var.in_game:
         reaper.DCED_LOSERS.add(user)
@@ -546,13 +547,12 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
     population = ""
 
     if var.current_phase == "join":
-        lpl = len(ps) - 1
-        if lpl < config.Main.get("gameplay.player_limits.minimum"):
+        if num_remaining < config.Main.get("gameplay.player_limits.minimum"):
             with locks.join_timer:
                 from src.pregame import START_VOTES
                 START_VOTES.clear()
 
-        if lpl <= 0:
+        if num_remaining <= 0:
             population = " " + messages["no_players_remaining"]
         else:
             population = " " + messages["new_player_count"].format(lpl)
@@ -600,6 +600,11 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
         kill_players(var)
     else:
         reaper.DISCONNECTED[user] = (datetime.now(), what)
+
+    if not var.in_game and num_remaining <= 0:
+        # chk_win handles ending game at 0 players if a game is running, don't need to do so here
+        from src.trans import stop_game
+        stop_game(var, log=False)
 
 @hook("error")
 def on_error(cli, pfx, msg: str):
