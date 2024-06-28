@@ -84,7 +84,7 @@ class SleepyMode(GameMode):
         evt.data["exclude"].update(get_players(var, ("werecrow",)))
         # also exclude half the wolves (counting crow, rounded down) to ensure dulla doesn't just completely murder wolfteam
         wolves = set(get_players(var, ("wolf",)))
-        num_exclusions = int((len(wolves) + 1) / 2)
+        num_exclusions = int(len(wolves) / 2)
         if num_exclusions > 0:
             evt.data["exclude"].update(random.sample(list(wolves), num_exclusions))
             wolves.difference_update(evt.data["exclude"])
