@@ -100,9 +100,9 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 
         dull_targets = Event("dullahan_targets", {"targets": set(), "exclude": set()})
         dull_targets.dispatch(var, player, max_targets)
-        TARGETS[player].update(evt.data["targets"] - evt.data["exclude"])
+        TARGETS[player].update(dull_targets.data["targets"] - dull_targets.data["exclude"])
 
-        pl = list(set(pl) - evt.data["exclude"] - {player})
+        pl = list(set(pl) - dull_targets.data["exclude"] - {player})
         while pl and len(TARGETS[player]) < max_targets:
             target = random.choice(pl)
             pl.remove(target)
