@@ -555,7 +555,7 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
         if num_remaining <= 0:
             population = " " + messages["no_players_remaining"]
         else:
-            population = " " + messages["new_player_count"].format(lpl)
+            population = " " + messages["new_player_count"].format(num_remaining)
 
     reveal = ""
     if not var.in_game or var.role_reveal not in ("on", "team"):
