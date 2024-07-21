@@ -100,7 +100,7 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
     if role:
         role_prefix = role
 
-    if not key:
+    if not key or key not in decorators.COMMANDS:
         return
 
     if force:
