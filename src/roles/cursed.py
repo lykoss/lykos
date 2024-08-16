@@ -5,7 +5,7 @@ from src.events import Event, event_listener
 from src.functions import get_all_players, get_main_role
 from src.gamestate import GameState
 from src.messages import messages
-
+from src.users import User
 
 @event_listener("see")
 def on_see(evt: Event, var: GameState, seer, target):
@@ -24,3 +24,9 @@ def on_send_role(evt: Event, var: GameState):
     for player in cursed:
         if get_main_role(var, player) == "cursed villager" or player in wolves:
             player.send(messages["cursed_notify"])
+
+@event_listener("myrole")
+def on_myrole(evt: Event, var: GameState, player: User):
+    wolves = get_all_players(var, Wolfchat)
+    if player not in wolves:
+        evt.data["secondary"].discard("cursed villager")

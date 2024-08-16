@@ -152,7 +152,8 @@ def on_retribution_kill(evt: Event, var: GameState, victim: User, orig_target: U
     if target in GHOSTS:
         drivenoff[target] = GHOSTS[target]
         GHOSTS[target] = "!" + GHOSTS[target]
-        evt.data["message"].append(messages["totem_banish"].format(victim, target))
+        # VGs only kill at night so we only need a night message
+        evt.data["message"].append(messages["retribution_totem_night_banish"].format(victim, target))
         evt.data["target"] = None
 
 @event_listener("get_participant_role")

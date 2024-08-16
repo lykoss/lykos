@@ -59,7 +59,7 @@ from src.cats import Hidden
 
 from src.functions import (
     get_players, get_all_players, get_participants,
-    get_main_role, get_reveal_role,
+    get_main_role, get_reveal_role, get_all_roles,
     match_role, match_mode
    )
 
@@ -1061,15 +1061,19 @@ def myrole(wrapper: MessageDispatcher, message: str):
         return
 
     role = get_main_role(var, wrapper.source)
+    # we want secondary to be a set, not a Category, so any sets need a .roles accessor to get at the underlying roles
+    secondary = get_all_roles(var, wrapper.source) - {role} - Hidden.roles
     if role in Hidden:
         role = var.hidden_role
 
-    evt = Event("myrole", {"role": role, "messages": []})
+    evt = Event("myrole", {"role": role, "secondary": secondary, "messages": []})
     if not evt.dispatch(var, wrapper.source):
         return
     role = evt.data["role"]
 
     wrapper.pm(messages["show_role"].format(role))
+    if secondary:
+        wrapper.pm(messages["show_secondary_roles"].format(sorted(secondary)))
 
     for msg in evt.data["messages"]:
         wrapper.pm(msg)

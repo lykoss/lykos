@@ -69,8 +69,11 @@ def on_swap_role_state(evt: Event, var: GameState, actor: User, target: User, ro
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):
-    if user in IDOLS and user not in get_players(var, get_wolfchat_roles()):
-        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
+    if user in IDOLS:
+        if user not in get_players(var, get_wolfchat_roles()):
+            evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
+        else:
+            evt.data["secondary"].discard("wild child")
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

@@ -14,7 +14,7 @@ from src.functions import (get_players, get_all_players, get_main_role, get_all_
                            match_totem)
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import try_misdirection, try_protection, try_exchange, is_dying, add_dying
+from src.status import try_misdirection, try_protection, try_exchange, add_dying
 from src.dispatcher import MessageDispatcher
 from src.users import User
 from src.locations import move_player_home
@@ -472,11 +472,12 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     if not death_triggers or player not in RETRIBUTION:
         return
     loser = evt.params.killer
+    all_players = get_players(var)
     if loser is None and evt.params.killer_role == "wolf" and evt.params.reason == "night_kill":
         pl = get_players(var, Wolf & Killer)
         if pl:
             loser = random.choice(pl)
-    if loser is None or is_dying(var, loser):
+    if loser is None or loser not in all_players:
         # person that killed us is already dead?
         return
 
@@ -484,7 +485,8 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     ret_evt.dispatch(var, player, loser)
     loser = ret_evt.data["target"]
     channels.Main.send(*ret_evt.data["message"])
-    if loser is not None and is_dying(var, loser):
+    if loser not in all_players:
+        # another check for the person already being dead since it may have changed via the event
         loser = None
     if loser is not None:
         protected = try_protection(var, loser, player, evt.params.main_role, "retribution_totem")
@@ -492,9 +494,11 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             channels.Main.send(*protected)
             return
 
-        to_send = "totem_death_no_reveal"
+        # message keys: retribution_totem_night_death, retribution_totem_day_death,
+        # retribution_totem_night_death_no_reveal, retribution_totem_day_death_no_reveal
+        to_send = f"retribution_totem_{var.current_phase}_death_no_reveal"
         if var.role_reveal in ("on", "team"):
-            to_send = "totem_death"
+            to_send = f"retribution_totem_{var.current_phase}_death"
         channels.Main.send(messages[to_send].format(player, loser, get_reveal_role(var, loser)))
         add_dying(var, loser, evt.params.main_role, "retribution_totem", killer=player)
 
