@@ -458,10 +458,10 @@ class PactBreakerMode(GameMode):
             victim.send(messages["pactbreaker_hunted"])
             killer.send(messages["pactbreaker_hunter"].format(victim))
         elif killer_role == "vigilante" and location is get_home(var, victim):
-            victim.send(messages["pactbreaker_bolted"])
+            victim.send(messages["pactbreaker_bolted_house"])
             killer.send(messages["pactbreaker_house_kill"].format(victim, victim_role))
         elif killer_role == "vigilante" and location is VillageSquare:
-            victim.send(messages["pactbreaker_bolted"])
+            victim.send(messages["pactbreaker_bolted_square"])
             killer.send(messages["pactbreaker_square_kill"].format(victim, victim_role))
         else:
             # shouldn't happen; indicates a bug in the mode
