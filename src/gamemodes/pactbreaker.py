@@ -21,7 +21,7 @@ from src.status import add_protection, add_lynch_immunity
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
 from src.roles.vampire import on_player_protected as vampire_drained
-from src.roles.vigilante import vigilante_kill, vigilante_retract, vigilante_pass
+from src.roles.vigilante import vigilante_retract, vigilante_pass, vigilante_kill, KILLS as vigilante_kills
 
 @game_mode("pactbreaker", minp=6, maxp=24, likelihood=0)
 class PactBreakerMode(GameMode):
@@ -86,6 +86,7 @@ class PactBreakerMode(GameMode):
         kwargs = dict(chan=False, pm=True, playing=True, phases=("night",), register=False)
         self.pass_command = command("pass", **kwargs)(self.stay_home)
         self.visit_command = command("visit", **kwargs)(self.visit)
+        self.kill_command = command("kill", roles=("vigilante",), **kwargs)
 
     def startup(self):
         super().startup()
@@ -116,7 +117,7 @@ class PactBreakerMode(GameMode):
         wolf_retract.register()
         vampire_bite.register()
         vampire_retract.register()
-        vampire_drained.install()
+        vampire_drained.register()
         vigilante_kill.register()
         vigilante_retract.register()
         vigilante_pass.register()
@@ -158,6 +159,7 @@ class PactBreakerMode(GameMode):
         evt.data["acted"].clear()
         evt.data["nightroles"].clear()
         evt.data["acted"].extend(self.visiting)
+        evt.data["acted"].extend(vigilante_kills)
         evt.data["nightroles"].extend(self.active_players)
         evt.stop_processing = True
 
@@ -176,9 +178,8 @@ class PactBreakerMode(GameMode):
             add_protection(var, player, None, "vampire", Vampire)
 
         for player in set(get_players(var, ("vigilante",))):
-            # mark vigilantes as potentially eligible for turning into vampires (50% chance)
-            if random.random() < 0.5:
-                add_protection(var, player, None, "vigilante", Vampire, 10)
+            # mark vigilantes as eligible for turning into vampires
+            add_protection(var, player, None, "vigilante", Vampire, 10)
 
         # resolve night visits on a per-location basis
         visited: dict[Location, set[User]] = defaultdict(set)
@@ -211,7 +212,7 @@ class PactBreakerMode(GameMode):
                         if role != "vigilante" and len(choices) >= 4:
                             wolf_list.extend(random.sample(choices, int(len(choices) / 4) + 2))
                         # give a list of potential wolves (at least one of which is wolf)
-                        if len(wolf_list) == 1:
+                        if len(wolf_list) == 1 or role == "vampire":
                             visitor.send(messages["pactbreaker_forest_evidence_single"].format(wolf))
                             self.collected_evidence[visitor].add(wolf)
                         else:
@@ -564,13 +565,21 @@ class PactBreakerMode(GameMode):
         self.visiting[wrapper.source] = get_home(wrapper.source.game_state, wrapper.source)
         wrapper.pm(messages["no_visit"])
 
+    def kill(self, wrapper: MessageDispatcher, message: str):
+        """Kill someone at night, but you die too if they aren't a wolf or vampire!"""
+        del self.visiting[:wrapper.source:]
+        vigilante_kill.caller(wrapper, message)
+
     def visit(self, wrapper: MessageDispatcher, message: str):
         """Visit a location to collect evidence."""
+        var = wrapper.game_state
         if wrapper.source not in self.active_players:
             wrapper.pm(messages["pactbreaker_no_visit"])
             return
 
-        var = wrapper.game_state
+        if wrapper.source in get_players(var, ("vigilante",)):
+            del vigilante_kills[:wrapper.source:]
+
         prefix = re.split(" +", message)[0]
         aliases = {
             "forest": messages.raw("_commands", "forest"),
