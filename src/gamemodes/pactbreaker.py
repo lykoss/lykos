@@ -209,10 +209,10 @@ class PactBreakerMode(GameMode):
                     if card == "evidence":
                         wolf_list = [wolf]
                         choices = [x for x in get_players(var) if x not in (wolf, visitor)]
-                        if role != "vigilante" and len(choices) >= 4:
+                        if role != "vampire" and len(choices) >= 4:
                             wolf_list.extend(random.sample(choices, int(len(choices) / 4) + 2))
                         # give a list of potential wolves (at least one of which is wolf)
-                        if len(wolf_list) == 1 or role == "vampire":
+                        if len(wolf_list) == 1:
                             visitor.send(messages["pactbreaker_forest_evidence_single"].format(wolf))
                             self.collected_evidence[visitor].add(wolf)
                         else:
