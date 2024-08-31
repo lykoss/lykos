@@ -21,7 +21,7 @@ from src.status import add_protection, add_lynch_immunity
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract
 from src.roles.vampire import on_player_protected as vampire_drained
-from src.roles.vigilante import vigilante_retract, vigilante_pass, vigilante_kill, KILLS as vigilante_kills
+from src.roles.vigilante import vigilante_retract, vigilante_pass, vigilante_kill
 
 @game_mode("pactbreaker", minp=6, maxp=24, likelihood=0)
 class PactBreakerMode(GameMode):
@@ -74,6 +74,7 @@ class PactBreakerMode(GameMode):
         # messages to send on night kills; only populated during transition_day so user containers are unnecessary
         self.night_kill_messages: dict[tuple[User, User], Optional[Location]] = {}
         self.visiting: UserDict[User, Location] = UserDict()
+        self.prev_visiting: UserDict[User, Location] = UserDict()
         self.drained = UserSet()
         self.voted: DefaultUserDict[User, int] = DefaultUserDict(int)
         self.last_voted: Optional[User] = None
@@ -86,7 +87,6 @@ class PactBreakerMode(GameMode):
         kwargs = dict(chan=False, pm=True, playing=True, phases=("night",), register=False)
         self.pass_command = command("pass", **kwargs)(self.stay_home)
         self.visit_command = command("visit", **kwargs)(self.visit)
-        self.kill_command = command("kill", roles=("vigilante",), **kwargs)
 
     def startup(self):
         super().startup()
@@ -96,6 +96,7 @@ class PactBreakerMode(GameMode):
         self.drained.clear()
         self.collected_evidence.clear()
         self.visiting.clear()
+        self.prev_visiting.clear()
         # register !visit and !pass, remove all role commands
         self.visit_command.register()
         self.pass_command.register()
@@ -159,7 +160,6 @@ class PactBreakerMode(GameMode):
         evt.data["acted"].clear()
         evt.data["nightroles"].clear()
         evt.data["acted"].extend(self.visiting)
-        evt.data["acted"].extend(vigilante_kills)
         evt.data["nightroles"].extend(self.active_players)
         evt.stop_processing = True
 
@@ -370,16 +370,13 @@ class PactBreakerMode(GameMode):
                     cards = deck[i:i+draws]
                     i += draws
                     role = get_main_role(var, visitor)
-                    vigilante_luck = random.random() < 0.4
-                    if ((vigilante_luck or is_home) and role == "vigilante"
-                       and owner in self.collected_evidence[visitor] and owner_role in ("wolf", "vampire")):
-                        # vigilantes will murder a known wolf or vampire if they're home
-                        # (and sometimes even if they're not)
+                    have_evidence = owner in self.collected_evidence[visitor]
+                    if role == "vigilante" and have_evidence and owner_role in ("wolf", "vampire"):
+                        # vigilantes will murder a known wolf or vampire by visiting their house
                         evt.data["victims"].add(owner)
                         evt.data["killers"][owner].append(visitor)
                         self.night_kill_messages[(visitor, owner)] = location
-                    elif (not is_home and owner in self.collected_evidence[visitor]
-                          and owner_role == "vampire" and role != "vampire"):
+                    elif not is_home and have_evidence and owner_role == "vampire" and role != "vampire":
                         # non-vampires destroy known vampires that aren't home
                         evt.data["victims"].add(owner)
                         evt.data["killers"][owner].append(visitor)
@@ -499,6 +496,8 @@ class PactBreakerMode(GameMode):
         # every player is active again (stocks only lasts for one night)
         self.active_players.clear()
         self.active_players.update(get_players(var))
+        self.prev_visiting.clear()
+        self.prev_visiting.update(self.visiting)
         self.visiting.clear()
         # if someone was locked up last night, ensure they can't be locked up again tonight
         if self.last_voted is not None:
@@ -565,20 +564,12 @@ class PactBreakerMode(GameMode):
         self.visiting[wrapper.source] = get_home(wrapper.source.game_state, wrapper.source)
         wrapper.pm(messages["no_visit"])
 
-    def kill(self, wrapper: MessageDispatcher, message: str):
-        """Kill someone at night, but you die too if they aren't a wolf or vampire!"""
-        del self.visiting[:wrapper.source:]
-        vigilante_kill.caller(wrapper, message)
-
     def visit(self, wrapper: MessageDispatcher, message: str):
         """Visit a location to collect evidence."""
         var = wrapper.game_state
         if wrapper.source not in self.active_players:
             wrapper.pm(messages["pactbreaker_no_visit"])
             return
-
-        if wrapper.source in get_players(var, ("vigilante",)):
-            del vigilante_kills[:wrapper.source:]
 
         prefix = re.split(" +", message)[0]
         aliases = {
@@ -605,6 +596,24 @@ class PactBreakerMode(GameMode):
             target_location = get_home(var, target_player)
             is_special = False
 
+        # Don't let a person visit the same location multiple nights in a row, with the following exceptions:
+        # 1. Everyone can stay home multiple nights in a row
+        # 2. Wolves can hunt in the forest multiple nights in a row
+        # 3. Vampires can hunt in the square multiple nights in a row
+        prev_location = self.prev_visiting.get(wrapper.source)
+        player_home = get_home(var, wrapper.source)
+        player_role = get_main_role(var, wrapper.source)
+        prev_name = prev_location.name if prev_location in (Forest, VillageSquare) else "house"
+        target_name = target_location.name if target_location in (Forest, VillageSquare) else "house"
+        if prev_name == target_name and prev_location is not player_home:
+            if target_location is Forest and player_role in Wolf:
+                pass
+            elif target_location is VillageSquare and player_role in Vampire:
+                pass
+            else:
+                wrapper.pm(messages["pactbreaker_no_visit_twice_{0}".format(target_name)])
+                return
+
         self.visiting[wrapper.source] = target_location
         if is_special:
             wrapper.pm(messages["pactbreaker_visiting_{0}".format(target_location.name)])
@@ -612,12 +621,7 @@ class PactBreakerMode(GameMode):
             wrapper.pm(messages["pactbreaker_visiting_house"].format(target_player))
 
         # relay to wolfchat/vampire chat as appropriate
-        if is_special:
-            relay_key = "pactbreaker_relay_visit_{0}".format(target_location.name)
-        else:
-            relay_key = "pactbreaker_relay_visit_house"
-
-        player_role = get_main_role(var, wrapper.source)
+        relay_key = "pactbreaker_relay_visit_{0}".format(target_name)
         if player_role in Wolf:
             # command is "kill" so that this is relayed even if gameplay.wolfchat.only_kill_command is true
             send_wolfchat_message(var,
