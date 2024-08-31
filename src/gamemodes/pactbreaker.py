@@ -118,7 +118,7 @@ class PactBreakerMode(GameMode):
         wolf_retract.register()
         vampire_bite.register()
         vampire_retract.register()
-        vampire_drained.register()
+        vampire_drained.install()
         vigilante_kill.register()
         vigilante_retract.register()
         vigilante_pass.register()
@@ -199,7 +199,8 @@ class PactBreakerMode(GameMode):
                     deck.append(("evidence", wolf))
                     if wolf in visitors:
                         deck.append(("hunted", wolf))
-                while len(deck) < max(10, len(non_wolves)):
+                        deck.append(("hunted", wolf))
+                while len(deck) < max(8, len(non_wolves)):
                     deck.append(("empty-handed", None))
 
                 random.shuffle(deck)
@@ -228,7 +229,7 @@ class PactBreakerMode(GameMode):
                     else:
                         visitor.send(messages["pactbreaker_forest_empty"])
             elif location is VillageSquare:
-                deck = [("empty-handed", None), ("empty-handed", None), ("empty-handed", None)]
+                deck = [("empty-handed", None)]
                 # figure out who is in the stocks (if anyone)
                 stocks_players = set(get_players(var)) - self.active_players
                 for visitor in visitors:
@@ -241,10 +242,10 @@ class PactBreakerMode(GameMode):
                         deck.append(("drained", visitor))
                     elif role == "vigilante":
                         deck.append(("exposed", visitor))
-                while len(deck) < 10:
+                while len(deck) < 8:
                     deck.append(("evidence", None))
-                if len(visitors) > 10:
-                    for i in range(len(visitors) - 10):
+                if len(visitors) > 8:
+                    for i in range(len(visitors) - 8):
                         deck.append(("empty-handed", None))
 
                 # at most one person can be in the stocks; this simplifies some later logic
@@ -356,12 +357,11 @@ class PactBreakerMode(GameMode):
                 num_vampires = len(vampires)
                 owner_role = get_main_role(var, owner)
                 deck = ["empty-handed",
-                        "empty-handed",
                         "empty-handed" if owner_role != "wolf" else "evidence",
                         "empty-handed" if owner_role != "villager" or is_home else "evidence",
                         "empty-handed" if is_home else "evidence"]
-                if total_draws > 5:
-                    for i in range(total_draws - 5):
+                if total_draws > 4:
+                    for i in range(total_draws - 4):
                         deck.append("empty-handed")
                 random.shuffle(deck)
                 i = 0
