@@ -600,8 +600,10 @@ class PactBreakerMode(GameMode):
         # 1. Everyone can stay home multiple nights in a row
         # 2. Wolves can hunt in the forest multiple nights in a row
         # 3. Vampires can hunt in the square multiple nights in a row
-        prev_location = self.prev_visiting.get(wrapper.source)
+
         player_home = get_home(var, wrapper.source)
+        # default to home if n1 or they were in the stocks, to let them visit any location
+        prev_location = self.prev_visiting.get(wrapper.source, player_home)
         player_role = get_main_role(var, wrapper.source)
         prev_name = prev_location.name if prev_location in (Forest, VillageSquare) else "house"
         target_name = target_location.name if target_location in (Forest, VillageSquare) else "house"
