@@ -25,8 +25,8 @@ import logging
 from pathlib import Path
 
 ver = sys.version_info
-if ver < (3, 9):
-    print("Python 3.9 or newer is required to run the bot.", file=sys.stderr)
+if ver < (3, 11):
+    print("Python 3.11 or newer is required to run the bot.", file=sys.stderr)
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]), file=sys.stderr)
     sys.exit(1)
 
@@ -35,12 +35,9 @@ try: # need to manually add dependencies here
     import requests
     import ruamel.yaml
 except ImportError:
-    command = "python3"
-    if os.name == "nt":
-        command = "py -3"
     print("\n".join(["*** Missing dependencies! ***".center(80),
                      "Please install the missing dependencies by running the following command:",
-                     "{0} -m pip install --user -r requirements.txt".format(command),
+                     "{0} -m pip install --user -r requirements.txt".format(sys.executable),
                      "",
                      "If you don't have pip and don't know how to install it, follow this link:",
                      "https://pip.pypa.io/en/stable/installing/",
