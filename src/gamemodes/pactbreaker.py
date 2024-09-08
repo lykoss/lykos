@@ -221,8 +221,8 @@ class PactBreakerMode(GameMode):
                     elif card == "hunted" and role == "vampire":
                         self.collected_evidence[wolf].add(visitor)
                         wolf.send(messages["pactbreaker_hunter_vampire"].format(visitor))
-                        wolf.send(messages["pactbreaker_hunted_vampire"])
-                    elif card == "hunted":
+                        visitor.send(messages["pactbreaker_hunted_vampire"])
+                    elif card == "hunted" and (role != "villager" or visitor not in self.collected_evidence[wolf]):
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(wolf)
                         self.night_kill_messages[(wolf, visitor)] = location
@@ -294,10 +294,12 @@ class PactBreakerMode(GameMode):
                             visitor.send(messages["pactbreaker_stocks"].format(target, get_main_role(var, target)))
                     elif role == "vampire" and card == "hunted":
                         # vampires give wolves evidence when a hunted card is drawn
+                        self.collected_evidence[actor].add(visitor)
                         actor.send(messages["pactbreaker_hunter_vampire"].format(visitor))
                         visitor.send(messages["pactbreaker_hunted_vampire"])
-                    elif card == "hunted":
+                    elif card == "hunted" and (role != "villager" or visitor not in self.collected_evidence[actor]):
                         # vigilantes and villagers get killed by the wolf
+                        # (except a wolf will not kill a villager that they know is just a regular vil)
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(actor)
                         self.night_kill_messages[(actor, visitor)] = location
