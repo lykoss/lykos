@@ -1478,6 +1478,9 @@
     "pactbreaker_house_empty_2": "{0:@} seems to have stayed home tonight, so you remain hidden outside looking through an open window. However, you were unable to discover any useful evidence through your observations.",
     "pactbreaker_forest_evidence": "You discover some items in the forest leading you to believe that at least one of these people is {=wolf!role:article} {=wolf!role:bold}: {0:join}",
     "pactbreaker_forest_evidence_single": "You discover some items in the forest leading you to believe that {0:@} is {=wolf!role:article} {=wolf!role:bold}!",
+    "pactbreaker_forest_evidence_nonwolf": "You find {0:@} stalking around the forest as well. After a quick exchange of pleasantries, you learn that they are {1!role:article} {1!role:bold} before continuing on you way.",
+    "pactbreaker_forest_share_nothing": "You compared notes with the other wolves you met in the forest last night, but did not learn of any new information.",
+    "pactbreaker_forest_share": "You compared notes with the other wolves you met in the forest last night, and learned the following: {0:join}",
     "pactbreaker_vote": [
         "The village has decided to lock {0:@} into the stocks until tomorrow."
     ],

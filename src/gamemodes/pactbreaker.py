@@ -5,6 +5,8 @@ import re
 from collections import defaultdict
 from typing import Iterable, Optional
 
+from Tools.scripts.findlinksto import visit
+
 from src import users, channels
 from src.users import User, FakeUser
 from src.containers import UserSet, UserDict, DefaultUserDict
@@ -192,42 +194,100 @@ class PactBreakerMode(GameMode):
 
             if location is Forest:
                 wolves = get_players(var, ("wolf",))
-                non_wolves = [x for x in visitors if x not in wolves]
                 deck = []
+                evidence_sharing = set()
                 for wolf in wolves:
                     deck.append(("evidence", wolf))
                     deck.append(("evidence", wolf))
-                    if wolf in visitors:
-                        deck.append(("hunted", wolf))
-                        deck.append(("hunted", wolf))
-                while len(deck) < max(8, len(non_wolves)):
+                for visitor in visitors:
+                    if visitor in wolves:
+                        deck.append(("hunted", visitor))
+                    else:
+                        deck.append(("evidence", visitor))
+                while len(deck) < max(5, len(visitors)):
                     deck.append(("empty-handed", None))
 
                 random.shuffle(deck)
-                for i, visitor in enumerate(non_wolves):
-                    role = get_main_role(var, visitor)
-                    card, wolf = deck[i]
-                    if card == "evidence":
-                        wolf_list = [wolf]
-                        choices = [x for x in get_players(var) if x not in (wolf, visitor)]
-                        if role != "vampire" and len(choices) >= 4:
-                            wolf_list.extend(random.sample(choices, int(len(choices) / 4) + 2))
-                        # give a list of potential wolves (at least one of which is wolf)
+                for i, visitor in enumerate(visitors):
+                    card, target = deck[i]
+                    visitor_role = get_main_role(var, visitor)
+                    target_role = get_main_role(var, target)
+                    if target is visitor:
+                        visitor.send(messages["pactbreaker_forest_empty"])
+                    elif card == "evidence" and target_role == "wolf" and visitor_role == "wolf":
+                        if target in visitors:
+                            evidence_sharing.add(target)
+                            evidence_sharing.add(visitor)
+                        else:
+                            visitor.send(messages["pactbreaker_forest_empty"])
+                    elif card == "evidence" and target_role == "wolf":
+                        wolf_list = [target]
+                        choices = [x for x in get_players(var) if x not in (target, visitor)]
+                        if visitor_role != "vampire" and len(choices) >= 4:
+                            wolf_list.extend(random.sample(choices, int(len(choices) / 4) + 1))
+                        # give a list of 3+ potential wolves (at least one of which is wolf)
                         if len(wolf_list) == 1:
-                            visitor.send(messages["pactbreaker_forest_evidence_single"].format(wolf))
-                            self.collected_evidence[visitor].add(wolf)
+                            visitor.send(messages["pactbreaker_forest_evidence_single"].format(target))
+                            self.collected_evidence[visitor].add(target)
                         else:
                             visitor.send(messages["pactbreaker_forest_evidence"].format(wolf_list))
-                    elif card == "hunted" and role == "vampire":
-                        self.collected_evidence[wolf].add(visitor)
-                        wolf.send(messages["pactbreaker_hunter_vampire"].format(visitor))
+                    elif card == "evidence" and (visitor_role == "vampire" or target_role == "vampire"):
+                        if visitor_role == "wolf":
+                            # treat as a hunted card instead (but with roles flipped since target is the vampire)
+                            self.collected_evidence[visitor].add(target)
+                            visitor.send(messages["pactbreaker_hunter_vampire"].format(target))
+                            target.send(messages["pactbreaker_hunted_vampire"])
+                        elif visitor_role == "vampire" and target_role == "vampire":
+                            visitor.send(messages["pactbreaker_forest_empty"])
+                        else:
+                            vampire = visitor if visitor_role == "vampire" else target
+                            victim = target if visitor_role == "vampire" else visitor
+                            evt.data["victims"].add(victim)
+                            evt.data["killers"][victim].append(vampire)
+                            evt.data["kill_priorities"][vampire] = 10
+                            self.night_kill_messages[(vampire, victim)] = location
+                    elif card == "evidence":
+                        self.collected_evidence[visitor].add(target)
+                        if visitor_role == "villager":
+                            self.collected_evidence[target].add(visitor)
+                        # wolves and vigilante visitors hide their true nature, but a vigilante target is caught off-guard
+                        # the villager lie only applies to wolves/vigilantes because vampire was handled in the above case
+                        visitor.send(messages["pactbreaker_forest_evidence_nonwolf"].format(target, target_role))
+                        target.send(messages["pactbreaker_forest_evidence_nonwolf"].format(visitor, "villager"))
+                    elif card == "hunted" and visitor_role == "wolf":
+                        evidence_sharing.add(visitor)
+                        evidence_sharing.add(target)
+                    elif card == "hunted" and visitor_role == "vampire":
+                        self.collected_evidence[target].add(visitor)
+                        target.send(messages["pactbreaker_hunter_vampire"].format(visitor))
                         visitor.send(messages["pactbreaker_hunted_vampire"])
-                    elif card == "hunted" and (role != "villager" or visitor not in self.collected_evidence[wolf]):
+                    elif card == "hunted" and (visitor_role != "villager" or visitor not in self.collected_evidence[target]):
                         evt.data["victims"].add(visitor)
-                        evt.data["killers"][visitor].append(wolf)
-                        self.night_kill_messages[(wolf, visitor)] = location
+                        evt.data["killers"][visitor].append(target)
+                        self.night_kill_messages[(target, visitor)] = location
                     else:
                         visitor.send(messages["pactbreaker_forest_empty"])
+
+                # calculate shared evidence
+                shared_evidence = set()
+                ws = set(wolves)
+                for wolf in evidence_sharing:
+                    # extra set() wrapper to make PyCharm infer the types correctly
+                    shared_evidence.update(set(self.collected_evidence[wolf]))
+                for wolf in evidence_sharing:
+                    if not shared_evidence:
+                        # nobody has evidence to share, so everyone treats this as empty-handed instead
+                        wolf.send(messages["pactbreaker_forest_empty"])
+                        continue
+                    if shared_evidence - self.collected_evidence[wolf] - ws:
+                        entries = []
+                        for target in shared_evidence - self.collected_evidence[wolf] - ws:
+                            entries.append(messages["players_list_entry"].format(target, "",
+                                                                                 (get_main_role(var, target),)))
+                        wolf.send(messages["pactbreaker_forest_share"].format(entries))
+                        self.collected_evidence[wolf].update(shared_evidence - ws)
+                    else:
+                        wolf.send(messages["pactbreaker_forest_share_nothing"])
             elif location is VillageSquare:
                 deck = [("empty-handed", None)]
                 # figure out who is in the stocks (if anyone)
@@ -256,10 +316,15 @@ class PactBreakerMode(GameMode):
                 for i, visitor in enumerate(visitors):
                     role = get_main_role(var, visitor)
                     card, actor = deck[i]
-                    # killing roles with evidence on the person in the stocks treat drawing an evidence
+                    # wolves with evidence on the person in the stocks treat drawing an evidence
                     # card as drawing the card that lets them kill the person in the stocks instead
-                    evidence_special = card == "evidence" and target in self.collected_evidence[visitor]
-                    if role == "wolf" and (card == "hunted" or evidence_special):
+                    wolf_special = card == "evidence" and target in self.collected_evidence[visitor]
+                    # vampires always kill non-vampires in the stocks if they draw an evidence card
+                    vamp_special = card == "evidence" and target is not None and target_role != "vampire"
+                    # vigilantes gain evidence on the person in the stocks on drawing an evidence card,
+                    # or kills wolves/vampires if they already have evidence on them
+                    vig_special = card == "evidence" and target is not None and (target not in self.collected_evidence[visitor] or target_role not in ("villager", "vigilante"))
+                    if role == "wolf" and (card == "hunted" or wolf_special):
                         # wolves kill the player in the stocks (even vampires)
                         if not target or target_role == "wolf":
                             # but don't kill other wolves
@@ -268,7 +333,7 @@ class PactBreakerMode(GameMode):
                             evt.data["victims"].add(target)
                             evt.data["killers"][target].append(visitor)
                             self.night_kill_messages[(visitor, target)] = location
-                    elif role == "vampire" and (card == "drained" or evidence_special):
+                    elif role == "vampire" and (card == "drained" or vamp_special):
                         # vampires fully drain the player in the stocks
                         if not target or target_role == "vampire":
                             # but don't drain other vampires
@@ -278,13 +343,13 @@ class PactBreakerMode(GameMode):
                             evt.data["killers"][target].append(visitor)
                             evt.data["kill_priorities"][actor] = 10
                             self.night_kill_messages[(visitor, target)] = location
-                    elif role == "vigilante" and (card == "exposed" or evidence_special):
+                    elif role == "vigilante" and (card == "exposed" or vig_special):
                         # vigilantes kill the player in the stocks if they have hard evidence on them,
                         # otherwise they gain hard evidence
                         if not target:
                             # nobody in the stocks
                             visitor.send(messages["pactbreaker_square_empty"])
-                        elif target in self.collected_evidence[visitor]:
+                        elif target in self.collected_evidence[visitor] and target_role not in ("villager", "vigilante"):
                             evt.data["victims"].add(target)
                             evt.data["killers"][target].append(visitor)
                             self.night_kill_messages[(visitor, target)] = location
@@ -315,7 +380,7 @@ class PactBreakerMode(GameMode):
                         self.collected_evidence[visitor].add(actor)
                         visitor.send(messages["pactbreaker_exposed"].format(actor))
                     elif card == "evidence":
-                        # share evidence with every other player who has drawn an evidence card
+                        # share evidence with everyone else who has drawn an evidence card without triggering special behavior
                         evidence_sharing.append(visitor)
                     else:
                         visitor.send(messages["pactbreaker_square_empty"])
@@ -353,22 +418,28 @@ class PactBreakerMode(GameMode):
                 total_draws = 0
                 for visitor in visitors:
                     self.visit_count[visitor][owner] += 1
-                    total_draws += self.visit_count[visitor][owner]
+                    total_draws += (self.visit_count[visitor][owner] - 1) * 2 + 1
 
+                owner_role = get_main_role(var, owner)
                 vampires = [x for x in visitors if get_main_role(var, x) == "vampire"]
                 num_vampires = len(vampires)
-                owner_role = get_main_role(var, owner)
+                if is_home and owner_role == "vampire":
+                    vampires.append(owner)
+                    num_vampires += 1
+
                 deck = ["empty-handed",
-                        "empty-handed" if owner_role != "wolf" else "evidence",
-                        "empty-handed" if owner_role != "villager" or is_home else "evidence",
-                        "empty-handed" if is_home else "evidence"]
-                if total_draws > 4:
-                    for i in range(total_draws - 4):
+                        "empty-handed",
+                        "empty-handed" if owner_role != "villager" or is_home else "evidence"]
+                if total_draws > 3:
+                    for i in range(0, total_draws - 3, 2):
+                        deck.append("evidence")
                         deck.append("empty-handed")
+                        if is_home:
+                            deck.append("empty-handed")
                 random.shuffle(deck)
                 i = 0
                 for visitor in visitors:
-                    draws = self.visit_count[visitor][owner]
+                    draws = (self.visit_count[visitor][owner] - 1 * 2) + 1
                     cards = deck[i:i+draws]
                     i += draws
                     role = get_main_role(var, visitor)
@@ -401,7 +472,7 @@ class PactBreakerMode(GameMode):
                     else:
                         visitor.send(messages["pactbreaker_house_empty_1"].format(owner))
 
-                if not is_home and num_vampires > 0 and num_vampires >= num_visitors / 2:
+                if (not is_home or owner_role == "vampire") and num_vampires > 0 and num_vampires >= num_visitors / 2:
                     # vampires outnumber non-vampires; drain the non-vampires
                     i = 0
                     for visitor in visitors:
