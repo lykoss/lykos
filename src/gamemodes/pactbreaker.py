@@ -421,6 +421,8 @@ class PactBreakerMode(GameMode):
                 owner_role = get_main_role(var, owner)
                 vampires = [x for x in visitors if get_main_role(var, x) == "vampire"]
                 num_vampires = len(vampires)
+                # this needs to be calculated *before* we add to num_vampires due to a vamp staying home
+                num_other = num_visitors - num_vampires
                 if is_home and owner_role == "vampire":
                     vampires.append(owner)
                     num_vampires += 1
@@ -472,7 +474,7 @@ class PactBreakerMode(GameMode):
                     else:
                         visitor.send(messages["pactbreaker_house_empty_1"].format(owner))
 
-                if (not is_home or owner_role == "vampire") and num_vampires > 0 and num_vampires >= num_visitors / 2:
+                if (not is_home or owner_role == "vampire") and num_vampires > 0 and num_vampires >= num_other:
                     # vampires outnumber non-vampires; drain the non-vampires
                     i = 0
                     for visitor in visitors:
