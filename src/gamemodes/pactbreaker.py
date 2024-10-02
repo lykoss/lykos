@@ -5,8 +5,6 @@ import re
 from collections import defaultdict
 from typing import Iterable, Optional
 
-from Tools.scripts.findlinksto import visit
-
 from src import users, channels
 from src.users import User, FakeUser
 from src.containers import UserSet, UserDict, DefaultUserDict
