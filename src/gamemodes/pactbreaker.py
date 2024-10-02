@@ -427,13 +427,15 @@ class PactBreakerMode(GameMode):
 
                 deck = ["empty-handed",
                         "empty-handed",
-                        "empty-handed" if owner_role != "villager" or is_home else "evidence"]
-                if total_draws > 3:
-                    for i in range(0, total_draws - 3, 2):
+                        "empty-handed" if owner_role != "villager" else "evidence"]
+                if is_home:
+                    deck.append("empty-handed")
+                ds = len(deck)
+                if total_draws > ds:
+                    for i in range(0, total_draws - ds, 2):
                         deck.append("evidence")
                         deck.append("empty-handed")
-                        if is_home:
-                            deck.append("empty-handed")
+
                 random.shuffle(deck)
                 i = 0
                 for visitor in visitors:
