@@ -209,7 +209,7 @@ class PactBreakerMode(GameMode):
                 for i, visitor in enumerate(visitors):
                     card, target = deck[i]
                     visitor_role = get_main_role(var, visitor)
-                    target_role = get_main_role(var, target)
+                    target_role = get_main_role(var, target) if target else None
                     if target is visitor:
                         visitor.send(messages["pactbreaker_forest_empty"])
                     elif card == "evidence" and target_role == "wolf" and visitor_role == "wolf":
