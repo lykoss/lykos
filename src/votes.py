@@ -139,7 +139,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
             # - No other game mode has a majority
             if (GAME_MODES[gamemode][1] <= len(pl) <= GAME_MODES[gamemode][2] and
                     (not majority or num_votes >= len(pl) / 2) and
-                    (GAME_MODES[gamemode][3] > 0 or num_votes >= len(pl) / 2)):
+                    (config.Main.get(f"gameplay.modes.{gamemode}.weight", 0) > 0 or num_votes >= len(pl) / 2)):
                 gamemode = messages["bold"].format(gamemode)
                 if num_votes >= len(pl) / 2:
                     majority = True

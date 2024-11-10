@@ -1,7 +1,7 @@
 from src.gamemodes import game_mode, GameMode
 from src.events import EventListener
 
-@game_mode("valentines", minp=8, maxp=24, likelihood=0)
+@game_mode("valentines", minp=8, maxp=24)
 class MatchmakerMode(GameMode):
     """Love is in the air!"""
     def __init__(self, arg=""):

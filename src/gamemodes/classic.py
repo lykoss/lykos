@@ -2,7 +2,7 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-@game_mode("classic", minp=4, maxp=21, likelihood=0)
+@game_mode("classic", minp=4, maxp=21)
 class ClassicMode(GameMode):
     """Classic game mode from before all the changes."""
     def __init__(self, arg=""):

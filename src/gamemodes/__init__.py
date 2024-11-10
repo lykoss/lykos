@@ -321,11 +321,11 @@ class GameMode:
             for key, value in self.GUN_CHANCES[role].items():
                 evt.data[key] += value
 
-GAME_MODES: dict[str, tuple[Type[GameMode], int, int, int]] = {}
+GAME_MODES: dict[str, tuple[Type[GameMode], int, int]] = {}
 
-def game_mode(name: str, minp: int, maxp: int, likelihood: int = 0):
+def game_mode(name: str, minp: int, maxp: int):
     def decor(c: Type[GameMode]):
         c.name = name
-        GAME_MODES[name] = (c, minp, maxp, likelihood)
+        GAME_MODES[name] = (c, minp, maxp)
         return c
     return decor

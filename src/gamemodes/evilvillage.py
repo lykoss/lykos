@@ -6,7 +6,7 @@ from src.events import EventListener, Event
 from src import channels, users
 from src.cats import Village
 
-@game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
+@game_mode("evilvillage", minp=6, maxp=18)
 class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self, arg=""):

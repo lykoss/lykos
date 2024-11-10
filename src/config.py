@@ -262,8 +262,8 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
     if not path:
         path = ("<root>",)
 
-    settings_type = metadata["_type"]
-    assert settings_type is not None
+    settings_type = metadata.get("_type", None)
+    assert settings_type is not None, f"Path {path} does not define a metadata type"
     if type_override is not None:
         settings_type = type_override
 
@@ -284,13 +284,13 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
 
     ctors = metadata.get("_ctors", [])
     if ctors:
-        assert settings_type == "dict" and "_default" in metadata
+        assert settings_type == "dict" and "_default" in metadata, f"Path {path} defines a constructor but is not a dict with a default"
     if ctors and not isinstance(settings, dict):
         for ctor in ctors:
             # if a constructor fits our current data type, we'll merge that
             # into the default object and return it
             set_metadata = metadata["_default"][ctor["_set"]]
-            assert ctor["_type"] == set_metadata["_type"]
+            assert ctor["_type"] == set_metadata["_type"], f"Path {path} constructor type doesn't match the type of value it is setting"
             try:
                 value = {ctor["_set"]: merge(set_metadata, Empty, settings, *path, ctor["_set"])}
                 return merge(metadata, base, value, *path, strategy_override="replace")

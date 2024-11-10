@@ -164,6 +164,38 @@ gameplay:
     notice: true
     # Include which user is spectating in the above alert, if enabled.
     include_user: false
+  # You can adjust how likely gamemodes are to appear by default. Setting a mode to 0 will require that players
+  # select the mode with a majority vote before the game starts, ensuring it will never randomly appear.
+  # If you have a lot of new players, you can uncomment the following to disable the hardest modes by default
+  # (e.g. modes with special mechanics that could confuse new players) while making simpler modes far more likely.
+#  modes:
+#    # Very simple modes with little complexity
+#    default: 100
+#    classic: 100
+#    # Simple modes that introduce few twists, primarily team switching or win-stealing neutral roles
+#    alpha: 50
+#    charming: 50
+#    foolish: 50
+#    lycan: 50
+#    # Moderate modes that have more complex roles or introduce minor mechanical changes, such as totem or gun chances
+#    aleatoire: 10
+#    drunkfire: 10
+#    kaboom: 10
+#    mad: 10
+#    masquerade: 10
+#    noreveal: 10
+#    random: 10
+#    # Difficult modes that feature more complex mechanical changes, such as modifying default win conditions
+#    evilvillage: 6
+#    guardian: 6
+#    mudkip: 6
+#    rapidfire: 6
+#    valentines: 6
+#    # Very difficult modes that feature significant mechanical changes
+#    boreal: 0
+#    pactbreaker: 0
+#    maelstrom: 0
+#    sleepy: 0
 
 # Reaper. Users that leave during the game or are otherwise idle will be automatically removed from the game
 # after a period of time (by killing them in-game). This allows a game to continue onwards with the active players

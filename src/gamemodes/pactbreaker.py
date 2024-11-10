@@ -23,7 +23,7 @@ from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_r
 from src.roles.vampire import on_player_protected as vampire_drained
 from src.roles.vigilante import vigilante_retract, vigilante_pass, vigilante_kill
 
-@game_mode("pactbreaker", minp=6, maxp=24, likelihood=0)
+@game_mode("pactbreaker", minp=6, maxp=24)
 class PactBreakerMode(GameMode):
     """Help a rogue vigilante take down the terrors of the night or re-establish your pact with the werewolves!"""
     def __init__(self, arg=""):
