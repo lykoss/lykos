@@ -728,7 +728,7 @@
     "assassin_random": "Because you forgot to select a target at night, you are now targeting {0:@}.",
     "werecrow_success": "Well into the night, you notice that {0:@} is still awake and active. With the sun rising, you fly back to your house.",
     "werecrow_failure": "As the sun rises, you conclude that {0:@} was sleeping all night long, and you fly back to your house.",
-    "new_wolf": "A chilling howl was heard last night. It appears there is another werewolf in our midst!",
+    "new_wolf": "A chilling howl was heard last night. It appears there is another werewolf among us!",
     "target_not_home": "The wolves' selected victim was not at home last night, and avoided the attack.",
     "night_death_totem": "{1:@} was attacked last night, but their totem emitted a brilliant flash of light, blinding the attacker and allowing them to escape.",
     "night_death_angel": "{1:@} was attacked last night, but luckily, the {=guardian angel!role} was on duty.",
