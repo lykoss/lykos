@@ -7,7 +7,7 @@ from src.trans import chk_win_conditions
 from src import users
 from src.cats import All, Wolf, Wolf_Objective, Vampire_Objective, Killer
 
-@game_mode("random", minp=8, maxp=24, likelihood=0)
+@game_mode("random", minp=8, maxp=24)
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self, arg=""):

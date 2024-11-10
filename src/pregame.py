@@ -202,7 +202,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
         def _isvalid(mode, allow_vote_only):
             x = GAME_MODES[mode]
-            if not x[3] and not allow_vote_only:
+            if not config.Main.get(f"gameplay.modes.{mode}.weight", 0) and not allow_vote_only:
                 return False
             min_players = config.Main.get("gameplay.player_limits.minimum")
             max_players = config.Main.get("gameplay.player_limits.maximum")
@@ -233,7 +233,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 possiblegamemodes = []
                 for gamemode in GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes")):
                     if _isvalid(gamemode, False):
-                        possiblegamemodes += [gamemode] * GAME_MODES[gamemode][3]
+                        possiblegamemodes += [gamemode] * config.Main.get(f"gameplay.modes.{gamemode}.weight", 0)
                 gamemode = random.choice(possiblegamemodes)
             set_gamemode(pregame_state, gamemode)
 

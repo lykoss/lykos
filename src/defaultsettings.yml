@@ -881,6 +881,245 @@ gameplay: &gameplay
           _default: []
           _items:
             _type: str
+    modes:
+      _desc: >
+        Allows you to adjust how likely it is for certain gamemodes to appear when there is not a majority vote.
+        Some gamemodes may have additional settings that can be adjusted here as well.
+        A mode set to have weight 0 will not appear unless there is a majority vote for the mode. To disable a mode
+        entirely, use gameplay.disable.gamemodes instead.
+      _type: dict
+      _extra: true
+      _default:
+        aleatoire:
+          _desc: Settings for the aleatoire game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        alpha:
+          _desc: Settings for the alpha game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        boreal:
+          _desc: Settings for the boreal game mode.
+          _type: dict
+          _default:
+            nights:
+              _desc: How many nights the village needs to survive to win the game even if wolf shamans remain alive.
+              _type: int
+              _default: 7
+            tribe:
+              _desc: Settings controlling how the tribe behaves with respect to needing to be fed and starvation.
+              _type: dict
+              _default:
+                base:
+                  _desc: >
+                    Percentage of alive players that determines the number of times the tribe needs to be fed.
+                    This should be a number between 0 and 1 and is multiplied by the number of players.
+                    Alive wolf shamans further reduce this multiplier; see gameplay.modes.boreal.tribe.adjust.
+                  _type:
+                    - float
+                    - int
+                  _default: 0.4
+                adjust:
+                  _desc: >
+                    The percentage in gameplay.modes.boreal.tribe.base is reduced by this amount for each alive
+                    wolf shaman. This reduces the number of times village needs to be fed while wolf shamans are alive
+                    to slightly counteract the fact wolf shamans can pass around hunger totems.
+                  _type:
+                    - float
+                    - int
+                  _default: 0.03
+                starve:
+                  _desc: >
+                    If the tribe is not sufficiently fed for this many nights, the wolves will win.
+                    These nights need not be consecutive.
+                  _type: int
+                  _default: 3
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 1
+        charming:
+          _desc: Settings for the charming game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        classic:
+          _desc: Settings for the classic game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        default:
+          _desc: Settings for the default game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 40
+        drunkfire:
+          _desc: Settings for the drunkfire game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        evilvillage:
+          _desc: Settings for the evilvillage game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        foolish:
+          _desc: Settings for the foolish game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        guardian:
+          _desc: Settings for the guardian game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        kaboom:
+          _desc: Settings for the kaboom game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        lycan:
+          _desc: Settings for the lycan game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        mad:
+          _desc: Settings for the mad game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        maelstrom:
+          _desc: Settings for the maelstrom game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        masquerade:
+          _desc: Settings for the masquerade game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        mudkip:
+          _desc: Settings for the mudkip game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        noreveal:
+          _desc: Settings for the noreveal game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 1
+        pactbreaker:
+          _desc: Settings for the pactbreaker game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        random:
+          _desc: Settings for the random game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        rapidfire:
+          _desc: Settings for the rapidfire game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 0
+        sleepy:
+          _desc: Settings for the sleepy game mode.
+          _type: dict
+          _default:
+            nightmare:
+              _desc: Settings related to the nightmare mechanic in the sleepy mode.
+              _type: dict
+              _default:
+                chance:
+                  _desc: >
+                    How often a nightmare will occur. Set to 0 to disable nightmares. 1 or above will guarantee
+                    a nightmare will occur each night. A value between 0 and 1 is the percentage chance a nightmare
+                    will occur (e.g. 0.42 is a 42% chance a nightmare will occur). If multiple people are allowed to
+                    have nightmares (see gameplay.modes.sleepy.nightmare.max), this is rolled once per allowed player.
+                  _type:
+                    - float
+                    - int
+                  _default: 0.2
+                max:
+                  _desc: The maximum number of people that can have a nightmare each night.
+                  _type: int
+                  _default: 1
+            turn:
+              _desc: >
+                How likely certain roles (seer, harlot, cultist) are to change into other roles when priest dies.
+                A value between 0 and 1 is the percentage chance for these roles to turn (e.g. 0.42 is a 42% chance).
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
+        valentines:
+          _desc: Settings for the valentines game mode.
+          _type: dict
+          _default:
+            weight:
+              _desc: How likely this mode is to appear if there are no votes for gamemodes.
+              _type: int
+              _default: 5
 
 ratelimits: &ratelimits
   _name: ratelimits

@@ -3,7 +3,7 @@ from src.messages import messages
 from src.events import EventListener
 from src import channels, users
 
-@game_mode("drunkfire", minp=8, maxp=17, likelihood=0)
+@game_mode("drunkfire", minp=8, maxp=17)
 class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self, arg=""):

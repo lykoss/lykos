@@ -6,7 +6,7 @@ from src.events import EventListener, Event
 from src import channels, users
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
-@game_mode("guardian", minp=7, maxp=24, likelihood=5)
+@game_mode("guardian", minp=7, maxp=24)
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self, arg=""):

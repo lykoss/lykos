@@ -2,7 +2,7 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-@game_mode("charming", minp=6, maxp=24, likelihood=5)
+@game_mode("charming", minp=6, maxp=24)
 class CharmingMode(GameMode):
     """Charmed players must band together to find the piper in this game mode."""
     def __init__(self, arg=""):

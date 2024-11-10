@@ -51,6 +51,9 @@ def add_values(section, indent, path):
         section = t
         t = section["_type"]
 
+    if isinstance(t, list):
+        t = set(t)
+
     if "_name" in section and indent > 2:
         return f"Instance of [[#{section['_name']}|{section['_name']}]].\n"
 
@@ -63,7 +66,7 @@ def add_values(section, indent, path):
         default = f'<code>"{default}"</code>'
     elif t == "bool":
         default = "<code>true</code>" if default else "<code>false</code>"
-    elif t in ("int", "float", "enum"):
+    elif t in ("int", "float", "enum") or (isinstance(t, set) and t & {"int", "float", "enum"} == t):
         default = f'<code>{default}</code>'
     elif t == "list":
         if not default:
@@ -107,8 +110,6 @@ def yaml_dump(obj):
         return f"\n<syntaxhighlight lang=\"yaml\">{dump}</syntaxhighlight>\n"
 
 def generate_config_page():
-    file = Path(__file__).parent / "src" / "defaultsettings.yml"
-    Conf.load_metadata(file)
     # Initialize markup with our intro (as a template so we can easily edit it without needing to push code changes)
     markup = "{{config intro}}\n"
     # Add in the root
@@ -135,9 +136,10 @@ def generate_gamemodes_page():
         "modes": {}
     }
     total_likelihood = 0
-    for mode, min_players, max_players, likelihood in GAME_MODES.values():
+    for mode, min_players, max_players in GAME_MODES.values():
         if mode.name in ("roles",):
             continue
+        likelihood = Conf.get(f"gameplay.modes.{mode.name}.weight", 0)
         mode_inst = mode()
         role_guide = {}
         default_role = mode_inst.CUSTOM_SETTINGS.default_role
@@ -238,6 +240,8 @@ def edit_page(session: Session,
     return wiki_api(session, url, edit_params, edit_data, assert_bot=assert_bot)
 
 if __name__ == "__main__":
+    file = Path(__file__).parent / "src" / "defaultsettings.yml"
+    Conf.load_metadata(file)
     # make sure we always print a literal null when dumping None values
     RoundTripRepresenter.add_representer(type(None), SafeRepresenter.represent_none)
     # emit an empty string if the default is undefined

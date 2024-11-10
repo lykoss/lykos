@@ -10,7 +10,7 @@ from src.trans import chk_win_conditions
 from src import channels, users
 from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Vampire_Objective, Killer
 
-@game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
+@game_mode("maelstrom", minp=8, maxp=24)
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
     def __init__(self, arg=""):
