@@ -893,6 +893,9 @@ gameplay: &gameplay
         aleatoire:
           _desc: Settings for the aleatoire game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -901,6 +904,9 @@ gameplay: &gameplay
         alpha:
           _desc: Settings for the alpha game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -909,6 +915,9 @@ gameplay: &gameplay
         boreal:
           _desc: Settings for the boreal game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             nights:
               _desc: How many nights the village needs to survive to win the game even if wolf shamans remain alive.
@@ -949,6 +958,9 @@ gameplay: &gameplay
         charming:
           _desc: Settings for the charming game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -957,6 +969,9 @@ gameplay: &gameplay
         classic:
           _desc: Settings for the classic game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -965,6 +980,9 @@ gameplay: &gameplay
         default:
           _desc: Settings for the default game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -973,6 +991,9 @@ gameplay: &gameplay
         drunkfire:
           _desc: Settings for the drunkfire game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -981,6 +1002,9 @@ gameplay: &gameplay
         evilvillage:
           _desc: Settings for the evilvillage game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -989,6 +1013,9 @@ gameplay: &gameplay
         foolish:
           _desc: Settings for the foolish game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -997,6 +1024,9 @@ gameplay: &gameplay
         guardian:
           _desc: Settings for the guardian game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1005,6 +1035,9 @@ gameplay: &gameplay
         kaboom:
           _desc: Settings for the kaboom game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1013,6 +1046,9 @@ gameplay: &gameplay
         lycan:
           _desc: Settings for the lycan game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1021,6 +1057,9 @@ gameplay: &gameplay
         mad:
           _desc: Settings for the mad game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1029,6 +1068,9 @@ gameplay: &gameplay
         maelstrom:
           _desc: Settings for the maelstrom game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1037,6 +1079,9 @@ gameplay: &gameplay
         masquerade:
           _desc: Settings for the masquerade game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1045,6 +1090,9 @@ gameplay: &gameplay
         mudkip:
           _desc: Settings for the mudkip game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1053,6 +1101,9 @@ gameplay: &gameplay
         noreveal:
           _desc: Settings for the noreveal game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1061,6 +1112,9 @@ gameplay: &gameplay
         pactbreaker:
           _desc: Settings for the pactbreaker game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1069,6 +1123,9 @@ gameplay: &gameplay
         random:
           _desc: Settings for the random game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1077,6 +1134,9 @@ gameplay: &gameplay
         rapidfire:
           _desc: Settings for the rapidfire game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
@@ -1085,6 +1145,9 @@ gameplay: &gameplay
         sleepy:
           _desc: Settings for the sleepy game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             nightmare:
               _desc: Settings related to the nightmare mechanic in the sleepy mode.
@@ -1108,6 +1171,10 @@ gameplay: &gameplay
               _desc: >
                 How likely certain roles (seer, harlot, cultist) are to change into other roles when priest dies.
                 A value between 0 and 1 is the percentage chance for these roles to turn (e.g. 0.42 is a 42% chance).
+              _type:
+                - float
+                - int
+              _default: 0.6
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
               _type: int
@@ -1115,11 +1182,14 @@ gameplay: &gameplay
         valentines:
           _desc: Settings for the valentines game mode.
           _type: dict
+          _ctors:
+            - _type: int
+              _set: weight
           _default:
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
               _type: int
-              _default: 5
+              _default: 0
 
 ratelimits: &ratelimits
   _name: ratelimits
