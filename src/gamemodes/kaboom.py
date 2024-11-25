@@ -3,7 +3,7 @@ from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 
 
-@game_mode("kaboom", minp=6, maxp=24, likelihood=0)
+@game_mode("kaboom", minp=6, maxp=24)
 class KaboomMode(GameMode):
     """All of these explosions are rather loud..."""
     def __init__(self, arg=""):

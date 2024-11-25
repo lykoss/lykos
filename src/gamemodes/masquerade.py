@@ -4,7 +4,7 @@ from src.functions import get_players
 from src.events import EventListener
 from src import channels, users
 
-@game_mode("masquerade", minp=6, maxp=24, likelihood=5)
+@game_mode("masquerade", minp=6, maxp=24)
 class MasqueradeMode(GameMode):
     """Trouble is afoot at a masquerade ball when an attendee is found torn to shreds!"""
     def __init__(self, arg=""):

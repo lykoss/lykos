@@ -10,9 +10,9 @@ from src.functions import get_players, change_role
 from src.gamestate import GameState
 from src.status import add_dying
 from src.events import EventListener, Event
-from src import channels, locks
+from src import channels, config, locks
 
-@game_mode("sleepy", minp=10, maxp=24, likelihood=5)
+@game_mode("sleepy", minp=10, maxp=24)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):
@@ -24,9 +24,9 @@ class SleepyMode(GameMode):
             18: ["wolf(4)", "harlot", "monster"],
             21: ["wolf(5)", "village drunk", "monster(2)", "gunner"],
         }
-        self.NIGHTMARE_CHANCE = 1/5
-        self.NIGHTMARE_MAX = 1
-        self.TURN_CHANCE = 3/5
+        self.NIGHTMARE_CHANCE = config.Main.get("gameplay.modes.sleepy.nightmare.chance")
+        self.NIGHTMARE_MAX = config.Main.get("gameplay.modes.sleepy.nightmare.max")
+        self.TURN_CHANCE = config.Main.get("gameplay.modes.sleepy.turn")
         # Make sure priest is always prophet AND blessed, and that drunk is always gunner
         self.SECONDARY_ROLES["blessed villager"] = {"priest"}
         self.SECONDARY_ROLES["prophet"] = {"priest"}

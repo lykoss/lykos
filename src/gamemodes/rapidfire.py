@@ -3,7 +3,7 @@ from src.messages import messages
 from src.events import EventListener
 from src import channels, users
 
-@game_mode("rapidfire", minp=6, maxp=24, likelihood=0)
+@game_mode("rapidfire", minp=6, maxp=24)
 class RapidFireMode(GameMode):
     """Many roles that lead to multiple chain deaths."""
     def __init__(self, arg=""):
