@@ -1175,7 +1175,7 @@ def _get_gamemodes(var):
     from src.gamemodes import GAME_MODES
     gamemodes = []
     order = {}
-    for gm, (cls, min, max, chance) in GAME_MODES.items():
+    for gm, (cls, min, max) in GAME_MODES.items():
         if gm == "roles" or gm in config.Main.get("gameplay.disable.gamemodes"):
             continue
         order[LocalMode(gm).local] = (min, max)
