@@ -142,14 +142,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
     pregame_state: PregameState = wrapper.game_state
 
-    if (not forced and LAST_START and wrapper.source in LAST_START and
-            LAST_START[wrapper.source][0] + timedelta(seconds=config.Main.get("ratelimits.start")) > datetime.now()):
-        LAST_START[wrapper.source][1] += 1
-        wrapper.source.send(messages["command_ratelimited"])
-        return
-
-    LAST_START[wrapper.source] = [datetime.now(), 1]
-
     if pregame_state.in_game:
         wrapper.source.send(messages["werewolf_already_running"])
         return
@@ -160,11 +152,6 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
     if wrapper.source not in villagers and not forced:
         return
 
-    dur = int((CAN_START_TIME - datetime.now()).total_seconds())
-    if dur > 0 and not forced:
-        wrapper.send(messages["please_wait"].format(dur))
-        return
-
     if len(villagers) < config.Main.get("gameplay.player_limits.minimum"):
         wrapper.send(messages["not_enough_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.minimum")))
         return
@@ -172,6 +159,19 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
     if len(villagers) > config.Main.get("gameplay.player_limits.maximum"):
         wrapper.send(messages["max_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.maximum")))
         return
+
+    dur = int((CAN_START_TIME - datetime.now()).total_seconds())
+    if dur > 0 and not forced:
+        wrapper.send(messages["please_wait"].format(dur))
+        return
+
+    if (not forced and LAST_START and wrapper.source in LAST_START and
+            LAST_START[wrapper.source][0] + timedelta(seconds=config.Main.get("ratelimits.start")) > datetime.now()):
+        LAST_START[wrapper.source][1] += 1
+        wrapper.source.send(messages["command_ratelimited"])
+        return
+
+    LAST_START[wrapper.source] = [datetime.now(), 1]
 
     with locks.join_timer:
         if not forced and wrapper.source in START_VOTES:
