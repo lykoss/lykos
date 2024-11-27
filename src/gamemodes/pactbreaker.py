@@ -65,6 +65,7 @@ class PactBreakerMode(GameMode):
             "abstain": EventListener(self.on_abstain),
             "lynch_immunity": EventListener(self.on_lynch_immunity),
             "del_player": EventListener(self.on_del_player),
+            "myrole": EventListener(self.on_myrole),
         }
 
         self.MESSAGE_OVERRIDES = {
@@ -161,6 +162,8 @@ class PactBreakerMode(GameMode):
         del self.killing[:player:]
         del self.voted[:player:]
         del self.visit_count[:player:]
+        self.clue_pool += self.clue_tokens[player]
+        del self.clue_tokens[player]
         for attacker, victim in list(self.killing.items()):
             if victim is player:
                 NIGHT_IDLE_EXEMPT.add(attacker)
@@ -191,6 +194,19 @@ class PactBreakerMode(GameMode):
                 random.shuffle(ps)
                 ps.remove(player)
                 player.send(messages["players_list"].format(ps))
+
+    def on_myrole(self, evt: Event, var: GameState, player: User):
+        player.send(messages["pactbreaker_info_clues"].format(self.clue_tokens[player]))
+        if not self.collected_evidence[player] and not self.stale_evidence[player]:
+            player.send(messages["pactbreaker_info_no_evidence"])
+        else:
+            entries = []
+            for target in self.collected_evidence[player]:
+                entries.append(messages["pactbreaker_info_evidence_entry"].format(target, get_main_role(var, target)))
+            for target in self.stale_evidence[player]:
+                if target not in self.collected_evidence[player]:
+                    entries.append(messages["pactbreaker_info_evidence_entry"].format(target, "vigilante"))
+            player.send(messages["pactbreaker_info_evidence"].format(sorted(entries)))
 
     def on_chk_nightdone(self, evt: Event, var: GameState):
         evt.data["acted"].clear()
@@ -324,11 +340,11 @@ class PactBreakerMode(GameMode):
             i = 0
             # for hunted card messaging and forest evidence
             all_wolves = set(get_players(var, ("wolf",)))
-            wolves = list(visitors - all_wolves)
+            wolves = list(visitors & all_wolves)
             random.shuffle(wolves)
             # for bites
             all_vamps = set(get_players(var, ("vampire",)))
-            vamps = list(visitors - all_vamps)
+            vamps = list(visitors & all_vamps)
             random.shuffle(vamps)
             # ensure that clue tokens are randomly distributed in case there are not enough by randomizing visitor list
             vl = list(visitors)
@@ -368,7 +384,7 @@ class PactBreakerMode(GameMode):
                 if location is VillageSquare and witness and self.clue_pool > 0:
                     self.clue_pool -= 1
                     self.clue_tokens[visitor] += 1
-                    visitor.send(messages["pactbreaker_square_witness"].format(witness))
+                    visitor.send(messages[f"pactbreaker_square_witness_{witness}"].format(self.in_stocks))
                 if "share" in cards:
                     # has to be handled after everyone finishes drawing
                     shares.append(visitor)
@@ -480,7 +496,7 @@ class PactBreakerMode(GameMode):
             killer.send(messages["pactbreaker_shooter_stocks"].format(victim, victim_role))
         else:
             # shouldn't happen; indicates a bug in the mode
-            raise RuntimeError("Unknown night death situation")
+            raise RuntimeError(f"Unknown night death situation ({killer_role}/{victim_role}/{location.name})")
 
     def on_transition_day_resolve(self, evt: Event, var: GameState, dead: set[User], killers: dict[User, User | str]):
         # check for players meant to kill someone but got their kill pre-empted by someone else
@@ -501,6 +517,11 @@ class PactBreakerMode(GameMode):
         # if someone was locked up last night, ensure they can't be locked up again tonight
         if self.last_voted is not None:
             add_lynch_immunity(var, self.last_voted, "pactbreaker")
+        # alert people about clue tokens they have
+        for player, amount in self.clue_tokens.items():
+            if amount == 0:
+                continue
+            player.send(messages["pactbreaker_clue_notify"].format(amount))
 
     def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
         self.last_voted = votee
