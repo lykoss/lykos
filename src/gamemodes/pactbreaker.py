@@ -172,6 +172,10 @@ class PactBreakerMode(GameMode):
             del self.collected_evidence[player]
         for _, others in self.collected_evidence.items():
             others.discard(player)
+        if player in self.stale_evidence.items():
+            del self.stale_evidence[player]
+        for _, others in self.stale_evidence.items():
+            others.discard(player)
         for _, others in self.visit_count.items():
             del others[:player:]
         if self.last_voted is player:
@@ -428,12 +432,13 @@ class PactBreakerMode(GameMode):
                         visitor.send(messages[f"pactbreaker_{loc}_evidence"].format(evidence_target, real_role))
 
                 if empty:
-                    visitor.send(messages[f"pactbreaker_{loc}_empty"])
+                    visitor.send(messages[f"pactbreaker_{loc}_empty"].format(owner))
 
         # handle share cards
         if len(shares) == 1:
             for visitor in shares:
                 loc = self.location_key(self.visiting[visitor])
+                # safe to omit param here as loc will never be a house
                 visitor.send(messages[f"pactbreaker_{loc}_empty"])
         else:
             random.shuffle(shares)
@@ -444,6 +449,7 @@ class PactBreakerMode(GameMode):
                     self.clue_tokens[visitor] += 1
                     visitor.send(messages[f"pactbreaker_{loc}_share"])
                 else:
+                    # safe to omit param here as loc will never be a house
                     visitor.send(messages[f"pactbreaker_{loc}_empty"])
 
     def on_player_protected(self,
