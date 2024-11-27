@@ -336,7 +336,7 @@ class PactBreakerMode(GameMode):
 
         shares: list[User] = list()
         for location, visitors in visited.items():
-            if not visitors:
+            if location is Limbo or not visitors:
                 continue
 
             deck, draw_func, owner = self.build_deck(var, location, visitors)
