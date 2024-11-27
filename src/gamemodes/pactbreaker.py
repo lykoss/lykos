@@ -494,12 +494,12 @@ class PactBreakerMode(GameMode):
         elif killer_role == "wolf":
             victim.send(messages["pactbreaker_hunted"])
             killer.send(messages["pactbreaker_hunter"].format(victim))
-        elif killer_role == "vigilante" and location is get_home(var, victim):
-            victim.send(messages["pactbreaker_shot"])
-            killer.send(messages["pactbreaker_shooter"].format(victim, victim_role))
-        elif killer_role == "vigilante" and location is VillageSquare:
+        elif killer_role == "vigilante" and victim not in self.active_players and location is VillageSquare:
             victim.send(messages["pactbreaker_shot_stocks"])
             killer.send(messages["pactbreaker_shooter_stocks"].format(victim, victim_role))
+        elif killer_role == "vigilante":
+            victim.send(messages["pactbreaker_shot"])
+            killer.send(messages["pactbreaker_shooter"].format(victim, victim_role))
         else:
             # shouldn't happen; indicates a bug in the mode
             raise RuntimeError(f"Unknown night death situation ({killer_role}/{victim_role}/{location.name})")
