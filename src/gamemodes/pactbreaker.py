@@ -291,13 +291,14 @@ class PactBreakerMode(GameMode):
             killer_role = get_main_role(var, killer)
             victim_role = get_main_role(var, victim)
             have_evidence = victim in self.collected_evidence[killer]
-            is_home = victim is not self.in_stocks and self.visiting[victim] is get_home(var, victim)
+            victim_visiting = self.visiting.get(victim)
+            is_home = victim_visiting is get_home(var, victim)
             if victim_role == "wolf":
-                is_safe = is_home or self.visiting[victim] is Forest
+                is_safe = is_home or victim_visiting is Forest
             elif victim_role == "vigilante":
-                is_safe = is_home or self.visiting[victim] is VillageSquare
+                is_safe = is_home or victim_visiting is VillageSquare
             elif victim_role == "vampire":
-                is_safe = is_home or self.visiting[victim] is Graveyard
+                is_safe = is_home or victim_visiting is Graveyard
             else:
                 # unused default fallback, but villagers are only safe if at home
                 is_safe = is_home
