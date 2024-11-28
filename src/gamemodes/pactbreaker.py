@@ -642,6 +642,8 @@ class PactBreakerMode(GameMode):
                 pass
             elif target_location is Graveyard and player_role in Vampire:
                 pass
+            elif target_location is VillageSquare and player_role == "vigilante":
+                pass
             else:
                 wrapper.pm(messages["pactbreaker_no_visit_twice_{0}".format(target_name)])
                 return
