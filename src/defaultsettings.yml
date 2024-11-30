@@ -1133,15 +1133,11 @@ gameplay: &gameplay
                   _type:
                     - float
                     - int
-                  _default: 0.5
+                  _default: 0.4
                 bite:
                   _desc: The maximum number of clue tokens drawn when someone is the target of a vampire bite.
                   _type: int
-                  _default: 2
-                witness:
-                  _desc: The maximum number of clue tokens drawn when someone is the witness of a vampire bite.
-                  _type: int
-                  _default: 1
+                  _default: 3
                 identify:
                   _desc: The minimum number of clue tokens required to use the !id command during day.
                   _type: int

@@ -359,24 +359,12 @@ class PactBreakerMode(GameMode):
                 # handle evidence card
                 num_evidence = sum(1 for c in cards if c == "evidence")
                 evidence_target = None
-                if location is Forest:
-                    if visitor not in all_wolves:
-                        random.shuffle(wl)
-                        for wolf in wl:
-                            if wolf is not visitor and wolf not in self.collected_evidence[visitor]["wolf"]:
-                                evidence_target = wolf
-                                break
-                    # is a wolf or has evidence on every wolf
-                    if evidence_target is None:
-                        for other in vl:
-                            if other is visitor or (other in all_cursed and visitor not in all_wolves):
-                                continue
-                            other_role = get_main_role(var, other)
-                            if other_role == "vampire":
-                                other_role = "vigilante" if evidence_target in self.turned else "villager"
-                            if other not in self.collected_evidence[visitor][other_role]:
-                                evidence_target = other
-                                break
+                if location is Forest and visitor not in all_wolves:
+                    random.shuffle(wl)
+                    for wolf in wl:
+                        if wolf is not visitor and wolf not in self.collected_evidence[visitor]["wolf"]:
+                            evidence_target = wolf
+                            break
                 elif location is Streets and num_evidence == 3:
                     # refute fake evidence that the visitor may have collected,
                     # in order of cursed -> villager and then vigilante -> vampire
@@ -452,27 +440,9 @@ class PactBreakerMode(GameMode):
             victim_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.bite"), self.clue_pool)
             self.clue_pool -= victim_tokens
             self.clue_tokens[target] += victim_tokens
-            # hand out clue tokens to witnesses
-            victim_location = self.visiting[target]
-            witnesses = set()
-            if victim_location is not Limbo:
-                for other, visited in self.visiting.items():
-                    if victim_location is visited and other is not target and get_main_role(var, other) != "vampire":
-                        witnesses.add(other)
-            if witnesses:
-                witness_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.witness"),
-                                     math.floor(self.clue_pool / len(witnesses)))
-                if witness_tokens > 0:
-                    for witness in witnesses:
-                        witness.queue_message(messages["pactbreaker_drained_witness"])
-                        self.clue_pool -= witness_tokens
-                        self.clue_tokens[witness] += witness_tokens
-                    User.send_messages()
-
         elif protector_role == "vigilante":
             # if the vampire fully drains a vigilante, they might turn into a vampire instead of dying
             # this protection triggering means they should turn
-            # No witnesses here, as the vampires drag the body away with them leaving the scene empty
             attacker.send(messages["pactbreaker_drain_turn"].format(target))
             change_role(var, target, get_main_role(var, target), "vampire", message="pactbreaker_drained_vigilante")
             self.turned.add(target)
@@ -488,22 +458,6 @@ class PactBreakerMode(GameMode):
         if killer_role == "vampire":
             victim.send(messages["pactbreaker_drained_dead"])
             killer.send(messages["pactbreaker_drain_kill"].format(victim))
-            # hand out clue tokens to witnesses
-            victim_location = self.visiting[victim]
-            witnesses = set()
-            if victim_location is not Limbo:
-                for other, visited in self.visiting.items():
-                    if victim_location is visited and other is not victim and get_main_role(var, other) != "vampire":
-                        witnesses.add(other)
-            if witnesses:
-                witness_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.witness"),
-                                     math.floor(self.clue_pool / len(witnesses)))
-                if witness_tokens > 0:
-                    for witness in witnesses:
-                        witness.queue_message(messages["pactbreaker_drain_witness"])
-                        self.clue_pool -= witness_tokens
-                        self.clue_tokens[witness] += witness_tokens
-                    User.send_messages()
         elif killer_role == "wolf" and victim is self.in_stocks:
             victim.send(messages["pactbreaker_hunted_stocks"])
             killer.send(messages["pactbreaker_hunter_stocks"].format(victim))
