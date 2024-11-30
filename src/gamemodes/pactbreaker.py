@@ -287,7 +287,7 @@ class PactBreakerMode(GameMode):
             victim_role = get_main_role(var, victim)
             have_evidence = victim in self.collected_evidence[killer][victim_role]
 
-            if victim is not self.in_stocks and not have_evidence and killer_role != "vampire":
+            if victim is not self.in_stocks and not have_evidence and killer_role != "vampire" and victim_role != "vampire":
                 killer.send(messages["pactbreaker_kill_fail"].format(victim))
             else:
                 evt.data["victims"].add(victim)
