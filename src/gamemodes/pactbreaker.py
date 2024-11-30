@@ -197,9 +197,8 @@ class PactBreakerMode(GameMode):
         # iterate such that real evidence is always displayed if available by putting those roles last
         role_order = ("wolf", "villager", "vigilante", "vampire")
         for role in role_order:
-            for targets in self.collected_evidence[player][role]:
-                for target in targets:
-                    evidence[target] = role
+            for target in self.collected_evidence[player][role]:
+                evidence[target] = role
 
         if not evidence:
             evt.data["messages"].append(messages["pactbreaker_info_no_evidence"])
@@ -489,6 +488,7 @@ class PactBreakerMode(GameMode):
         self.active_players.clear()
         self.active_players.update(get_players(var))
         self.visiting.clear()
+        self.killing.clear()
         # if someone was locked up last night, ensure they can't be locked up again tonight
         if self.last_voted is not None:
             add_lynch_immunity(var, self.last_voted, "pactbreaker")

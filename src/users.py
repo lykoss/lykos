@@ -580,6 +580,7 @@ class User(IRCContext):
             passed in the updated user with an accurate account
         """
 
+        _ignore_locals_ = True
         # Nothing to update for fake nicks
         if self.is_fake:
             callback(self)
@@ -590,6 +591,8 @@ class User(IRCContext):
             callback(self)
             return
 
+        # at this point we might actually care about locals in tracebacks when debugging account tracking issues
+        _ignore_locals_ = False
         services = get_services()
         if self.account and (not services.supports_account_change() or self.account_timestamp > time.time() - 900):
             # account data is less than 15 minutes old or we can't change accounts on this ircd,
