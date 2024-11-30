@@ -263,7 +263,7 @@ def get_vampire_list(var,
             prole = get_main_role(var, p)
             if prole in Vampire and is_known_vampire_ally(var, player, p):
                 entries.append(messages["players_list_entry"].format(p, "bold", [prole]))
-            elif player in var.vampire_drained:
+            elif p in var.vampire_drained:
                 entries.append(messages["players_list_entry"].format(p, "", ["drained"]))
             else:
                 entries.append(messages["players_list_entry"].format(p, "", []))

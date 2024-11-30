@@ -12,7 +12,7 @@ from src.cats import All, Category
 from src.users import User
 from src.gamestate import GameState
 
-__all__ = ["add_protection", "try_protection", "remove_all_protections", "ProtectionEntry"]
+__all__ = ["add_protection", "try_protection", "get_all_protections", "remove_all_protections", "ProtectionEntry"]
 
 @dataclass(frozen=True)
 class ProtectionEntry:
@@ -20,7 +20,7 @@ class ProtectionEntry:
     protector_role: str
     priority: int
 
-PROTECTIONS: UserDict[User, UserDict[Optional[User], list[ProtectionEntry]]] = UserDict()
+PROTECTIONS: DefaultUserDict[User, DefaultUserDict[Optional[User], list[ProtectionEntry]]] = DefaultUserDict(lambda: DefaultUserDict(list))
 
 def add_protection(var: GameState,
                    target: User,
@@ -40,19 +40,19 @@ def add_protection(var: GameState,
     if target not in get_players(var):
         return
 
-    if target not in PROTECTIONS:
-        PROTECTIONS[target] = DefaultUserDict(list)
-
     prot_entry = ProtectionEntry(scope, protector_role, priority)
     PROTECTIONS[target][protector].append(prot_entry)
 
-def try_protection(var: GameState, target: User, attacker: Optional[User], attacker_role: str, reason: str):
+def try_protection(var: GameState, target: User, attacker: Optional[User], attacker_role: str, reason: str) -> Optional[list[str]]:
     """Attempt to protect the player, and return a list of messages or None."""
     prots: list[tuple[Optional[User], ProtectionEntry]] = []
     for protector, entries in PROTECTIONS.get(target, {}).items():
         for entry in entries:
             if attacker_role in entry.scope:
                 prots.append((protector, entry))
+
+    if not prots:
+        return None
 
     try_evt = Event("try_protection", {"protections": prots, "messages": []})
     if not try_evt.dispatch(var, target, attacker, attacker_role, reason) or not try_evt.data["protections"]:
@@ -76,6 +76,16 @@ def try_protection(var: GameState, target: User, attacker: Optional[User], attac
     prot_evt = Event("player_protected", {"messages": try_evt.data["messages"]})
     prot_evt.dispatch(var, target, attacker, attacker_role, protector, entry.protector_role, reason)
     return prot_evt.data["messages"]
+
+def get_all_protections(var: GameState, target: User, scope: Category | set[str] = All) -> list[ProtectionEntry]:
+    """Retrieve all protections that might apply to a player."""
+    prots = []
+    for entries in list(PROTECTIONS[target].values()):
+        for entry in entries:
+            if scope & entry.scope:
+                prots.append(entry)
+
+    return prots
 
 def remove_all_protections(var: GameState, target: User, attacker: User, attacker_role: str, reason: str, scope: Category | set[str] = All):
     """Remove all protections from a player."""

@@ -407,7 +407,7 @@ logging.group: &logging.group
         transports can be used via transport.name.
 
         * game: The game filter logs game events, such as all executed commands and other game details.
-        Currently unused.
+        Debug-level game events are only logged if the bot is operating in debug mode to prevent cheating.
 
         * Additional filters may be defined by Python itself and are outside the scope of this documentation.
       _type: list
@@ -1116,6 +1116,64 @@ gameplay: &gameplay
             - _type: int
               _set: weight
           _default:
+            clue:
+              _desc: Settings related to clue tokens in the pactbreaker mode.
+              _type: dict
+              _default:
+                pool:
+                  _desc: >
+                    This number is multiplied with the number of players to determine how many total clue tokens
+                    are available in the game.
+                  _type:
+                    - float
+                    - int
+                  _default: 3
+                multiplier:
+                  _desc: How many evidence cards a single clue token is treated as.
+                  _type:
+                    - float
+                    - int
+                  _default: 0.5
+                bite:
+                  _desc: The maximum number of clue tokens drawn when someone is the target of a vampire bite.
+                  _type: int
+                  _default: 2
+                witness:
+                  _desc: The maximum number of clue tokens drawn when someone is the witness of a vampire bite.
+                  _type: int
+                  _default: 1
+                identify:
+                  _desc: The minimum number of clue tokens required to use the !id command during day.
+                  _type: int
+                  _default: 3
+                graveyard:
+                  _desc: The maximum number of clue tokens drawn when pulling a clue card in the graveyard.
+                  _type: int
+                  _default: 2
+                square:
+                  _desc: The maximum number of clue tokens drawn when pulling a clue card in the square.
+                  _type: int
+                  _default: 3
+                forest:
+                  _desc: >
+                    The maximum number of clue tokens drawn when drawing evidence in the forest when there is
+                    nobody left at that location to obtain evidence on.
+                  _type: int
+                  _default: 1
+                streets:
+                  _desc: >
+                    The maximum number of clue tokens drawn when drawing evidence in the streets when there is
+                    nobody left at that location to obtain evidence on.
+                  _type: int
+                  _default: 1
+            turn:
+              _desc: >
+                How likely vigilante will turn into vampire instead of dying when bitten twice.
+                A value between 0 and 1 is the percentage chance for them to turn (e.g. 0.42 is a 42% chance).
+              _type:
+                - float
+                - int
+              _default: 0.7
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
               _type: int

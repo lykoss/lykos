@@ -21,6 +21,10 @@ class UnionFilterMixin(logging.Filterer):
     # Change filter logic so that we log as long as one of the provided filters succeeds.
     # Default is to require all attached filters to succeed in order to log.
     def filter(self, record: logging.LogRecord) -> bool:
+        # Ensure debug-level game events aren't logged if we aren't in debug mode
+        if record.levelno == logging.DEBUG and record.name.startswith("game.") and not config.Main.get("debug.enabled"):
+            return False
+
         for f in self.filters: # type: logging.Filter | Callable
             if isinstance(f, logging.Filter):
                 val = f.filter(record)

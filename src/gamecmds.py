@@ -9,10 +9,10 @@ import re
 
 from src.decorators import command
 from src.containers import UserDict
-from src.functions import get_players
+from src.functions import get_players, get_main_role
 from src.messages import messages
 from src.events import Event, EventListener, event_listener
-from src.cats import Wolfteam, Neutral, role_order
+from src.cats import Wolfteam, Neutral, role_order, Vampire_Team
 from src import config, users, channels, pregame, trans
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
@@ -40,10 +40,18 @@ def stats(wrapper: MessageDispatcher, message: str):
 
         LAST_STATS = datetime.now()
 
-    if wrapper.private and var.in_game and "src.roles.helper.wolves" in sys.modules:
+    try:
+        player_role = get_main_role(var, wrapper.source)
+    except ValueError:
+        player_role = None
+    if wrapper.private and var.in_game and player_role in Wolfteam and "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_wolflist
         msg = messages["players_list_count"].format(
             len(pl), get_wolflist(var, wrapper.source, shuffle=False, remove_player=False))
+    elif wrapper.private and var.in_game and player_role in Vampire_Team and "src.roles.vampire" in sys.modules:
+        from src.roles.vampire import get_vampire_list
+        msg = messages["players_list_count"].format(
+            len(pl), get_vampire_list(var, wrapper.source, shuffle=False, remove_player=False))
     else:
         msg = messages["players_list_count"].format(len(pl), pl)
 

@@ -42,6 +42,7 @@ class Location:
 VillageSquare = Location("square")
 Graveyard = Location("graveyard")
 Forest = Location("forest")
+Streets = Location("streets")
 
 def get_players_in_location(var: GameState, location: Location) -> set[User]:
     """ Get all players in a particular location.
