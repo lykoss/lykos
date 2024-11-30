@@ -1145,7 +1145,7 @@ gameplay: &gameplay
                 graveyard:
                   _desc: The maximum number of clue tokens drawn when pulling a clue card in the graveyard.
                   _type: int
-                  _default: 2
+                  _default: 4
                 square:
                   _desc: The maximum number of clue tokens drawn when pulling a clue card in the square.
                   _type: int
@@ -1155,7 +1155,7 @@ gameplay: &gameplay
                     The maximum number of clue tokens drawn when drawing evidence in the forest when there is
                     nobody left at that location to obtain evidence on.
                   _type: int
-                  _default: 1
+                  _default: 2
                 streets:
                   _desc: >
                     The maximum number of clue tokens drawn when drawing evidence in the streets when there is

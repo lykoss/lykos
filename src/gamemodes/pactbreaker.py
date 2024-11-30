@@ -236,7 +236,7 @@ class PactBreakerMode(GameMode):
         num_other = num_visitors - num_wolves
 
         if location is Forest:
-            deck = (["empty-handed", "empty-handed", "evidence"]
+            deck = (["empty-handed", "evidence", "evidence"]
                     + (["hunted", "hunted"] * num_wolves)
                     + (["evidence", "evidence"] * num_other))
             num_draws = 2
@@ -246,7 +246,9 @@ class PactBreakerMode(GameMode):
                     + ["clue", "evidence"] * num_visitors)
             num_draws = 4
         elif location is Graveyard:
-            deck = ["clue"] * 3 + ["hunted"] * num_wolves + ["empty-handed"] * num_other
+            deck = (["clue", "clue", "empty-handed", "empty-handed"]
+                    + ["hunted"] * num_wolves
+                    + ["empty-handed"] * num_other)
             num_draws = 1
         elif location is Streets:
             deck = (["empty-handed"] * (4 + max(0, num_visitors - 8))
@@ -310,7 +312,7 @@ class PactBreakerMode(GameMode):
                                                      and get_all_protections(var, player, Vampire)):
                 visited[location].add(player)
 
-        shares: list[User] = list()
+        shares: set[User] = set()
         for location, visitors in visited.items():
             if location is Limbo or not visitors:
                 continue
@@ -354,7 +356,7 @@ class PactBreakerMode(GameMode):
                         visitor.send(messages[f"pactbreaker_{loc}_clue"].format(tokens))
                     elif location is VillageSquare:
                         # has to be handled after everyone finishes drawing
-                        shares.append(visitor)
+                        shares.add(visitor)
 
                 # handle evidence card
                 num_evidence = sum(1 for c in cards if c == "evidence")
@@ -391,7 +393,7 @@ class PactBreakerMode(GameMode):
                             target_role = get_main_role(var, evidence_target)
                         self.collected_evidence[visitor][target_role].add(evidence_target)
                         visitor.send(messages[f"pactbreaker_{loc}_evidence"].format(evidence_target, target_role))
-                    elif self.clue_pool > 0:
+                    elif self.clue_pool > 0 and location is not VillageSquare:
                         empty = False
                         tokens = min(self.clue_pool, config.Main.get(f"gameplay.modes.pactbreaker.clue.{loc}"))
                         self.clue_pool -= tokens
@@ -402,13 +404,12 @@ class PactBreakerMode(GameMode):
                     visitor.send(messages[f"pactbreaker_{loc}_empty"])
 
         # handle share cards
-        if len(shares) == 1:
+        if len(shares) <= 2:
             for visitor in shares:
                 loc = self.visiting[visitor].name
                 visitor.send(messages[f"pactbreaker_{loc}_empty"])
-        elif len(shares) > 1:
-            random.shuffle(shares)
-            num_tokens = min(len(shares) - 1,
+        elif len(shares) > 2:
+            num_tokens = min(len(shares) - 2,
                              math.floor(self.clue_pool / len(shares)),
                              config.Main.get("gameplay.modes.pactbreaker.clue.square"))
             for visitor in shares:
@@ -543,8 +544,8 @@ class PactBreakerMode(GameMode):
             # the vigilantes and vampires are all dead
             evt.data["winner"] = "wolves"
             evt.data["message"] = messages["pactbreaker_wolf_win"]
-        elif lvampires >= num_villagers or (num_vigilantes == 0 and lwolves == 0):
-            # vampires can win even with wolves and vigilante alive if they match or outnumber the rest of the village
+        elif lvampires and (num_villagers == 0 or (num_vigilantes == 0 and lwolves == 0)):
+            # vampires can win even with wolves and vigilante alive if they kill the rest of the village
             # or if all wolves and vigilantes are dead even if the remainder of the village outnumbers them
             evt.data["winner"] = "vampires"
             evt.data["message"] = messages["pactbreaker_vampire_win"]
@@ -648,6 +649,15 @@ class PactBreakerMode(GameMode):
         if is_known_vampire_ally(var, wrapper.source, target):
             wrapper.send(messages["no_target_vampire"])
             return
+
+        for killer, victim in self.killing.items():
+            if wrapper.source is killer:
+                # let the vampire target the same person multiple times in succession
+                # doesn't really do anything but giving an error is even weirder
+                continue
+            if target is victim and is_known_vampire_ally(var, wrapper.source, killer):
+                wrapper.send(messages["already_bitten_tonight"].format(target))
+                return
 
         self.killing[wrapper.source] = target
         self.visiting[wrapper.source] = Limbo
