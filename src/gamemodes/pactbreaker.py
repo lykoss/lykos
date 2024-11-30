@@ -538,10 +538,11 @@ class PactBreakerMode(GameMode):
         if self.last_voted is not None:
             add_lynch_immunity(var, self.last_voted, "pactbreaker")
         # alert people about clue tokens they have
+        threshold = config.Main.get("gameplay.modes.pactbreaker.clue.identify")
         for player, amount in self.clue_tokens.items():
             if amount == 0:
                 continue
-            player.send(messages["pactbreaker_clue_notify"].format(amount))
+            player.send(messages["pactbreaker_clue_notify"].format(amount, threshold))
 
     def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
         self.last_voted = votee
