@@ -40,10 +40,12 @@ def stats(wrapper: MessageDispatcher, message: str):
 
         LAST_STATS = datetime.now()
 
-    try:
-        player_role = get_main_role(var, wrapper.source)
-    except ValueError:
-        player_role = None
+    player_role = None
+    if var.in_game:
+        try:
+            player_role = get_main_role(var, wrapper.source)
+        except ValueError:
+            pass
     if wrapper.private and var.in_game and player_role in Wolfteam and "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_wolflist
         msg = messages["players_list_count"].format(
