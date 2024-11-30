@@ -447,6 +447,11 @@ class PactBreakerMode(GameMode):
             change_role(var, target, get_main_role(var, target), "vampire", message="pactbreaker_drained_vigilante")
             self.turned.add(target)
             self.drained.discard(target)
+            # prevent new vamp doing a cannibalism
+            for killer, victim in self.killing.items():
+                if killer == protector and get_main_role(var, victim) == "vampire":
+                    self.killing.discard(killer)
+            protector.send(messages["pactbreaker_vampire_no_harm"].format(target))
 
     def on_night_death_message(self, evt: Event, var: GameState, victim: User, killer: User | str):
         if not isinstance(killer, User):

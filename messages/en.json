@@ -1487,6 +1487,7 @@
     "pactbreaker_drained": "While out last night, you are suddenly overtaken by {=vampire!role:article} {=vampire!role:bold}! They drain your blood and your vision blurs, however you manage to make the vague shape of your assailant before they retreat, giving you a potential clue to their identity.",
     "pactbreaker_drained_dead": "While out last night, you are suddenly overtaken by {=vampire!role:article} {=vampire!role:bold}! They drain the rest of your blood as your consciousness fades away...",
     "pactbreaker_drained_vigilante": "While out last night, you are suddenly overtaken by {=vampire!role:article} {=vampire!role:bold}! They drain the rest of your blood as your consciousness fades away. Shortly after, you reawaken in your own home with an unnatural hunger. It seems you have become {0!role:article} {0!role:bold} yourself!",
+    "pactbreaker_vampire_no_harm": "You no longer wish to harm {0:@}, as they are now family."
     "pactbreaker_vote": [
         "The village has decided to lock {0:@} into the stocks until tomorrow."
     ],
