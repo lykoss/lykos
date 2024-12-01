@@ -245,13 +245,14 @@ class PactBreakerMode(GameMode):
                     + ["clue", "evidence"] * num_visitors)
             num_draws = 4
         elif location is Graveyard:
-            deck = (["clue", "clue", "empty-handed", "empty-handed"]
-                    + ["hunted"] * num_wolves
-                    + ["empty-handed"] * num_other)
-            num_draws = 1
+            deck = (["clue"] * 2
+                    + ["empty-handed"] * 6
+                    + ["hunted", "empty-handed"] * num_wolves
+                    + ["empty-handed", "empty-handed"] * num_other)
+            num_draws = 2
         elif location is Streets:
-            deck = (["empty-handed"] * (4 + max(0, num_visitors - 8))
-                    + ["evidence"] * 4
+            deck = (["empty-handed"] * (1 + max(0, num_visitors - 8))
+                    + ["evidence"] * 7
                     + ["hunted", "empty-handed"] * num_wolves
                     + ["evidence", "empty-handed"] * num_other)
             num_draws = 3
@@ -366,6 +367,9 @@ class PactBreakerMode(GameMode):
                         if wolf is not visitor and wolf not in self.collected_evidence[visitor]["wolf"]:
                             evidence_target = wolf
                             break
+                    else:
+                        # give non-wolves a higher chance of gaining clues after exhausting all wolf evidence
+                        num_evidence += 1
                 elif location is Streets and num_evidence == 3:
                     # refute fake evidence that the visitor may have collected,
                     # in order of cursed -> villager and then vigilante -> vampire
@@ -403,12 +407,12 @@ class PactBreakerMode(GameMode):
                     visitor.send(messages[f"pactbreaker_{loc}_empty"])
 
         # handle share cards
-        if len(shares) <= 2:
+        if len(shares) <= 1:
             for visitor in shares:
                 loc = self.visiting[visitor].name
                 visitor.send(messages[f"pactbreaker_{loc}_empty"])
-        elif len(shares) > 2:
-            num_tokens = min(len(shares) - 2,
+        elif len(shares) > 1:
+            num_tokens = min(len(shares) - 1,
                              math.floor(self.clue_pool / len(shares)),
                              config.Main.get("gameplay.modes.pactbreaker.clue.square"))
             for visitor in shares:
@@ -453,7 +457,7 @@ class PactBreakerMode(GameMode):
             # vigilante self-kill
             return
 
-        killer_role = get_main_role(var, killer)
+        killer_role = get_main_role(var, killer, mainroles=evt.params.mainroles)
 
         if killer_role == "vampire":
             victim.send(messages["pactbreaker_drained_dead"])

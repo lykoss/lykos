@@ -186,8 +186,10 @@ def change_role(var: GameState,
 
     return new_role, evt.data["messages"]
 
-def get_main_role(var: GameState, user):
-    role = var.main_roles.get(user)
+def get_main_role(var: GameState, user, *, mainroles=None):
+    if mainroles is None:
+        mainroles = var.main_roles
+    role = mainroles.get(user)
     if role is not None:
         return role
     # not found in player list, see if they're a special participant
@@ -199,11 +201,13 @@ def get_main_role(var: GameState, user):
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
 
-def get_all_roles(var: GameState, user: User) -> set[str]:
-    return {role for role, users in var.roles.items() if user in users}
+def get_all_roles(var: GameState, user: User, *, rolemap=None) -> set[str]:
+    if rolemap is None:
+        rolemap = var.roles
+    return {role for role, users in rolemap.items() if user in users}
 
-def get_reveal_role(var: GameState, user) -> str:
-    evt = Event("get_reveal_role", {"role": get_main_role(var, user)})
+def get_reveal_role(var: GameState, user, *, mainroles=None) -> str:
+    evt = Event("get_reveal_role", {"role": get_main_role(var, user, mainroles=mainroles)})
     evt.dispatch(var, user)
     role = evt.data["role"]
 

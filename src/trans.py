@@ -251,6 +251,11 @@ def transition_day(var: GameState, game_id: int = 0):
     get_kill_priority = lambda x: kill_priorities[x] + random.random()
     killers = {u: sorted(kl, key=get_kill_priority) for u, kl in killers.items()}
 
+    # save a copy of roles so we can credit kills to the roles the players were at night,
+    # before any roleswaps due to night kills (e.g. lycanthropy)
+    rolemap = {role: set(players) for role, players in var.roles.items()}
+    mainroles = dict(var.main_roles)
+
     for victim in victims:
         if not is_dying(var, victim):
             for killer in list(killers[victim]):
@@ -270,7 +275,7 @@ def transition_day(var: GameState, game_id: int = 0):
                     assert kdata["role"] is not None
                 else:
                     kdata["attacker"] = killer
-                    kdata["role"] = get_main_role(var, killer)
+                    kdata["role"] = get_main_role(var, killer, mainroles=mainroles)
                 protected = None
                 if kdata["try_protection"]:
                     protected = try_protection(var, victim, kdata["attacker"], kdata["role"], reason=kdata["protection_reason"])
@@ -295,7 +300,7 @@ def transition_day(var: GameState, game_id: int = 0):
         mevt = Event("night_death_message", {
             "key": "death" if var.role_reveal in ("on", "team") else "death_no_reveal",
             "args": [victim, get_reveal_role(var, victim)]
-        })
+        }, rolemap=rolemap, mainroles=mainroles)
         if mevt.dispatch(var, victim, killers[victim][0]):
             message[victim].append(messages[mevt.data["key"]].format(*mevt.data["args"]))
 
@@ -307,7 +312,7 @@ def transition_day(var: GameState, game_id: int = 0):
         "message": message,
         "novictmsg": novictmsg,
         "howl": howl_count,
-        }, victims=victims)
+        }, victims=victims, rolemap=rolemap, mainroles=mainroles)
     evt.dispatch(var, dead, {v: k[0] for v, k in killers.items() if v in dead})
 
     # handle howls and novictmsg
