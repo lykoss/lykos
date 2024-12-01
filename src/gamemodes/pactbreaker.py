@@ -28,7 +28,7 @@ from src.roles.vampire import on_player_protected as vampire_drained
 from src.roles.vampire import GameState as VampireGameState
 from src.roles.vigilante import vigilante_retract, vigilante_pass, vigilante_kill
 
-# dummy location for wolves/vampires that have elected to kill instead of visit a location
+# dummy location for wolves/vigilantes/vampires that have elected to kill/bite instead of visit a location
 Limbo = Location("<<hunting>>")
 _logger = logging.getLogger("game.pactbreaker")
 
