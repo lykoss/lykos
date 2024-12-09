@@ -100,6 +100,7 @@ class PactBreakerMode(GameMode):
         kwargs = dict(chan=False, pm=True, playing=True, register=False)
         self.visit_command = command("visit", phases=("night",), **kwargs)(self.visit)
         self.id_command = command("id", phases=("day",), **kwargs)(self.identify)
+        self.observe_command = command("observe", phases=("day",), **kwargs)(self.observe)
         self.kill_command = command("kill", phases=("night",), roles=("wolf", "vigilante"), **kwargs)(self.kill)
         self.bite_command = command("bite", phases=("night",), roles=("vampire",), **kwargs)(self.bite)
         self.stats_command = command("stats", pm=True, phases=("day", "night"), register=False)(self.stats)
@@ -120,6 +121,7 @@ class PactBreakerMode(GameMode):
         # register !visit, !id, and !kill, remove all role commands
         self.visit_command.register()
         self.id_command.register()
+        self.observe_command.register()
         self.kill_command.register()
         self.bite_command.register()
         self.stats_command.register()
@@ -137,6 +139,7 @@ class PactBreakerMode(GameMode):
         super().teardown()
         self.visit_command.remove()
         self.id_command.remove()
+        self.observe_command.remove()
         self.kill_command.remove()
         self.bite_command.remove()
         self.stats_command.remove()
@@ -240,19 +243,19 @@ class PactBreakerMode(GameMode):
                     + (["evidence", "evidence"] * num_other))
             num_draws = 2
         elif location is VillageSquare:
-            deck = (["empty_handed"] * (4 + 2 * max(0, num_visitors - 4))
-                    + ["evidence"] * 4
-                    + ["clue", "evidence"] * num_visitors)
+            deck = (["empty_handed"] * (2 * max(0, num_visitors - 4))
+                    + ["evidence"] * 8
+                    + ["clue", "clue"] * num_visitors)
             num_draws = 4
         elif location is Graveyard:
-            deck = (["clue"] * 2
-                    + ["empty-handed"] * 6
+            deck = (["clue"] * 3
+                    + ["empty-handed"] * 5
                     + ["hunted", "empty-handed"] * num_wolves
                     + ["empty-handed", "empty-handed"] * num_other)
             num_draws = 2
         elif location is Streets:
-            deck = (["empty-handed"] * (1 + max(0, num_visitors - 8))
-                    + ["evidence"] * 7
+            deck = (["empty-handed"] * max(0, num_visitors - 8)
+                    + ["evidence"] * 8
                     + ["hunted", "empty-handed"] * num_wolves
                     + ["evidence", "empty-handed"] * num_other)
             num_draws = 3
@@ -372,7 +375,7 @@ class PactBreakerMode(GameMode):
                         num_evidence += 1
                 elif location is Streets and num_evidence == 3:
                     # refute fake evidence that the visitor may have collected,
-                    # in order of cursed -> villager and then vigilante -> vampire
+                    # in order of cursed -> villager (or vampire, if a cursed vig turned) and then vigilante -> vampire
                     # if there's no fake evidence, fall back to giving a clue token
                     for wolf in self.collected_evidence[visitor]["wolf"]:
                         if wolf in all_cursed and wolf not in self.collected_evidence[visitor]["villager"]:
@@ -388,10 +391,10 @@ class PactBreakerMode(GameMode):
                     if evidence_target is not None:
                         empty = False
                         # give fake evidence?
-                        if num_evidence == 2 and get_main_role(var, evidence_target) == "vampire":
-                            target_role = "vigilante" if evidence_target in self.turned else "villager"
-                        elif num_evidence == 2 and evidence_target in all_cursed:
+                        if num_evidence == 2 and evidence_target in all_cursed:
                             target_role = "wolf"
+                        elif num_evidence == 2 and get_main_role(var, evidence_target) == "vampire":
+                            target_role = "vigilante" if evidence_target in self.turned else "villager"
                         else:
                             target_role = get_main_role(var, evidence_target)
                         self.collected_evidence[visitor][target_role].add(evidence_target)
@@ -497,11 +500,12 @@ class PactBreakerMode(GameMode):
         if self.last_voted is not None:
             add_lynch_immunity(var, self.last_voted, "pactbreaker")
         # alert people about clue tokens they have
-        threshold = config.Main.get("gameplay.modes.pactbreaker.clue.identify")
+        observe_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.observe")
+        id_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.identify")
         for player, amount in self.clue_tokens.items():
             if amount == 0:
                 continue
-            player.send(messages["pactbreaker_clue_notify"].format(amount, threshold))
+            player.send(messages["pactbreaker_clue_notify"].format(amount, observe_tokens, id_tokens))
 
     def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
         self.last_voted = votee
@@ -672,8 +676,32 @@ class PactBreakerMode(GameMode):
                                   Vampire,
                                   cmd="bite")
 
+    def observe(self, wrapper: MessageDispatcher, message: str):
+        """Spend clue tokens to learn about a player's role, however some roles may give inaccurate results."""
+        var = wrapper.game_state
+        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
+        if not target:
+            return
+
+        num_tokens = self.clue_tokens[wrapper.source]
+        min_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.observe")
+        if num_tokens < min_tokens:
+            wrapper.send(messages["pactbreaker_no_observe"].format(min_tokens, num_tokens))
+            return
+
+        self.clue_pool += min_tokens
+        self.clue_tokens[wrapper.source] -= min_tokens
+        target_role = get_main_role(var, target)
+        if target in get_all_players(var, ("cursed villager",)):
+            target_role = "wolf"
+        elif target_role == "vampire":
+            target_role = "vigilante" if target in self.turned else "villager"
+
+        self.collected_evidence[wrapper.source][target_role].add(target)
+        wrapper.send(messages["observe_success"].format(target, target_role))
+
     def identify(self, wrapper: MessageDispatcher, message: str):
-        """Spend clue tokens to learn about a player's role."""
+        """Spend clue tokens to accurately learn about a player's role."""
         var = wrapper.game_state
         target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
         if not target:
@@ -685,21 +713,9 @@ class PactBreakerMode(GameMode):
             wrapper.send(messages["pactbreaker_no_id"].format(min_tokens, num_tokens))
             return
 
-        self.clue_pool += num_tokens
-        self.clue_tokens[wrapper.source] = 0
-
-        num_evidence = num_tokens * config.Main.get("gameplay.modes.pactbreaker.clue.multiplier")
-        num_evidence = int(num_evidence) + (1 if random.random() < num_evidence % 1 else 0)
+        self.clue_pool += min_tokens
+        self.clue_tokens[wrapper.source] -= min_tokens
         target_role = get_main_role(var, target)
-        if num_evidence < 2:
-            wrapper.send(messages["pactbreaker_id_fail"].format(target))
-            return
-        elif num_evidence == 2:
-            if target_role == "vampire":
-                target_role = "vigilante" if target in self.turned else "villager"
-            elif target in get_all_players(var, ("cursed villager",)):
-                target_role = "wolf"
-
         self.collected_evidence[wrapper.source][target_role].add(target)
         wrapper.send(messages["investigate_success"].format(target, target_role))
 

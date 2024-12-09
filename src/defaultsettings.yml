@@ -1128,20 +1128,22 @@ gameplay: &gameplay
                     - float
                     - int
                   _default: 3
-                multiplier:
-                  _desc: How many evidence cards a single clue token is treated as.
-                  _type:
-                    - float
-                    - int
-                  _default: 0.4
                 bite:
                   _desc: The maximum number of clue tokens drawn when someone is the target of a vampire bite.
                   _type: int
                   _default: 3
-                identify:
-                  _desc: The minimum number of clue tokens required to use the !id command during day.
+                observe:
+                  _desc: >
+                    The number of clue tokens consumed by the !observe command during day. This command reveals the
+                    target's role, but receives inaccurate readings for cursed villagers and vampires.
                   _type: int
-                  _default: 3
+                  _default: 4
+                identify:
+                  _desc: >
+                    The number of clue tokens consumed by the !id command during day. This command reveals the
+                    target's role accurately.
+                  _type: int
+                  _default: 8
                 graveyard:
                   _desc: The maximum number of clue tokens drawn when pulling a clue card in the graveyard.
                   _type: int

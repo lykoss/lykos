@@ -27,7 +27,7 @@ def observe(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["werecrow_already_observing"].format(OBSERVED[wrapper.source]))
         return
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="werecrow_no_observe_self")
+    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
     if not target:
         return
     if is_known_wolf_ally(var, wrapper.source, target):
