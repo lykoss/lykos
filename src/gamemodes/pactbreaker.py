@@ -698,7 +698,7 @@ class PactBreakerMode(GameMode):
             target_role = "vigilante" if target in self.turned else "villager"
 
         self.collected_evidence[wrapper.source][target_role].add(target)
-        wrapper.send(messages["observe_success"].format(target, target_role))
+        wrapper.send(messages["pactbreaker_observe_success"].format(target, target_role))
 
     def identify(self, wrapper: MessageDispatcher, message: str):
         """Spend clue tokens to accurately learn about a player's role."""
