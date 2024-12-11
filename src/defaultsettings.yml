@@ -1123,11 +1123,11 @@ gameplay: &gameplay
                 pool:
                   _desc: >
                     This number is multiplied with the number of players to determine how many total clue tokens
-                    are available in the game.
+                    are available in the game. Fractions are always rounded up.
                   _type:
                     - float
                     - int
-                  _default: 3
+                  _default: 3.2
                 bite:
                   _desc: The maximum number of clue tokens drawn when someone is the target of a vampire bite.
                   _type: int

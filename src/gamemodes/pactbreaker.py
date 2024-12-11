@@ -180,7 +180,7 @@ class PactBreakerMode(GameMode):
         pl = get_players(var)
         self.active_players.update(pl)
         # initialize clue pool
-        self.clue_pool = math.floor(config.Main.get("gameplay.modes.pactbreaker.clue.pool") * len(pl))
+        self.clue_pool = math.ceil(config.Main.get("gameplay.modes.pactbreaker.clue.pool") * len(pl))
 
     def on_send_role(self, evt: Event, var: GameState):
         pl = get_players(var)
@@ -239,8 +239,8 @@ class PactBreakerMode(GameMode):
 
         if location is Forest:
             deck = (["empty-handed", "evidence", "evidence"]
-                    + (["hunted", "hunted"] * num_wolves)
-                    + (["evidence", "evidence"] * num_other))
+                    + (["hunted", "hunted", "evidence"] * num_wolves)
+                    + (["evidence", "evidence", "empty-handed"] * num_other))
             num_draws = 2
         elif location is VillageSquare:
             deck = (["empty_handed"] * (2 * max(0, num_visitors - 4))
@@ -698,7 +698,7 @@ class PactBreakerMode(GameMode):
             target_role = "vigilante" if target in self.turned else "villager"
 
         self.collected_evidence[wrapper.source][target_role].add(target)
-        wrapper.send(messages["observe_success"].format(target, target_role))
+        wrapper.send(messages["pactbreaker_observe_success"].format(target, target_role))
 
     def identify(self, wrapper: MessageDispatcher, message: str):
         """Spend clue tokens to accurately learn about a player's role."""
