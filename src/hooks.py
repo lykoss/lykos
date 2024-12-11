@@ -54,7 +54,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     if user is None:
         user = users.add(cli, nick=nick, ident=ident, host=host)
 
-    ch = channels.get(chan, allow_none=True)
+    ch = channels.get(chan, allow_none=True) if chan != "*" else None
     if ch is not None and ch not in user.channels:
         user.channels[ch] = modes
         ch.users.add(user)
@@ -125,7 +125,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
         new_user = users.get(nick, ident, host, account, allow_bot=True)
         Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
-    ch = channels.get(chan, allow_none=True)
+    ch = channels.get(chan, allow_none=True) if chan != "*" else None
     if ch is not None and ch not in user.channels:
         user.channels[ch] = modes
         ch.users.add(user)
