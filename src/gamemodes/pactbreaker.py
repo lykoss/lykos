@@ -238,8 +238,9 @@ class PactBreakerMode(GameMode):
         num_other = num_visitors - num_wolves
 
         if location is Forest:
-            deck = (["empty-handed", "evidence", "evidence"]
-                    + (["hunted", "hunted", "evidence"] * num_wolves)
+            deck = (["empty-handed"] * 2
+                    + ["evidence"] * 3
+                    + (["hunted", "hunted", "empty-handed"] * num_wolves)
                     + (["evidence", "evidence", "empty-handed"] * num_other))
             num_draws = 2
         elif location is VillageSquare:
@@ -252,7 +253,7 @@ class PactBreakerMode(GameMode):
                     + ["empty-handed"] * 5
                     + ["hunted", "empty-handed"] * num_wolves
                     + ["empty-handed", "empty-handed"] * num_other)
-            num_draws = 2
+            num_draws = 1
         elif location is Streets:
             deck = (["empty-handed"] * max(0, num_visitors - 8)
                     + ["evidence"] * 8
@@ -339,9 +340,9 @@ class PactBreakerMode(GameMode):
                 if "hunted" in cards:
                     num_hunted = sum(1 for c in cards if c == "hunted")
                     kill_threshold = 2 if visitor_role == "vigilante" else 1
-                    if visitor_role == "wolf":
+                    if visitor_role == "wolf" or num_hunted < kill_threshold:
                         cards.extend(["evidence"] * num_hunted)
-                    elif wolves and visitor_role != "vampire" and num_hunted >= kill_threshold:
+                    elif wolves and visitor_role != "vampire":
                         wolf = wolves.pop()
                         evt.data["victims"].add(visitor)
                         evt.data["killers"][visitor].append(wolf)
