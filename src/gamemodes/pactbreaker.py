@@ -239,7 +239,7 @@ class PactBreakerMode(GameMode):
 
         if location is Forest:
             deck = (["empty-handed"] * 2
-                    + ["evidence"] * 3
+                    + ["evidence"] * 4
                     + (["hunted", "hunted", "empty-handed"] * num_wolves)
                     + (["evidence", "evidence", "empty-handed"] * num_other))
             num_draws = 2
