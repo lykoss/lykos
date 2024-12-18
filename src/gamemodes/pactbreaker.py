@@ -255,10 +255,9 @@ class PactBreakerMode(GameMode):
                     + ["empty-handed", "empty-handed"] * num_other)
             num_draws = 1
         elif location is Streets:
-            deck = (["empty-handed"] * max(0, num_visitors - 8)
-                    + ["evidence"] * 8
-                    + ["hunted", "empty-handed"] * num_wolves
-                    + ["evidence", "empty-handed"] * num_other)
+            deck = (["evidence"] * 9
+                    + ["hunted", "evidence", "empty-handed"] * num_wolves
+                    + ["evidence", "evidence", "empty-handed"] * num_other)
             num_draws = 3
         else:
             raise RuntimeError(f"No deck defined for location {location.name}")
