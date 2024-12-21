@@ -207,8 +207,8 @@ class PactBreakerMode(GameMode):
             evt.data["messages"].append(messages["pactbreaker_info_no_evidence"])
         else:
             entries = []
-            for target in evidence:
-                entries.append(messages["pactbreaker_info_evidence_entry"].format(target, get_main_role(var, target)))
+            for target, role in evidence.items():
+                entries.append(messages["pactbreaker_info_evidence_entry"].format(target, role))
             evt.data["messages"].append(messages["pactbreaker_info_evidence"].format(sorted(entries)))
 
     def on_revealroles(self, evt: Event, var: GameState):
@@ -291,7 +291,7 @@ class PactBreakerMode(GameMode):
             victim_role = get_main_role(var, victim)
             have_evidence = victim in self.collected_evidence[killer][victim_role]
 
-            if victim is not self.in_stocks and not have_evidence and killer_role != "vampire":
+            if victim is not self.in_stocks and not have_evidence and victim_role == "vampire":
                 killer.send(messages["pactbreaker_kill_fail"].format(victim))
             else:
                 evt.data["victims"].add(victim)
@@ -331,8 +331,10 @@ class PactBreakerMode(GameMode):
             random.shuffle(vl)
             for visitor in vl:
                 visitor_role = get_main_role(var, visitor)
-                cards = deck[i:i + num_draws]
-                i += num_draws
+                # vamps draw 2 cards at graveyard instead of 1
+                extra_draws = 1 if visitor_role == "vampire" and location is Graveyard else 0
+                cards = deck[i:i + num_draws + extra_draws]
+                i += num_draws + extra_draws
                 empty = True
                 _logger.debug("[{0}] {1}: {2}", loc, visitor.name, ", ".join(cards))
 
@@ -377,15 +379,28 @@ class PactBreakerMode(GameMode):
                     # refute fake evidence that the visitor may have collected,
                     # in order of cursed -> villager (or vampire, if a cursed vig turned) and then vigilante -> vampire
                     # if there's no fake evidence, fall back to giving a clue token
+                    collected_any = False
                     for wolf in self.collected_evidence[visitor]["wolf"]:
+                        collected_any = True
                         if wolf in all_cursed and wolf not in self.collected_evidence[visitor]["villager"]:
                             evidence_target = wolf
                             break
                     else:
                         for vig in self.collected_evidence[visitor]["vigilante"]:
+                            collected_any = True
                             if vig in all_vamps and vig not in self.collected_evidence[visitor]["vampire"]:
                                 evidence_target = vig
                                 break
+                    # no evidence to refute? give a special message indicating that
+                    if collected_any and evidence_target is None and self.clue_pool > 0:
+                        tokens = min(self.clue_pool, config.Main.get(f"gameplay.modes.pactbreaker.clue.{loc}"))
+                        self.clue_pool -= tokens
+                        self.clue_tokens[visitor] += tokens
+                        visitor.send(messages[f"pactbreaker_{loc}_special"].format(tokens))
+                        break
+                elif location is Streets:
+                    # streets is guaranteed to give a clue token each night (as long as clue tokens remain)
+                    num_evidence = 2
 
                 if num_evidence >= 2:
                     if evidence_target is not None:
@@ -444,9 +459,13 @@ class PactBreakerMode(GameMode):
             vvar.vampire_drained.add(target)
             attacker.send(messages["pactbreaker_drain"].format(target))
             target.send(messages["pactbreaker_drained"])
-            victim_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.bite"), self.clue_pool)
+            # give the victim tokens before vamp so that pool exhaustion doesn't overly benefit vamp
+            victim_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.bitten"), self.clue_pool)
             self.clue_pool -= victim_tokens
             self.clue_tokens[target] += victim_tokens
+            vamp_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.bite"), self.clue_pool)
+            self.clue_pool -= vamp_tokens
+            self.clue_tokens[attacker] += vamp_tokens
         elif protector_role == "vigilante":
             # if the vampire fully drains a vigilante, they might turn into a vampire instead of dying
             # this protection triggering means they should turn

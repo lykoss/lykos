@@ -1129,6 +1129,11 @@ gameplay: &gameplay
                     - int
                   _default: 3.2
                 bite:
+                  _desc: >
+                    The maximum number of clue tokens a vampire draws when biting (but not killing or turning) someone.
+                  _type: int
+                  _default: 2
+                bitten:
                   _desc: The maximum number of clue tokens drawn when someone is the target of a vampire bite.
                   _type: int
                   _default: 3
