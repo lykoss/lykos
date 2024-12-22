@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 import math
 import random
@@ -255,7 +256,7 @@ class PactBreakerMode(GameMode):
                     + ["empty-handed", "empty-handed"] * num_other)
             num_draws = 1
         elif location is Streets:
-            deck = (["evidence"] * 9
+            deck = (["evidence"] * 7
                     + ["hunted", "evidence", "empty-handed"] * num_wolves
                     + ["evidence", "evidence", "empty-handed"] * num_other)
             num_draws = 3
@@ -376,28 +377,27 @@ class PactBreakerMode(GameMode):
                         # give non-wolves a higher chance of gaining clues after exhausting all wolf evidence
                         num_evidence += 1
                 elif location is Streets and num_evidence == 3:
-                    # refute fake evidence that the visitor may have collected,
-                    # in order of cursed -> villager (or vampire, if a cursed vig turned) and then vigilante -> vampire
+                    # refute fake evidence that the visitor may have collected
                     # if there's no fake evidence, fall back to giving a clue token
-                    collected_any = False
-                    for wolf in self.collected_evidence[visitor]["wolf"]:
-                        collected_any = True
-                        if wolf in all_cursed and wolf not in self.collected_evidence[visitor]["villager"]:
-                            evidence_target = wolf
-                            break
-                    else:
-                        for vig in self.collected_evidence[visitor]["vigilante"]:
-                            collected_any = True
-                            if vig in all_vamps and vig not in self.collected_evidence[visitor]["vampire"]:
-                                evidence_target = vig
+                    collected = functools.reduce(lambda x, y: x | y, self.collected_evidence[visitor].values())
+                    role_order = ("wolf", "villager", "vigilante")
+                    for role in role_order:
+                        for target in self.collected_evidence[visitor][role]:
+                            real_role = get_main_role(var, target)
+                            if real_role != role and target not in self.collected_evidence[visitor][real_role]:
+                                evidence_target = target
                                 break
+                        if evidence_target is not None:
+                            break
+
                     # no evidence to refute? give a special message indicating that
-                    if collected_any and evidence_target is None and self.clue_pool > 0:
+                    if collected and evidence_target is None:
                         tokens = min(self.clue_pool, config.Main.get(f"gameplay.modes.pactbreaker.clue.{loc}"))
                         self.clue_pool -= tokens
                         self.clue_tokens[visitor] += tokens
                         visitor.send(messages[f"pactbreaker_{loc}_special"].format(tokens))
-                        break
+                        # process the next player since we've fully handled this one here
+                        continue
                 elif location is Streets:
                     # streets is guaranteed to give a clue token each night (as long as clue tokens remain)
                     num_evidence = 2
