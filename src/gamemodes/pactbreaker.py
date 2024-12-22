@@ -379,7 +379,7 @@ class PactBreakerMode(GameMode):
                 elif location is Streets and num_evidence == 3:
                     # refute fake evidence that the visitor may have collected
                     # if there's no fake evidence, fall back to giving a clue token
-                    collected = functools.reduce(lambda x, y: x | y, self.collected_evidence[visitor].values())
+                    collected = functools.reduce(lambda x, y: x | y, self.collected_evidence[visitor].values(), set())
                     role_order = ("wolf", "villager", "vigilante")
                     for role in role_order:
                         for target in self.collected_evidence[visitor][role]:
