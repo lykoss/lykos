@@ -272,6 +272,7 @@ class PactBreakerMode(GameMode):
         all_vamps = set(get_players(var, ("vampire",)))
         all_cursed = get_all_players(var, ("cursed villager",))
         wl = list(all_wolves | all_cursed)
+        extra = (("vampire", Graveyard), ("wolf", Forest))
 
         for player in self.active_players & all_wolves - self.protected:
             # wolves need to be drained 3 times to die
@@ -333,7 +334,8 @@ class PactBreakerMode(GameMode):
             for visitor in vl:
                 visitor_role = get_main_role(var, visitor)
                 # vamps draw 2 cards at graveyard instead of 1
-                extra_draws = 1 if visitor_role == "vampire" and location is Graveyard else 0
+                # wolves draw 3 cards at forest instead of 2
+                extra_draws = 1 if (visitor_role, location) in extra else 0
                 cards = deck[i:i + num_draws + extra_draws]
                 i += num_draws + extra_draws
                 empty = True
@@ -473,6 +475,9 @@ class PactBreakerMode(GameMode):
             change_role(var, target, get_main_role(var, target), "vampire", message="pactbreaker_drained_vigilante")
             self.turned.add(target)
             self.drained.discard(target)
+
+        # don't tell the attacker that their kill failed in case someone else also attacks the target the same night
+        self.night_kill_messages.discard((attacker, target))
 
     def on_night_death_message(self, evt: Event, var: GameState, victim: User, killer: User | str):
         if not isinstance(killer, User):
