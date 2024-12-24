@@ -1,265 +1,299 @@
 import random
-import threading
-import functools
-from collections import Counter
+from collections import Counter, defaultdict
+
+from src.cats import Wolf
+from src.dispatcher import MessageDispatcher
 from src.gamemodes import game_mode, GameMode
 from src.messages import messages
-from src.containers import UserList, UserDict
+from src.containers import UserDict, UserSet
 from src.decorators import command, handle_error
-from src.functions import get_players, change_role
+from src.functions import get_players, change_role, get_main_role
 from src.gamestate import GameState
-from src.status import add_dying
+from src.status import remove_all_protections
 from src.events import EventListener, Event
-from src import channels, config, locks
+from src import channels, config
+from src.users import User
 
-@game_mode("sleepy", minp=10, maxp=24)
+@game_mode("sleepy", minp=8, maxp=24)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            10: ["wolf", "werecrow", "cultist", "seer", "prophet", "priest", "dullahan", "cursed villager", "blessed villager"],
-            12: ["wolf(2)", "vigilante"],
-            15: ["wolf(3)", "detective", "vengeful ghost"],
-            18: ["wolf(4)", "harlot", "monster"],
-            21: ["wolf(5)", "village drunk", "monster(2)", "gunner"],
+            8: ["werecrow", "traitor", "mystic", "seer", "priest", "dullahan", "cursed villager"],
+            9: ["amnesiac"],
+            10: ["-traitor", "wolf", "blessed villager", "cursed villager(2)"],
+            11: ["village drunk"],
+            12: ["wolf(2)"],
+            13: ["vengeful ghost"],
+            14: ["sorcerer", "prophet"],
+            15: ["gunner"],
+            16: ["-wolf", "fallen angel", "vigilante"],
+            17: ["succubus"],
+            18: ["detective"],
+            20: ["werecrow(2)"],
+            21: ["monster", "hunter"],
+            22: ["augur", "amnesiac(2)"],
+            23: ["insomniac", "cultist"],
+            24: ["wolf(3)", "harlot"]
         }
-        self.NIGHTMARE_CHANCE = config.Main.get("gameplay.modes.sleepy.nightmare.chance")
-        self.NIGHTMARE_MAX = config.Main.get("gameplay.modes.sleepy.nightmare.max")
+
         self.TURN_CHANCE = config.Main.get("gameplay.modes.sleepy.turn")
-        # Make sure priest is always prophet AND blessed, and that drunk is always gunner
+        # Force secondary roles
         self.SECONDARY_ROLES["blessed villager"] = {"priest"}
-        self.SECONDARY_ROLES["prophet"] = {"priest"}
         self.SECONDARY_ROLES["gunner"] = {"village drunk"}
+        self.SECONDARY_ROLES["hunter"] = {"monster"}
         self.EVENTS = {
             "dullahan_targets": EventListener(self.dullahan_targets),
-            "transition_night_begin": EventListener(self.setup_nightmares),
-            "chk_nightdone": EventListener(self.prolong_night),
-            "transition_day_begin": EventListener(self.nightmare_kill),
+            "chk_nightdone": EventListener(self.setup_nightmares, priority=10),
             "del_player": EventListener(self.happy_fun_times),
             "revealroles": EventListener(self.on_revealroles),
-            "night_idled": EventListener(self.on_night_idled)
+            "remove_protection": EventListener(self.on_remove_protection),
         }
 
-        self.having_nightmare = UserList()
-        cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",),
-                          users=self.having_nightmare, register=False)
-        self.north_cmd = command("north", **cmd_params)(functools.partial(self.move, "n"))
-        self.east_cmd = command("east", **cmd_params)(functools.partial(self.move, "e"))
-        self.south_cmd = command("south", **cmd_params)(functools.partial(self.move, "s"))
-        self.west_cmd = command("west", **cmd_params)(functools.partial(self.move, "w"))
+        self.MESSAGE_OVERRIDES = {
+            "mystic_info_nightmare": "mystic_info_night"
+        }
 
-        self.correct = UserDict()
-        self.fake1 = UserDict()
-        self.fake2 = UserDict()
-        self.step = UserDict()
-        self.prev_direction = UserDict()
-        self.start_direction = UserDict()
-        self.on_path = UserDict()
+        self.having_nightmare: UserDict[User, User] = UserDict()
+        self.nightmare_progress: UserDict[User, int] = UserDict()
+        self.nightmare_acted = UserSet()
+        # nightmare commands for the person being chased
+        cmd_params = dict(chan=False, pm=True, playing=True, phases=("nightmare",),
+                          users=self.having_nightmare.values(), register=False)
+        self.hide_cmd = command("hide", **cmd_params)(self.hide)
+        self.run_cmd = command("run", **cmd_params)(self.run)
+
+        # nightmare commands for dulla
+        cmd_params = dict(chan=False, pm=True, playing=True, phases=("nightmare",),
+                          roles=("dullahan",), register=False)
+        self.search_cmd = command("search", **cmd_params)(self.search)
+        self.chase_cmd = command("chase", **cmd_params)(self.chase)
 
     def startup(self):
         super().startup()
-        self.north_cmd.register()
-        self.east_cmd.register()
-        self.south_cmd.register()
-        self.west_cmd.register()
+        self.hide_cmd.register()
+        self.run_cmd.register()
+        self.search_cmd.register()
+        self.chase_cmd.register()
 
     def teardown(self):
         super().teardown()
-        self.north_cmd.remove()
-        self.east_cmd.remove()
-        self.south_cmd.remove()
-        self.west_cmd.remove()
+        self.hide_cmd.remove()
+        self.run_cmd.remove()
+        self.search_cmd.remove()
+        self.chase_cmd.remove()
+        # clear user containers
         self.having_nightmare.clear()
-        self.correct.clear()
-        self.fake1.clear()
-        self.fake2.clear()
-        self.step.clear()
-        self.prev_direction.clear()
-        self.start_direction.clear()
-        self.on_path.clear()
+        self.nightmare_progress.clear()
+        self.nightmare_acted.clear()
 
     def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
         evt.data["targets"].update(get_players(var, ("priest",)))
-        evt.data["exclude"].update(get_players(var, ("werecrow",)))
-        # also exclude half the wolves (counting crow, rounded down) to ensure dulla doesn't just completely murder wolfteam
-        wolves = set(get_players(var, ("wolf",)))
-        num_exclusions = int(len(wolves) / 2)
-        if num_exclusions > 0:
-            evt.data["exclude"].update(random.sample(list(wolves), num_exclusions))
-            wolves.difference_update(evt.data["exclude"])
+        evt.data["exclude"].update(get_players(var, Wolf))
+        # dulla needs 1 fewer target to win than normal
+        evt.data["num_targets"] = max_targets - 1
 
     def setup_nightmares(self, evt: Event, var: GameState):
-        pl = get_players(var)
-        for i in range(self.NIGHTMARE_MAX):
-            if not pl:
-                break
-            if random.random() < self.NIGHTMARE_CHANCE:
-                with locks.join_timer:
-                    target = random.choice(pl)
-                    pl.remove(target)
-                    t = threading.Timer(60, self.do_nightmare, (var, target, var.night_count))
-                    t.daemon = True
-                    t.start()
+        from src.roles.dullahan import KILLS
+        dullahans = get_players(var, ("dullahan",))
+        # don't give nightmares to other dullas, because that'd just be awkward
+        filtered = [x for x in KILLS.values() if x not in dullahans]
+        if filtered:
+            evt.data["transition_day"] = self.do_nightmares
+
+    # called from trans.py when night ends and dulla has kills
+    @handle_error
+    def do_nightmares(self, var: GameState):
+        from src.roles.dullahan import KILLS
+        self.having_nightmare.update(KILLS)
+        self.nightmare_progress.clear()
+        steps = config.Main.get("gameplay.modes.sleepy.nightmare.steps")
+
+        counts = defaultdict(int)
+        time_limit = config.Main.get("gameplay.modes.sleepy.nightmare.time")
+        timers_enabled = config.Main.get("timers.enabled")
+        for dulla, target in self.having_nightmare.items():
+            if get_main_role(var, target) == "dullahan":
+                continue
+            # ensure regular dullahan kill logic doesn't fire since we do it specially
+            # (except for dullahans targeting themselves or other dullahans)
+            del KILLS[dulla]
+            self.nightmare_progress[dulla] = 3 - steps
+            self.nightmare_progress[target] = 4 - steps
+            counts[target] += 1
+            dulla.send(messages["sleepy_nightmare_start_dullahan"].format(target))
+            if timers_enabled and time_limit:
+                dulla.queue_message(messages["sleepy_nightmare_timer_notify"].format(time_limit))
+
+        # send the initial messages to targets too
+        for target, count in counts.items():
+            if count == 1:
+                target.send(messages["sleepy_nightmare_start_target"])
+            else:
+                target.send(messages["sleepy_nightmare_start_target_multiple"].format(count))
+            if timers_enabled and time_limit:
+                target.queue_message(messages["sleepy_nightmare_timer_notify"].format(time_limit))
+
+        # send timer_notify messages
+        User.send_messages()
+
+        # kick it all off
+        self.nightmare_step(var)
 
     @handle_error
-    def do_nightmare(self, var: GameState, target, night):
-        if var.current_phase != "night" or var.night_count != night:
-            return
-        if target not in get_players(var):
-            return
-        self.having_nightmare.append(target)
-        target.send(messages["sleepy_nightmare_begin"])
-        target.send(messages["sleepy_nightmare_navigate"])
-        self.correct[target] = [None, None, None]
-        self.fake1[target] = [None, None, None]
-        self.fake2[target] = [None, None, None]
-        directions = ["n", "e", "s", "w"]
-        self.step[target] = 0
-        self.prev_direction[target] = None
-        opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
-        for i in range(3):
-            corrdir = directions[:]
-            f1dir = directions[:]
-            f2dir = directions[:]
-            if i > 0:
-                corrdir.remove(opposite[self.correct[target][i-1]])
-                f1dir.remove(opposite[self.fake1[target][i-1]])
-                f2dir.remove(opposite[self.fake2[target][i-1]])
+    def nightmare_timer(self, timer_type: str, var: GameState):
+        idlers = False
+        for dulla, target in self.having_nightmare.items():
+            if dulla not in self.nightmare_acted:
+                idlers = True
+                self.nightmare_progress[dulla] += 2
+                dulla.send(messages["sleepy_nightmare_dullahan_idle"])
+            if target not in self.nightmare_acted:
+                idlers = True
+                self.nightmare_progress[target] += 1
+                target.send(messages["sleepy_nightmare_target_idle"])
+
+        if idlers:
+            self.nightmare_step(var)
+
+    def nightmare_step(self, var: GameState):
+        from src.roles.dullahan import KILLS, TARGETS
+        # keep track of who was already sent messages in case they're being chased by multiple dullahans
+        notified = set()
+        dulla_counts = defaultdict(int)
+        for target in self.having_nightmare.values():
+            dulla_counts[target] += 1
+
+        for dulla, target in list(self.having_nightmare.items()):
+            if self.nightmare_progress[dulla] == self.nightmare_progress[target]:
+                # dulla caught up and target dies
+                del self.having_nightmare[dulla]
+                if target not in notified:
+                    notified.add(target)
+                    target.send(messages["sleepy_nightmare_caught"].format(dulla_counts[target]))
+                dulla.send(messages["sleepy_nightmare_kill"].format(target))
+                KILLS[dulla] = target
+                remove_all_protections(var, target, dulla, "dullahan", "nightmare")
+            elif self.nightmare_progress[dulla] > self.nightmare_progress[target]:
+                # dulla passed the target by (maybe escaping or maybe a different dulla catches them)
+                del self.having_nightmare[dulla]
+                remaining = sum(1 for x in self.having_nightmare.values() if x is target)
+                if remaining == 0 and target not in notified:
+                    # target escapes fully
+                    notified.add(target)
+                    target.send(messages["sleepy_nightmare_escape_hide"].format(dulla_counts[target]))
+                dulla.send(messages["sleepy_nightmare_fail_hide"])
+                TARGETS[dulla].discard(target)
+            elif self.nightmare_progress[target] == 4:
+                # target escapes
+                del self.having_nightmare[dulla]
+                if target not in notified:
+                    notified.add(target)
+                    target.send(messages["sleepy_nightmare_escape_run"].format(dulla_counts[target]))
+                dulla.send(messages["sleepy_nightmare_fail_river"])
+                TARGETS[dulla].discard(target)
             else:
-                corrdir.remove("s")
-                f1dir.remove("s")
-                f2dir.remove("s")
-            self.correct[target][i] = random.choice(corrdir)
-            # ensure fake1 and correct share the first choice but have different second choices
-            # and ensure fake2 has a different first choice from everything else
-            if i == 0:
-                self.fake1[target][i] = self.correct[target][i]
-                f2dir.remove(self.correct[target][i])
-                self.fake2[target][i] = random.choice(f2dir)
-            elif i == 1:
-                f1dir.remove(self.correct[target][i])
-                self.fake1[target][i] = random.choice(f1dir)
-                self.fake2[target][i] = random.choice(f2dir)
-            else:
-                self.fake1[target][i] = random.choice(f1dir)
-                self.fake2[target][i] = random.choice(f2dir)
-        self.prev_direction[target] = "n"
-        self.start_direction[target] = "n"
-        self.on_path[target] = set()
-        self.nightmare_step(target)
+                # target still being chased
+                if target not in notified:
+                    notified.add(target)
+                    target.send(messages["sleepy_nightmare_target_step_{0}".format(self.nightmare_progress[target])])
+                dulla.send(messages["sleepy_nightmare_dullahan_step"].format(4 - self.nightmare_progress[target]))
 
-    def nightmare_step(self, target):
-        # FIXME: hardcoded English
-        if self.prev_direction[target] == "n":
-            directions = "north, east, and west"
-        elif self.prev_direction[target] == "e":
-            directions = "north, east, and south"
-        elif self.prev_direction[target] == "s":
-            directions = "east, south, and west"
-        elif self.prev_direction[target] == "w":
-            directions = "north, south, and west"
+        self.nightmare_acted.clear()
+        if self.having_nightmare:
+            # need another round of nightmares
+            var.begin_phase_transition("nightmare")
+            time_limit = config.Main.get("gameplay.modes.sleepy.nightmare.time")
+            var.end_phase_transition(time_limit, timer_cb=self.nightmare_timer, cb_args=(var,))
         else:
-            # wat? reset them
-            self.step[target] = 0
-            self.prev_direction[target] = self.start_direction[target]
-            self.on_path[target] = set()
-            directions = "north, east, and west"
+            # all nightmares resolved, can finally make it daytime
+            from src.trans import transition_day
+            self.nightmare_progress.clear()
+            transition_day(var)
 
-        if self.step[target] == 0:
-            target.send(messages["sleepy_nightmare_0"].format(directions))
-        elif self.step[target] == 1:
-            target.send(messages["sleepy_nightmare_1"].format(directions))
-        elif self.step[target] == 2:
-            target.send(messages["sleepy_nightmare_2"].format(directions))
-        elif self.step[target] == 3:
-            if "correct" in self.on_path[target]:
-                target.send(messages["sleepy_nightmare_wake"])
-                self.having_nightmare.remove(target)
-            elif "fake1" in self.on_path[target]:
-                target.send(messages["sleepy_nightmare_fake_1"])
-                self.step[target] = 0
-                self.on_path[target] = set()
-                self.prev_direction[target] = self.start_direction[target]
-                self.nightmare_step(target)
-            elif "fake2" in self.on_path[target]:
-                target.send(messages["sleepy_nightmare_fake_2"])
-                self.step[target] = 0
-                self.on_path[target] = set()
-                self.prev_direction[target] = self.start_direction[target]
-                self.nightmare_step(target)
+    def _resolve_nightmare_command(self, wrapper: MessageDispatcher, cmd: str):
+        self.nightmare_acted.add(wrapper.source)
+        wrapper.reply(messages["sleepy_nightmare_success"].format(cmd))
+        need_act = set(self.having_nightmare.keys()) | set(self.having_nightmare.values())
+        if need_act == set(self.nightmare_acted):
+            self.nightmare_step(wrapper.game_state)
 
-    def move(self, direction, wrapper, message):
-        opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
-        target = wrapper.source
-        if self.prev_direction[target] == opposite[direction]:
-            wrapper.pm(messages["sleepy_nightmare_invalid_direction"])
+    def hide(self, wrapper: MessageDispatcher, message: str):
+        """Attempt to hide from the dullahan chasing you."""
+        if wrapper.source in self.nightmare_acted:
+            wrapper.reply(messages["sleepy_nightmare_acted"])
             return
-        advance = False
-        step = self.step[target]
-        if ("correct" in self.on_path[target] or step == 0) and self.correct[target][step] == direction:
-            self.on_path[target].add("correct")
-            advance = True
-        else:
-            self.on_path[target].discard("correct")
-        if ("fake1" in self.on_path[target] or step == 0) and self.fake1[target][step] == direction:
-            self.on_path[target].add("fake1")
-            advance = True
-        else:
-            self.on_path[target].discard("fake1")
-        if ("fake2" in self.on_path[target] or step == 0) and self.fake2[target][step] == direction:
-            self.on_path[target].add("fake2")
-            advance = True
-        else:
-            self.on_path[target].discard("fake2")
-        if advance:
-            self.step[target] += 1
-            self.prev_direction[target] = direction
-        else:
-            self.step[target] = 0
-            self.on_path[target] = set()
-            self.prev_direction[target] = self.start_direction[target]
-            wrapper.pm(messages["sleepy_nightmare_restart"])
-        self.nightmare_step(target)
 
-    def prolong_night(self, evt: Event, var: GameState):
-        evt.data["nightroles"].extend(self.having_nightmare)
+        self._resolve_nightmare_command(wrapper, "hide")
 
-    def on_night_idled(self, evt: Event, var: GameState, player):
-        # don't give warning points if the person having a nightmare idled out night
-        if player in self.having_nightmare:
-            evt.prevent_default = True
+    def run(self, wrapper: MessageDispatcher, message: str):
+        """Attempt to run from the dullahan chasing you."""
+        if wrapper.source in self.nightmare_acted:
+            wrapper.reply(messages["sleepy_nightmare_acted"])
+            return
 
-    def nightmare_kill(self, evt: Event, var: GameState):
-        pl = get_players(var)
-        for player in self.having_nightmare:
-            if player not in pl:
-                continue
-            add_dying(var, player, "bot", "night_kill")
-            player.send(messages["sleepy_nightmare_death"])
-        self.having_nightmare.clear()
+        self.nightmare_progress[wrapper.source] += 1
+        self._resolve_nightmare_command(wrapper, "run")
+
+    def search(self, wrapper: MessageDispatcher, message: str):
+        """Chase at a slower pace to catch hiding targets."""
+        if wrapper.source in self.nightmare_acted:
+            wrapper.reply(messages["sleepy_nightmare_acted"])
+            return
+
+        self.nightmare_progress[wrapper.source] += 1
+        self._resolve_nightmare_command(wrapper, "search")
+
+    def chase(self, wrapper: MessageDispatcher, message: str):
+        """Chase at a faster pace to catch running targets."""
+        if wrapper.source in self.nightmare_acted:
+            wrapper.reply(messages["sleepy_nightmare_acted"])
+            return
+
+        self.nightmare_progress[wrapper.source] += 2
+        self._resolve_nightmare_command(wrapper, "chase")
 
     def happy_fun_times(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         if death_triggers and evt.params.main_role == "priest":
             channels.Main.send(messages["sleepy_priest_death"])
 
-            mapping = {"seer": "doomsayer", "harlot": "succubus", "cultist": "demoniac"}
+            mapping = {"seer": "doomsayer",
+                       "harlot": "succubus",
+                       "cultist": "demoniac",
+                       "vengeful ghost": "jester"}
             for old, new in mapping.items():
                 turn = [p for p in get_players(var, (old,)) if random.random() < self.TURN_CHANCE]
                 for t in turn:
-                    # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn
+                    if new == "doomsayer":
+                        # so game doesn't just end immediately at 8-9p, make the traitor into a monster too
+                        # do this before seer turns to doomsayer so the traitor doesn't know the new wolf
+                        for traitor in get_players(var, ("traitor",)):
+                            change_role(var, traitor, "traitor", "monster", message="sleepy_monster_turn")
+                    # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn, sleepy_jester_turn
                     change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
+                    if new == "jester":
+                        # VGs turned into jesters remain spicy
+                        var.roles["vengeful ghost"].add(t)
 
                 newstats = set()
                 for rs in var.get_role_stats():
                     d = Counter(dict(rs))
                     newstats.add(rs)
                     if old in d and d[old] >= 1:
-                        d[old] -= 1
-                        d[new] += 1
-                        newstats.add(frozenset(d.items()))
+                        for i in range(1, d[old] + 1):
+                            d[old] -= i
+                            d[new] += i
+                            if new == "doomsayer" and "traitor" in d and d["traitor"] >= 1:
+                                d["monster"] += d["traitor"]
+                                d["traitor"] = 0
+                            newstats.add(frozenset(d.items()))
                 var.set_role_stats(newstats)
+
+    def on_remove_protection(self, evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
+        if reason == "nightmare":
+            evt.data["remove"] = True
 
     def on_revealroles(self, evt: Event, var: GameState):
         if self.having_nightmare:
-            evt.data["output"].append(messages["sleepy_revealroles"].format(self.having_nightmare))
+            evt.data["output"].append(messages["sleepy_revealroles"].format(self.having_nightmare.values()))

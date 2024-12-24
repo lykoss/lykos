@@ -108,17 +108,6 @@ class PactBreakerMode(GameMode):
 
     def startup(self):
         super().startup()
-        self.night_kill_messages.clear()
-        self.active_players.clear()
-        self.in_stocks = None
-        self.voted.clear()
-        self.drained.clear()
-        self.protected.clear()
-        self.turned.clear()
-        self.collected_evidence.clear()
-        self.visiting.clear()
-        self.killing.clear()
-        self.clue_tokens.clear()
         # register !visit, !id, and !kill, remove all role commands
         self.visit_command.register()
         self.id_command.register()
@@ -152,6 +141,16 @@ class PactBreakerMode(GameMode):
         vigilante_kill.register()
         vigilante_retract.register()
         vigilante_pass.register()
+        # clear user containers
+        self.visiting.clear()
+        self.killing.clear()
+        self.drained.clear()
+        self.protected.clear()
+        self.turned.clear()
+        self.voted.clear()
+        self.active_players.clear()
+        self.collected_evidence.clear()
+        self.clue_tokens.clear()
 
     def on_del_player(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         # self.night_kills isn't updated because it is short-lived
@@ -432,8 +431,7 @@ class PactBreakerMode(GameMode):
                 loc = self.visiting[visitor].name
                 visitor.send(messages[f"pactbreaker_{loc}_empty"])
         elif len(shares) > 1:
-            num_tokens = min(len(shares) - 1,
-                             math.floor(self.clue_pool / len(shares)),
+            num_tokens = min(math.floor(self.clue_pool / len(shares)),
                              config.Main.get("gameplay.modes.pactbreaker.clue.square"))
             for visitor in shares:
                 loc = self.visiting[visitor].name

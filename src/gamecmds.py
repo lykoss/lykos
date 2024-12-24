@@ -183,11 +183,13 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
     global LAST_STATS
     LAST_STATS = None
 
-@command("time", pm=True, phases=("join", "day", "night"))
+@command("time", pm=True)
 def timeleft(wrapper: MessageDispatcher, message: str):
     """Returns the time left until the next day/night transition."""
     global LAST_TIME
     var = wrapper.game_state
+    if var is None:
+        return
 
     if wrapper.public:
         if LAST_TIME and LAST_TIME + timedelta(seconds=config.Main.get("ratelimits.time")) > datetime.now():
@@ -198,12 +200,8 @@ def timeleft(wrapper: MessageDispatcher, message: str):
 
     if var.current_phase == "join":
         dur = int((pregame.CAN_START_TIME - datetime.now()).total_seconds())
-        msg = None
         if dur > 0:
-            msg = messages["start_timer"].format(dur)
-
-        if msg is not None:
-            wrapper.reply(msg)
+            wrapper.reply(messages["start_timer"].format(dur))
 
     if var.current_phase in trans.TIMERS or f"{var.current_phase}_limit" in trans.TIMERS:
         if var.current_phase == "day":

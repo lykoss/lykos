@@ -45,14 +45,14 @@ ADMIN_STOPPED = UserList() # this shouldn't hold more than one user at any point
 ORIGINAL_ACCOUNTS: UserDict[User, str] = UserDict()
 
 @handle_error
-def hurry_up(var: GameState, game_id: int, change: bool, *, admin_forced: bool = False):
+def hurry_up(timer_type: str, var: GameState, phase_id: float, *, admin_forced: bool = False):
     global DAY_ID
     if var.current_phase != "day" or var.in_phase_transition:
         return
-    if game_id and game_id != DAY_ID:
+    if phase_id and phase_id != DAY_ID:
         return
 
-    if not change:
+    if timer_type == "warn":
         event = Event("daylight_warning", {"message": "daylight_warning"})
         event.dispatch(var)
         channels.Main.send(messages[event.data["message"]])
@@ -67,7 +67,7 @@ def fnight(wrapper: MessageDispatcher, message: str):
     if wrapper.game_state.current_phase != "day":
         wrapper.pm(messages["not_daytime"])
     else:
-        hurry_up(wrapper.game_state, 0, True, admin_forced=True)
+        hurry_up("limit", wrapper.game_state, 0, admin_forced=True)
 
 @command("fday", flag="N")
 def fday(wrapper: MessageDispatcher, message: str):
@@ -78,37 +78,34 @@ def fday(wrapper: MessageDispatcher, message: str):
         transition_day(wrapper.game_state)
 
 def begin_day(var: GameState):
-    # Reset nighttime variables
-    var.end_phase_transition()
-    msg = messages["villagers_vote"].format(len(get_players(var)) // 2 + 1)
-    channels.Main.send(msg)
-
     global DAY_ID
     DAY_ID = time.time()
-    if config.Main.get("timers.enabled"):
-        value = None
-        if config.Main.get("timers.day.enabled"):
-            value = "day_time_{0}"
-        if config.Main.get("timers.shortday.enabled") and len(get_players(var)) <= config.Main.get("timers.shortday.players"):
-            value = "short_day_time_{0}"
-        if value is not None:
-            for s in ("warn", "limit"):
-                if getattr(var, value.format(s)):
-                    timer = threading.Timer(getattr(var, value.format(s)), hurry_up, (var, DAY_ID, (s == "limit")))
-                    timer.daemon = True
-                    timer.start()
-                    TIMERS[f"day_{s}"] = (timer, DAY_ID, getattr(var, value.format(s)))
+    pl = get_players(var)
+    msg = messages["villagers_vote"].format(len(pl) // 2 + 1)
+    channels.Main.send(msg)
+
+    if config.Main.get("timers.shortday.enabled") and len(pl) <= config.Main.get("timers.shortday.players"):
+        warn = var.short_day_time_warn
+        limit = var.short_day_time_limit
+    elif config.Main.get("timers.day.enabled"):
+        warn = var.day_time_warn
+        limit = var.day_time_limit
+    else:
+        warn = 0
+        limit = 0
+
+    var.end_phase_transition(limit, warn, hurry_up, (var, DAY_ID))
 
     if not config.Main.get("gameplay.nightchat"):
         modes = []
-        for player in get_players(var):
+        for player in pl:
             if not player.is_fake:
                 modes.append(("+v", player.nick))
         channels.Main.mode(*modes)
 
     # move everyone to the village square (or home if they're absent)
     absent = get_absent(var)
-    for p in get_players(var):
+    for p in pl:
         if p in absent:
             move_player_home(var, p)
         else:
@@ -119,11 +116,7 @@ def begin_day(var: GameState):
     # induce a lynch if we need to (due to lots of pacifism/impatience totems or whatever)
     chk_decision(var)
 
-@handle_error
-def night_warn(var: GameState, gameid: int):
-    if gameid != NIGHT_ID or var.current_phase != "night" or var.in_phase_transition:
-        return
-
+def _night_warn(var: GameState):
     channels.Main.send(messages["twilight_warning"])
 
     # determine who hasn't acted yet and remind them to act
@@ -144,8 +137,12 @@ def night_warn(var: GameState, gameid: int):
     users.User.send_messages()
 
 @handle_error
-def night_timeout(var: GameState, gameid: int):
-    if gameid != NIGHT_ID or var.current_phase != "night" or var.in_phase_transition:
+def night_timeout(timer_type: str, var: GameState, phase_id: int):
+    if phase_id != NIGHT_ID or var.current_phase != "night" or var.in_phase_transition:
+        return
+
+    if timer_type == "warn":
+        _night_warn(var)
         return
 
     # determine which roles idled out night and give them warnings
@@ -154,7 +151,7 @@ def night_timeout(var: GameState, gameid: int):
 
     # if night idle warnings are disabled, head straight to day
     if not config.Main.get("reaper.night_idle.enabled"):
-        event.data["transition_day"](var, gameid)
+        event.data["transition_day"](var, phase_id)
         return
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
@@ -173,7 +170,7 @@ def night_timeout(var: GameState, gameid: int):
             # 2. warning is deferred to end of game so admins can't !fwarn list to cheat and determine who idled
             reaper.NIGHT_IDLED.add(player)
 
-    event.data["transition_day"](var, gameid)
+    event.data["transition_day"](var, phase_id)
 
 @event_listener("night_idled")
 def on_night_idled(evt: Event, var: GameState, player):
@@ -409,10 +406,6 @@ def transition_night(var: GameState):
                 modes.append(("-v", player))
         channels.Main.mode(*modes)
 
-    for x, tmr in TIMERS.items(): # cancel daytime timer
-        tmr[0].cancel()
-    TIMERS.clear()
-
     dmsg = []
 
     NIGHT_ID = time.time()
@@ -423,18 +416,6 @@ def transition_night(var: GameState):
         DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         dmsg.append(messages["day_lasted"].format(min, sec))
-
-    if config.Main.get("timers.enabled"):
-        value = None
-        if config.Main.get("timers.night.enabled"):
-            value = "night_time_{0}"
-        if value is not None:
-            for s, fn in (("warn", night_warn), ("limit", night_timeout)):
-                if getattr(var, value.format(s)):
-                    timer = threading.Timer(getattr(var, value.format(s)), fn, (var, NIGHT_ID))
-                    timer.daemon = True
-                    timer.start()
-                    TIMERS[f"night_{s}"] = (timer, NIGHT_ID, getattr(var, value.format(s)))
 
     event_role = Event("send_role", {})
     event_role.dispatch(var)
@@ -449,7 +430,14 @@ def transition_night(var: GameState):
     channels.Main.send(*dmsg, sep=" ")
 
     # it's now officially nighttime
-    var.end_phase_transition()
+    if config.Main.get("timers.night.enabled"):
+        warn = var.night_time_warn
+        limit = var.night_time_limit
+    else:
+        warn = 0
+        limit = 0
+
+    var.end_phase_transition(limit, warn, night_timeout, (var, NIGHT_ID))
 
     event_night = Event("begin_night", {"messages": []})
     event_night.dispatch(var)
@@ -470,12 +458,7 @@ def chk_nightdone(var: GameState):
     nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
 
     if var.current_phase == "night" and actedcount >= len(nightroles):
-        for x, t in TIMERS.items():
-            t[0].cancel()
-
-        TIMERS.clear()
-        if var.current_phase == "night":  # Double check
-            event.data["transition_day"](var)
+        event.data["transition_day"](var)
 
 def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, additional_winners=None, log=True):
     global DAY_TIMEDELTA, NIGHT_TIMEDELTA, ENDGAME_COMMAND

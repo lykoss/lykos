@@ -1214,28 +1214,29 @@ gameplay: &gameplay
               _desc: Settings related to the nightmare mechanic in the sleepy mode.
               _type: dict
               _default:
-                chance:
+                steps:
                   _desc: >
-                    How often a nightmare will occur. Set to 0 to disable nightmares. 1 or above will guarantee
-                    a nightmare will occur each night. A value between 0 and 1 is the percentage chance a nightmare
-                    will occur (e.g. 0.42 is a 42% chance a nightmare will occur). If multiple people are allowed to
-                    have nightmares (see gameplay.modes.sleepy.nightmare.max), this is rolled once per allowed player.
-                  _type:
-                    - float
-                    - int
-                  _default: 0.2
-                max:
-                  _desc: The maximum number of people that can have a nightmare each night.
+                    How many steps the chased needs to move forwards in order to escape the nightmare.
+                    Reducing this makes it easier for chased to escape, increasing it makes it more difficult.
+                    The value must be between 1 and 4, inclusive.
                   _type: int
-                  _default: 1
+                  _default: 3
+                time:
+                  _desc: >
+                    How long each round of the nightmare lasts at most. Chased who do not lock in a command in time
+                    will default to run, whereas dullahans who do not lock in a command in time will default to chase.
+                    No warning points are given for failing to meet time limits. The nightmare will take at most
+                    time * steps seconds in total. Setting this to 0 disables timers during nightmares.
+                  _type: int
+                  _default: 20
             turn:
               _desc: >
-                How likely certain roles (seer, harlot, cultist) are to change into other roles when priest dies.
+                How likely certain roles (seer, harlot) are to change into other roles when priest dies.
                 A value between 0 and 1 is the percentage chance for these roles to turn (e.g. 0.42 is a 42% chance).
               _type:
                 - float
                 - int
-              _default: 0.6
+              _default: 0.4
             weight:
               _desc: How likely this mode is to appear if there are no votes for gamemodes.
               _type: int

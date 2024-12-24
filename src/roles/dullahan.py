@@ -31,13 +31,16 @@ def dullahan_kill(wrapper: MessageDispatcher, message: str):
     if not target:
         return
 
+    if target not in TARGETS[wrapper.source]:
+        wrapper.pm(messages["dullahan_not_target"].format(target))
+        return
+
     orig = target
     target = try_misdirection(var, wrapper.source, target)
     if try_exchange(var, wrapper.source, target):
         return
 
     KILLS[wrapper.source] = target
-
     wrapper.pm(messages["player_kill"].format(orig))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
@@ -98,9 +101,10 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         TARGETS[player] = UserSet()
 
-        dull_targets = Event("dullahan_targets", {"targets": set(), "exclude": set()})
+        dull_targets = Event("dullahan_targets", {"targets": set(), "exclude": set(), "num_targets": max_targets})
         dull_targets.dispatch(var, player, max_targets)
         TARGETS[player].update(dull_targets.data["targets"] - dull_targets.data["exclude"])
+        max_targets = dull_targets.data["num_targets"]
 
         pl = list(set(pl) - dull_targets.data["exclude"] - {player})
         while pl and len(TARGETS[player]) < max_targets:

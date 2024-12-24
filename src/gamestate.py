@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import threading
 from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
 
@@ -143,19 +144,41 @@ class GameState:
         return self.setup_completed and not self._torndown
 
     def begin_phase_transition(self, phase: str):
+        from src.trans import TIMERS
         if self.next_phase is not None:
             raise RuntimeError("already in phase transition")
         self.next_phase = phase
         # this is a bit convoluted, but this lets external code plug in their own phases
         # for grep: var.day_count and var.night_count get incremented here
-        setattr(self, f"{self.next_phase}_count", getattr(self, f"{self.next_phase}_count") + 1)
+        attr = f"{self.next_phase}_count"
+        setattr(self, attr, getattr(self, attr, 0) + 1)
 
-    def end_phase_transition(self):
+        if f"{self.current_phase}_limit" in TIMERS:
+            TIMERS[f"{self.current_phase}_limit"][0].cancel()
+            del TIMERS[f"{self.current_phase}_limit"]
+        if f"{self.current_phase}_warn" in TIMERS:
+            TIMERS[f"{self.current_phase}_warn"][0].cancel()
+            del TIMERS[f"{self.current_phase}_warn"]
+
+    def end_phase_transition(self, time_limit: int = 0, time_warn: int = 0, timer_cb=None, cb_args=()):
+        from src.trans import TIMERS
         if self.next_phase is None:
             raise RuntimeError("not in phase transition")
 
         self.current_phase = self.next_phase
         self.next_phase = None
+        if config.Main.get("timers.enabled"):
+            if time_limit:
+                timer = threading.Timer(time_limit, timer_cb, ("limit",) + tuple(cb_args))
+                timer.daemon = True
+                timer.start()
+                TIMERS[f"{self.current_phase}_limit"] = (timer, time.time(), time_limit)
+
+            if time_warn:
+                timer = threading.Timer(time_warn, timer_cb, ("warn",) + tuple(cb_args))
+                timer.daemon = True
+                timer.start()
+                TIMERS[f"{self.current_phase}_warn"] = (timer, time.time(), time_warn)
 
     @property
     def in_phase_transition(self):

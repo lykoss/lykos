@@ -38,21 +38,19 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     values = dict(TIME_ATTRIBUTES)
     channels.Main.send(messages["time_lord_dead"].format(values["day_time_limit"], values["night_time_limit"]))
 
-    from src.trans import hurry_up, night_warn, night_timeout, DAY_ID, NIGHT_ID, TIMERS
+    from src.trans import hurry_up, night_timeout, DAY_ID, NIGHT_ID, TIMERS
     if var.current_phase == "day":
         time_limit = var.day_time_limit
-        limit_cb = hurry_up
-        limit_args = [var, DAY_ID, True]
+        cb = hurry_up
+        limit_args = ["limit", var, DAY_ID]
         time_warn = var.day_time_warn
-        warn_cb = hurry_up
-        warn_args = [var, DAY_ID, False]
+        warn_args = ["warn", var, DAY_ID, False]
         timer_name = "day_warn"
     elif var.current_phase == "night":
         time_limit = var.night_time_limit
-        limit_cb = night_timeout
+        cb = night_timeout
         limit_args = [var, NIGHT_ID]
         time_warn = var.night_time_warn
-        warn_cb = night_warn
         warn_args = [var, NIGHT_ID]
         timer_name = "night_warn"
     else:
@@ -62,7 +60,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
         time_left = int((TIMERS[f"{var.current_phase}_limit"][1] + TIMERS[f"{var.current_phase}_limit"][2]) - time.time())
 
         if time_left > time_limit > 0:
-            t = threading.Timer(time_limit, limit_cb, limit_args)
+            t = threading.Timer(time_limit, cb, limit_args)
             TIMERS[f"{var.current_phase}_limit"] = (t, time.time(), time_limit)
             t.daemon = True
             t.start()
@@ -70,9 +68,9 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
             if timer_name in TIMERS and time_warn > 0:
                 timer = TIMERS[timer_name][0]
-                if timer.isAlive():
+                if not timer.finished.is_set():
                     timer.cancel()
-                    t = threading.Timer(time_warn, warn_cb, warn_args)
+                    t = threading.Timer(time_warn, cb, warn_args)
                     TIMERS[timer_name] = (t, time.time(), time_warn)
                     t.daemon = True
                     t.start()
