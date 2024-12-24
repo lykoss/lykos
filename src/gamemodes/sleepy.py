@@ -35,7 +35,7 @@ class SleepyMode(GameMode):
             21: ["monster", "hunter"],
             22: ["augur", "amnesiac(2)"],
             23: ["insomniac", "cultist"],
-            24: ["wolf(3)", "harlot"]
+            24: ["wolf(2)"]
         }
 
         self.TURN_CHANCE = config.Main.get("gameplay.modes.sleepy.turn")
@@ -259,7 +259,6 @@ class SleepyMode(GameMode):
             channels.Main.send(messages["sleepy_priest_death"])
 
             mapping = {"seer": "doomsayer",
-                       "harlot": "succubus",
                        "cultist": "demoniac",
                        "vengeful ghost": "jester"}
             for old, new in mapping.items():

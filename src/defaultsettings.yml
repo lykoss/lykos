@@ -1231,7 +1231,7 @@ gameplay: &gameplay
                   _default: 20
             turn:
               _desc: >
-                How likely certain roles (seer, harlot) are to change into other roles when priest dies.
+                How likely certain roles are to change into other roles when priest dies.
                 A value between 0 and 1 is the percentage chance for these roles to turn (e.g. 0.42 is a 42% chance).
               _type:
                 - float
