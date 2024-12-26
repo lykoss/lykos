@@ -158,7 +158,7 @@ class SleepyMode(GameMode):
             self.nightmare_step(var)
 
     def nightmare_step(self, var: GameState):
-        from src.roles.dullahan import KILLS, TARGETS
+        from src.roles.dullahan import KILLS
         # keep track of who was already sent messages in case they're being chased by multiple dullahans
         notified = set()
         dulla_counts = defaultdict(int)
@@ -184,7 +184,6 @@ class SleepyMode(GameMode):
                     notified.add(target)
                     target.send(messages["sleepy_nightmare_escape_hide"].format(dulla_counts[target]))
                 dulla.send(messages["sleepy_nightmare_fail_hide"])
-                TARGETS[dulla].discard(target)
             elif self.nightmare_progress[target] == 4:
                 # target escapes
                 del self.having_nightmare[dulla]
@@ -192,7 +191,6 @@ class SleepyMode(GameMode):
                     notified.add(target)
                     target.send(messages["sleepy_nightmare_escape_run"].format(dulla_counts[target]))
                 dulla.send(messages["sleepy_nightmare_fail_river"])
-                TARGETS[dulla].discard(target)
             else:
                 # target still being chased
                 if target not in notified:
