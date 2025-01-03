@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from typing import Optional
 
@@ -14,6 +13,7 @@ from src.gamestate import GameState
 from src.messages import messages
 from src.trans import NIGHT_IDLE_EXEMPT
 from src.users import User
+from src.random import random
 
 CLONED: UserDict[users.User, users.User] = UserDict()
 CAN_ACT = UserSet()

@@ -1,11 +1,12 @@
-import random
 from collections import defaultdict
+
 from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 from src.events import EventListener, Event
 from src.trans import chk_win_conditions
 from src import users
 from src.cats import All, Wolf, Wolf_Objective, Vampire_Objective, Killer
+from src.random import random
 
 @game_mode("random", minp=8, maxp=24)
 class RandomMode(GameMode):

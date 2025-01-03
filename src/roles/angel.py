@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from typing import Optional, Union
 
@@ -16,6 +15,7 @@ from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.users import User
+from src.random import random
 
 GUARDED: UserDict[users.User, users.User] = UserDict()
 LASTGUARDED: UserDict[users.User, users.User] = UserDict()

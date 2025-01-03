@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import random
-from typing import Iterable
-
 from src.events import Event, event_listener
 from src.containers import UserSet
 from src.gamestate import GameState
@@ -10,6 +7,7 @@ from src.functions import get_players
 from src.messages import messages
 from src.users import User
 from src.cats import Category
+from src.random import random
 
 __all__ = ["add_misdirection", "try_misdirection", "add_misdirection_scope", "in_misdirection_scope"]
 

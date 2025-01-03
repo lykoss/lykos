@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Optional
 
 from src import users, config
@@ -11,6 +10,7 @@ from src.functions import get_all_players, change_role
 from src.messages import messages
 from src.gamestate import GameState
 from src.users import User
+from src.random import random
 
 __all__ = ["get_blacklist", "get_stats_flag"]
 

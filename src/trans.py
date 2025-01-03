@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Optional, Callable, Union
-import random
 import threading
 import time
 
@@ -18,11 +17,11 @@ from src.status import is_silent, is_dying, try_protection, add_dying, kill_play
 from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
-from src.cats import (Wolfteam, Vampire_Team, Hidden, Village, Win_Stealer, Wolf_Objective, Vampire_Objective,
-                      Village_Objective, role_order, get_team)
+from src.cats import Win_Stealer, Wolf_Objective, Vampire_Objective, Village_Objective, role_order, get_team
 from src import channels, users, locks, config, db, reaper, relay
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
+from src.random import random
 
 # some type aliases to make things clearer later
 UserOrLocation = Union[User, Location]

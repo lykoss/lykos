@@ -3,7 +3,6 @@ from __future__ import annotations
 import functools
 import logging
 import math
-import random
 import re
 from collections import defaultdict
 from typing import Iterable, Optional
@@ -28,6 +27,7 @@ from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_r
 from src.roles.vampire import on_player_protected as vampire_drained
 from src.roles.vampire import GameState as VampireGameState
 from src.roles.vigilante import vigilante_retract, vigilante_pass, vigilante_kill
+from src.random import random
 
 # dummy location for wolves/vigilantes/vampires that have elected to kill/bite instead of visit a location
 Limbo = Location("<<hunting>>")

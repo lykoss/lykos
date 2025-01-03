@@ -1,14 +1,13 @@
-import random
 from collections import defaultdict, Counter
 
 from src.gamemodes import game_mode, GameMode
-from src.messages import messages
 from src.functions import get_players
 from src.gamestate import GameState
 from src.events import Event, EventListener
 from src.trans import chk_win_conditions
-from src import channels, users
+from src import users
 from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Vampire_Objective, Killer
+from src.random import random
 
 @game_mode("maelstrom", minp=8, maxp=24)
 class MaelstromMode(GameMode):

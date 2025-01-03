@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Optional
 
 from src import gamestate
@@ -10,6 +9,7 @@ from src.events import Event, event_listener
 from src.functions import get_players, get_all_players, match_role
 from src.messages import messages
 from src.dispatcher import MessageDispatcher
+from src.random import random
 
 class GameState(gamestate.GameState):
     def __init__(self):

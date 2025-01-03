@@ -1,4 +1,3 @@
-import random
 from collections import Counter, defaultdict
 
 from src.cats import Wolf
@@ -13,6 +12,7 @@ from src.status import remove_all_protections
 from src.events import EventListener, Event
 from src import channels, config
 from src.users import User
+from src.random import random
 
 @game_mode("sleepy", minp=8, maxp=24)
 class SleepyMode(GameMode):

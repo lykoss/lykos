@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import random
 import itertools
 import math
 from collections import defaultdict
@@ -16,6 +15,7 @@ from src.status import try_misdirection, try_exchange
 from src.events import Event, event_listener
 from src.gamestate import GameState
 from src.users import User
+from src.random import random
 
 # Skeleton file for new roles. Not all events are represented, only the most common ones.
 

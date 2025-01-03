@@ -10,7 +10,7 @@ from src.messages import messages
 from src.cats import All
 from src import config
 from src.users import User
-from src import channels
+from src import channels, random
 
 if TYPE_CHECKING:
     from src.gamemodes import GameMode
@@ -77,6 +77,7 @@ class GameState:
         self.next_phase: Optional[str] = None
         self.night_count: int = 0
         self.day_count: int = 0
+        self.rng_seed: bytes = random.get_seed()
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

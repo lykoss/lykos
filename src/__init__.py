@@ -3,7 +3,7 @@
 # This "bootstraps" the bot in preparation for importing the bulk of the code. Some imports
 # change behavior based on whether or not we're in debug mode, so that must be established before
 # we continue on to import other files
-from src import config, lineparse, locks, match
+from src import config, lineparse, locks, match, random
 
 # Initialize config.Main
 config.init()

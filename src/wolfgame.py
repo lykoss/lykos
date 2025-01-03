@@ -25,7 +25,6 @@ import itertools
 import json
 import logging
 import os
-import random
 import re
 import signal
 import socket
@@ -42,6 +41,7 @@ import src
 from src import db, config, locks, dispatcher, channels, users, hooks, handler, trans, reaper, context, relay, votes
 from src.channels import Channel
 from src.users import User
+from src.random import random
 
 from src.events import Event, EventListener, event_listener
 from src.transport.irc import get_ircd

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import random
 from typing import Optional
 from dataclasses import dataclass
 
-from src.containers import UserDict, DefaultUserDict
+from src.containers import DefaultUserDict
 from src.functions import get_players
 from src.messages import messages
 from src.events import Event, event_listener
 from src.cats import All, Category
 from src.users import User
 from src.gamestate import GameState
+from src.random import random
 
 __all__ = ["add_protection", "try_protection", "get_all_protections", "remove_all_protections", "ProtectionEntry"]
 

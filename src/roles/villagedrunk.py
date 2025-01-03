@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Optional
 
 from src.events import Event, event_listener
@@ -8,6 +7,7 @@ from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
 from src.users import User
+from src.random import random
 
 HIT_CHANCE       = -5/20
 HEADSHOT_CHANCE  = -3/20

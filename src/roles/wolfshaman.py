@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import itertools
-import random
 from typing import Optional
 
 from src.decorators import command
@@ -14,6 +13,7 @@ from src.status import is_silent
 from src import users
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.random import random
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("wolf shaman", knows_totem=True)
 

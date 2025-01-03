@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 import threading
 import itertools
-import random
 import time
 import math
 import re
@@ -24,6 +23,7 @@ from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.channels import Channel
 from src.locations import Location, set_home
+from src.random import random
 
 WAIT_TOKENS = 0
 WAIT_LAST = 0
@@ -240,6 +240,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state
     channels.Main.game_state = ingame_state = GameState(pregame_state)
+    random.seed(ingame_state.rng_seed)
 
     event = Event("role_attribution", {"addroles": Counter()})
     if event.dispatch(ingame_state, villagers):

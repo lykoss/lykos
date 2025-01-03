@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from typing import Optional, Union
 
@@ -16,6 +15,7 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.users import User
 from src.locations import move_player, get_home
+from src.random import random
 
 VISITED: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()

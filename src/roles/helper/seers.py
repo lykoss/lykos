@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Optional
 
 from src.containers import UserSet
@@ -9,6 +8,7 @@ from src.functions import get_players, get_all_players
 from src.messages import messages
 from src.gamestate import GameState
 from src.users import User
+from src.random import random
 
 def setup_variables(rolename):
     SEEN = UserSet()

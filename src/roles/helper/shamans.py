@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import itertools
-import random
 import re
 from typing import Any, Optional
 
@@ -18,6 +17,7 @@ from src.status import try_misdirection, try_protection, try_exchange, add_dying
 from src.dispatcher import MessageDispatcher
 from src.users import User
 from src.locations import move_player_home
+from src.random import random
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########

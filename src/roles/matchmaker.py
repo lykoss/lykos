@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import itertools
-import random
 import re
 from typing import Optional
 
@@ -14,6 +13,7 @@ from src.messages import messages
 from src.status import add_dying
 from src.dispatcher import MessageDispatcher
 from src.users import User
+from src.random import random
 
 class GameState(gamestate.GameState):
     def __init__(self):

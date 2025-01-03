@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import random
 from typing import Iterable, Optional
 
 from src import config, gamestate, relay
@@ -14,6 +13,7 @@ from src.status import try_misdirection, try_exchange, add_protection, add_absen
 from src.events import Event, event_listener
 from src.users import User
 from src.cats import Vampire
+from src.random import random
 
 # some of this should be refactored into a helper class once we have more than one vampire role
 # for now keeping it all together makes for cleaner code though, as I'm not 100% sure which parts will

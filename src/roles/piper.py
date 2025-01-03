@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import itertools
-import random
 import re
 from typing import Optional
 
@@ -15,6 +14,7 @@ from src.gamestate import GameState
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.users import User
+from src.random import random
 
 TOBECHARMED: UserDict[users.User, UserSet] = UserDict()
 CHARMED = UserSet()

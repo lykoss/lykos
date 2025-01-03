@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from typing import Optional, Union
 
@@ -15,6 +14,7 @@ from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
+from src.random import random
 
 GUARDED: UserDict[User, User] = UserDict()
 PASSED = UserSet()

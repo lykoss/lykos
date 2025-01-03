@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from collections import defaultdict
 from typing import Optional, Iterable
@@ -17,6 +16,7 @@ from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 from src.users import User
 from src.locations import get_home
+from src.random import random
 
 KILLS: UserDict[users.User, UserList] = UserDict()
 

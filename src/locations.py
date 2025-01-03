@@ -5,7 +5,7 @@ from src.containers import UserDict
 from src.users import User
 from src.events import Event, event_listener
 
-__all__ = ["Location", "VillageSquare", "Graveyard", "Forest",
+__all__ = ["Location", "VillageSquare", "Graveyard", "Forest", "Streets",
            "get_players_in_location", "get_location", "get_home",
            "move_player", "move_player_home", "set_home"]
 

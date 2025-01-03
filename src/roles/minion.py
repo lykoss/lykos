@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Optional
 
 from src.cats import Wolf
@@ -10,6 +9,7 @@ from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
 from src.users import User
+from src.random import random
 
 RECEIVED_INFO = UserSet()
 KNOWS_MINIONS = UserSet()

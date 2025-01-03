@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import re
 from typing import Optional
 
@@ -14,6 +13,7 @@ from src.users import User
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 from src.trans import NIGHT_IDLE_EXEMPT
+from src.random import random
 
 IDOLS: UserDict[User, User] = UserDict()
 CAN_ACT = UserSet()

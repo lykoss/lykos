@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import itertools
-import random
 from typing import Optional
 
 from src.decorators import command
@@ -13,6 +12,7 @@ from src.messages import messages
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
 from src.status import is_silent
 from src import users
+from src.random import random
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("shaman", knows_totem=True)
 

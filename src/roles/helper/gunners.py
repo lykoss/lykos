@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import random
 import re
 from typing import Any
 
@@ -18,6 +17,7 @@ from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
 from src.users import User
 from src.locations import move_player_home
+from src.random import random
 
 _rolestate: dict[str, dict[str, Any]] = {}
 
