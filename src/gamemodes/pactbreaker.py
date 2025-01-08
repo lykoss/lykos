@@ -250,7 +250,7 @@ class PactBreakerMode(GameMode):
             num_draws = 4
         elif location is Graveyard:
             deck = (["clue"] * 3
-                    + ["empty-handed"] * 5
+                    + ["empty-handed"] * 2
                     + ["hunted", "empty-handed"] * num_wolves
                     + ["empty-handed", "empty-handed"] * num_other)
             num_draws = 1
@@ -413,6 +413,9 @@ class PactBreakerMode(GameMode):
                             target_role = "vigilante" if evidence_target in self.turned else "villager"
                         else:
                             target_role = get_main_role(var, evidence_target)
+                        # also hide vigi evidence (or vigi fake evidence) from vills
+                        if target_role == "vigilante" and visitor_role == "villager":
+                            target_role = "villager"
                         self.collected_evidence[visitor][target_role].add(evidence_target)
                         visitor.send(messages[f"pactbreaker_{loc}_evidence"].format(evidence_target, target_role))
                     elif self.clue_pool > 0 and location is not VillageSquare:
@@ -713,11 +716,16 @@ class PactBreakerMode(GameMode):
 
         self.clue_pool += min_tokens
         self.clue_tokens[wrapper.source] -= min_tokens
+        player_role = get_main_role(var, wrapper.source)
         target_role = get_main_role(var, target)
         if target in get_all_players(var, ("cursed villager",)):
             target_role = "wolf"
         elif target_role == "vampire":
             target_role = "vigilante" if target in self.turned else "villager"
+
+        # also hide vigi evidence (or vigi fake evidence) from vills
+        if target_role == "vigilante" and player_role == "villager":
+            target_role = "villager"
 
         self.collected_evidence[wrapper.source][target_role].add(target)
         wrapper.send(messages["pactbreaker_observe_success"].format(target, target_role))
