@@ -24,14 +24,14 @@ def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
         values = []
 
         for i, t in enumerate(types):
-            # if the game didn't start with any of this type of role, hide it from the output
-            # for safety, we'll always display the first type listed even if there aren't any of that type
             cat = cats.get(t)
             orig_players = get_players(var, cat, mainroles=var.original_main_roles)
-            if i > 0 and not orig_players:
+            num_players = len(get_players(var, cat))
+            # if the game didn't start with any of this type of role and the count is 0, hide it from the output
+            # for safety, we'll always display the first type listed even if there aren't any of that type
+            if i > 0 and num_players == 0 and not orig_players:
                 continue
-            players = get_players(var, cat)
-            values.append((len(players), t))
+            values.append((num_players, t))
 
         msg = messages["mystic_info_initial"].format(values[0][0], [messages["mystic_join"].format(c, t) for c, t in values])
 
