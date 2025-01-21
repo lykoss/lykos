@@ -150,7 +150,7 @@ def night_timeout(timer_type: str, var: GameState, phase_id: int):
 
     # if night idle warnings are disabled, head straight to day
     if not config.Main.get("reaper.night_idle.enabled"):
-        event.data["transition_day"](var, phase_id)
+        event.data["transition_day"](var)
         return
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
@@ -169,7 +169,7 @@ def night_timeout(timer_type: str, var: GameState, phase_id: int):
             # 2. warning is deferred to end of game so admins can't !fwarn list to cheat and determine who idled
             reaper.NIGHT_IDLED.add(player)
 
-    event.data["transition_day"](var, phase_id)
+    event.data["transition_day"](var)
 
 @event_listener("night_idled")
 def on_night_idled(evt: Event, var: GameState, player):
