@@ -1480,7 +1480,7 @@
     "pactbreaker_graveyard_clue": "While searching the graveyard last night, you gained some useful clues towards determining someone's identity.",
     "pactbreaker_graveyard_empty": "Your search of the graveyard last night did not turn up any useful evidence.",
     "pactbreaker_streets_evidence": "Your search of the streets last night allowed you to correct a previous mistaken assumption and learn that {0:@} is actually {1!role:article} {1!role:bold}!",
-    "pactbreaker_streets_special": "Your search of the streets last night allowed to you determine that all of your collected evidence is correct, giving you a useful clue towards determining someone else's identity.",
+    "pactbreaker_streets_special": "Your search of the streets last night allowed to you determine that your collected evidence is [b]all correct[/b], giving you a useful clue towards determining someone else's identity.",
     "pactbreaker_streets_clue": "Your search of the streets last night was stymied by some poor luck, but you still feel like you've gained a useful clue towards determining someone's identity.",
     "pactbreaker_streets_empty": "Your search of the streets last night did not turn up any useful evidence.",
     "pactbreaker_kill_fail": "You tried to find {0:@} last night but they were nowhere to be seen...",
