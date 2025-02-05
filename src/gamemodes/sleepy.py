@@ -22,7 +22,7 @@ class SleepyMode(GameMode):
         self.ROLE_GUIDE = {
             8: ["werecrow", "traitor", "mystic", "seer", "priest", "dullahan", "cursed villager"],
             9: ["amnesiac"],
-            10: ["-traitor", "wolf", "blessed villager", "cursed villager(2)"],
+            10: ["-traitor", "wolf", "cursed villager(2)"],
             11: ["village drunk"],
             12: ["wolf(2)"],
             13: ["vengeful ghost"],
@@ -40,7 +40,6 @@ class SleepyMode(GameMode):
 
         self.TURN_CHANCE = config.Main.get("gameplay.modes.sleepy.turn")
         # Force secondary roles
-        self.SECONDARY_ROLES["blessed villager"] = {"priest"}
         self.SECONDARY_ROLES["gunner"] = {"village drunk"}
         self.SECONDARY_ROLES["hunter"] = {"monster"}
         self.EVENTS = {
@@ -89,7 +88,6 @@ class SleepyMode(GameMode):
         self.nightmare_acted.clear()
 
     def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
-        evt.data["targets"].update(get_players(var, ("priest",)))
         evt.data["exclude"].update(get_players(var, Wolf))
         # dulla needs 1 fewer target to win than normal
         evt.data["num_targets"] = max_targets - 1
