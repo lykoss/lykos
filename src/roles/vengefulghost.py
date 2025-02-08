@@ -79,7 +79,7 @@ def on_gun_shoot(evt: Event, var: GameState, user: User, target: User, role: str
         
 @event_listener("team_win")
 def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
-    team_map = {"wolf": "wolves", "village": "villagers", "vampire": "vampires"}
+    team_map = {"wolf": "wolves", "villager": "villagers", "vampire": "vampires"}
     if player in GHOSTS:
         against = GHOSTS[player].lstrip("!")
         against_team = team_map[against]
