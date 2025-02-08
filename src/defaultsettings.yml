@@ -762,6 +762,20 @@ gameplay: &gameplay
           _desc: The amnesiac will get reminded of their true identity on this night.
           _type: int
           _default: 3
+    totems:
+      _desc: Determines how certain shaman totems interact with the game.
+      _type: dict
+      _default:
+        exchange:
+          _desc: Configuration related to the exchange totem, which can cause players to swap roles at any time
+          _type: dict
+          _default:
+            minimum_time:
+              _desc: >
+                Minimum amount of time (in seconds) to allow the exchanged user to act after the role swap.
+                If the current phase would end before this, the timer is extended to the minimum.
+              _type: int
+              _default: 30
     nightchat:
       _desc: >
         Whether or not nightchat is enabled in channel. If disabled, speaking privileges in the channel

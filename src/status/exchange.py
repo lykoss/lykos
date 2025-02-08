@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src import config
 from src.containers import UserSet
 from src.functions import get_main_role, change_role, get_players
 from src.messages import messages
@@ -38,6 +39,7 @@ def try_exchange(var: GameState, actor: User, target: User):
 
         actor.send(*evt.data["actor_messages"])
         target.send(*evt.data["target_messages"])
+        var.extend_phase_limit(config.Main.get("gameplay.totems.exchange.minimum_time"))
 
     return True
 

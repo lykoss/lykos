@@ -414,7 +414,7 @@ class PactBreakerMode(GameMode):
                         else:
                             target_role = get_main_role(var, evidence_target)
                         # also hide vigi evidence (or vigi fake evidence) from vills
-                        if target_role == "vigilante" and visitor_role == "villager":
+                        if num_evidence == 2 and target_role == "vigilante" and visitor_role == "villager":
                             target_role = "villager"
                         self.collected_evidence[visitor][target_role].add(evidence_target)
                         visitor.send(messages[f"pactbreaker_{loc}_evidence"].format(evidence_target, target_role))

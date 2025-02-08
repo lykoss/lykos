@@ -3,16 +3,18 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from src.containers import UserSet
+from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
 from src.functions import get_target, get_players, get_all_players
 from src.gamestate import GameState
 from src.messages import messages
+from src.random import random
 from src.users import User
 
 ACTED = UserSet()
+SWAPS: UserDict[User, tuple[int, int]] = UserDict()
 
 @command("choose", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("master of teleportation",))
 def choose(wrapper: MessageDispatcher, message: str):
@@ -29,11 +31,10 @@ def choose(wrapper: MessageDispatcher, message: str):
         wrapper.send(messages["choose_different_people"])
         return
 
-    ACTED.add(wrapper.source)
     index1 = var.players.index(target1)
     index2 = var.players.index(target2)
-    var.players[index2] = target1
-    var.players[index1] = target2
+    SWAPS[wrapper.source] = (index1, index2)
+    ACTED.add(wrapper.source)
     wrapper.send(messages["master_of_teleportation_success"].format(target1, target2))
 
 @event_listener("send_role")
@@ -55,11 +56,20 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt: Event, var: GameState):
+    swaps = list(SWAPS.values())
+    random.shuffle(swaps)
+    for (index1, index2) in swaps:
+        target1 = var.players[index1]
+        target2 = var.players[index2]
+        var.players[index2] = target1
+        var.players[index1] = target2
     ACTED.clear()
+    SWAPS.clear()
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
     ACTED.clear()
+    SWAPS.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):

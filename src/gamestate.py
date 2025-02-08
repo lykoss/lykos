@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import math
 import threading
 from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
@@ -166,6 +167,7 @@ class GameState:
         if self.next_phase is None:
             raise RuntimeError("not in phase transition")
 
+        assert timer_cb is not None
         self.current_phase = self.next_phase
         self.next_phase = None
         if config.Main.get("timers.enabled"):
@@ -180,6 +182,21 @@ class GameState:
                 timer.daemon = True
                 timer.start()
                 TIMERS[f"{self.current_phase}_warn"] = (timer, time.time(), time_warn)
+
+    def extend_phase_limit(self, minimum: int = 0):
+        """Ensure that the phase limit timer has a minimum amount of seconds remaining."""
+        from src.trans import TIMERS
+        if minimum <= 0:
+            return
+        if config.Main.get("timers.enabled"):
+            (timer, started, limit) = TIMERS[f"{self.current_phase}_limit"]
+            elapsed = math.ceil(time.time() - started)
+            if elapsed + minimum > limit:
+                timer.cancel()
+                extended = threading.Timer(minimum, timer.function, timer.args, timer.kwargs)
+                extended.daemon = True
+                extended.start()
+                TIMERS[f"{self.current_phase}_limit"] = (extended, started, elapsed + minimum)
 
     @property
     def in_phase_transition(self):

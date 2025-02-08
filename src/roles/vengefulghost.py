@@ -4,8 +4,8 @@ import re
 from typing import Optional
 
 from src import users
-from src.cats import All, Wolfteam
-from src.containers import UserDict
+from src.cats import All, Wolfteam, Vampire_Team, Win_Stealer
+from src.containers import UserDict, UserSet
 from src.decorators import command
 from src.events import Event, event_listener
 from src.functions import get_players, get_target, get_all_roles
@@ -18,6 +18,7 @@ from src.random import random
 
 KILLS: UserDict[users.User, users.User] = UserDict()
 GHOSTS: UserDict[users.User, str] = UserDict()
+TARGETS: UserDict[users.User, UserSet] = UserDict()
 
 # temporary holding variable, only non-empty during transition_day
 drivenoff: UserDict[users.User, str] = UserDict()
@@ -38,12 +39,9 @@ def vg_kill(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["player_dead"])
         return
 
-    wolves = get_players(var, Wolfteam)
-    if GHOSTS[wrapper.source] == "wolf" and target not in wolves:
-        wrapper.pm(messages["vengeful_ghost_wolf"])
-        return
-    elif GHOSTS[wrapper.source] == "villager" and target in wolves:
-        wrapper.pm(messages["vengeful_ghost_villager"])
+    if target not in TARGETS[wrapper.source]:
+        # keys: vengeful_ghost_wolf vengeful_ghost_villager
+        wrapper.pm(messages["vengeful_ghost_{0}".format(GHOSTS[wrapper.source])])
         return
 
     orig = target
@@ -79,18 +77,14 @@ def on_gun_shoot(evt: Event, var: GameState, user: User, target: User, role: str
         # VGs automatically die if hit by a gun to make gunner a bit more dangerous in some modes
         evt.data["kill"] = True
         
-# needs to happen after regular team win is determined, but before succubus
-# FIXME: I hate priorities, did I mention that?
-@event_listener("team_win", priority=6)
+@event_listener("team_win")
 def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
+    team_map = {"wolf": "wolves", "village": "villagers", "vampire": "vampires"}
     if player in GHOSTS:
         against = GHOSTS[player].lstrip("!")
-        if against == "villager" and winner == "wolves":
-            evt.data["team_win"] = True
-        elif against == "wolf" and winner == "villagers":
-            evt.data["team_win"] = True
-        else:
-            evt.data["team_win"] = False
+        against_team = team_map[against]
+        # VG wins as long as an actual team (not a win stealer) won and the team they are against lost
+        evt.data["team_win"] = winner in team_map.values() and winner != against_team
 
 @event_listener("player_win")
 def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
@@ -102,38 +96,36 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
             # VG gets an individual win while dead if they haven't been driven off and their team wins
             evt.data["individual_win"] = True
 
-@event_listener("del_player", priority=6)
+@event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
-    for h, v in list(KILLS.items()):
-        if player is v:
-            h.send(messages["hunter_discard"])
-            del KILLS[h]
-    # extending VG to work with new teams can be done by registering a listener
-    # at priority < 6, importing src.roles.vengefulghost, and setting
-    # GHOSTS[user] to something; if that is done then this logic is not run.
+    for ghost, victim in list(KILLS.items()):
+        if player is victim:
+            ghost.send(messages["hunter_discard"])
+            del KILLS[ghost]
+    del KILLS[:player:]
+
+    for targets in TARGETS.values():
+        targets.discard(player)
+    del TARGETS[:player:]
+
     if death_triggers and "vengeful ghost" in all_roles and player not in GHOSTS:
         if evt.params.killer_role in Wolfteam:
             GHOSTS[player] = "wolf"
+        elif evt.params.killer_role in Vampire_Team:
+            GHOSTS[player] = "vampire"
         else:
             GHOSTS[player] = "villager"
         player.send(messages["vengeful_turn"].format(GHOSTS[player]))
 
-@event_listener("transition_day_begin", priority=6)
+@event_listener("transition_day_begin")
 def on_transition_day_begin(evt: Event, var: GameState):
     # select a random target for VG if they didn't kill
-    wolves = get_players(var, Wolfteam)
-    villagers = get_players(var, All - Wolfteam)
     for ghost, target in GHOSTS.items():
         if target[0] == "!" or is_silent(var, ghost):
             continue
-        if ghost not in KILLS:
-            choice = None
-            if target == "wolf":
-                choice = wolves.copy()
-            elif target == "villager":
-                choice = villagers.copy()
-            if choice:
-                KILLS[ghost] = random.choice(choice)
+        if ghost not in KILLS and TARGETS.get(ghost, None):
+            KILLS[ghost] = random.choice(list(TARGETS[ghost]))
+    TARGETS.clear()
 
 @event_listener("night_kills")
 def on_night_kills(evt: Event, var: GameState):
@@ -146,7 +138,7 @@ def on_night_kills(evt: Event, var: GameState):
     # prevent VGs from being messaged in del_player that they can choose someone else
     KILLS.clear()
 
-@event_listener("retribution_kill", priority=6)
+@event_listener("retribution_kill")
 def on_retribution_kill(evt: Event, var: GameState, victim: User, orig_target: User):
     target = evt.data["target"]
     if target in GHOSTS:
@@ -164,38 +156,50 @@ def on_get_participant_role(evt: Event, var: GameState, user: User):
         else:
             against = GHOSTS[user]
         if against == "villager":
-            evt.data["role"] = "wolf"
-        elif against == "wolf":
+            orig_wolves = len(get_players(var, Wolfteam, mainroles=var.original_main_roles))
+            orig_vamps = len(get_players(var, Vampire_Team, mainroles=var.original_main_roles))
+            # if vampires are the ONLY evil team, make against-village VG aligned with them instead of wolves
+            # and if we somehow lack both wolves and vampires, default to wolf
+            evt.data["role"] = "wolf" if orig_wolves or not orig_vamps else "vampire"
+        else:
             evt.data["role"] = "villager"
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(KILLS)
-    evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
+    evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!" and TARGETS.get(p, None)])
 
 @event_listener("send_role")
 def on_transition_night_end(evt: Event, var: GameState):
     # alive VGs are messaged as part of villager.py, this handles dead ones
-    villagers = get_players(var, All - Wolfteam)
-    wolves = get_players(var, Wolfteam)
+    targets = {
+        "villager": get_players(var, All - Wolfteam - Vampire_Team),
+        "wolf": get_players(var, Wolfteam),
+        "vampire": get_players(var, Vampire_Team)
+    }
+
     for v_ghost, who in GHOSTS.items():
         if who[0] == "!":
             continue
-        if who == "wolf":
-            pl = wolves[:]
-        else:
-            pl = villagers[:]
-
+        pl = targets[who][:]
         random.shuffle(pl)
-
-        v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl), sep="\n")
+        TARGETS[v_ghost] = UserSet(pl)
+        v_ghost.send(messages["vengeful_ghost_notify"].format(who),
+                     messages["vengeful_ghost_team"].format(who, pl),
+                     sep="\n")
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):
     if user in GHOSTS:
         evt.prevent_default = True
+        m = []
         if GHOSTS[user][0] != "!":
-            user.send(messages["vengeful_role"].format(GHOSTS[user]))
+            m.append(messages["vengeful_role"].format(GHOSTS[user]))
+            if TARGETS.get(user, None):
+                pl = list(TARGETS[user])
+                random.shuffle(pl)
+                m.append(messages["vengeful_ghost_team"].format(GHOSTS[user], pl))
+            user.send(m, sep="\n")
 
 @event_listener("revealroles")
 def on_revealroles(evt: Event, var: GameState):
@@ -218,6 +222,7 @@ def on_begin_day(evt: Event, var: GameState):
 def on_reset(evt: Event, var: GameState):
     KILLS.clear()
     GHOSTS.clear()
+    TARGETS.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
