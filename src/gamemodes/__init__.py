@@ -8,7 +8,7 @@ from src.messages import messages
 from src.events import Event, EventListener
 from src.users import User
 from src.cats import (All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher,
-                      Win_Stealer, Nocturnal, Killer, Vampire, Spy, all_roles)
+                      Win_Stealer, Nocturnal, Killer, Vampire, Spy)
 from src.gamestate import GameState
 
 __all__ = ["InvalidModeException", "game_mode", "import_builtin_modes", "GameMode", "GAME_MODES"]
@@ -182,32 +182,31 @@ class GameMode:
 
     def __init__(self, arg=""):
         # Default values for the role sets and secondary roles restrictions
-        defined_roles = all_roles()
         self.ROLE_SETS = {}
         self.SECONDARY_ROLES = {}
 
-        if "gunner" in defined_roles and "sharpshooter" in defined_roles:
+        if "gunner" in All and "sharpshooter" in All:
             self.ROLE_SETS["gunner/sharpshooter"] = {"gunner": 4, "sharpshooter": 1}
 
-        if "cursed villager" in defined_roles:
+        if "cursed villager" in All:
             self.SECONDARY_ROLES["cursed villager"] = All - Cursed - Wolf - Innocent
-            if "seer" in defined_roles:
+            if "seer" in All:
                 self.SECONDARY_ROLES["cursed villager"] -= {"seer"}
-            if "oracle" in defined_roles:
+            if "oracle" in All:
                 self.SECONDARY_ROLES["cursed villager"] -= {"oracle"}
 
-        if "gunner" in defined_roles:
+        if "gunner" in All:
             self.SECONDARY_ROLES["gunner"] = Village + Neutral + Hidden - Innocent - Team_Switcher
 
-        if "sharpshooter" in defined_roles:
+        if "sharpshooter" in All:
             self.SECONDARY_ROLES["sharpshooter"] = Village + Neutral + Hidden - Innocent - Team_Switcher
 
-        if "mayor" in defined_roles:
+        if "mayor" in All:
             self.SECONDARY_ROLES["mayor"] = All - Innocent - Win_Stealer
 
-        if "assassin" in defined_roles:
+        if "assassin" in All:
             self.SECONDARY_ROLES["assassin"] = All - Nocturnal + Killer - Spy + Wolfchat - Wolf - Vampire - Innocent - Team_Switcher
-            if "traitor" in defined_roles:
+            if "traitor" in All:
                 self.SECONDARY_ROLES["assassin"] -= {"traitor"}
 
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}

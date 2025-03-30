@@ -390,7 +390,10 @@ def get_wolflist(var,
     if role is None and player in get_players(var):
         role = get_main_role(var, player)
 
-    if role in badguys | {"warlock"}:
+    if "warlock" in All:
+        badguys = badguys | {"warlock"}
+
+    if role in badguys:
         entries = []
         if "cursed villager" in All:
             cursed = get_all_players(var, ("cursed villager",))
