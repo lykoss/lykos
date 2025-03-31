@@ -756,7 +756,7 @@ def reset(var: Optional[GameState | PregameState]):
                 from src.status.dying import DEAD
                 for deadguy in DEAD:
                     if not deadguy.is_fake:
-                        cmodes.append((f"+{ircd.quiet_mode}", f"{ircd.quiet_prefix}{deadguy.nick}!*@*"))
+                        cmodes.append((f"-{ircd.quiet_mode}", f"{ircd.quiet_prefix}{deadguy.nick}!*@*"))
         channels.Main.mode("-m", *cmodes)
 
     evt = Event("reset", {})
