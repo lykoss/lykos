@@ -390,7 +390,7 @@ def leave_game(wrapper: MessageDispatcher, message: str):
         channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
     if var.current_phase != "join":
         reaper.DCED_LOSERS.add(wrapper.source)
-        if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled"):
+        if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled") and config.Main.get("reaper.autowarn"):
             reaper.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
             add_warning(wrapper.source, config.Main.get("reaper.leave.points"), users.Bot, messages["leave_warning"], expires=config.Main.get("reaper.leave.expiration"))
 

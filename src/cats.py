@@ -28,12 +28,12 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
-import typing
+from typing import Iterable, TYPE_CHECKING
 
 from src.messages._messages import Messages as _Messages
 from src.events import Event, EventListener
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from src.gamestate import GameState
 
 __all__ = [
@@ -67,7 +67,7 @@ def get(cat: str) -> Category:
         raise ValueError("{0!r} is not a valid role category".format(cat))
     return ROLE_CATS[cat]
 
-def role_order():
+def role_order() -> Iterable[str]:
     if not FROZEN:
         raise RuntimeError("Fatal: Role categories are not ready")
     buckets = defaultdict(list)

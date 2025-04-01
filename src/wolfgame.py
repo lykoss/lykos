@@ -33,7 +33,7 @@ import sys
 import urllib.request
 import urllib.error
 
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime
 from typing import Optional
 
@@ -55,7 +55,7 @@ from src.context import IRCContext
 from src.status import add_dying, kill_players
 from src.votes import chk_decision
 from src.trans import chk_win, chk_nightdone, reset, stop_game
-from src.cats import Hidden
+from src.cats import Hidden, role_order
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -984,64 +984,90 @@ def list_roles(wrapper: MessageDispatcher, message: str):
             return
 
     strip = lambda x: re.sub(r"\(.*\)", "", x)
-    rolecnt = Counter()
-    roles = list((x, map(strip, y)) for x, y in gamemode.ROLE_GUIDE.items())
-    roles.sort(key=lambda x: x[0])
+    per_count: dict[int, Counter] = defaultdict(Counter)
+    cumulative: dict[int, Counter] = defaultdict(Counter)
+    prev_num = 0
+    min_players = config.Main.get("gameplay.player_limits.minimum")
+    max_players = config.Main.get("gameplay.player_limits.maximum")
+
+    for num, rolelist in gamemode.ROLE_GUIDE.items():
+        cumulative[num] = Counter(cumulative[prev_num])
+        for role in rolelist:
+            role = strip(role)
+            if role[0] == "-":
+                per_count[num][role[1:]] -= 1
+                cumulative[num][role[1:]] -= 1
+            else:
+                per_count[num][role] += 1
+                cumulative[num][role] += 1
+        prev_num = num
 
     if pieces and pieces[0].isdigit():
         specific = int(pieces[0])
+        found = 0
         new = []
-        for role in itertools.chain.from_iterable([y for x, y in roles if x <= specific]):
-            if role.startswith("-"):
-                rolecnt[role[1:]] -= 1
-                new.remove(role[1:])
+        for num in gamemode.ROLE_GUIDE.keys():
+            if specific >= num:
+                found = num
             else:
-                rolecnt[role] += 1
-                append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
-                new.append(role + append)
+                break
 
-        if new and config.Main.get("gameplay.player_limits.minimum") <= specific <= config.Main.get("gameplay.player_limits.maximum"):
+        # handle actual roles
+        for role in role_order():
+            if cumulative[found][role] > 0:
+                append = "({0})".format(cumulative[found][role]) if cumulative[found][role] > 1 else ""
+                new.append(messages.raw("_roles", role)[0] + append)
+
+        # handle role sets
+        for role in sorted(cumulative[found].keys()):
+            if "/" not in role or cumulative[found][role] == 0:
+                continue
+            parts = role.split("/")
+            localized = [messages.raw("_roles", x)[0] for x in parts]
+            append = "({0})".format(cumulative[found][role]) if cumulative[found][role] > 1 else ""
+            new.append("/".join(localized) + append)
+
+        if new and min_players <= specific <= max_players:
             msg.append("[{0}]".format(specific))
             msg.append(", ".join(new))
         else:
             msg.append(messages["roles_undefined"].format(specific))
-
     else:
         final = []
+        for num in gamemode.ROLE_GUIDE.keys():
+            if min_players <= num <= max_players:
+                snum = "[{0}]".format(num)
+                if num <= lpl:
+                    snum = "\u0002{0}\u0002".format(snum)
 
-        roles_dict = {}
-        for num, role_num in roles:
-            roles_dict[num] = list(role_num)
+                new = []
+                # handle actual roles
+                for role in role_order():
+                    if per_count[num][role] < 0:
+                        # when subtracting roles, always display the new count, even if it is 1
+                        new.append("-{0}({1})".format(messages.raw("_roles", role)[0], cumulative[num][role]))
+                    elif per_count[num][role] > 0:
+                        # when adding roles, only display the new count if it's above 1
+                        append = "({0})".format(cumulative[num][role]) if cumulative[num][role] > 1 else ""
+                        new.append(messages.raw("_roles", role)[0] + append)
 
-        roles_dict_final = roles_dict.copy()
+                # handle role sets
+                for role in sorted(per_count[num].keys()):
+                    if "/" not in role or per_count[num][role] == 0:
+                        continue
+                    parts = role.split("/")
+                    localized = [messages.raw("_roles", x)[0] for x in parts]
+                    if per_count[num][role] < 0:
+                        # when subtracting roles, always display the new count, even if it is 1
+                        new.append("-{0}({1})".format("/".join(localized), cumulative[num][role]))
+                    elif per_count[num][role] > 0:
+                        # when adding roles, only display the new count if it's above 1
+                        append = "({0})".format(cumulative[num][role]) if cumulative[num][role] > 1 else ""
+                        new.append("/".join(localized) + append)
 
-        for num, role_num in reversed(list(roles_dict.items())):
-            if num < config.Main.get("gameplay.player_limits.minimum"):
-                roles_dict_final[config.Main.get("gameplay.player_limits.minimum")] = list(role_num) + list(roles_dict_final[config.Main.get("gameplay.player_limits.maximum")])
-                del roles_dict_final[num]
-
-        for num, role_num in roles_dict_final.items():
-            snum = "[{0}]".format(num)
-            if num <= lpl:
-                snum = "\u0002{0}\u0002".format(snum)
-            final.append(snum)
-            new = []
-            for role in role_num:
-                if role.startswith("-"):
-                    if role[1:] not in role_num:
-                        rolecnt[role[1:]] -= 1
-                        roles = role[1:].split("/")
-                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
-                        new.append("-{0}".format("/".join(localized_roles)))
-                else:
-                    if f"-{role}" not in role_num:
-                        rolecnt[role] += 1
-                        append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
-                        roles = role.split("/")
-                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
-                        new.append("/".join(localized_roles) + append)
-
-            final.append(", ".join(new))
+                if new:
+                    final.append(snum)
+                    final.append(", ".join(new))
 
         msg.append(" ".join(final))
 
