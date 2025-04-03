@@ -8,7 +8,7 @@ from src.messages import messages
 from src.events import Event, EventListener
 from src.users import User
 from src.cats import (All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher,
-                      Win_Stealer, Nocturnal, Killer, Vampire, Spy)
+                      Win_Stealer, Nocturnal, Killer, Vampire, Spy, Nobody)
 from src.gamestate import GameState
 
 __all__ = ["InvalidModeException", "game_mode", "import_builtin_modes", "GameMode", "GAME_MODES"]
@@ -22,7 +22,7 @@ class CustomSettings:
         self._customized: set[str] = set()
         self._abstain_enabled: Optional[bool] = None
         self._limit_abstain: Optional[bool] = None
-        self.self_lynch_allowed: bool = True
+        self.self_vote_allowed: bool = True
         self.default_role: str = "villager"
         self.hidden_role: str = "villager"
         self.start_with_day: bool = False
@@ -317,7 +317,7 @@ class GameMode:
         winner = evt.data["winner"]
         if winner in Win_Stealer:
             return # fool won, lovers can't win even if they would
-        from src.roles.matchmaker import get_all_lovers
+        from src.roles.matchmaker import get_all_lovers, Lovers
         all_lovers = get_all_lovers(var) # type: ignore
         if len(all_lovers) != 1:
             return # we need exactly one cluster alive for this to trigger
@@ -325,12 +325,12 @@ class GameMode:
         lovers = all_lovers[0]
 
         if len(lovers) == lpl:
-            evt.data["winner"] = "lovers"
+            evt.data["winner"] = Lovers
             evt.data["message"] = messages["lovers_win"]
 
     def all_dead_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
-        if evt.data["winner"] == "no_team_wins":
-            evt.data["winner"] = "everyone"
+        if evt.data["winner"] is Nobody:
+            evt.data["winner"] = All
             evt.data["message"] = messages["everyone_died_won"]
 
     def custom_gun_chances(self, evt: Event, var: GameState, player: User, role: str):

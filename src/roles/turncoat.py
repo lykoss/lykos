@@ -4,6 +4,7 @@ import re
 from typing import Optional
 
 from src import users
+from src.cats import Category, Village, Wolfteam, Vampire_Team, get_team
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
@@ -23,8 +24,17 @@ def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is s
         wrapper.pm(messages["turncoat_already_turned"])
         return
 
+    teams = []
+    starting_roles = set(var.original_main_roles.values())
+    if Village & starting_roles:
+        teams.append("villager")
+    if Wolfteam & starting_roles:
+        teams.append("wolf")
+    if Vampire_Team & starting_roles:
+        teams.append("vampire")
+
     team = re.split(" +", message)[0]
-    team = match_role(team, scope=("villager", "wolf"))
+    team = match_role(team, scope=teams)
     if not team:
         wrapper.pm(messages["turncoat_error"])
         return
@@ -87,10 +97,10 @@ def on_chk_nightdone(evt: Event, var: GameState):
             evt.data["nightroles"].append(turncoat)
 
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category):
     if main_role == "turncoat" and player in TURNCOATS and TURNCOATS[player][0] != "none":
-        team = "villagers" if TURNCOATS[player][0] == "villager" else "wolves"
-        evt.data["team_win"] = (winner == team)
+        team = get_team(var, TURNCOATS[player][0])
+        evt.data["team_win"] = (winner is team)
 
 @event_listener("myrole")
 def on_myrole(evt: Event, var: GameState, user: User):

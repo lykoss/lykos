@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src.cats import Hidden
+from src.cats import Hidden, Wolfteam
 from src.events import Event, event_listener
 from src.functions import get_players
 from src.gamestate import GameState
@@ -27,10 +27,10 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
     if evt.data["winner"] is not None or lvampires > 0:
         return
     if lwolves == lpl / 2:
-        evt.data["winner"] = "wolves"
+        evt.data["winner"] = Wolfteam
         evt.data["message"] = messages["wolf_win_equal"]
     elif lwolves > lpl / 2:
-        evt.data["winner"] = "wolves"
+        evt.data["winner"] = Wolfteam
         evt.data["message"] = messages["wolf_win_greater"]
 
 @event_listener("get_role_metadata")

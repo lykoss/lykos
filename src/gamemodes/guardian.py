@@ -1,3 +1,4 @@
+from src.cats import Wolfteam, Village
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
@@ -55,19 +56,19 @@ class GuardianMode(GameMode):
             # handled by default win cond checking
             return
         elif not lguardians and lwolves > lpl / 2:
-            evt.data["winner"] = "wolves"
+            evt.data["winner"] = Wolfteam
             evt.data["message"] = messages["guardian_wolf_win"]
         elif not lguardians and lwolves == lpl / 2:
-            evt.data["winner"] = "wolves"
+            evt.data["winner"] = Wolfteam
             evt.data["message"] = messages["guardian_wolf_tie_no_guards"]
         elif not lrealwolves and lguardians:
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["guardian_villager_win"]
         elif not lrealwolves and not lguardians:
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["guardian_lose_no_guards"]
         elif lwolves == lguardians and lpl - lwolves - lguardians == 0:
-            evt.data["winner"] = "wolves"
+            evt.data["winner"] = Wolfteam
             evt.data["message"] = messages["guardian_lose_with_guards"]
         else:
             evt.data["winner"] = None

@@ -396,8 +396,8 @@ def on_see(evt: Event, var: GameState, seer, target):
         else:
             evt.data["role"] = "wolf"
 
-@event_listener("lynch_immunity")
-def on_lynch_immunity(evt: Event, var: GameState, user, reason):
+@event_listener("day_vote_immunity")
+def on_day_vote_immunity(evt: Event, var: GameState, user, reason):
     if reason == "totem":
         role = get_main_role(var, user)
         rev_evt = Event("role_revealed", {})
@@ -406,8 +406,8 @@ def on_lynch_immunity(evt: Event, var: GameState, user, reason):
         channels.Main.send(messages["totem_reveal"].format(user, role))
         evt.data["immune"] = True
 
-@event_listener("lynch")
-def on_lynch(evt: Event, var: GameState, votee, voters):
+@event_listener("day_vote")
+def on_day_vote(evt: Event, var: GameState, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
@@ -543,7 +543,7 @@ def on_begin_day(evt: Event, var: GameState):
     for player in INFLUENCE & ps:
         status.add_vote_weight(var, player)
     for player in REVEALING & ps:
-        status.add_lynch_immunity(var, player, "totem")
+        status.add_day_vote_immunity(var, player, "totem")
     for player in EXCHANGE & ps:
         status.add_exchange(var, player)
     # misdirection, luck, and silence can still be applied to dead players

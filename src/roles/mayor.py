@@ -6,7 +6,7 @@ from src.events import Event, event_listener
 from src.functions import get_all_players
 from src.gamestate import GameState
 from src.messages import messages
-from src.status import add_lynch_immunity
+from src.status import add_day_vote_immunity
 from src.users import User
 
 REVEALED_MAYORS = UserSet()
@@ -15,10 +15,10 @@ REVEALED_MAYORS = UserSet()
 def on_transition_day_begin(evt: Event, var: GameState):
     for user in get_all_players(var, ("mayor",)):
         if user not in REVEALED_MAYORS:
-            add_lynch_immunity(var, user, "mayor")
+            add_day_vote_immunity(var, user, "mayor")
 
-@event_listener("lynch_immunity")
-def on_lynch_immunity(evt: Event, var: GameState, user: User, reason: str):
+@event_listener("day_vote_immunity")
+def on_day_vote_immunity(evt: Event, var: GameState, user: User, reason: str):
     if reason == "mayor":
         channels.Main.send(messages["mayor_reveal"].format(user))
         evt.data["immune"] = True

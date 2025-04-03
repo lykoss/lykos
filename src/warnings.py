@@ -120,7 +120,7 @@ def add_warning(target: str | users.User, amount: int, actor: users.User, reason
             db.add_warning_sanction(sid, "deny command", cmd)
     if "tempban" in sanctions:
         # this inserts into the bantrack table too
-        (acclist, hmlist) = db.add_warning_sanction(sid, "tempban", sanctions["tempban"])
+        acclist = db.add_warning_sanction(sid, "tempban", sanctions["tempban"])
         cmodes = []
         for acc in acclist:
             cmodes.append(("+b", "{0}{1}".format(get_ircd().account_prefix, acc)))

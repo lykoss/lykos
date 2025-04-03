@@ -4,7 +4,8 @@ from src.functions import get_players
 from src.gamestate import GameState
 from src.events import EventListener, Event
 from src import channels, users
-from src.cats import Village
+from src.cats import Village, Nobody, Wolfteam
+
 
 @game_mode("evilvillage", minp=6, maxp=18)
 class EvilVillageMode(GameMode):
@@ -30,25 +31,23 @@ class EvilVillageMode(GameMode):
         lcultists = len(get_players(var, ["cultist"], mainroles=mainroles))
         evt.stop_processing = True
 
-        if evt.data["winner"] == "fools":
-            return
-        elif lrealwolves == 0 and lsafes == 0:
-            evt.data["winner"] = "no_team_wins"
+        if lrealwolves == 0 and lsafes == 0:
+            evt.data["winner"] = Nobody
             evt.data["message"] = messages["evil_no_win"]
         elif lrealwolves == 0:
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["evil_villager_win"]
         elif lsafes == 0:
-            evt.data["winner"] = "wolves"
+            evt.data["winner"] = Wolfteam
             evt.data["message"] = messages["evil_wolf_win"]
         elif lcultists == 0:
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["evil_cultists_dead"]
         elif lsafes == lpl / 2:
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["evil_villager_tie"]
         elif lsafes > lpl / 2:
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["evil_more_villagers"]
         else:
             evt.data["winner"] = None

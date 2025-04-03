@@ -230,8 +230,8 @@ class GameState:
         return self._get_value("limit_abstain")
 
     @property
-    def self_lynch_allowed(self) -> bool:
-        return self._get_value("self_lynch_allowed")
+    def self_vote_allowed(self) -> bool:
+        return self._get_value("self_vote_allowed")
 
     @property
     def default_role(self) -> str:

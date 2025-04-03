@@ -5,7 +5,7 @@ from src.messages import messages
 from src.containers import UserSet
 from src.gamestate import GameState
 from src.functions import get_all_players, get_all_roles
-from src.status import add_lynch_immunity
+from src.status import add_day_vote_immunity
 from src.users import User
 from src.events import Event, event_listener
 from src.roles.helper.wolves import register_wolf
@@ -22,10 +22,10 @@ def on_reset(evt: Event, var: GameState):
 def on_transition_day_begin(evt: Event, var: GameState):
     for player in get_all_players(var, ("tough wolf",)):
         if player not in ACTIVATED:
-            add_lynch_immunity(var, player, "tough_wolf")
+            add_day_vote_immunity(var, player, "tough_wolf")
 
-@event_listener("lynch_immunity")
-def on_lynch_immunity(evt: Event, var: GameState, player: User, reason: str):
+@event_listener("day_vote_immunity")
+def on_day_vote_immunity(evt: Event, var: GameState, player: User, reason: str):
     if reason == "tough_wolf":
         channels.Main.send(messages["tough_wolf_reveal"].format(player))
         evt.data["immune"] = True

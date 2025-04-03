@@ -8,8 +8,7 @@
 # Village: Defines the role as village for determining winners
 # Nocturnal: Defines the role as being awake at night (usually due to having commands which work at night)
 # Neutral: Defines the role as neutral (seen as grey by augur) and not in village or wolfteam when determining winners
-# Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
-#    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
+# Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.)
 # Hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
 # Safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
 # Spy: Actively gets information about other players or teams
@@ -23,6 +22,8 @@
 #    the vampire team wins. Only main roles are considered for this. All Wolf Objectives must additionally be dead.
 # Village Objective: If all of the players with this cat are dead, the village wins.
 #    Only main roles are considered for this.
+# All: A category containing every role. Useful for checking if a role is loaded.
+# Nobody: A category containing no roles. Used to indicate if nobody should win a particular game.
 
 from __future__ import annotations
 
@@ -40,7 +41,7 @@ __all__ = [
     "get", "get_team", "role_order", "all_cats", "all_roles", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective",
-    "Vampire", "Vampire_Team", "Vampire_Objective", "All"
+    "Vampire", "Vampire_Team", "Vampire_Objective", "All", "Nobody"
 ]
 
 _dict_keys = type(dict().keys())  # type: ignore
@@ -132,7 +133,7 @@ def _register_roles(evt: Event):
     team_evt.dispatch(None, "team_categories")
     teams = set(team_evt.data["teams"])
     for cat in teams:
-        if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
+        if cat not in ROLE_CATS or ROLE_CATS[cat] is All or ROLE_CATS[cat] is Nobody:
             raise ValueError("{0!r} is not a valid role category".format(cat))
 
     evt = Event("get_role_metadata", {})
@@ -142,7 +143,7 @@ def _register_roles(evt: Event):
             raise RuntimeError("Invalid categories for {0}: Must have exactly one team defined".format(role))
         ROLES[role] = frozenset(cats)
         for cat in cats:
-            if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
+            if cat not in ROLE_CATS or ROLE_CATS[cat] is All or ROLE_CATS[cat] is Nobody:
                 raise ValueError("{0!r} is not a valid role category".format(cat))
             ROLE_CATS[cat].roles.add(role)
         All.roles.add(role)
@@ -287,3 +288,4 @@ Village_Objective = Category("Village Objective")
 Wolf_Objective = Category("Wolf Objective")
 Vampire_Objective = Category("Vampire Objective")
 Evil = Category("Evil")
+Nobody = Category("Nobody")

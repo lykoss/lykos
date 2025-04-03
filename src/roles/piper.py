@@ -5,6 +5,7 @@ import re
 from typing import Optional
 
 from src import users
+from src.cats import Category
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -19,6 +20,8 @@ from src.random import random
 TOBECHARMED: UserDict[users.User, UserSet] = UserDict()
 CHARMED = UserSet()
 PASSED = UserSet()
+
+Pipers = Category("Pipers")
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(wrapper: MessageDispatcher, message: str):
@@ -108,13 +111,8 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
     uncharmed = set(get_players(var, mainroles=mainroles)) - CHARMED - pipers
 
     if not uncharmed:
-        evt.data["winner"] = "pipers"
+        evt.data["winner"] = Pipers
         evt.data["message"] = messages["piper_win"].format(lp)
-
-@event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
-    if winner == "pipers" and main_role == "piper":
-        evt.data["team_win"] = True
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
@@ -131,8 +129,6 @@ def on_transition_day_begin(evt: Event, var: GameState):
     # Send out PMs to players who have been charmed
     for target in tocharm:
         charmedlist = list(CHARMED | tocharm - {target})
-        message = messages["charmed"]
-
         to_send = "charmed_players"
         if not charmedlist:
             to_send = "no_charmed_players"
@@ -196,4 +192,4 @@ def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["piper"] = {"Neutral", "Win Stealer", "Nocturnal"}
+        evt.data["piper"] = {"Neutral", "Win Stealer", "Nocturnal", "Pipers"}

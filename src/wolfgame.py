@@ -477,7 +477,7 @@ def on_kill_players(evt: Event, var: GameState, players: set[User]):
 
         if not var.in_phase_transition:
             if var.current_phase == "day":
-                # ensure we only induce lynch during actual daytime
+                # ensure we only induce vote during actual daytime
                 chk_decision(var)
             elif var.current_phase == "night":
                 # ensure we only try to end night during actual nighttime

@@ -69,7 +69,7 @@ def consecrate(wrapper: MessageDispatcher, message: str):
     move_player(var, wrapper.source, Graveyard)
     from src.votes import chk_decision
     if not chk_win(var):
-        # game didn't immediately end due to marking as absent, see if we should force through a lynch
+        # game didn't immediately end due to marking as absent, see if we should force through a vote
         chk_decision(var)
 
 @event_listener("send_role")

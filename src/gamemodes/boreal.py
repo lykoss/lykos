@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 
 from src import config, users
-from src.cats import Wolfteam
+from src.cats import Wolfteam, Village
 from src.containers import DefaultUserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -23,7 +23,7 @@ class BorealMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.CUSTOM_SETTINGS.limit_abstain = False
-        self.CUSTOM_SETTINGS.self_lynch_allowed = False
+        self.CUSTOM_SETTINGS.self_vote_allowed = False
         self.CUSTOM_SETTINGS.default_role = "shaman"
 
         # If you add non-wolfteam, non-shaman roles, be sure to update update_stats to account for it!
@@ -43,7 +43,7 @@ class BorealMode(GameMode):
             "transition_day_resolve": EventListener(self.on_transition_day_resolve),
             "del_player": EventListener(self.on_del_player),
             "apply_totem": EventListener(self.on_apply_totem),
-            "lynch": EventListener(self.on_lynch),
+            "day_vote": EventListener(self.on_day_vote),
             "chk_win": EventListener(self.on_chk_win),
             "revealroles_role": EventListener(self.on_revealroles_role),
             "update_stats": EventListener(self.on_update_stats),
@@ -102,12 +102,12 @@ class BorealMode(GameMode):
         self.saved_messages = {
             "wolf_shaman_notify": messages.messages["wolf_shaman_notify"],
             "vengeful_turn": messages.messages["vengeful_turn"],
-            "lynch_reveal": messages.messages["lynch_reveal"]
+            "day_vote_reveal": messages.messages["day_vote_reveal"]
         }
 
         messages.messages["wolf_shaman_notify"] = "" # don't tell WS they can kill
         messages.messages["vengeful_turn"] = messages.messages["boreal_turn"]
-        messages.messages["lynch_reveal"] = messages.messages["boreal_exile"]
+        messages.messages["day_vote_reveal"] = messages.messages["boreal_exile"]
         self.feed_command.register()
 
     def teardown(self):
@@ -194,7 +194,7 @@ class BorealMode(GameMode):
         if remain > 0:
             evt.data["message"]["*"].append(messages["boreal_day_count"].format(remain))
 
-    def on_lynch(self, evt: Event, var: GameState, votee, voters):
+    def on_day_vote(self, evt: Event, var: GameState, votee, voters):
         if get_main_role(var, votee) not in Wolfteam:
             # if there are less VGs than alive wolf shamans, they become a wendigo as well
             from src.roles import vengefulghost
@@ -228,16 +228,16 @@ class BorealMode(GameMode):
         if self.village_starve == self.max_village_starve and var.current_phase == "day":
             # if village didn't feed the NPCs enough nights, the starving tribe members destroy themselves from within
             # this overrides built-in win conds (such as all wolves being dead)
-            evt.data["winner"] = "wolves"
+            evt.data["winner"] = Wolfteam
             evt.data["message"] = messages["boreal_village_starve"]
         elif var.night_count == self.max_nights and var.current_phase == "day":
             # if village survived for N nights without losing, they outlast the storm and win
             # this overrides built-in win conds (such as same number of wolves as villagers)
-            evt.data["winner"] = "villagers"
+            evt.data["winner"] = Village
             evt.data["message"] = messages["boreal_time_up"]
-        elif evt.data["winner"] == "villagers":
+        elif evt.data["winner"] is Village:
             evt.data["message"] = messages["boreal_village_win"]
-        elif evt.data["winner"] == "wolves":
+        elif evt.data["winner"] is Wolfteam:
             evt.data["message"] = messages["boreal_wolf_win"]
 
     def on_revealroles_role(self, evt: Event, var: GameState, player, role):

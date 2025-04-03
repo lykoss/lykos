@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from typing import Optional
 
+from src.cats import Category
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
 from src.events import Event, event_listener
@@ -55,7 +56,7 @@ def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if main_role == "crazed shaman":
         evt.data["count_game"] = False
 

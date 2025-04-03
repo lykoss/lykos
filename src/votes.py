@@ -10,7 +10,7 @@ from src.decorators import command
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import (try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains,
-                        get_vote_weight, try_lynch_immunity, add_dying, kill_players)
+                        get_vote_weight, try_day_vote_immunity, add_dying, kill_players)
 from src.events import Event, event_listener
 from src import channels, pregame, reaper, locks, config
 from src.users import User
@@ -22,10 +22,10 @@ GAMEMODE_VOTES: UserDict[User, str] = UserDict()
 ABSTAINS: UserSet = UserSet()
 ABSTAINED = False
 LAST_VOTES = None
-LYNCHED: int = 0
+VOTED: int = 0
 
-@command("lynch", playing=True, pm=True, phases=("day",))
-def lynch(wrapper: MessageDispatcher, message: str):
+@command("vote", playing=True, pm=True, phases=("day",))
+def day_vote(wrapper: MessageDispatcher, message: str):
     """Use this to vote for a candidate to be killed."""
     if not message:
         show_votes.func(wrapper, message)
@@ -38,7 +38,7 @@ def lynch(wrapper: MessageDispatcher, message: str):
 
     can_vote_bot = var.current_mode.can_vote_bot(var)
 
-    voted = get_target(wrapper, msg, allow_self=var.self_lynch_allowed, allow_bot=can_vote_bot, not_self_message="no_self_lynch")
+    voted = get_target(wrapper, msg, allow_self=var.self_vote_allowed, allow_bot=can_vote_bot, not_self_message="no_vote_self")
     if not voted:
         return
 
@@ -68,7 +68,7 @@ def lynch(wrapper: MessageDispatcher, message: str):
     chk_decision(var)
 
 @command("abstain", playing=True, phases=("day",))
-def no_lynch(wrapper: MessageDispatcher, message: str):
+def abstain(wrapper: MessageDispatcher, message: str):
     """Allow you to abstain from voting for the day."""
     var = wrapper.game_state
     if not var.abstain_enabled:
@@ -197,17 +197,15 @@ def show_votes(wrapper: MessageDispatcher, message: str):
 
     wrapper.reply(to_send, prefix_nick=True)
 
-@command("vote", pm=True, phases=("join", "day"))
+@command("vote", phases=("join",))
 def vote(wrapper: MessageDispatcher, message: str):
-    """Vote for a game mode if no game is running, or for a player to be lynched."""
+    """Vote for a game mode if no game is running."""
     if message:
-        if wrapper.game_state.current_phase == "join" and wrapper.public:
-            from src.wolfgame import game
-            return game.caller(wrapper, message)
-        return lynch.caller(wrapper, message)
+        from src.wolfgame import game
+        return game.caller(wrapper, message)
     return show_votes.caller(wrapper, message)
 
-# Specify timeout=True to force a lynch and end of day even if there is no majority
+# Specify timeout=True to force a vote and end of day even if there is no majority
 # admin_forced=True will make it not count towards village's abstain limit if nobody is voted
 def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     from src.trans import chk_win
@@ -233,10 +231,10 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             assert len(plurality) == 1
             to_vote = plurality
 
-        behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": timeout}, votes=VOTES, players=avail)
+        behaviour_evt = Event("day_vote_behaviour", {"num_votes": 1, "kill_ties": False, "force": timeout}, votes=VOTES, players=avail)
         behaviour_evt.dispatch(var)
 
-        num_lynches = behaviour_evt.data["num_lynches"]
+        num_votes = behaviour_evt.data["num_votes"]
         kill_ties = behaviour_evt.data["kill_ties"]
         force = behaviour_evt.data["force"]
 
@@ -276,11 +274,11 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             return
 
         if to_vote:
-            global LYNCHED
-            LYNCHED += len(to_vote) # track how many people we've lynched today
+            global VOTED
+            VOTED += len(to_vote) # track how many people we've killed today
 
             if timeout:
-                channels.Main.send(messages["sunset_lynch"])
+                channels.Main.send(messages["sunset_vote"])
 
             for votee in to_vote:
                 voters = list(VOTES[votee])
@@ -289,22 +287,22 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                         channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
                         voters.append(forced_voter) # they need to be counted as voting for them still
 
-                if not try_lynch_immunity(var, votee):
-                    lynch_evt = Event("lynch", {}, players=avail)
-                    if lynch_evt.dispatch(var, votee, voters):
-                        to_send = "lynch_no_reveal"
+                if not try_day_vote_immunity(var, votee):
+                    vote_evt = Event("day_vote", {}, players=avail)
+                    if vote_evt.dispatch(var, votee, voters):
+                        to_send = "day_vote_no_reveal"
                         if var.role_reveal in ("on", "team"):
-                            to_send = "lynch_reveal"
+                            to_send = "day_vote_reveal"
                         lmsg = messages[to_send].format(votee, get_reveal_role(var, votee))
                         channels.Main.send(lmsg)
-                        add_dying(var, votee, "villager", "lynch")
+                        add_dying(var, votee, "villager", "day_vote")
 
             kill_players(var, end_game=False)
 
         elif timeout:
             channels.Main.send(messages["sunset"])
 
-        if timeout or LYNCHED >= num_lynches:
+        if timeout or VOTED >= num_votes:
             if chk_win(var, count_absent=False):
                 return
 
@@ -330,18 +328,18 @@ def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], 
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt: Event, var: GameState):
-    global LAST_VOTES, LYNCHED
+    global LAST_VOTES, VOTED
     LAST_VOTES = None
-    LYNCHED = 0
+    VOTED = 0
     ABSTAINS.clear()
     VOTES.clear()
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):
-    global ABSTAINED, LAST_VOTES, LYNCHED
+    global ABSTAINED, LAST_VOTES, VOTED
     ABSTAINED = False
     LAST_VOTES = None
-    LYNCHED = 0
+    VOTED = 0
     ABSTAINS.clear()
     VOTES.clear()
     GAMEMODE_VOTES.clear()

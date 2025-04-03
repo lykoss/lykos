@@ -4,7 +4,7 @@ from src import events, channels, users
 
 @game_mode("foolish", minp=8, maxp=24)
 class FoolishMode(GameMode):
-    """Contains the fool, be careful not to lynch them!"""
+    """Contains the fool, be careful not to vote them!"""
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {

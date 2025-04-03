@@ -105,7 +105,7 @@ def fstart(wrapper: MessageDispatcher, message: str):
 
 @command("retract", phases=("day", "join"))
 def retract(wrapper: MessageDispatcher, message: str):
-    """Take back your vote during the day (for whom to lynch)."""
+    """Take back your vote during the day."""
     from src.trans import TIMERS
     var = wrapper.game_state
     if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED:

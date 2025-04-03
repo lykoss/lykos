@@ -4,7 +4,7 @@ import re
 from typing import Optional
 
 from src import users
-from src.cats import All, Wolfteam, Vampire_Team, Win_Stealer
+from src.cats import All, Wolfteam, Vampire_Team, Win_Stealer, get_team, Category
 from src.containers import UserDict, UserSet
 from src.decorators import command
 from src.events import Event, event_listener
@@ -78,16 +78,15 @@ def on_gun_shoot(evt: Event, var: GameState, user: User, target: User, role: str
         evt.data["kill"] = True
         
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
-    team_map = {"wolf": "wolves", "villager": "villagers", "vampire": "vampires"}
-    if player in GHOSTS:
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category):
+    # VG wins as long as an actual team (not a win stealer) won and the team they are against lost
+    if player in GHOSTS and not evt.params.is_win_stealer:
         against = GHOSTS[player].lstrip("!")
-        against_team = team_map[against]
-        # VG wins as long as an actual team (not a win stealer) won and the team they are against lost
-        evt.data["team_win"] = winner in team_map.values() and winner != against_team
+        against_team = get_team(var, against)
+        evt.data["team_win"] = winner is not against_team
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if player in GHOSTS:
         evt.data["special"].append("vg activated")
         if GHOSTS[player][0] == "!":

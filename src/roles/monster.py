@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src.cats import Wolf, Vampire
+from src.cats import Wolf, Vampire, Category
 from src.events import Event, event_listener
 from src.functions import get_all_players
 from src.gamestate import GameState
@@ -10,11 +10,7 @@ from src.messages import messages
 from src.status import add_protection
 from src.users import User
 
-
-@event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
-    if winner == "monsters" and main_role == "monster":
-        evt.data["team_win"] = True
+Monsters = Category("Monsters")
 
 @event_listener("chk_win", priority=4)
 def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
@@ -26,13 +22,13 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
 
     if not lrealwolves:
         evt.data["message"] = messages["monster_win"].format(lm)
-        evt.data["winner"] = "monsters"
+        evt.data["winner"] = Monsters
     elif lwolves >= lpl / 2 and not lvampires:
         evt.data["message"] = messages["monster_wolf_win"].format(lm)
-        evt.data["winner"] = "monsters"
+        evt.data["winner"] = Monsters
     elif lvampires >= lpl / 2 and not lwolves:
         evt.data["message"] = messages["monster_vampire_win"].format(lm)
-        evt.data["winner"] = "monsters"
+        evt.data["winner"] = Monsters
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
@@ -48,4 +44,4 @@ def on_remove_protection(evt: Event, var: GameState, target: User, attacker: Use
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["monster"] = {"Neutral", "Win Stealer", "Cursed"}
+        evt.data["monster"] = {"Neutral", "Win Stealer", "Cursed", "Monsters"}

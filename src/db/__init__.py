@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from src import users
-from src.messages import messages, LocalRole
+from src.messages import messages
 from src.cats import role_order
 
 __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_templates", "update_template",
@@ -25,7 +25,7 @@ __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_t
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 # Constant of all the flags that the bot uses
 # This is not meant to be modified
@@ -191,13 +191,13 @@ def get_template(name):
     c.execute("SELECT id, flags FROM access_template WHERE name = ?", (name,))
     row = c.fetchone()
     if row is None:
-        return (None, set())
-    return (row[0], row[1])
+        return None, set()
+    return row[0], row[1]
 
 def get_templates():
     conn = _conn()
     c = conn.cursor()
-    c.execute("SELECT name, flags FROM access_template ORDER BY name ASC")
+    c.execute("SELECT name, flags FROM access_template ORDER BY name")
     tpls = []
     for name, flags in c:
         tpls.append((name, flags))
@@ -257,7 +257,7 @@ def add_game(mode, size, started, finished, winner, players, options):
     size: Game size on start (int)
     started: Time when game started (timestamp)
     finished: Time when game ended (timestamp)
-    winner: Winning team (string)
+    winner: Winning team (Category)
     players: List of players (sequence of dict, described below)
     options: Game options (role reveal, stats type, etc., freeform dict)
 
@@ -276,14 +276,13 @@ def add_game(mode, size, started, finished, winner, players, options):
     """
 
     # Normalize players dict
-    conn = _conn()
     for p in players:
-        c = conn.cursor()
         p["personid"], p["playerid"] = _get_ids(p["account"], add=True)
 
+    conn = _conn()
     c = conn.cursor()
     c.execute("""INSERT INTO game (gamemode, options, started, finished, gamesize, winner)
-                 VALUES (?, ?, ?, ?, ?, ?)""", (mode, json.dumps(options), started, finished, size, winner))
+                 VALUES (?, ?, ?, ?, ?, ?)""", (mode, json.dumps(options), started, finished, size, str(winner)))
     gameid = c.lastrowid
     for p in players:
         c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced, count_game)
@@ -339,7 +338,7 @@ def get_player_stats(acc, role):
 def get_player_totals(acc):
     peid, plid = _get_ids(acc)
     if not _total_games(peid):
-        return (messages["db_pstats_no_game"].format(acc), [])
+        return messages["db_pstats_no_game"].format(acc), []
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -368,16 +367,16 @@ def get_player_totals(acc):
     won_games = c.fetchone()[0]
     order = list(role_order())
     name = _get_display_name(peid)
-    #ordered role stats
+    # ordered role stats
     totals = [messages["db_role_games"].format(r, *tmp[r]) for r in order if r in tmp]
-    #lover or any other special stats
+    # lover or any other special stats
     totals += [messages["db_role_games"].format(r, *t) for r, t in tmp.items() if r not in order]
     count_games = _countable_games(peid)
     if count_games == 0:
         wonp = 1
     else:
         wonp = won_games / count_games
-    return (messages["db_total_games"].format(name, count_games, wonp), totals)
+    return messages["db_total_games"].format(name, count_games, wonp), totals
 
 def get_game_stats(mode, size):
     conn = _conn()
@@ -397,30 +396,32 @@ def get_game_stats(mode, size):
                        winner AS team,
                        COUNT(1) AS games,
                        CASE winner
-                         WHEN 'villagers' THEN 0
-                         WHEN 'wolves' THEN 1
-                         ELSE 2 END AS ord
+                         WHEN 'Villager' THEN 0
+                         WHEN 'Wolfteam' THEN 1
+                         WHEN 'Vampire Team' THEN 2
+                         ELSE 3 END AS ord
                      FROM game
                      WHERE
                        gamesize = ?
                        AND winner IS NOT NULL
                      GROUP BY team
-                     ORDER BY ord ASC, team ASC""", (size,))
+                     ORDER BY ord, team""", (size,))
     else:
         c.execute("""SELECT
                        winner AS team,
                        COUNT(1) AS games,
                        CASE winner
-                         WHEN 'villagers' THEN 0
-                         WHEN 'wolves' THEN 1
-                         ELSE 2 END AS ord
+                         WHEN 'Villager' THEN 0
+                         WHEN 'Wolfteam' THEN 1
+                         WHEN 'Vampire Team' THEN 2
+                         ELSE 3 END AS ord
                      FROM game
                      WHERE
                        gamemode = ?
                        AND gamesize = ?
                        AND winner IS NOT NULL
                      GROUP BY team
-                     ORDER BY ord ASC, team ASC""", (mode, size))
+                     ORDER BY ord, team""", (mode, size))
 
     key = "db_gstats_specific"
     if mode == "*":
@@ -428,17 +429,7 @@ def get_game_stats(mode, size):
 
     bits = []
     for row in c:
-        if row[0] == "no_team_wins":
-            winner = messages["db_gstats_no_team_wins"]
-        elif not row[0]:
-            winner = messages["db_gstats_nobody"]
-        elif row[0] == "everyone":
-            winner = messages["db_gstats_everyone"]
-        else:
-            # FIXME: convert the db to just store the role key directly instead of a plural
-            winner = LocalRole.from_en(row[0]).singular.title()
-
-        bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
+        bits.append(messages["db_gstats_win"].format(messages.raw("_role_categories", row[0])[0], row[1], row[1]/total_games))
     bits.append(messages["db_gstats_total"].format(total_games))
 
     return messages[key].format(size, mode, bits)
@@ -464,7 +455,7 @@ def get_game_totals(mode):
                        COUNT(1) AS games
                      FROM game
                      GROUP BY gamesize
-                     ORDER BY gamesize ASC""")
+                     ORDER BY gamesize""")
     else:
         c.execute("""SELECT
                        gamesize,
@@ -472,7 +463,7 @@ def get_game_totals(mode):
                      FROM game
                      WHERE gamemode = ?
                      GROUP BY gamesize
-                     ORDER BY gamesize ASC""", (mode,))
+                     ORDER BY gamesize""", (mode,))
     totals = []
     for row in c:
         totals.append(messages["db_gstats_gm_p"].format(row[0], row[1]))
@@ -539,8 +530,8 @@ def get_role_totals(mode=None):
     total_games = c.fetchone()[0]
     if not total_games:
         if mode is None:
-            return (None, [messages["db_rstats_nogame"]])
-        return (None, [messages["db_rstats_no_mode"].format(mode)])
+            return None, [messages["db_rstats_nogame"]]
+        return None, [messages["db_rstats_no_mode"].format(mode)]
 
     if mode is None:
         c.execute("""SELECT
@@ -566,8 +557,8 @@ def get_role_totals(mode=None):
     for role, count in c:
         totals.append(messages["db_role_games"].format(role, count))
     if mode is None:
-        return (messages["db_rstats_total"].format(total_games), totals)
-    return (messages["db_rstats_total_mode"].format(mode, total_games), totals)
+        return messages["db_rstats_total"].format(total_games), totals
+    return messages["db_rstats_total_mode"].format(mode, total_games), totals
 
 def set_primary_player(acc):
     # set acc to be the primary player for the corresponding person
@@ -843,23 +834,19 @@ def add_warning_sanction(warning, sanction, data):
         # we want to return a list of all banned accounts/hostmasks
         idlist = set()
         acclist = set()
-        hmlist = set()
         c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
         peid = c.fetchone()[0]
-        c.execute("SELECT id, account, hostmask FROM player WHERE person = ? AND active = 1", (peid,))
+        c.execute("SELECT id, account_display FROM player WHERE person = ? AND active = 1", (peid,))
         if isinstance(data, datetime):
             sql = "INSERT OR REPLACE INTO bantrack (player, expires) values (?, ?)"
         else:
             sql = "INSERT OR REPLACE INTO bantrack (player, warning_amount) values (?, ?)"
         for row in c:
             idlist.add(row[0])
-            if row[1] is None:
-                hmlist.add(row[2])
-            else:
-                acclist.add(row[1])
+            acclist.add(row[1])
         for plid in idlist:
             c.execute(sql, (plid, data))
-        return (acclist, hmlist)
+        return acclist
 
 def del_warning(warning, acc):
     peid, plid = _get_ids(acc)
@@ -966,6 +953,7 @@ def set_data(acc, path, key, value):
     cur[key] = value
     c.execute("UPDATE person SET data = ? WHERE id = ?", (json.dumps(data), peid))
 
+# noinspection SqlWithoutWhere
 def get_pre_restart_state():
     conn = _conn()
     c = conn.cursor()
@@ -984,6 +972,7 @@ def get_pre_restart_state():
     conn.commit()
     return players
 
+# noinspection SqlWithoutWhere
 def set_pre_restart_state(players):
     if not players:
         return
@@ -1051,6 +1040,19 @@ def _upgrade(oldversion):
             print("Upgrade from version 9 to 10...", file=sys.stderr)
             # add count_game column to game_player and initialize to 1
             c.execute("ALTER TABLE game_player ADD count_game BOOLEAN NOT NULL DEFAULT 1")
+        if oldversion < 11:
+            print("Upgrade from version 10 to 11...", file=sys.stderr)
+            # normalize winner to category names
+            c.execute("""UPDATE game
+                         SET winner = CASE winner
+                            WHEN 'villagers' THEN 'Villager'
+                            WHEN 'wolves' THEN 'Wolfteam'
+                            WHEN 'vampires' THEN 'Vampire Team'
+                            WHEN '' THEN 'Nobody'
+                            WHEN 'no_team_wins' THEN 'Nobody'
+                            WHEN 'everyone' THEN 'All'
+                            ELSE UPPER(SUBSTR(winner, 1, 1)) || SUBSTR(winner, 2)
+                         END""")
 
         print("Rebuilding indexes...", file=sys.stderr)
         c.execute("REINDEX")
@@ -1115,7 +1117,7 @@ def _get_ids(acc, add=False, casemap="ascii"):
     if acc == "*":
         acc = None
     if acc is None:
-        return (None, None)
+        return None, None
 
     ascii_acc = lower(acc, casemapping="ascii")
     rfc1459_acc = lower(acc, casemapping="rfc1459")
@@ -1172,7 +1174,7 @@ def _get_ids(acc, add=False, casemap="ascii"):
         peid = c.lastrowid
         c.execute("UPDATE player SET person=? WHERE id=?", (peid, plid))
         conn.commit()
-    return (peid, plid)
+    return peid, plid
 
 def _get_display_name(peid):
     if peid is None:

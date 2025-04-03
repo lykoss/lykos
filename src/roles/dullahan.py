@@ -5,6 +5,7 @@ import re
 from typing import Optional
 
 from src import users, channels
+from src.cats import Category
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -51,7 +52,7 @@ def dullahan_retract(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["retracted_kill"])
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if main_role != "dullahan":
         return
     alive = set(get_players(var))

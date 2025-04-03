@@ -4,6 +4,7 @@ import re
 from typing import Optional, Union
 
 from src import users
+from src.cats import Category
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.dispatcher import MessageDispatcher
@@ -21,6 +22,8 @@ VISITED: UserDict[users.User, users.User] = UserDict()
 PASSED = UserSet()
 FORCE_PASSED = UserSet()
 ALL_SUCC_IDLE = True
+
+Succubi = Category("Succubi")
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
 def hvisit(wrapper: MessageDispatcher, message: str):
@@ -87,19 +90,16 @@ def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visit
             ENTRANCED.add(visitor)
 
 # entranced logic should run after team wins have already been determined (aka run last)
-# FIXME: I hate event priorities and want them to die in a fire
 @event_listener("team_win", priority=7)
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
-    if player in ENTRANCED and winner != "succubi":
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category):
+    if player in ENTRANCED and winner is not Succubi:
         evt.data["team_win"] = False
-    if main_role == "succubus" and winner == "succubi":
-        evt.data["team_win"] = True
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if player in ENTRANCED:
         evt.data["special"].append("entranced")
-        if winner == "succubi":
+        if winner is Succubi:
             evt.data["individual_win"] = True
 
 @event_listener("chk_win", priority=2)
@@ -107,10 +107,10 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len([x for x in ENTRANCED if not is_dead(var, x)])
     if var.current_phase == "day" and lsuccubi and lpl - lsuccubi == lentranced:
-        evt.data["winner"] = "succubi"
+        evt.data["winner"] = Succubi
         evt.data["message"] = messages["succubus_win"].format(lsuccubi)
     elif not lsuccubi and lentranced and var.current_phase == "day" and lpl == lentranced:
-        evt.data["winner"] = "succubi"
+        evt.data["winner"] = Succubi
         evt.data["message"] = messages["entranced_win"]
 
 @event_listener("new_role")
@@ -204,4 +204,4 @@ def on_revealroles(evt: Event, var: GameState):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["succubus"] = {"Neutral", "Win Stealer", "Cursed", "Nocturnal"}
+        evt.data["succubus"] = {"Neutral", "Win Stealer", "Cursed", "Nocturnal", "Succubi"}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+from src.cats import Category, Village, Wolfteam
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
@@ -150,9 +151,9 @@ def on_get_endgame_message(evt: Event, var: GameState, player: User, role: str, 
         evt.data["message"].append(messages["wild_child_turned"])
 
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str):
-    if main_role == "wild child" and winner in ("villagers", "wolves"):
-        evt.data["team_win"] = (winner == "villagers") ^ (player in _turned)
+def on_team_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category):
+    if main_role == "wild child" and winner in (Village, Wolfteam):
+        evt.data["team_win"] = (winner is Village) ^ (player in _turned)
 
 @event_listener("update_stats")
 def on_update_stats(evt: Event, var: GameState, player: User, main_role: str, reveal_role: str, all_roles: set[str]):

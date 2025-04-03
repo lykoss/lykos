@@ -53,11 +53,11 @@ class MudkipMode(GameMode):
         }
 
         self.EVENTS = {
-            "lynch_behaviour": EventListener(self.lynch_behaviour),
+            "day_vote_behaviour": EventListener(self.day_vote_behaviour),
             "daylight_warning": EventListener(self.daylight_warning)
         }
 
-    def lynch_behaviour(self, evt: Event, var: GameState):
+    def day_vote_behaviour(self, evt: Event, var: GameState):
         evt.data["kill_ties"] = True
         voters = sum(map(len, evt.params.votes.values()))
         if voters == evt.params.players:

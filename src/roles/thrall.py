@@ -7,7 +7,8 @@ from src.gamestate import GameState
 from src.messages import messages
 from src.events import Event, event_listener
 from src.users import User
-from src.cats import Hidden
+from src.cats import Hidden, Vampire_Team
+
 
 @event_listener("send_role")
 def on_send_role(evt: Event, var: GameState):
@@ -32,10 +33,10 @@ def on_chk_win(evt: Event,
     if evt.data["winner"] is not None or num_wolves > 0:
         return
     if num_vampires == num_players / 2:
-        evt.data["winner"] = "vampires"
+        evt.data["winner"] = Vampire_Team
         evt.data["message"] = messages["vampire_win_equal"]
     elif num_vampires > num_players / 2:
-        evt.data["winner"] = "vampires"
+        evt.data["winner"] = Vampire_Team
         evt.data["message"] = messages["vampire_win_greater"]
 
 @event_listener("get_role_metadata")

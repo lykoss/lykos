@@ -5,6 +5,7 @@ import re
 from typing import Optional
 
 from src import channels, gamestate
+from src.cats import Category
 from src.containers import UserSet, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
@@ -23,6 +24,8 @@ class GameState(gamestate.GameState):
         self.matchmaker_lovers: UserDict[User, UserSet] = UserDict()
         # all lover pairings (for revealroles/endgame stats), contains forward mappings only
         self.matchmaker_pairings: UserDict[User, UserSet] = UserDict()
+
+Lovers = Category("Lovers")
 
 def _set_lovers(var: GameState, target1: User, target2: User):
     # ensure that PAIRINGS maps lower id to higher ids
@@ -178,11 +181,11 @@ def on_game_end_messages(evt: Event, var: GameState):
 
 @event_listener("team_win")
 def on_team_win(evt: Event, var: GameState, player, main_role, allroles, winner):
-    if winner == "lovers" and player in var.matchmaker_lovers:
+    if winner is Lovers and player in var.matchmaker_lovers:
         evt.data["team_win"] = True
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: str, team_win: bool, survived: bool):
+def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if player in var.matchmaker_pairings or player in itertools.chain.from_iterable(var.matchmaker_pairings.values()):
         evt.data["special"].append("lover")
         # grant lover a win if any of the other lovers in their polycule got a team win

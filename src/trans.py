@@ -17,7 +17,8 @@ from src.status import is_silent, is_dying, try_protection, add_dying, kill_play
 from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
-from src.cats import Win_Stealer, Wolf_Objective, Vampire_Objective, Village_Objective, role_order, get_team
+from src.cats import Win_Stealer, Wolf_Objective, Vampire_Objective, Village_Objective, role_order, get_team, All, \
+    Category, Nobody
 from src import channels, users, locks, config, db, reaper, relay
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
@@ -112,7 +113,7 @@ def begin_day(var: GameState):
 
     event = Event("begin_day", {})
     event.dispatch(var)
-    # induce a lynch if we need to (due to lots of pacifism/impatience totems or whatever)
+    # induce a vote if we need to (due to lots of pacifism/impatience totems or whatever)
     chk_decision(var)
 
 def _night_warn(var: GameState):
@@ -459,7 +460,7 @@ def chk_nightdone(var: GameState):
     if var.current_phase == "night" and actedcount >= len(nightroles):
         event.data["transition_day"](var)
 
-def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, additional_winners=None, log=True):
+def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody, abort=False, additional_winners=None, log=True):
     global DAY_TIMEDELTA, NIGHT_TIMEDELTA, ENDGAME_COMMAND
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
@@ -479,6 +480,10 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
     total: timedelta = DAY_TIMEDELTA + NIGHT_TIMEDELTA
     tmin, tsec = total.seconds // 60, total.seconds % 60
     gameend_msg = messages["endgame_stats"].format(tmin, tsec, daymin, daysec, nitemin, nitesec)
+
+    # we previously took in strings and things will break with weird errors if we're still passed a string
+    # this should catch that earlier and provide a more useful error message
+    assert isinstance(winner, Category)
 
     if not abort and var.in_game:
         assert isinstance(var, GameState)
@@ -535,21 +540,21 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
         winners = set()
         player_list = []
 
-        if winner != "" or log:
-            is_win_stealer = winner in Win_Stealer.plural_roles()
+        if log:
+            is_win_stealer = bool(winner & Win_Stealer)
             if additional_winners is not None:
                 winners.update(additional_winners)
 
             team_wins = set()
             for player, role in mainroles.items():
-                if player in reaper.DCED_LOSERS or winner == "":
+                if player in reaper.DCED_LOSERS:
                     continue
                 # determine default team win
-                won = get_team(var, role).plural_name == winner
+                won = role in winner
 
                 # Let events modify this as necessary.
                 # Neutral roles will need to listen in on this to determine team wins
-                event = Event("team_win", {"team_win": won})
+                event = Event("team_win", {"team_win": won}, is_win_stealer=is_win_stealer)
                 event.dispatch(var, player, role, allroles[player], winner)
                 if event.data["team_win"]:
                     team_wins.add(player)
@@ -572,7 +577,7 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
                     entry["account"] = ORIGINAL_ACCOUNTS[player]
 
                 survived = player in get_players(var)
-                if not entry["dced"] and winner != "":
+                if not entry["dced"]:
                     # by default, get an individual win if the team won and they survived
                     won = entry["team_win"] and survived
 
@@ -588,7 +593,7 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
                     entry["special"] = list(event.data["special"])
 
                     # special-case everyone for after the event
-                    if winner == "everyone":
+                    if winner is All:
                         won = True
 
                     entry["individual_win"] = won
@@ -600,7 +605,6 @@ def stop_game(var: Optional[GameState | PregameState], winner="", abort=False, a
                     # don't record fakes to the database
                     player_list.append(entry)
 
-        if log:
             from src.status.dying import DEAD
             game_options = {"role reveal": var.role_reveal,
                             "stats": var.stats_type,
@@ -691,7 +695,7 @@ def chk_win_conditions(var: GameState,
         if lpl < 1:
             message = messages["no_win"]
             # still want people like jesters, dullahans, etc. to get wins if they fulfilled their win conds
-            winner = "no_team_wins"
+            winner = Nobody
 
         # TODO: flip priority order (so that things like fool run last, and therefore override previous win conds)
         # Priorities:

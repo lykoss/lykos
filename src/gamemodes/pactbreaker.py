@@ -20,8 +20,8 @@ from src.gamemodes import game_mode, GameMode
 from src.gamestate import GameState
 from src.messages import messages, LocalRole
 from src.locations import move_player, Location, VillageSquare, Forest, Graveyard, Streets
-from src.cats import Wolf, Vampire
-from src.status import add_protection, add_lynch_immunity, get_all_protections
+from src.cats import Wolf, Vampire, Category, Wolfteam, Vampire_Team, Village
+from src.status import add_protection, add_day_vote_immunity, get_all_protections
 from src.roles.helper.wolves import send_wolfchat_message, wolf_kill, wolf_retract, is_known_wolf_ally
 from src.roles.vampire import send_vampire_chat_message, vampire_bite, vampire_retract, is_known_vampire_ally
 from src.roles.vampire import on_player_protected as vampire_drained
@@ -39,7 +39,7 @@ class PactBreakerMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.CUSTOM_SETTINGS.limit_abstain = False
-        self.CUSTOM_SETTINGS.self_lynch_allowed = False
+        self.CUSTOM_SETTINGS.self_vote_allowed = False
         self.CUSTOM_SETTINGS.always_pm_role = True
         self.ROLE_GUIDE = {
             6: ["wolf", "vampire", "vigilante", "cursed villager"],
@@ -67,9 +67,9 @@ class PactBreakerMode(GameMode):
             "update_stats": EventListener(self.on_update_stats),
             "begin_day": EventListener(self.on_begin_day),
             "transition_night_begin": EventListener(self.on_transition_night_begin),
-            "lynch": EventListener(self.on_lynch),
+            "day_vote": EventListener(self.on_day_vote),
             "abstain": EventListener(self.on_abstain),
-            "lynch_immunity": EventListener(self.on_lynch_immunity),
+            "day_vote_immunity": EventListener(self.on_day_vote_immunity),
             "del_player": EventListener(self.on_del_player),
             "myrole": EventListener(self.on_myrole),
             "revealroles": EventListener(self.on_revealroles),
@@ -523,7 +523,7 @@ class PactBreakerMode(GameMode):
         self.killing.clear()
         # if someone was locked up last night, ensure they can't be locked up again tonight
         if self.last_voted is not None:
-            add_lynch_immunity(var, self.last_voted, "pactbreaker")
+            add_day_vote_immunity(var, self.last_voted, "pactbreaker")
         # alert people about clue tokens they have
         observe_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.observe")
         id_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.identify")
@@ -532,7 +532,7 @@ class PactBreakerMode(GameMode):
                 continue
             player.send(messages["pactbreaker_clue_notify"].format(amount, observe_tokens, id_tokens))
 
-    def on_lynch(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
+    def on_day_vote(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
         self.last_voted = votee
         self.voted[votee] += 1
         if self.voted[votee] < 3:
@@ -545,7 +545,7 @@ class PactBreakerMode(GameMode):
     def on_abstain(self, evt: Event, var: GameState, abstains):
         self.last_voted = None
 
-    def on_lynch_immunity(self, evt: Event, var: GameState, player: User, reason: str):
+    def on_day_vote_immunity(self, evt: Event, var: GameState, player: User, reason: str):
         if reason == "pactbreaker":
             channels.Main.send(messages["pactbreaker_stocks_escape"].format(player))
             evt.data["immune"] = True
@@ -561,30 +561,30 @@ class PactBreakerMode(GameMode):
         num_vigilantes = len(get_players(var, ("vigilante",), mainroles=mainroles))
         num_villagers = len(get_players(var, ("villager",), mainroles=mainroles))
 
-        if evt.data["winner"] == "villagers":
+        if evt.data["winner"] is Village:
             evt.data["message"] = messages["pactbreaker_vigilante_win"]
-        elif evt.data["winner"] in ("wolves", "vampires"):
+        elif evt.data["winner"] in (Wolfteam, Vampire_Team):
             # Wolves don't win unless all vigilantes are dead
-            if evt.data["winner"] == "wolves" and num_vigilantes > 0:
+            if evt.data["winner"] is Wolfteam and num_vigilantes > 0:
                 evt.data["winner"] = None
             else:
                 # Wolves won and all vigilantes are dead, or vampire met normal win cond, so this is an actual win
                 # Message keys used: pactbreaker_wolf_win pactbreaker_vampire_win
-                key = LocalRole.from_en(evt.data["winner"]).singular
+                key = "wolf" if evt.data["winner"] is Wolfteam else "vampire"
                 evt.data["message"] = messages["pactbreaker_{0}_win".format(key)]
         elif num_vigilantes == 0 and lvampires == 0:
             # wolves (and villagers) win even if there is a minority of wolves as long as
             # the vigilantes and vampires are all dead
-            evt.data["winner"] = "wolves"
+            evt.data["winner"] = Wolfteam
             evt.data["message"] = messages["pactbreaker_wolf_win"]
         elif lvampires and (num_villagers == 0 or (num_vigilantes == 0 and lwolves == 0)):
             # vampires can win even with wolves and vigilante alive if they kill the rest of the village
             # or if all wolves and vigilantes are dead even if the remainder of the village outnumbers them
-            evt.data["winner"] = "vampires"
+            evt.data["winner"] = Vampire_Team
             evt.data["message"] = messages["pactbreaker_vampire_win"]
 
-    def on_team_win(self, evt: Event, var: GameState, player: User, main_role: str, all_roles: Iterable[str], winner: str):
-        if winner == "wolves" and main_role == "villager":
+    def on_team_win(self, evt: Event, var: GameState, player: User, main_role: str, all_roles: Iterable[str], winner: Category):
+        if winner is Wolfteam and main_role == "villager":
             evt.data["team_win"] = True
 
     def visit(self, wrapper: MessageDispatcher, message: str):

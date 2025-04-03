@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from src.cats import Hidden
+from src.cats import Hidden, Village
 from src.events import Event, event_listener
 from src.functions import get_players
 from src.gamestate import GameState
@@ -27,7 +27,7 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
     if evt.data["winner"] is not None:
         return
     if lrealwolves == 0 and lvampires == 0:
-        evt.data["winner"] = "villagers"
+        evt.data["winner"] = Village
         evt.data["message"] = messages["villager_win"]
 
 @event_listener("get_role_metadata")
