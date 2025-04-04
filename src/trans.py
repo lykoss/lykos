@@ -81,8 +81,6 @@ def begin_day(var: GameState):
     global DAY_ID
     DAY_ID = time.time()
     pl = get_players(var)
-    msg = messages["villagers_vote"].format(len(pl) // 2 + 1)
-    channels.Main.send(msg)
 
     if config.Main.get("timers.shortday.enabled") and len(pl) <= config.Main.get("timers.shortday.players"):
         warn = var.short_day_time_warn
@@ -116,6 +114,12 @@ def begin_day(var: GameState):
     # game might've ended due to begin_day listeners?
     if chk_win(var):
         return
+
+    # re-fetch number of players just in case anyone died during the begin_day event...
+    available = len(get_players(var)) - len(get_absent(var))
+    msg = messages["villagers_vote"].format(available // 2 + 1)
+    channels.Main.send(msg)
+
     # induce a vote if we need to (due to lots of pacifism/impatience totems or whatever)
     chk_decision(var)
 
