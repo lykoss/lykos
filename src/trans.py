@@ -113,6 +113,9 @@ def begin_day(var: GameState):
 
     event = Event("begin_day", {})
     event.dispatch(var)
+    # game might've ended due to begin_day listeners?
+    if chk_win(var):
+        return
     # induce a vote if we need to (due to lots of pacifism/impatience totems or whatever)
     chk_decision(var)
 

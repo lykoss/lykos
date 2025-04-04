@@ -197,10 +197,10 @@ def show_votes(wrapper: MessageDispatcher, message: str):
 
     wrapper.reply(to_send, prefix_nick=True)
 
-@command("vote", phases=("join",))
+@command("vote", pm=True, phases=("join",))
 def vote(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode if no game is running."""
-    if message:
+    if wrapper.public and message:
         from src.wolfgame import game
         return game.caller(wrapper, message)
     return show_votes.caller(wrapper, message)
