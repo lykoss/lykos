@@ -208,7 +208,7 @@ def vote(wrapper: MessageDispatcher, message: str):
     return show_votes.caller(wrapper, message)
 
 # Specify timeout=True to force a vote and end of day even if there is no majority
-# admin_forced=True will make it not count towards village's abstain limit if nobody is voted
+# admin_forced=True will make it not count towards villages' abstain limit if nobody is voted
 def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     from src.trans import chk_win
     with locks.reaper:

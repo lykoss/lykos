@@ -1272,6 +1272,10 @@ def _git_pull(wrapper):
         return False
 
     (ret, _) = _call_command(wrapper, "git pull --stat --ff-only")
+    if ret != 0:
+        return False
+
+    (ret, _) = _call_command(wrapper, "git submodule foreach git pull --stat --ff-only")
     return ret == 0
 
 @command("fpull", flag="D", pm=True)
