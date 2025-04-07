@@ -641,7 +641,6 @@
     "totem_desperation": "As the noose is being fitted, {0:@}'s totem emits a brilliant flash of light. When the villagers are able to see again, they discover that {1:@}, {2!role:article} {2!role:bold}, has fallen over dead.",
     "totem_desperation_no_reveal": "As the noose is being fitted, {0:@}'s totem emits a brilliant flash of light. When the villagers are able to see again, they discover that {1:@} has fallen over dead.",
     "majority_votes": "{0}Votes needed for a majority: {1}",
-    "voting_daytime_only": "Voting is only during the day.",
     "no_votes": "No votes yet.",
     "vote_stats": "{0:bold} players, {1:bold} votes required to kill, {2:bold} players available to vote.",
     "vote_stats_abstain": " {0:bold} {=player,players:plural({0})} refrained from voting.",

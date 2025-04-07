@@ -118,7 +118,7 @@ def retract(wrapper: MessageDispatcher, message: str):
     else:
         wrapper.pm(messages["pending_vote"])
 
-@command("votes", pm=True, phases=("join", "day", "night"))
+@command("votes", pm=True, phases=("join", "day"))
 def show_votes(wrapper: MessageDispatcher, message: str):
     """Show the current votes."""
     var = wrapper.game_state
@@ -156,18 +156,11 @@ def show_votes(wrapper: MessageDispatcher, message: str):
         wrapper.send(msg)
         return
 
-    if var.current_phase == "night":
-        wrapper.pm(messages["voting_daytime_only"])
-        return
-
     global LAST_VOTES
-    if not LAST_VOTES:
-        return
-
-    if (wrapper.public and config.Main.get("ratelimits.votes") and
-            LAST_VOTES + timedelta(seconds=config.Main.get("ratelimits.votes")) > datetime.now()):
-        wrapper.pm(messages["command_ratelimited"])
-        return
+    if config.Main.get("ratelimits.votes") and wrapper.public and LAST_VOTES is not None:
+        if LAST_VOTES + timedelta(seconds=config.Main.get("ratelimits.votes")) > datetime.now():
+            wrapper.pm(messages["command_ratelimited"])
+            return
 
     if wrapper.public and wrapper.source in pl:
         LAST_VOTES = datetime.now()
