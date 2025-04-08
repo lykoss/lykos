@@ -243,7 +243,8 @@ Main = Config()
 def merge(metadata: dict[str, Any], base, settings, *path: str,
           type_override: Optional[str] = None,
           strategy_override: Optional[str] = None,
-          tagged: bool = False) -> Any:
+          tagged: bool = False,
+          base_metadata: Optional[dict[str, Any]] = None) -> Any:
     """Merge settings into a base settings object.
 
     This calls itself recursively and does not mutate any passed-in objects.
@@ -255,6 +256,8 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
     :param type_override: Override the type from metadata. For internal use only.
     :param strategy_override: Override the merge strategy from metadata. For internal use only.
     :param tagged: If true, we expect a "type" key to exist in settings. For internal use only.
+    :param base_metadata: If the metadata for base differs from settings, this specifies the metadata for base.
+       For example, when merging tagged types with differing tags between base and settings. For internal use only.
     :returns: Merged settings object
     :raises TypeError: If settings is of an incorrect type
     :raises AssertionError: If metadata is ill-formed
@@ -502,12 +505,19 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
         # need to know what keys are valid in the dict
         assert "_default" in metadata and isinstance(metadata["_default"], dict)
 
-        if settings is not Empty:
-            extra = list(settings.keys() - metadata["_default"].keys())
+        extra = []
+        if base is not Empty:
+            if base_metadata is None:
+                base_metadata = metadata
+            extra.extend(list(base.keys() - base_metadata["_default"].keys()))
             if tagged and "type" in extra:
                 extra.remove("type")
-            if extra and not metadata.get("_extra", False):
-                raise TypeError("Value on path '{}' has unrecognized key {}".format(".".join(path), extra[0]))
+        if settings is not Empty:
+            extra.extend(list(settings.keys() - metadata["_default"].keys()))
+            if tagged and "type" in extra:
+                extra.remove("type")
+        if extra and not metadata.get("_extra", False):
+            raise TypeError("Value on path '{}' has unrecognized key {}".format(".".join(path), extra[0]))
 
         # dict supports two merge types: merge (default), replace
         if merge_type is None:
@@ -528,6 +538,12 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
             else:
                 settings_value = settings.get(key, Empty)
             value[key] = merge(item_metadata, base_value, settings_value, *path, key)
+        for key in extra:
+            # there is no merging for the values of extra keys right now; settings always replaces base
+            if base is not Empty and key in base:
+                value[key] = base[key]
+            if settings is not Empty and key in settings:
+                value[key] = settings[key]
         return value
 
     elif settings_type == "tagged":
@@ -543,10 +559,17 @@ def merge(metadata: dict[str, Any], base, settings, *path: str,
 
         if "type" not in settings:
             raise TypeError("Value on path '{}' is missing required key type".format(".".join(path)))
+
+        base_tag_metadata = None
+        if base is not Empty:
+            if base["type"] not in metadata["_tags"]:
+                raise TypeError("Value on path '{}' has unrecognized type {}".format(".".join(path), base["type"]))
+            base_tag_metadata = metadata["_tags"][base["type"]]
+
         tagged_type = settings["type"]
         if tagged_type not in metadata["_tags"]:
             raise TypeError("Value on path '{}' has unrecognized type {}".format(".".join(path), tagged_type))
-        return merge(metadata["_tags"][tagged_type], base, settings, *path, tagged=True)
+        return merge(metadata["_tags"][tagged_type], base, settings, *path, tagged=True, base_metadata=base_tag_metadata)
 
     elif isinstance(settings_type, dict):
         # complex type

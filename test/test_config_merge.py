@@ -236,6 +236,29 @@ class TestConfigMerge(TestCase):
         with self.subTest("non-empty base"):
             self.assertEqual(merge(metadata, {"foo": 1}, {"bar": "a"}), {"foo": 1, "bar": "a", "baz": []})
 
+    def test_merge_dict_extra(self):
+        metadata = {
+            "_type": "dict",
+            "_merge": "merge",
+            "_extra": True,
+            "_default": {
+                "foo": {
+                    "_type": "int",
+                    "_default": 0
+                },
+                "bar": {
+                    "_type": "str",
+                    "_default": ""
+                }
+            }}
+
+        with self.subTest("base fallback"):
+            self.assertEqual(merge(metadata, {"foo": 1, "baz": 2}, Empty), {"foo": 1, "bar": "", "baz": 2})
+        with self.subTest("empty base"):
+            self.assertEqual(merge(metadata, Empty, {"foo": 1, "baz": 2}), {"foo": 1, "bar": "", "baz": 2})
+        with self.subTest("non-empty base"):
+            self.assertEqual(merge(metadata, {"foo": 1, "a": 2}, {"bar": "baz", "b": 3}), {"foo": 1, "bar": "baz", "a": 2, "b": 3})
+
     def test_merge_dict_replace(self):
         metadata = {
             "_type": "dict",
