@@ -125,7 +125,14 @@ class Config:
             if key_part not in cur:
                 raise KeyError("configuration key not found: {}".format(key))
             cur = cur[key_part]
-            meta = meta["_default"][key_part]
+            if key_part not in meta["_default"]:
+                if meta.get("_extra", False):
+                    meta = {"_extra": True, "_type": "dict", "_default": {}}
+                else:
+                    raise KeyError("configuration key not found: {}".format(key))
+            else:
+                meta = meta["_default"][key_part]
+
             meta_type = meta["_type"]
             if idx_part is not None:
                 if idx_part >= len(cur):
