@@ -18,7 +18,7 @@ from src.users import User
 from src.events import Event, event_listener
 from src.votes import chk_decision
 from src.cats import Win_Stealer, Wolf_Objective, Vampire_Objective, Village_Objective, role_order, get_team, All, \
-    Category, Nobody
+    Category, Nobody, Hidden
 from src import channels, users, locks, config, db, reaper, relay
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState, PregameState
@@ -558,6 +558,10 @@ def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody
                     continue
                 # determine default team win
                 won = role in winner
+
+                # handle Hidden
+                if role in Hidden:
+                    won = var.hidden_role in winner
 
                 # Let events modify this as necessary.
                 # Neutral roles will need to listen in on this to determine team wins

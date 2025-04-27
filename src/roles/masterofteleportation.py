@@ -55,7 +55,7 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
     if main_role == "master of teleportation":
         evt.data["count_game"] = False
 
-@event_listener("transition_day_begin")
+@event_listener("transition_day_begin", priority=3)
 def on_transition_day_begin(evt: Event, var: GameState):
     swaps = list(SWAPS.values())
     random.shuffle(swaps)
