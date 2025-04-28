@@ -70,7 +70,10 @@ class TestMatch(TestCase):
             self.assertEqual(match_role("crazed shaman", remove_spaces=True).get().key, "crazed shaman")
             self.assertEqual(match_role("crazedshaman", remove_spaces=True).get().key, "crazed shaman")
         with self.subTest("allowing extra"):
-            self.assertEqual(match_role("wolfteam", allow_extra=True).get().key, "wolfteam player")
+            from src.messages import messages
+            messages.cache.clear()
+            messages.messages["_roles"]["unittest_extra"] = ["unittest extra", "unittest extras"]
+            self.assertEqual(match_role("unittest", allow_extra=True).get().key, "unittest_extra")
         with self.subTest("disallowing special roles"):
             self.assertFalse(match_role("lover", allow_special=False))
         with self.subTest("limited scope"):
