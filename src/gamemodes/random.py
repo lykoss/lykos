@@ -5,7 +5,7 @@ from src.gamestate import GameState
 from src.events import EventListener, Event
 from src.trans import chk_win_conditions
 from src import users
-from src.cats import All, Wolf, Wolf_Objective, Vampire_Objective, Killer
+from src.cats import All, Wolf, Wolf_Objective, Vampire_Objective, Killer, Hidden_Eligible
 from src.random import random
 
 @game_mode("random", minp=8, maxp=24)
@@ -51,7 +51,7 @@ class RandomMode(GameMode):
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         num_wolves = 1
         num_vampires = 0
-        roles = list(All - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "thrall", "amnesiac"})
+        roles = list(All - self.SECONDARY_ROLES.keys() - Hidden_Eligible - {"amnesiac"})
         for i in range(1, lpl):
             if num_wolves + num_vampires >= (lpl / 2) - 1:
                 # Make sure game does not end immediately

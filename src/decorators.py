@@ -19,7 +19,7 @@ class command:
     def __init__(self, cmd: str, *, flag: Optional[str] = None, owner_only: bool = False,
                  chan: bool = True, pm: bool = False, playing: bool = False, silenced: bool = False,
                  phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None,
-                 allow_alt: Optional[bool] = None, register: bool = True):
+                 in_game_only: bool = False, allow_alt: Optional[bool] = None, register: bool = True):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not config.Main.get("debug.enabled"):
@@ -38,6 +38,7 @@ class command:
         self.phases = phases
         self.roles = roles
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
+        self.in_game_only = in_game_only
         self.func: Callable[[MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name: str = commands[0]
@@ -106,6 +107,9 @@ class command:
             return
 
         if self.phases and (wrapper.game_state is None or wrapper.game_state.current_phase not in self.phases):
+            return
+
+        if self.in_game_only and (wrapper.game_state is None or not wrapper.game_state.in_game):
             return
 
         wrapper.source.update_account_data(self.key, functools.partial(self._thunk, wrapper, message))

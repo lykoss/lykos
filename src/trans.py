@@ -735,15 +735,18 @@ def chk_win_conditions(var: GameState,
             stop_game(var, winner, additional_winners=event.data["additional_winners"])
         return True
 
-@command("fstop", flag="S", phases=("join", "day", "night"))
+@command("fstop", flag="S")
 def reset_game(wrapper: MessageDispatcher, message: str):
     """Forces the game to stop."""
-    wrapper.send(messages["fstop_success"].format(wrapper.source))
     var = wrapper.game_state
+    if var is None:
+        return
+
     pl = None
     if var.current_phase == "join":
         pl = [p for p in get_players(var) if not p.is_fake]
 
+    wrapper.send(messages["fstop_success"].format(wrapper.source))
     stop_game(var, log=False)
     if pl:
         wrapper.send(messages["fstop_ping"].format(pl))

@@ -3,6 +3,8 @@ import random
 import fnmatch
 
 from src import config
+from src.cats import Category
+
 
 class Formatter(string.Formatter):
     """ Custom formatter for message strings.
@@ -27,11 +29,11 @@ class Formatter(string.Formatter):
     - New spec ":bold" to bold the value. This can be combined with other format specifiers.
     - New spec ":article to give the indefinite article for the given value.
     - New spec ":!" prefixes the value with the bot's command character.
-    - New convert type "!role" to indicate the value is a role name (and will be translated appropriately).
+    - New convert type "!role" to indicate the value is a role name or role category (and will be translated appropriately).
     - New convert type "!mode" to indicate the value is a gamemode name (and will be translated appropriately).
     - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
     - New convert type "!totem" to indicate the value is a totem name (and will be translated appropriately).
-    - New convert type "!cat" to indicate the value is a role category name (and will be translated appropriately).
+    - New convert type "!cat" to indicate the value is a role category or role category name (and will be translated appropriately).
     - New convert type "!phase" to indicate the value is a game phase name (and will be translated appropriately).
     - New convert type "!message" to indicate the value is a message key; it will be recursively expanded.
     """
@@ -137,6 +139,10 @@ class Formatter(string.Formatter):
             if isinstance(value, LocalRole):
                 # FIXME: this doesn't necessarily match the roles metadata (which can have lists of arbitrary length)
                 return [value.singular, value.plural]
+            if isinstance(value, Category):
+                return messages.raw("_role_categories", value.name)
+            if value[0].isupper():
+                return messages.raw("_role_categories", value)
             return messages.raw("_roles", value)
         if conversion == "mode":
             if isinstance(value, LocalMode):
@@ -149,6 +155,8 @@ class Formatter(string.Formatter):
                 return value.local
             return messages.raw("_totems", value)
         if conversion == "cat":
+            if isinstance(value, Category):
+                return messages.raw("_role_categories", value.name)
             return messages.raw("_role_categories", value)
         if conversion == "phase":
             return messages.raw("_phases", value)

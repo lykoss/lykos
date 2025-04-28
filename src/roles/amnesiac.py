@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from src import users, config
-from src.cats import role_order, Win_Stealer, Vampire_Team
+from src.cats import role_order, Win_Stealer, Hidden_Eligible, all_teams, Neutral
 from src.containers import UserDict
 from src.events import Event, event_listener
 from src.functions import get_all_players, change_role
@@ -18,7 +18,13 @@ ROLES: UserDict[users.User, str] = UserDict()
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def get_blacklist(var: GameState):
-    return var.current_mode.SECONDARY_ROLES.keys() | Win_Stealer | Vampire_Team | {"villager", "cultist", "amnesiac"}
+    bl = Win_Stealer | Hidden_Eligible | {"amnesiac"} | set(var.current_mode.SECONDARY_ROLES.keys())
+    # don't introduce teams that don't already exist in the mode (except neutrals, since that's not a real team)
+    starting_roles = set(var.original_main_roles.values())
+    for team in all_teams():
+        if team is not Neutral and not (team & starting_roles):
+            bl |= team
+    return bl
 
 def get_stats_flag(var):
     return STATS_FLAG

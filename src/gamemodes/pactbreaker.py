@@ -104,7 +104,7 @@ class PactBreakerMode(GameMode):
         self.observe_command = command("observe", phases=("day",), **kwargs)(self.observe)
         self.kill_command = command("kill", phases=("night",), roles=("wolf", "vigilante"), **kwargs)(self.kill)
         self.bite_command = command("bite", phases=("night",), roles=("vampire",), **kwargs)(self.bite)
-        self.stats_command = command("stats", pm=True, phases=("day", "night"), register=False)(self.stats)
+        self.stats_command = command("stats", pm=True, in_game_only=True, register=False)(self.stats)
 
     def startup(self):
         super().startup()

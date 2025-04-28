@@ -9,7 +9,8 @@
 # Nocturnal: Defines the role as being awake at night (usually due to having commands which work at night)
 # Neutral: Defines the role as neutral (seen as grey by augur) and not in village or wolfteam when determining winners
 # Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.)
-# Hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
+# Hidden: Players with hidden roles do not know that they have that role (told they are an eligible instead, and win with that team)
+# Hidden Eligible: Roles that the bot can re-map players with hidden roles to. These roles should never have special powers.
 # Safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
 # Spy: Actively gets information about other players or teams
 # Intuitive: Passively gets information about other players or teams
@@ -29,19 +30,18 @@ from __future__ import annotations
 
 from collections import defaultdict
 import itertools
-from typing import Iterable, TYPE_CHECKING
+from typing import Iterable, TYPE_CHECKING, Collection
 
-from src.messages._messages import Messages as _Messages
 from src.events import Event, EventListener
 
 if TYPE_CHECKING:
     from src.gamestate import GameState
 
 __all__ = [
-    "get", "get_team", "role_order", "all_cats", "all_roles", "Category",
+    "get", "get_team", "role_order", "all_cats", "all_roles", "all_teams", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective",
-    "Vampire", "Vampire_Team", "Vampire_Objective", "All", "Nobody"
+    "Vampire", "Vampire_Team", "Vampire_Objective", "Hidden_Eligible", "All", "Nobody"
 ]
 
 _dict_keys = type(dict().keys())  # type: ignore
@@ -56,10 +56,8 @@ ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Vampire", "Vampire Team", "Villag
 
 FROZEN = False
 
-ROLES = {}
+ROLES: dict[str, Collection[str]] = {}
 TEAMS: set[Category] = set()
-
-_internal_en = _Messages(override="en")
 
 def get(cat: str) -> Category:
     if not FROZEN:
@@ -77,24 +75,19 @@ def role_order() -> Iterable[str]:
             if tag in tags:
                 buckets[tag].append(role)
                 break
-    # handle fixed ordering for wolf, vampire, and villager
-    have_wolf = "Wolf" in buckets and "wolf" in buckets["Wolf"]
-    have_vampire = "Vampire" in buckets and "vampire" in buckets["Vampire"]
-    have_villager = "Village" in buckets and "villager" in buckets["Village"]
-    if have_wolf:
-        buckets["Wolf"].remove("wolf")
-    if have_vampire:
-        buckets["Vampire"].remove("vampire")
-    if have_villager:
-        buckets["Village"].remove("villager")
     for tags in buckets.values():
         tags.sort()
-    if have_wolf:
-        buckets["Wolf"].insert(0, "wolf")
-    if have_vampire:
-        buckets["Vampire"].insert(0, "vampire")
-    if have_villager:
-        buckets["Village"].append("villager")
+    # handle roles that match the category name being first
+    for tag, roles in buckets.items():
+        if tag.lower() in roles:
+            roles.remove(tag.lower())
+            roles.insert(0, tag.lower())
+    # handle "vanilla" roles being last (villager/cultist/thrall)
+    for role in Hidden_Eligible:
+        for roles in buckets.values():
+            if role in roles:
+                roles.remove(role)
+                roles.append(role)
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
 def all_cats() -> dict[str, Category]:
@@ -116,6 +109,14 @@ def all_roles() -> dict[str, list[Category]]:
         roles[role] = [next(iter(main_cat))] + sorted(iter(cats), key=str)
     return roles
 
+def all_teams() -> Iterable[Category]:
+    if not FROZEN:
+        raise RuntimeError("Fatal: Role categories are not ready")
+    for role in ROLE_ORDER:
+        cat = ROLE_CATS[role]
+        if cat in TEAMS and cat is not Hidden:
+            yield cat
+
 def get_team(var: GameState, role: str) -> Category:
     if not FROZEN:
         raise RuntimeError("Fatal: Role categories are not ready")
@@ -124,6 +125,8 @@ def get_team(var: GameState, role: str) -> Category:
     for team in TEAMS:
         if role in team:
             return team
+    else:
+        raise RuntimeError(f"No team defined for role {role}")
 
 def _register_roles(evt: Event):
     global FROZEN
@@ -219,18 +222,6 @@ class Category:
     def __repr__(self):
         return "Role category: {0}".format(self.name)
 
-    def plural_roles(self):
-        """Return the English plural versions of roles for internal use."""
-        values = set()
-        for role in self:
-            values.add(_internal_en.raw("_roles", role)[1])
-        return values
-
-    @property
-    def plural_name(self):
-        """Return the English plural version of this category's name for internal use."""
-        return _internal_en.raw("_role_categories", self.name)[1]
-
     def __invert__(self):
         new = self.from_combination(All, self, "", set.difference_update)
         if self.name in ROLE_CATS:
@@ -278,6 +269,7 @@ Nocturnal = Category("Nocturnal")
 Neutral = Category("Neutral")
 Win_Stealer = Category("Win Stealer")
 Hidden = Category("Hidden")
+Hidden_Eligible = Category("Hidden Eligible")
 Safe = Category("Safe")
 Spy = Category("Spy")
 Intuitive = Category("Intuitive")

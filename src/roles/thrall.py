@@ -42,4 +42,4 @@ def on_chk_win(evt: Event,
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
-        evt.data["thrall"] = {"Vampire Team", "Evil"}
+        evt.data["thrall"] = {"Vampire Team", "Evil", "Hidden Eligible"}

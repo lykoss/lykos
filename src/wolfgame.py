@@ -330,7 +330,7 @@ def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
     # message keys used: "notice_on", "notice_off"
     wrapper.pm(messages["notice_" + toggle])
 
-@command("swap", pm=True, phases=("join", "day", "night"))
+@command("swap", pm=True)
 def replace(wrapper: MessageDispatcher, message: str):
     """Swap out a player logged in to your account."""
     if wrapper.source not in channels.Main.users:
@@ -338,6 +338,8 @@ def replace(wrapper: MessageDispatcher, message: str):
         return
 
     var = wrapper.game_state
+    if var is None:
+        return
 
     pl = get_players(var)
     if wrapper.source in pl:
@@ -1076,7 +1078,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
     wrapper.send(*msg)
 
-@command("myrole", pm=True, phases=("day", "night"))
+@command("myrole", pm=True, in_game_only=True)
 def myrole(wrapper: MessageDispatcher, message: str):
     """Remind you of your current role."""
 

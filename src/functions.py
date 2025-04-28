@@ -8,7 +8,7 @@ import typing
 from src.messages import messages, LocalRole, LocalMode, LocalTotem
 from src.gamestate import PregameState, GameState
 from src.events import Event
-from src.cats import Wolfteam, Neutral, Hidden, All
+from src.cats import Wolfteam, Neutral, Hidden, All, get_team
 from src.match import Match, match_all
 
 if typing.TYPE_CHECKING:
@@ -211,15 +211,7 @@ def get_reveal_role(var: GameState, user, *, mainroles=None) -> str:
     evt.dispatch(var, user)
     role = evt.data["role"]
 
-    if var.role_reveal != "team":
-        return role
-
-    if role in Wolfteam:
-        return "wolfteam player"
-    elif role in Neutral:
-        return "neutral player"
-    else:
-        return "village member"
+    return role if var.role_reveal != "team" else get_team(var, role).name
 
 def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
     """ Match a partial role or alias name into the internal role key.

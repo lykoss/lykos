@@ -9,11 +9,11 @@ message_formatter = Formatter()
 from src.messages import _messages
 from src.messages.message import Message
 
-__all__ = ["messages", "message_formatter",
+__all__ = ["messages", "message_formatter", "internal_en",
            "LocalRole", "LocalMode", "LocalTotem"]
 
 messages = _messages.Messages()
-_internal_en = _messages.Messages(override="en")
+internal_en = _messages.Messages(override="en")
 
 class LocalKeyValueWrapper(ABC):
     def __init__(self, key: str, custom: Any):
@@ -54,7 +54,7 @@ class LocalRole(LocalKeyValueWrapper):
         :param role: An English version of the role (which may be singular or plural)
         :return: LocalRole instance for the current language
         """
-        all_roles = _internal_en.raw("_roles")
+        all_roles = internal_en.raw("_roles")
         for key, vals in all_roles.items():
             if role in vals:
                 return LocalRole(key)

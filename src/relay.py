@@ -187,17 +187,17 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
         wrapper.pm(messages["spectate_on_{0}".format(what)])
         wrapper.pm(messages["players_list"].format(players))
 
-@command("spectate", flag="p", pm=True, phases=("day", "night"))
+@command("spectate", flag="p", pm=True, in_game_only=True)
 def spectate(wrapper: MessageDispatcher, message: str):
     """Spectate wolfchat, vampire chat, or deadchat."""
     spectate_chat(wrapper, message, is_fspectate=False)
 
-@command("fspectate", flag="F", pm=True, phases=("day", "night"))
+@command("fspectate", flag="F", pm=True, in_game_only=True)
 def fspectate(wrapper: MessageDispatcher, message: str):
     """Spectate wolfchat, vampire chat, or deadchat."""
     spectate_chat(wrapper, message, is_fspectate=True)
 
-@command("revealroles", flag="a", pm=True, phases=("day", "night"))
+@command("revealroles", flag="a", pm=True, in_game_only=True)
 def revealroles(wrapper: MessageDispatcher, message: str):
     """Reveal role information."""
 

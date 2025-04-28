@@ -1,4 +1,6 @@
 from collections import Counter
+
+from src.cats import Hidden_Eligible
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users, cats, config
@@ -34,7 +36,7 @@ class ChangedRolesMode(GameMode):
                 elif role == "default" and num in cats.ROLES:
                     self.CUSTOM_SETTINGS.default_role = num
                     self.CUSTOM_SETTINGS._overridden.add("default_role")
-                elif role == "hidden" and num in ("villager", "cultist", "thrall"):
+                elif role == "hidden" and num in Hidden_Eligible:
                     self.CUSTOM_SETTINGS.hidden_role = num
                     self.CUSTOM_SETTINGS._overridden.add("hidden_role")
                 elif role in ("role reveal", "stats", "abstain"):

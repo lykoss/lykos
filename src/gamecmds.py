@@ -12,7 +12,7 @@ from src.containers import UserDict
 from src.functions import get_players, get_main_role
 from src.messages import messages
 from src.events import Event, EventListener, event_listener
-from src.cats import Wolfteam, Neutral, role_order, Vampire_Team
+from src.cats import Wolfteam, Neutral, role_order, Vampire_Team, all_teams
 from src import config, users, channels, pregame, trans
 from src.dispatcher import MessageDispatcher
 from src.gamestate import GameState
@@ -25,11 +25,14 @@ LAST_GOAT: UserDict[User, datetime] = UserDict()
 
 ADMIN_PINGING: bool = False
 
-@command("stats", pm=True, phases=("join", "day", "night"))
+@command("stats", pm=True)
 def stats(wrapper: MessageDispatcher, message: str):
     """Displays the player statistics."""
     global LAST_STATS
     var = wrapper.game_state
+    if var is None:
+        return
+
     pl = get_players(var)
 
     if wrapper.public and (wrapper.source in pl or var.current_phase == "join"):
@@ -144,37 +147,24 @@ def stats(wrapper: MessageDispatcher, message: str):
     # of what numbers are shown is the same as summing up counts in "accurate"
     # as accurate, this contains no hidden information
     elif var.stats_type == "team":
-        wolfteam = 0
-        villagers = 0
-        neutral = 0
+        first_count = -1
+        starting_roles = set(var.original_main_roles.values())
+        for team in all_teams():
+            team_count = 0
+            for role, players in var.roles.items():
+                if role in var.current_mode.SECONDARY_ROLES:
+                    continue
+                if role in team:
+                    team_count += len(players)
 
-        for role, players in var.roles.items():
-            if role in var.current_mode.SECONDARY_ROLES:
+            if team_count == 0 and not (team & starting_roles):
                 continue
-            if role in Wolfteam:
-                wolfteam += len(players)
-            elif role in Neutral:
-                neutral += len(players)
+            if first_count == -1:
+                first_count = team_count
+            if team_count == 0:
+                entries.append(messages["stats_reply_entry_none"].format(team))
             else:
-                villagers += len(players)
-
-        if wolfteam == 1:
-            first_count = 1
-
-        if wolfteam == 0:
-            entries.append(messages["stats_reply_entry_none"].format("wolfteam player"))
-        else:
-            entries.append(messages["stats_reply_entry_single"].format("wolfteam player", wolfteam))
-
-        if villagers == 0:
-            entries.append(messages["stats_reply_entry_none"].format("village member"))
-        else:
-            entries.append(messages["stats_reply_entry_single"].format("village member", villagers))
-
-        if neutral == 0:
-            entries.append(messages["stats_reply_entry_none"].format("neutral player"))
-        else:
-            entries.append(messages["stats_reply_entry_single"].format("neutral player", neutral))
+                entries.append(messages["stats_reply_entry_single"].format(team, team_count))
 
     wrapper.reply(messages["stats_reply"].format(var.current_phase, first_count, entries))
 

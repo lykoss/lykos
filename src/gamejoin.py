@@ -357,10 +357,13 @@ def join_timer_handler(var):
 
         channels.Main.who()
 
-@command("leave", pm=True, phases=("join", "day", "night"))
+@command("leave", pm=True)
 def leave_game(wrapper: MessageDispatcher, message: str):
     """Quits the game."""
     var = wrapper.game_state
+    if var is None:
+        return
+
     if wrapper.target is channels.Main:
         if wrapper.source not in get_players(var):
             return
@@ -401,11 +404,13 @@ def leave_game(wrapper: MessageDispatcher, message: str):
         from src.trans import stop_game
         stop_game(var, log=False)
 
-@command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
+@command("fleave", flag="A", pm=True)
 def fleave(wrapper: MessageDispatcher, message: str):
     """Force someone to leave the game."""
 
     var = wrapper.game_state
+    if var is None:
+        return
 
     for person in re.split(" +", message):
         person = person.strip()
