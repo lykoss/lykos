@@ -25,7 +25,7 @@ __all__ = ["init_vars", "decrement_stasis", "set_stasis", "get_template", "get_t
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 # Constant of all the flags that the bot uses
 # This is not meant to be modified
@@ -1045,7 +1045,7 @@ def _upgrade(oldversion):
             # normalize winner to category names
             c.execute("""UPDATE game
                          SET winner = CASE winner
-                            WHEN 'villagers' THEN 'Villager'
+                            WHEN 'villagers' THEN 'Village'
                             WHEN 'wolves' THEN 'Wolfteam'
                             WHEN 'vampires' THEN 'Vampire Team'
                             WHEN '' THEN 'Nobody'
@@ -1053,6 +1053,11 @@ def _upgrade(oldversion):
                             WHEN 'everyone' THEN 'All'
                             ELSE UPPER(SUBSTR(winner, 1, 1)) || SUBSTR(winner, 2)
                          END""")
+        if oldversion < 12:
+            print("Upgrade from version 11 to 12...", file=sys.stderr)
+            # v11 normalization accidentally had Villager instead of Village
+            # it's been fixed above, but need to fix existing bots as well
+            c.execute("UPDATE game SET winner = 'Village' WHERE winner = 'Villager'")
 
         print("Rebuilding indexes...", file=sys.stderr)
         c.execute("REINDEX")
