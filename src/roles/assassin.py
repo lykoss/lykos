@@ -45,10 +45,15 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("assassin",)) - PREV_ACTED)
     evt.data["acted"].extend(TARGETED.keys() - PREV_ACTED)
 
-@event_listener("transition_day_resolve")
-def on_transition_day_resolve(evt: Event, var: GameState, dead: set[User], killers):
+@event_listener("transition_day_begin")
+def on_transition_day_begin(evt: Event, var: GameState):
+    # This event runs before first day even if we're starting with day.
+    # Don't select random targets for assassins that didn't even get a chance to act yet.
+    if var.start_with_day and var.day_count == 1:
+        return
+
     # Select a random target for assassin if they didn't target
-    pl = set(get_players(var)) - dead
+    pl = set(get_players(var))
     for ass in get_all_players(var, ("assassin",)):
         if ass not in TARGETED and not is_silent(var, ass):
             ps = list(pl - {ass})
