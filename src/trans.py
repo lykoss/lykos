@@ -224,7 +224,7 @@ def transition_day(var: GameState, game_id: int = 0):
     killers: dict[UserOrLocation, list[UserOrSpecialTag]] = defaultdict(list)
     kill_priorities: dict[UserOrSpecialTag, int] = defaultdict(int)
     message: dict[UserOrSpecialTag, list[str]] = defaultdict(list)
-    message["*"].append(messages["sunrise"].format(minimum, sec))
+    message["*"].append(messages["sunrise"].format(minimum, sec, var.day_count))
     dead: set[User] = set()
     novictmsg = True
     howl_count = 0
@@ -430,7 +430,7 @@ def transition_night(var: GameState):
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)
 
-    dmsg.append(messages["night_begin"])
+    dmsg.append(messages["night_begin"].format(var.night_count))
 
     if var.night_count:
         dmsg.append(messages["first_night_begin"])
