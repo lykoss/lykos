@@ -650,15 +650,15 @@ class PactBreakerMode(GameMode):
             return
 
         have_evidence = False
-        can_kill = ("vampire", "vigilante") if player_role == "wolf" else ("vampire", "wolf")
-        for role in can_kill:
-            if target in self.collected_evidence[wrapper.source][role]:
-                have_evidence = True
-                break
+        if player_role == "wolf":
+            for role in ("vigilante", "vampire"):
+                if target in self.collected_evidence[wrapper.source][role]:
+                    have_evidence = True
+                    break
 
-        if target is not self.in_stocks and not have_evidence:
-            wrapper.send(messages["pactbreaker_no_kill_evidence"].format(target))
-            return
+            if target is not self.in_stocks and not have_evidence:
+                wrapper.send(messages["pactbreaker_no_kill_evidence"].format(target))
+                return
 
         self.killing[wrapper.source] = target
         self.visiting[wrapper.source] = Limbo
