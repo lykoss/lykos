@@ -307,7 +307,8 @@
         "*": "For assistance in configuring this metadata, please see https://werewolf.chat/Translation#Phases",
         "join": "join",
         "night": "night",
-        "day": "day"
+        "day": "day",
+        "nightmare": "the witching hour"
     },
     "no_victims": [
         "The body of a young penguin pet is found.",
