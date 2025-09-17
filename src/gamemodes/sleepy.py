@@ -263,8 +263,18 @@ class SleepyMode(GameMode):
                     if new == "doomsayer":
                         # so game doesn't just end immediately at 8-9p, make the traitor into a monster too
                         # do this before seer turns to doomsayer so the traitor doesn't know the new wolf
-                        for traitor in get_players(var, ("traitor",)):
-                            change_role(var, traitor, "traitor", "monster", message="sleepy_monster_turn")
+                        can_turn = get_players(var, ("traitor",))
+                        turn_role = "traitor"
+                        if not can_turn:
+                            # if traitor is dead or already turned, grab a random wolf instead
+                            can_turn = get_players(var, ("wolf",))
+                            turn_role = "wolf"
+                        if not can_turn:
+                            # if all traitors AND all regular wolves are dead, don't turn seer into doomsayer
+                            continue
+                        # otherwise turn only one wolfteam into monster for each seer that turns to doomsayer
+                        random.shuffle(can_turn)
+                        change_role(var, can_turn[0], turn_role, "monster", message="sleepy_monster_turn")
                     # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn, sleepy_jester_turn
                     change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
                     if new == "jester":
