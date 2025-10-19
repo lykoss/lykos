@@ -198,7 +198,7 @@ def on_myrole(evt: Event, var: GameState, user: User):
                 pl = list(TARGETS[user])
                 random.shuffle(pl)
                 m.append(messages["vengeful_ghost_team"].format(GHOSTS[user], pl))
-            user.send(m, sep="\n")
+            user.send(*m, sep="\n")
 
 @event_listener("revealroles")
 def on_revealroles(evt: Event, var: GameState):
