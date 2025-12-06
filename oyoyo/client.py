@@ -296,7 +296,7 @@ class IRCClient:
                     buffer = data.pop()
 
                     for el in data:
-                        prefix, command, args = parse_raw_irc_command(el)
+                        tags, prefix, command, args = parse_raw_irc_command(el)
 
                         try:
                             enc = "utf8"
@@ -306,16 +306,18 @@ class IRCClient:
                             fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
 
                         try:
-                            largs = list(args)
                             if prefix is not None:
                                 prefix = prefix.decode(enc)
                             self.stream_handler("<--- receive {0} {1} ({2})".format(prefix, command, ", ".join(fargs)), level="debug")
-                            # for i,arg in enumerate(largs):
-                                # if arg is not None: largs[i] = arg.decode(enc)
+                            if tags:
+                                # TODO: this sucks for two reasons: 1) value is unescaped and may contain semicolons/newlines,
+                                # 2) we're doing str.format unconditionally here (and above) when it should be passed the logging layer as args
+                                # so that we don't waste CPU cycles doing string formatting when the message is never going to be displayed
+                                self.stream_handler("     @{0}".format(";".join("{0}={1}".format(k, v) if v else k for k, v in tags.items())), level="debug")
                             if command in self.command_handler:
-                                self.command_handler[command](self, prefix,*fargs)
+                                self.command_handler[command](self, prefix, *fargs, tags=tags)
                             elif "" in self.command_handler:
-                                self.command_handler[""](self, prefix, command, *fargs)
+                                self.command_handler[""](self, prefix, command, *fargs, tags=tags)
                         except Exception as e:
                             sys.stderr.write(traceback.format_exc())
                             raise e  # ?

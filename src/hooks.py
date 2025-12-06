@@ -21,7 +21,7 @@ from src import config, context, channels, users
 _who_old: dict[str, users.User] = {}
 
 @hook("whoreply")
-def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
+def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos, *, tags):
     """Handle WHO replies for servers without WHOX support.
 
     Ordering and meaning of arguments for a bare WHO response:
@@ -68,7 +68,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     event.dispatch(ch, user)
 
 @hook("whospcrpl")
-def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
+def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname, *, tags):
     """Handle WHOX responses for servers that support it.
 
     An extended WHO (WHOX) is characterised by a second parameter to the request
@@ -139,7 +139,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     event.dispatch(ch, new_user)
 
 @hook("endofwho")
-def end_who(cli, bot_server, bot_nick, target, rest):
+def end_who(cli, bot_server, bot_nick, target, rest, *, tags):
     """Handle the end of WHO/WHOX responses from the server.
 
     Ordering and meaning of arguments for the end of a WHO/WHOX request:
@@ -175,7 +175,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 _whois_pending: dict[str, dict[str, Any]] = {}
 
 @hook("whoisuser")
-def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
+def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname, *, tags):
     """Set up the user for a WHOIS reply.
 
     Ordering and meaning of arguments for a WHOIS user reply:
@@ -200,7 +200,7 @@ def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
     _whois_pending[nick] = {"user": user, "account": None, "away": False, "channels": set()}
 
 @hook("whoisaccount")
-def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
+def on_whois_account(cli, bot_server, bot_nick, nick, account, logged, *, tags):
     """Update the account of the user in a WHOIS reply.
 
     Ordering and meaning of arguments for a WHOIS account reply:
@@ -220,7 +220,7 @@ def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
     _whois_pending[nick]["account"] = account
 
 @hook("whoischannels")
-def on_whois_channels(cli, bot_server, bot_nick, nick, chans):
+def on_whois_channels(cli, bot_server, bot_nick, nick, chans, *, tags):
     """Handle WHOIS replies for the channels.
 
     Ordering and meaning of arguments for a WHOIS channels reply:
@@ -243,7 +243,7 @@ def on_whois_channels(cli, bot_server, bot_nick, nick, chans):
             _whois_pending[nick]["channels"].add(ch)
 
 @hook("away")
-def on_away(cli, bot_server, bot_nick, nick, message):
+def on_away(cli, bot_server, bot_nick, nick, message, *, tags):
     """Handle away replies for WHOIS.
 
     Ordering and meaning of arguments for an AWAY reply:
@@ -265,7 +265,7 @@ def on_away(cli, bot_server, bot_nick, nick, message):
         _whois_pending[nick]["away"] = True
 
 @hook("endofwhois")
-def on_whois_end(cli, bot_server, bot_nick, nick, message):
+def on_whois_end(cli, bot_server, bot_nick, nick, message, *, tags):
     """Handle the end of WHOIS and fire events.
 
     Ordering and meaning of arguments for an end of WHOIS reply:
@@ -298,7 +298,7 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
     Event("who_end", {}, old=user).dispatch(new_user)
 
 @hook("event_hosthidden")
-def host_hidden(cli, server, nick, host, message):
+def host_hidden(cli, server, nick, host, message, *, tags):
     """Properly update the bot's knowledge of itself.
 
     Ordering and meaning of arguments for a host hidden event:
@@ -320,7 +320,7 @@ def host_hidden(cli, server, nick, host, message):
         users.Bot.host = host
 
 @hook("loggedin")
-def on_loggedin(cli, server, nick, rawnick, account, message):
+def on_loggedin(cli, server, nick, rawnick, account, message, *, tags):
     """Update our own rawnick with proper info.
 
     Ordering and meaning of arguments for a logged-in event:
@@ -353,7 +353,7 @@ def on_loggedin(cli, server, nick, rawnick, account, message):
         users.Bot.account = account
 
 @hook("ping")
-def on_ping(cli, prefix, server):
+def on_ping(cli, prefix, server, *, tags):
     """Send out PONG replies to the server's PING requests.
 
     Ordering and meaning of arguments for a PING request:
@@ -368,7 +368,7 @@ def on_ping(cli, prefix, server):
         cli.send("PONG", server)
 
 @hook("featurelist")
-def get_features(cli, server, nick, *features):
+def get_features(cli, server, nick, *features, tags):
     """Fetch and store the IRC server features.
 
     Ordering and meaning of arguments for a feature listing:
@@ -394,7 +394,7 @@ def get_features(cli, server, nick, *features):
             Features.set(feature, "")
 
 @hook("channelmodeis")
-def current_modes(cli, server, bot_nick, chan, mode, *targets):
+def current_modes(cli, server, bot_nick, chan, mode, *targets, tags):
     """Update the channel modes with the existing ones.
 
     Ordering and meaning of arguments for a bare MODE response:
@@ -412,7 +412,7 @@ def current_modes(cli, server, bot_nick, chan, mode, *targets):
     ch.update_modes(server, mode, targets)
 
 @hook("channelcreate")
-def chan_created(cli, server, bot_nick, chan, timestamp):
+def chan_created(cli, server, bot_nick, chan, timestamp, *, tags):
     """Update the channel timestamp with the server's information.
 
     Ordering and meaning of arguments for a bare MODE response end:
@@ -431,7 +431,7 @@ def chan_created(cli, server, bot_nick, chan, timestamp):
     channels.add(chan, cli).timestamp = int(timestamp)
 
 @hook("mode")
-def mode_change(cli, rawnick, chan, mode, *targets):
+def mode_change(cli, rawnick, chan, mode, *targets, tags):
     """Update the channel and user modes whenever a mode change occurs.
 
     Ordering and meaning of arguments for a MODE change:
@@ -479,7 +479,7 @@ def handle_listmode(cli, chan, mode, target, setter, timestamp):
     ch.modes[mode][target] = (setter, int(timestamp))
 
 @hook("banlist")
-def check_banlist(cli, server, bot_nick, chan, target, setter, timestamp):
+def check_banlist(cli, server, bot_nick, chan, target, setter, timestamp, *, tags):
     """Update the channel ban list with the current one.
 
     Ordering and meaning of arguments for the ban listing:
@@ -497,7 +497,7 @@ def check_banlist(cli, server, bot_nick, chan, target, setter, timestamp):
     handle_listmode(cli, chan, "b", target, setter, timestamp)
 
 @hook("quietlist")
-def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, timestamp):
+def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, timestamp, *, tags):
     """Update the channel quiet list with the current one.
 
     Ordering and meaning of arguments for the quiet listing:
@@ -516,7 +516,7 @@ def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, timestamp
     handle_listmode(cli, chan, mode, target, setter, timestamp)
 
 @hook("exceptlist")
-def check_banexemptlist(cli, server, bot_nick, chan, target, setter, timestamp):
+def check_banexemptlist(cli, server, bot_nick, chan, target, setter, timestamp, *, tags):
     """Update the channel ban exempt list with the current one.
 
     Ordering and meaning of arguments for the ban exempt listing:
@@ -534,7 +534,7 @@ def check_banexemptlist(cli, server, bot_nick, chan, target, setter, timestamp):
     handle_listmode(cli, chan, "e", target, setter, timestamp)
 
 @hook("invitelist")
-def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestamp):
+def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestamp, *, tags):
     """Update the channel invite exempt list with the current one.
 
     Ordering and meaning of arguments for the invite exempt listing:
@@ -558,7 +558,7 @@ def handle_endlistmode(cli, chan, mode):
     ch.queue("end_listmode", {}, (ch, mode))
 
 @hook("endofbanlist")
-def end_banlist(cli, server, bot_nick, chan, message):
+def end_banlist(cli, server, bot_nick, chan, message, *, tags):
     """Handle the end of the ban list.
 
     Ordering and meaning of arguments for the end of ban list:
@@ -574,7 +574,7 @@ def end_banlist(cli, server, bot_nick, chan, message):
     handle_endlistmode(cli, chan, "b")
 
 @hook("quietlistend")
-def end_quietlist(cli, server, bot_nick, chan, mode, message=None):
+def end_quietlist(cli, server, bot_nick, chan, mode, message=None, *, tags):
     """Handle the end of the quiet listing.
 
     Ordering and meaning of arguments for the end of quiet list:
@@ -596,7 +596,7 @@ def end_quietlist(cli, server, bot_nick, chan, mode, message=None):
     handle_endlistmode(cli, chan, mode)
 
 @hook("endofexceptlist")
-def end_banexemptlist(cli, server, bot_nick, chan, message):
+def end_banexemptlist(cli, server, bot_nick, chan, message, *, tags):
     """Handle the end of the ban exempt list.
 
     Ordering and meaning of arguments for the end of ban exempt list:
@@ -612,7 +612,7 @@ def end_banexemptlist(cli, server, bot_nick, chan, message):
     handle_endlistmode(cli, chan, "e")
 
 @hook("endofinvitelist")
-def end_inviteexemptlist(cli, server, bot_nick, chan, message):
+def end_inviteexemptlist(cli, server, bot_nick, chan, message, *, tags):
     """Handle the end of the invite exempt list.
 
     Ordering and meaning of arguments for the end of invite exempt list:
@@ -628,7 +628,7 @@ def end_inviteexemptlist(cli, server, bot_nick, chan, message):
     handle_endlistmode(cli, chan, "I")
 
 @hook("nick")
-def on_nick_change(cli, old_rawnick, nick):
+def on_nick_change(cli, old_rawnick, nick, *, tags):
     """Handle a user changing nicks, which may be the bot itself.
 
     Ordering and meaning of arguments for a NICK change:
@@ -647,7 +647,7 @@ def on_nick_change(cli, old_rawnick, nick):
     Event("nick_change", {}, old=user).dispatch(new_user, old_nick)
 
 @hook("account")
-def on_account_change(cli, rawnick, account):
+def on_account_change(cli, rawnick, account, *, tags):
     """Handle a user changing accounts, if enabled.
 
     Ordering and meaning of arguments for an ACCOUNT change:
@@ -668,7 +668,7 @@ def on_account_change(cli, rawnick, account):
     Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
 @hook("join")
-def join_chan(cli, rawnick, chan, account=None, realname=None):
+def join_chan(cli, rawnick, chan, account=None, realname=None, *, tags):
     """Handle a user joining a channel, which may be the bot itself.
 
     Ordering and meaning of arguments for a channel JOIN:
@@ -716,7 +716,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
         ch.who()
 
 @hook("part")
-def part_chan(cli, rawnick, chan, reason=""):
+def part_chan(cli, rawnick, chan, reason="", *, tags):
     """Handle a user leaving a channel, which may be the bot itself.
 
     Ordering and meaning of arguments for a channel PART:
@@ -741,7 +741,7 @@ def part_chan(cli, rawnick, chan, reason=""):
         ch.remove_user(user)
 
 @hook("kick")
-def kicked_from_chan(cli, rawnick, chan, target, reason):
+def kicked_from_chan(cli, rawnick, chan, target, reason, *, tags):
     """Handle a user being kicked from a channel.
 
     Ordering and meaning of arguments for a channel KICK:
@@ -779,7 +779,7 @@ def quit(context, message=""):
         cli.send("QUIT :{0}".format(message))
 
 @hook("quit")
-def on_quit(cli, rawnick, reason):
+def on_quit(cli, rawnick, reason, *, tags):
     """Handle a user quitting the IRC server.
 
     Ordering and meaning of arguments for a server QUIT:
@@ -802,7 +802,7 @@ def on_quit(cli, rawnick, reason):
             chan.remove_user(user)
 
 @hook("chghost")
-def on_chghost(cli, rawnick, ident, host):
+def on_chghost(cli, rawnick, ident, host, *, tags):
     """Handle a user changing host without a quit.
 
     Ordering and meaning of arguments for CHGHOST:

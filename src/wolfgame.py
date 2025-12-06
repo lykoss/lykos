@@ -609,7 +609,7 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
         stop_game(var, log=False)
 
 @hook("error")
-def on_error(cli, pfx, msg: str):
+def on_error(cli, pfx, msg: str, **tags):
     if restart_program.restarting or msg.lower().endswith("(excess flood)"):
         _restart_program()
     elif msg.lower().startswith("closing link:"):
@@ -888,7 +888,7 @@ def wiki(wrapper: MessageDispatcher, message: str):
         wrapper.pm(page)
 
 @hook("invite")
-def on_invite(cli, raw_nick, something, chan):
+def on_invite(cli, raw_nick, something, chan, **tags):
     if chan == config.Main.get("transports[0].channels.main"):
         cli.join(chan)
         return # No questions

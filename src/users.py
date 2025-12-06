@@ -488,9 +488,9 @@ class User(IRCContext):
 
         # FIXME: needs to be transport aware
         acls = config.Main.get("access.entries")
-        accounts = set(e["account"] for e in acls if e["template"] == "owner")
+        accounts = set(lower(e["account"]) for e in acls if e["template"] == "owner")
 
-        if self.account and self.account in accounts:
+        if self.account and lower(self.account) in accounts:
             return True
 
         return False
@@ -499,14 +499,14 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        flags = db.FLAGS[self.account]
+        flags = db.FLAGS[lower(self.account)] if self.account else ""
 
         if "F" not in flags:
             try:
                 # FIXME: needs to be transport aware
                 acls = config.Main.get("access.entries")
-                accounts = set(e["account"] for e in acls if e["template"] in ("admin", "owner"))
-                if self.account and self.account in accounts:
+                accounts = set(lower(e["account"]) for e in acls if e["template"] in ("admin", "owner"))
+                if self.account and lower(self.account) in accounts:
                     return True
             except AttributeError:
                 pass

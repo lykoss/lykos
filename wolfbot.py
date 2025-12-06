@@ -105,8 +105,8 @@ def main():
     # this uses %-style formatting to ensure that our logger is capable of handling both styles
     transport_logger.info("Connecting to %s:%s%d", host, "+" if use_ssl else "", port)
     cmd_handler = {
-        "privmsg": lambda *s: None,
-        "notice": lambda *s: None,
+        "privmsg": lambda *s, **k: None,
+        "notice": lambda *s, **k: None,
         "": handler.unhandled
     }
 

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import base64
+import functools
 import threading
 import subprocess
 import platform
 import time
-import functools
 import logging
 import sys
 from typing import Optional
@@ -16,14 +16,14 @@ from src.messages import messages
 from src.functions import get_participants, get_all_roles, match_role
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
-from src.context import Features
+from src.context import Features, NotLoggedIn
 from src.users import User
 from src.events import Event, EventListener
 from src.transport.irc import get_services
 from src.channels import Channel
 
 @handle_error
-def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
+def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
@@ -31,7 +31,11 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if config.Main.get("telemetry.errors.user_data_level") == 0 or config.Main.get("telemetry.errors.channel_data_level") == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
+    if tags is None:
+        tags = {}
+
     user = users.get(rawnick, allow_none=True)
+    account_tag = tags.get("account", NotLoggedIn)
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 
@@ -42,6 +46,13 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     if user is None or target is None:
         return
+
+    if Features.account_tag and user.account != account_tag:
+        old_account = user.account
+        old_user = user
+        user.account = account_tag
+        user = users.get(user.nick, user.ident, user.host, account_tag)
+        Event("account_change", {}, old=old_user).dispatch(user, old_account)
 
     wrapper = MessageDispatcher(user, target)
 
@@ -194,9 +205,9 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
         if phase == cur_phase: # don't call any more commands if one we just called executed a phase transition
             fn.caller(dispatch, message)
 
-def unhandled(cli, prefix, cmd, *args):
+def unhandled(cli, prefix, cmd, *args, tags):
     for fn in decorators.HOOKS.get(cmd, []):
-        fn.caller(cli, prefix, *args)
+        fn.caller(cli, prefix, *args, tags=tags)
 
 def ping_server(cli: IRCClient):
     cli.send("PING :{0}".format(time.time()))
@@ -206,7 +217,7 @@ def latency(wrapper, message):
     ping_server(wrapper.client)
 
     @hook("pong", hookid=300)
-    def latency_pong(cli, server, target, ts):
+    def latency_pong(cli, server, target, ts, *, tags):
         lat = round(time.time() - float(ts), 3)
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
@@ -235,7 +246,7 @@ def connect_callback(cli: IRCClient):
 
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
-    def prepare_stuff(cli: IRCClient, prefix: str, *args: str):
+    def prepare_stuff(cli: IRCClient, prefix: str, *args, tags):
         logger.info("Received end of MOTD from {0}", prefix)
 
         # This callback only sets up event listeners
@@ -285,7 +296,7 @@ def connect_callback(cli: IRCClient):
     who_end = EventListener(setup_handler)
     who_end.install("who_end")
 
-    def mustregain(cli: IRCClient, server, bot_nick, nick, msg):
+    def mustregain(cli: IRCClient, server, bot_nick, nick, msg, *, tags):
         nonlocal regaincount
 
         config_nick = config.Main.get("transports[0].user.nick")
@@ -303,7 +314,7 @@ def connect_callback(cli: IRCClient):
         regaincount += 1
         users.Bot.change_nick(config_nick)
 
-    def mustrelease(cli: IRCClient, server, bot_nick, nick, msg):
+    def mustrelease(cli: IRCClient, server, bot_nick, nick, msg, *, tags):
         nonlocal releasecount
 
         config_nick = config.Main.get("transports[0].user.nick")
@@ -331,7 +342,14 @@ def connect_callback(cli: IRCClient):
         if services.supports_regain() or services.supports_ghost():
             hook("nicknameinuse", hookid=241)(mustregain)
 
-    request_caps = {"account-notify", "chghost", "extended-join", "multi-prefix"}
+    request_caps = {
+        "account-notify",
+        "account-tag",
+        "chghost",
+        "extended-join",
+        "message-tags",
+        "multi-prefix",
+    }
 
     if config.Main.get("transports[0].authentication.services.use_sasl"):
         request_caps.add("sasl")
@@ -341,7 +359,7 @@ def connect_callback(cli: IRCClient):
     selected_sasl = None
 
     @hook("cap")
-    def on_cap(cli: IRCClient, svr, mynick, cmd: str, *caps: str):
+    def on_cap(cli: IRCClient, svr, mynick, cmd: str, *caps: str, tags):
         nonlocal supported_sasl, selected_sasl
         # caps is a star because we might receive multiline in LS
         if cmd == "LS":
@@ -422,7 +440,7 @@ def connect_callback(cli: IRCClient):
 
     if config.Main.get("transports[0].authentication.services.use_sasl"):
         @hook("authenticate")
-        def auth_plus(cli: IRCClient, _, plus):
+        def auth_plus(cli: IRCClient, _, plus, *, tags):
             username: str = config.Main.get("transports[0].authentication.services.username")
             if not username:
                 username = config.Main.get("transports[0].user.nick")
@@ -443,14 +461,14 @@ def connect_callback(cli: IRCClient):
                         cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("saslsuccess")
-        def on_successful_auth(cli: IRCClient, *_):
+        def on_successful_auth(cli: IRCClient, *args, tags):
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
         @hook("saslfail")
         @hook("sasltoolong")
         @hook("saslaborted")
-        def on_failure_auth(cli: IRCClient, *_):
+        def on_failure_auth(cli: IRCClient, *args, tags):
             nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet
