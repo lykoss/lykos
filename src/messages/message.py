@@ -31,13 +31,13 @@ class Message:
         self.formatter = message_formatter
 
     def __str__(self):
-        return str(self.value)
+        return self.format()
 
     def __add__(self, other):
-        return str(self) + other
+        return self.format() + other
 
     def __radd__(self, other):
-        return other + str(self)
+        return other + self.format()
 
     def format(self, *args, **kwargs) -> str:
         try:
