@@ -24,7 +24,7 @@ class Messages:
     def get(self, key, index=None) -> Optional[Message]:
         actual_key = self.overrides[key] if key in self.overrides else key
         if actual_key is None:
-            return None
+            return Message(key, "")
         if actual_key not in self.messages:
             raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(actual_key))
         return Message(actual_key, self.messages[actual_key], index)
