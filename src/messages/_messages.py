@@ -21,7 +21,7 @@ class Messages:
         self.overrides = {}
         self._load_messages()
 
-    def get(self, key, index=None) -> Optional[Message]:
+    def get(self, key, index=None) -> Message:
         actual_key = self.overrides[key] if key in self.overrides else key
         if actual_key is None:
             return Message(key, "")
@@ -30,6 +30,15 @@ class Messages:
         return Message(actual_key, self.messages[actual_key], index)
 
     __getitem__ = get
+
+    def fallback(self, *args) -> Message:
+        for key in args:
+            try:
+                return self.get(key)
+            except KeyError:
+                pass
+        else:
+            raise KeyError("None of the keys in the fallback chain exist!")    
 
     def raw(self, *args):
         m = self.messages
