@@ -241,7 +241,7 @@ class Formatter(string.Formatter):
         from src.messages import messages
 
         for rule in messages.raw("_metadata", "articles"):
-            if rule["pattern"] is None or fnmatch.fnmatch(value, rule["pattern"]):
+            if rule["pattern"] is None or fnmatch.fnmatchcase(value, rule["pattern"]):
                 return rule["article"]
 
         raise ValueError("No article rules matched the value {0!r} in language metadata!".format(value))
