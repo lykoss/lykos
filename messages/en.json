@@ -3,7 +3,7 @@
         "*": "For assistance in configuring this metadata, please see https://werewolf.chat/Translation#Metadata",
         "fallback": null,
         "articles": [
-            {"pattern": "[aeiou]*", "article": "an"},
+            {"pattern": "[aeiouAEIOU]*", "article": "an"},
             {"pattern": null, "article": "a"}
         ],
         "plural": [
