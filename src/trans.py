@@ -102,12 +102,13 @@ def begin_day(var: GameState):
         channels.Main.mode(*modes)
 
     # move everyone to the village square (or home if they're absent)
-    absent = get_absent(var)
-    for p in pl:
-        if p in absent:
-            move_player_home(var, p)
-        else:
-            move_player(var, p, VillageSquare)
+    if var.auto_move_players:
+        absent = get_absent(var)
+        for p in pl:
+            if p in absent:
+                move_player_home(var, p)
+            else:
+                move_player(var, p, VillageSquare)
 
     event = Event("begin_day", {})
     event.dispatch(var)
@@ -396,8 +397,9 @@ def transition_night(var: GameState):
 
     # move everyone back to their house
     pl = get_players(var)
-    for p in pl:
-        move_player_home(var, p)
+    if var.auto_move_players:
+        for p in pl:
+            move_player_home(var, p)
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)

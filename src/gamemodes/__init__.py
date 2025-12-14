@@ -27,6 +27,7 @@ class CustomSettings:
         self.hidden_role: str = "villager"
         self.start_with_day: bool = False
         self.always_pm_role: bool = False
+        self.auto_move_players: bool = True
         self._role_reveal: Optional[str] = None # on/off/team
         self._stats_type: Optional[str] = None # default/accurate/team/disabled
 

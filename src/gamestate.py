@@ -258,6 +258,10 @@ class GameState:
         return self._get_value("stats_type")
 
     @property
+    def auto_move_players(self) -> bool:
+        return self._get_value("auto_move_players")
+
+    @property
     def day_time_limit(self) -> int:
         try:
             return self._get_value("day_time_limit")
