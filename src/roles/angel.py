@@ -84,7 +84,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
 def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(GUARDED)
     evt.data["acted"].extend(PASSED)
-    evt.data["nightroles"].extend(get_players(var, ("guardian angel",)))
+    evt.data["nightroles"].extend(get_all_players(var, ("guardian angel",)))
 
 @event_listener("resolve_killer_tag")
 def on_resolve_killer_tag(evt: Event, var: GameState, victim: User, tag: str):
