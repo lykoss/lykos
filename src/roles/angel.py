@@ -52,7 +52,7 @@ def guard(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["protecting_target"].format(target))
         target.send(messages["target_protected"])
 
-@command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("guardian angel",))
+@command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
 def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
     if wrapper.source in GUARDED:
