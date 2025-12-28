@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from src import channels
 from src.cats import Cursed, Safe, Innocent, Neutral, Win_Stealer, Team_Switcher, Wolf
 from src.decorators import command
 from src.events import Event, event_listener
@@ -38,31 +37,22 @@ def see(wrapper: MessageDispatcher, message: str):
 
     if targrole in Cursed:
         targrole = "wolf" 
-        channels.Main.send(messages["seer_public_wolf_found"].format(target))
     elif targrole in Safe:
-        channels.Main.send(messages["seer_standard"].format(target))
-        channels.Main.send(messages["seer_public_general"].format(target))
         pass # Keep the same role        
     elif targrole in Innocent:
         targrole = var.hidden_role        
     elif targrole in (Neutral - Win_Stealer - Team_Switcher):
-        channels.Main.send(messages["seer_standard"].format(target))
-        channels.Main.send(messages["seer_public_general"].format(target))    
         pass # Keep the same role
     elif targrole in Wolf:
         targrole = "wolf"
-        channels.Main.send(messages["seer_public_wolf_found"].format(target))
     else:
-        targrole = var.hidden_role
-        channels.Main.send(messages["seer_standard"].format(target))
-        
+        targrole = var.hidden_role      
 
     evt = Event("see", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]
 
     wrapper.send(messages["seer_success"].format(target, targrole))
-    #wrapper.send.chan(messages["gunner_victim_injured"].format(target))
     SEEN.add(wrapper.source)
 
 @event_listener("get_role_metadata")
