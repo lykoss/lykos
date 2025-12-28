@@ -540,7 +540,7 @@ def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody
         evt = Event("game_end_messages", {"messages": roles_msg})
         evt.dispatch(var)
 
-        channels.Main.send(*roles_msg)
+        #channels.Main.send(*roles_msg)
 
         # map player: all roles of that player (for below)
         allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
@@ -638,7 +638,10 @@ def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody
             # spit out the list of winners
             if winners:
                 sorted_winners = sorted(winners, key=lambda u: u.nick)
+                channels.Main.send(messages["winnerlist"].format(sorted_winners))
                 channels.Main.send(messages["winners"].format(sorted_winners))
+                channels.Main.send(messages["winnerlist_end"].format(sorted_winners))
+                channels.Main.send(*roles_msg)
             else:
                 channels.Main.send(messages["no_winners"])
 

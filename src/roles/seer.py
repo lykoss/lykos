@@ -36,24 +36,23 @@ def see(wrapper: MessageDispatcher, message: str):
     targrole = get_main_role(var, target)
 
     if targrole in Cursed:
-        targrole = "wolf"
+        targrole = "wolf" 
     elif targrole in Safe:
-        pass # Keep the same role
+        pass # Keep the same role        
     elif targrole in Innocent:
-        targrole = var.hidden_role
+        targrole = var.hidden_role        
     elif targrole in (Neutral - Win_Stealer - Team_Switcher):
         pass # Keep the same role
     elif targrole in Wolf:
         targrole = "wolf"
     else:
-        targrole = var.hidden_role
+        targrole = var.hidden_role      
 
     evt = Event("see", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]
 
     wrapper.send(messages["seer_success"].format(target, targrole))
-
     SEEN.add(wrapper.source)
 
 @event_listener("get_role_metadata")
