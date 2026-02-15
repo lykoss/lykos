@@ -349,6 +349,7 @@ def connect_callback(cli: IRCClient):
         "extended-join",
         "message-tags",
         "multi-prefix",
+        "server-time",
     }
 
     if config.Main.get("transports[0].authentication.services.use_sasl"):

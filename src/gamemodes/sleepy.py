@@ -289,9 +289,19 @@ class SleepyMode(GameMode):
                         for i in range(1, d[old] + 1):
                             d[old] -= i
                             d[new] += i
-                            if new == "doomsayer" and "traitor" in d and d["traitor"] >= 1:
-                                d["monster"] += d["traitor"]
-                                d["traitor"] = 0
+                            if new == "doomsayer":
+                                for j in range(1, i + 1):
+                                    if "traitor" in d and d["traitor"] >= 1:
+                                        d["monster"] += 1
+                                        d["traitor"] -= 1
+                                    elif "wolf" in d and d["wolf"] >= 1:
+                                        d["monster"] += 1
+                                        d["wolf"] -= 1
+                                    else:
+                                        # this doomsayer turn isn't possible
+                                        d[old] += 1
+                                        d[new] -= 1
+
                             newstats.add(frozenset(d.items()))
                 var.set_role_stats(newstats)
 
