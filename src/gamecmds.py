@@ -26,7 +26,7 @@ LAST_GOAT: UserDict[User, datetime] = UserDict()
 ADMIN_PINGING: bool = False
 
 @command("stats", pm=True)
-def stats(wrapper: MessageDispatcher, message: str):
+async def stats(wrapper: MessageDispatcher, message: str):
     """Displays the player statistics."""
     global LAST_STATS
     var = wrapper.game_state
@@ -38,7 +38,7 @@ def stats(wrapper: MessageDispatcher, message: str):
     if wrapper.public and (wrapper.source in pl or var.current_phase == "join"):
         # only do this rate-limiting stuff if the person is in game
         if LAST_STATS and LAST_STATS + timedelta(seconds=config.Main.get("ratelimits.stats")) > datetime.now():
-            wrapper.pm(messages["command_ratelimited"])
+            await wrapper.pm(messages["command_ratelimited"])
             return
 
         LAST_STATS = datetime.now()
@@ -60,7 +60,7 @@ def stats(wrapper: MessageDispatcher, message: str):
     else:
         msg = messages["players_list_count"].format(len(pl), pl)
 
-    wrapper.reply(msg)
+    await wrapper.reply(msg)
 
     if var.current_phase == "join" or var.stats_type == "disabled":
         return
@@ -166,7 +166,7 @@ def stats(wrapper: MessageDispatcher, message: str):
             else:
                 entries.append(messages["stats_reply_entry_single"].format(team, team_count))
 
-    wrapper.reply(messages["stats_reply"].format(var.current_phase, first_count, entries))
+    await wrapper.reply(messages["stats_reply"].format(var.current_phase, first_count, entries))
 
 @event_listener("reconfigure_stats")
 def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
@@ -174,7 +174,7 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
     LAST_STATS = None
 
 @command("time", pm=True)
-def timeleft(wrapper: MessageDispatcher, message: str):
+async def timeleft(wrapper: MessageDispatcher, message: str):
     """Returns the time left until the next day/night transition."""
     global LAST_TIME
     var = wrapper.game_state
@@ -183,7 +183,7 @@ def timeleft(wrapper: MessageDispatcher, message: str):
 
     if wrapper.public:
         if LAST_TIME and LAST_TIME + timedelta(seconds=config.Main.get("ratelimits.time")) > datetime.now():
-            wrapper.pm(messages["command_ratelimited"].format())
+            await wrapper.pm(messages["command_ratelimited"].format())
             return
 
         LAST_TIME = datetime.now()
@@ -191,7 +191,7 @@ def timeleft(wrapper: MessageDispatcher, message: str):
     if var.current_phase == "join":
         dur = int((pregame.CAN_START_TIME - datetime.now()).total_seconds())
         if dur > 0:
-            wrapper.reply(messages["start_timer"].format(dur))
+            await wrapper.reply(messages["start_timer"].format(dur))
 
     if var.current_phase in trans.TIMERS or f"{var.current_phase}_limit" in trans.TIMERS:
         if var.current_phase == "day":
@@ -212,10 +212,10 @@ def timeleft(wrapper: MessageDispatcher, message: str):
     else:
         msg = messages["timers_disabled"].format(var.current_phase.capitalize())
 
-    wrapper.reply(msg)
+    await wrapper.reply(msg)
 
 @command("admins", pm=True)
-def show_admins(wrapper: MessageDispatcher, message: str):
+async def show_admins(wrapper: MessageDispatcher, message: str):
     """Pings the admins that are available."""
     global LAST_ADMINS, ADMIN_PINGING
     var = wrapper.game_state
@@ -223,7 +223,7 @@ def show_admins(wrapper: MessageDispatcher, message: str):
 
     if wrapper.public:
         if LAST_ADMINS and LAST_ADMINS + timedelta(seconds=config.Main.get("ratelimits.admins")) > datetime.now():
-            wrapper.pm(messages["command_ratelimited"])
+            await wrapper.pm(messages["command_ratelimited"])
             return
 
         LAST_ADMINS = datetime.now()
@@ -259,27 +259,27 @@ def show_admins(wrapper: MessageDispatcher, message: str):
     channels.Main.who()
 
 @command("goat")
-def goat(wrapper: MessageDispatcher, message: str):
+async def goat(wrapper: MessageDispatcher, message: str):
     """Use a goat to interact with anyone in the channel during the day."""
     var = wrapper.game_state
 
     if wrapper.source in LAST_GOAT and LAST_GOAT[wrapper.source] + timedelta(seconds=config.Main.get("ratelimits.goat")) > datetime.now():
-        wrapper.pm(messages["command_ratelimited"])
+        await wrapper.pm(messages["command_ratelimited"])
         return
     target = re.split(" +", message)[0]
     if not target:
-        wrapper.pm(messages["not_enough_parameters"])
+        await wrapper.pm(messages["not_enough_parameters"])
         return
     victim = users.complete_match(users.lower(target), wrapper.target.users)
     if not victim:
-        wrapper.pm(messages["goat_target_not_in_channel"].format(target))
+        await wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
 
     LAST_GOAT[wrapper.source] = datetime.now()
-    wrapper.send(messages["goat_success"].format(wrapper.source, victim.get()))
+    await wrapper.send(messages["goat_success"].format(wrapper.source, victim.get()))
 
 @command("fgoat", flag="j")
-def fgoat(wrapper: MessageDispatcher, message: str):
+async def fgoat(wrapper: MessageDispatcher, message: str):
     """Forces a goat to interact with anyone or anything, without limitations."""
 
     nick = message.split(' ')[0].strip()
@@ -289,7 +289,7 @@ def fgoat(wrapper: MessageDispatcher, message: str):
     else:
         togoat = message
 
-    wrapper.send(messages["goat_success"].format(wrapper.source, togoat))
+    await wrapper.send(messages["goat_success"].format(wrapper.source, togoat))
 
 @event_listener("begin_day")
 def on_begin_day(evt: Event, var: GameState):

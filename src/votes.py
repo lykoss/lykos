@@ -25,7 +25,7 @@ LAST_VOTES = None
 VOTED: int = 0
 
 @command("vote", playing=True, pm=True, phases=("day",))
-def day_vote(wrapper: MessageDispatcher, message: str):
+async def day_vote(wrapper: MessageDispatcher, message: str):
     """Use this to vote for a candidate to be killed."""
     if not message:
         show_votes.func(wrapper, message)
@@ -60,25 +60,25 @@ def day_vote(wrapper: MessageDispatcher, message: str):
         VOTES[voted] = UserList()
     if wrapper.source not in VOTES[voted]:
         VOTES[voted].append(wrapper.source)
-        channels.Main.send(messages["player_vote"].format(wrapper.source, voted))
+        await channels.Main.send(messages["player_vote"].format(wrapper.source, voted))
 
     global LAST_VOTES
     LAST_VOTES = None # reset
 
-    chk_decision(var)
+    await chk_decision(var)
 
 @command("abstain", playing=True, phases=("day",))
-def abstain(wrapper: MessageDispatcher, message: str):
+async def abstain(wrapper: MessageDispatcher, message: str):
     """Allow you to abstain from voting for the day."""
     var = wrapper.game_state
     if not var.abstain_enabled:
-        wrapper.pm(messages["command_disabled"])
+        await wrapper.pm(messages["command_disabled"])
         return
     elif var.limit_abstain and ABSTAINED:
-        wrapper.pm(messages["exhausted_abstain"])
+        await wrapper.pm(messages["exhausted_abstain"])
         return
     elif var.limit_abstain and var.day_count == 1:
-        wrapper.pm(messages["no_abstain_day_one"])
+        await wrapper.pm(messages["no_abstain_day_one"])
         return
     elif try_absent(var, wrapper.source):
         return
@@ -88,12 +88,12 @@ def abstain(wrapper: MessageDispatcher, message: str):
             if not VOTES[voter]:
                 del VOTES[voter]
     ABSTAINS.add(wrapper.source)
-    channels.Main.send(messages["player_abstain"].format(wrapper.source))
+    await channels.Main.send(messages["player_abstain"].format(wrapper.source))
 
-    chk_decision(var)
+    await chk_decision(var)
 
 @command("retract", phases=("day", "join"))
-def retract(wrapper: MessageDispatcher, message: str):
+async def retract(wrapper: MessageDispatcher, message: str):
     """Takes back your vote during the day."""
     var = wrapper.game_state
     if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED or var.current_phase != "day":
@@ -103,7 +103,7 @@ def retract(wrapper: MessageDispatcher, message: str):
 
     if wrapper.source in ABSTAINS:
         ABSTAINS.remove(wrapper.source)
-        wrapper.send(messages["retracted_vote"].format(wrapper.source))
+        await wrapper.send(messages["retracted_vote"].format(wrapper.source))
         LAST_VOTES = None # reset
         return
 
@@ -112,14 +112,14 @@ def retract(wrapper: MessageDispatcher, message: str):
             VOTES[votee].remove(wrapper.source)
             if not VOTES[votee]:
                 del VOTES[votee]
-            wrapper.send(messages["retracted_vote"].format(wrapper.source))
+            await wrapper.send(messages["retracted_vote"].format(wrapper.source))
             LAST_VOTES = None # reset
             break
     else:
-        wrapper.pm(messages["pending_vote"])
+        await wrapper.pm(messages["pending_vote"])
 
 @command("votes", pm=True, phases=("join", "day"))
-def show_votes(wrapper: MessageDispatcher, message: str):
+async def show_votes(wrapper: MessageDispatcher, message: str):
     """Show the current votes."""
     var = wrapper.game_state
     pl = get_players(var)
@@ -153,13 +153,13 @@ def show_votes(wrapper: MessageDispatcher, message: str):
             if pregame.START_VOTES:
                 msg += messages["start_votes"].format(len(pregame.START_VOTES), pregame.START_VOTES)
 
-        wrapper.send(msg)
+        await wrapper.send(msg)
         return
 
     global LAST_VOTES
     if config.Main.get("ratelimits.votes") and wrapper.public and LAST_VOTES is not None:
         if LAST_VOTES + timedelta(seconds=config.Main.get("ratelimits.votes")) > datetime.now():
-            wrapper.pm(messages["command_ratelimited"])
+            await wrapper.pm(messages["command_ratelimited"])
             return
 
     if wrapper.public and wrapper.source in pl:
@@ -176,7 +176,7 @@ def show_votes(wrapper: MessageDispatcher, message: str):
             votelist.append("{0}: {1} ({2})".format(votee, len(voters), ", ".join(p.nick for p in voters)))
         msg = ", ".join(votelist)
 
-    wrapper.reply(msg, prefix_nick=True)
+    await wrapper.reply(msg, prefix_nick=True)
 
     avail = len(pl) - len(get_absent(var))
     votesneeded = avail // 2 + 1
@@ -190,19 +190,19 @@ def show_votes(wrapper: MessageDispatcher, message: str):
     if var.abstain_enabled:
         to_send += messages["vote_stats_abstain"].format(abstaining, plural)
 
-    wrapper.reply(to_send, prefix_nick=True)
+    await wrapper.reply(to_send, prefix_nick=True)
 
 @command("vote", pm=True, phases=("join",))
-def vote(wrapper: MessageDispatcher, message: str):
+async def vote(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode if no game is running."""
     if wrapper.public and message:
         from src.wolfgame import game
-        return game.caller(wrapper, message)
-    return show_votes.caller(wrapper, message)
+        return await game.caller(wrapper, message)
+    return await show_votes.caller(wrapper, message)
 
 # Specify timeout=True to force a vote and end of day even if there is no majority
 # admin_forced=True will make it not count towards villages' abstain limit if nobody is voted
-def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
+async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     from src.trans import chk_win
     with locks.reaper:
         players = set(get_players(var)) - get_absent(var)
@@ -252,7 +252,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
         if abstaining:
             for forced_abstainer in get_forced_abstains(var):
                 if forced_abstainer not in ABSTAINS: # did not explicitly abstain
-                    channels.Main.send(messages["player_meek_abstain"].format(forced_abstainer))
+                    await channels.Main.send(messages["player_meek_abstain"].format(forced_abstainer))
 
             abstain_evt = Event("abstain", {})
             abstain_evt.dispatch(var, (ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var))
@@ -262,7 +262,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                 # then don't count the abstention against the village
                 global ABSTAINED
                 ABSTAINED = True
-            channels.Main.send(messages["village_abstain"])
+            await channels.Main.send(messages["village_abstain"])
 
             from src.trans import transition_night
             transition_night(var)
@@ -273,13 +273,13 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             VOTED += len(to_vote) # track how many people we've killed today
 
             if timeout:
-                channels.Main.send(messages["sunset_vote"])
+                await channels.Main.send(messages["sunset_vote"])
 
             for votee in to_vote:
                 voters = list(VOTES[votee])
                 for forced_voter in get_forced_votes(var, votee):
                     if forced_voter not in voters: # did not explicitly vote
-                        channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
+                        await channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
                         voters.append(forced_voter) # they need to be counted as voting for them still
 
                 if not try_day_vote_immunity(var, votee):
@@ -289,7 +289,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                         if var.role_reveal in ("on", "team"):
                             to_send = "day_vote_reveal"
                         lmsg = messages[to_send].format(votee, get_reveal_role(var, votee))
-                        channels.Main.send(lmsg)
+                        await channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "day_vote")
 
             kill_players(var, end_game=False)
@@ -298,7 +298,7 @@ def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             channels.Main.send(messages["sunset"])
 
         if timeout or VOTED >= num_votes:
-            if chk_win(var, count_absent=False):
+            if await chk_win(var, count_absent=False):
                 return
 
             from src.trans import transition_night

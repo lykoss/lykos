@@ -25,7 +25,7 @@ DCED_LOSERS = UserSet()
 NIGHT_IDLED = UserSet()
 
 @handle_error
-def reaper(var: GameState, gameid: int):
+async def reaper(var: GameState, gameid: int):
     # check to see if idlers need to be killed.
     game_start_time = datetime.now()
     last_day_id = var.day_count
@@ -74,7 +74,7 @@ def reaper(var: GameState, gameid: int):
                 # message keys used: quit_death, quit_death_no_reveal, quit_warning,
                 # part_death, part_death_no_reveal, part_warning
                 # account_death, account_death_no_reveal, account_warning
-                channels.Main.send(messages[f"{what}_death{reveal}"].format(dcedplayer, revealrole))
+                await channels.Main.send(messages[f"{what}_death{reveal}"].format(dcedplayer, revealrole))
                 if config.Main.get("reaper.autowarn") and var.current_phase != "join":
                     NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                     add_warning(dcedplayer,
@@ -117,7 +117,7 @@ def reaper(var: GameState, gameid: int):
                         IDLE_WARNED_PM.discard(user)
                 for user in to_kill:
                     # keys used: idle_death, idle_death_no_reveal
-                    channels.Main.send(messages[f"idle_death{reveal}"].format(user, get_reveal_role(var, user)))
+                    await channels.Main.send(messages[f"idle_death{reveal}"].format(user, get_reveal_role(var, user)))
                     if var.in_game:
                         DCED_LOSERS.add(user)
                     if config.Main.get("reaper.autowarn") and config.Main.get("reaper.idle.enabled"):
@@ -127,17 +127,17 @@ def reaper(var: GameState, gameid: int):
                 pl = get_players(var)
                 x = [a for a in to_warn if a in pl]
                 if x:
-                    channels.Main.send(messages["channel_idle_warning"].format(x))
+                    await channels.Main.send(messages["channel_idle_warning"].format(x))
                 msg_targets = [p for p in to_warn_pm if p in pl]
                 for p in msg_targets:
                     p.queue_message(messages["player_idle_warning"].format(channels.Main))
                 if msg_targets:
-                    User.send_messages()
+                    await User.send_messages()
 
             kill_players(var)
 
 @command("")  # update last said
-def update_last_said(wrapper: MessageDispatcher, message: str):
+async def update_last_said(wrapper: MessageDispatcher, message: str):
     if wrapper.target is not channels.Main or wrapper.game_state is None:
         return
 
@@ -148,10 +148,10 @@ def update_last_said(wrapper: MessageDispatcher, message: str):
         LAST_SAID_TIME[wrapper.source] = datetime.now()
 
     if wrapper.private and wrapper.source in get_players(wrapper.game_state) and wrapper.source in IDLE_WARNED_PM:
-        wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
+        await wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
 
 @handle_error
-def return_to_village(var: GameState, target: User, *, show_message: bool, new_user: Optional[User] = None):
+async def return_to_village(var: GameState, target: User, *, show_message: bool, new_user: Optional[User] = None):
     with locks.reaper:
         from src.trans import ORIGINAL_ACCOUNTS
         if channels.Main not in target.channels:
@@ -171,15 +171,15 @@ def return_to_village(var: GameState, target: User, *, show_message: bool, new_u
 
             if new_user is not target:
                 # different users, perform a swap. This will clean up disconnected users.
-                target.swap(new_user)
+                await target.swap(new_user)
 
             if show_message:
                 if config.Main.get("gameplay.nightchat") or var.current_phase != "night":
                     channels.Main.mode(("+v", new_user))
                 if target.nick == new_user.nick:
-                    channels.Main.send(messages["player_return"].format(new_user))
+                    await channels.Main.send(messages["player_return"].format(new_user))
                 else:
-                    channels.Main.send(messages["player_return_nickchange"].format(new_user, target))
+                    await channels.Main.send(messages["player_return_nickchange"].format(new_user, target))
         else:
             # this particular user doesn't exist in DISCONNECTED, but that doesn't
             # mean that they aren't dced. They may have rejoined as a different nick,
@@ -188,7 +188,7 @@ def return_to_village(var: GameState, target: User, *, show_message: bool, new_u
             userlist = users.get(account=target.account, allow_multiple=True, allow_ghosts=True)
             userlist = [u for u in userlist if u in DISCONNECTED]
             if len(userlist) == 1:
-                return_to_village(var, userlist[0], show_message=show_message, new_user=target)
+                await return_to_village(var, userlist[0], show_message=show_message, new_user=target)
 
 @event_listener("del_player")
 def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

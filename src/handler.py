@@ -77,7 +77,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
         return  # channel message but no prefix; ignore
     parse_and_dispatch(wrapper, key, message)
 
-def parse_and_dispatch(wrapper: MessageDispatcher,
+async def parse_and_dispatch(wrapper: MessageDispatcher,
                        key: str,
                        message: str,
                        role: Optional[str] = None,
@@ -125,10 +125,10 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
         if len(matches) == 1:
             role_prefix = matches.get().key
         elif len(matches) > 1:
-            wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
+            await wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
             return
         else:
-            wrapper.pm(messages["no_such_role"].format(role_prefix))
+            await wrapper.pm(messages["no_such_role"].format(role_prefix))
             return
 
     cmds: list[command] = []
@@ -189,13 +189,13 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
             common_roles &= fn_roles
             if not common_roles:
                 break
-        wrapper.pm(messages["ambiguous_command"].format(key, info[0], info[1]))
+        await wrapper.pm(messages["ambiguous_command"].format(key, info[0], info[1]))
         return
 
     for fn in cmds:
         if force:
             if fn.owner_only or fn.flag:
-                wrapper.pm(messages["no_force_admin"])
+                await wrapper.pm(messages["no_force_admin"])
                 return
             if fn.chan:
                 dispatch.target = channels.Main
@@ -203,30 +203,30 @@ def parse_and_dispatch(wrapper: MessageDispatcher,
                 dispatch.target = users.Bot
         cur_phase = dispatch.game_state.current_phase if dispatch.game_state else "none"
         if phase == cur_phase: # don't call any more commands if one we just called executed a phase transition
-            fn.caller(dispatch, message)
+            await fn.caller(dispatch, message)
 
-def unhandled(cli, prefix, cmd, *args, tags):
+async def unhandled(cli, prefix, cmd, *args, tags):
     for fn in decorators.HOOKS.get(cmd, []):
-        fn.caller(cli, prefix, *args, tags=tags)
+        await fn.caller(cli, prefix, *args, tags=tags)
 
 def ping_server(cli: IRCClient):
     cli.send("PING :{0}".format(time.time()))
 
 @command("latency", pm=True)
-def latency(wrapper, message):
+async def latency(wrapper: MessageDispatcher, message):
     ping_server(wrapper.client)
 
     @hook("pong", hookid=300)
-    def latency_pong(cli, server, target, ts, *, tags):
+    async def latency_pong(cli, server, target, ts, *, tags):
         lat = round(time.time() - float(ts), 3)
-        wrapper.reply(messages["latency"].format(lat))
+        await wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
 @command("", chan=False, pm=True)
-def ctcp_handling(wrapper: MessageDispatcher, message: str):
+async def ctcp_handling(wrapper: MessageDispatcher, message: str):
     """CTCP Handling"""
     if message.startswith("\u0001PING"):
-        wrapper.pm(message, notice=True)
+        await wrapper.pm(message, notice=True)
         return
     if message == "\u0001VERSION\u0001":
         try:
@@ -234,10 +234,10 @@ def ctcp_handling(wrapper: MessageDispatcher, message: str):
             reply = "\u0001VERSION lykos {0}, Python {1} -- https://github.com/lykoss/lykos\u0001".format(str(ans.decode()), platform.python_version())
         except (OSError, subprocess.CalledProcessError):
             reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
-        wrapper.pm(reply, notice=True)
+        await wrapper.pm(reply, notice=True)
         return
     if message == "\u0001TIME\u0001":
-        wrapper.pm("\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())), notice=True)
+        await wrapper.pm("\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())), notice=True)
 
 def connect_callback(cli: IRCClient):
     regaincount = 0
@@ -246,7 +246,7 @@ def connect_callback(cli: IRCClient):
 
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
-    def prepare_stuff(cli: IRCClient, prefix: str, *args, tags):
+    async def prepare_stuff(cli: IRCClient, prefix: str, *args, tags):
         logger.info("Received end of MOTD from {0}", prefix)
 
         # This callback only sets up event listeners
@@ -296,7 +296,7 @@ def connect_callback(cli: IRCClient):
     who_end = EventListener(setup_handler)
     who_end.install("who_end")
 
-    def mustregain(cli: IRCClient, server, bot_nick, nick, msg, *, tags):
+    async def mustregain(cli: IRCClient, server, bot_nick, nick, msg, *, tags):
         nonlocal regaincount
 
         config_nick = config.Main.get("transports[0].user.nick")
@@ -314,7 +314,7 @@ def connect_callback(cli: IRCClient):
         regaincount += 1
         users.Bot.change_nick(config_nick)
 
-    def mustrelease(cli: IRCClient, server, bot_nick, nick, msg, *, tags):
+    async def mustrelease(cli: IRCClient, server, bot_nick, nick, msg, *, tags):
         nonlocal releasecount
 
         config_nick = config.Main.get("transports[0].user.nick")
@@ -331,7 +331,7 @@ def connect_callback(cli: IRCClient):
 
     @hook("unavailresource", hookid=239)
     @hook("nicknameinuse", hookid=239)
-    def must_use_temp_nick(cli, *etc):
+    async def must_use_temp_nick(cli, *etc):
         users.Bot.nick += "_"
         users.Bot.change_nick()
 
@@ -360,7 +360,7 @@ def connect_callback(cli: IRCClient):
     selected_sasl = None
 
     @hook("cap")
-    def on_cap(cli: IRCClient, svr, mynick, cmd: str, *caps: str, tags):
+    async def on_cap(cli: IRCClient, svr, mynick, cmd: str, *caps: str, tags):
         nonlocal supported_sasl, selected_sasl
         # caps is a star because we might receive multiline in LS
         if cmd == "LS":
@@ -441,7 +441,7 @@ def connect_callback(cli: IRCClient):
 
     if config.Main.get("transports[0].authentication.services.use_sasl"):
         @hook("authenticate")
-        def auth_plus(cli: IRCClient, _, plus, *, tags):
+        async def auth_plus(cli: IRCClient, _, plus, *, tags):
             username: str = config.Main.get("transports[0].authentication.services.username")
             if not username:
                 username = config.Main.get("transports[0].user.nick")
@@ -462,14 +462,14 @@ def connect_callback(cli: IRCClient):
                         cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("saslsuccess")
-        def on_successful_auth(cli: IRCClient, *args, tags):
+        async def on_successful_auth(cli: IRCClient, *args, tags):
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
         @hook("saslfail")
         @hook("sasltoolong")
         @hook("saslaborted")
-        def on_failure_auth(cli: IRCClient, *args, tags):
+        async def on_failure_auth(cli: IRCClient, *args, tags):
             nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet

@@ -24,19 +24,19 @@ class MessageDispatcher:
     def public(self):
         return self.target is not users.Bot
 
-    def pm(self, *messages, **kwargs):
+    async def pm(self, *messages, **kwargs):
         """Send a private message or notice to the sender."""
         kwargs.setdefault("notice", self.public)
         self.source.send(*messages, **kwargs)
 
-    def send(self, *messages, **kwargs):
+    async def send(self, *messages, **kwargs):
         """Send a message to the channel or a private message."""
         if self.private:
-            self.pm(*messages, **kwargs)
+            await self.pm(*messages, **kwargs)
         else:
             self.target.send(*messages, **kwargs)
 
-    def reply(self, *messages, prefix_nick=False, **kwargs):
+    async def reply(self, *messages, prefix_nick=False, **kwargs):
         """Reply to the user, either in channel or privately."""
         first = ""
         if prefix_nick:

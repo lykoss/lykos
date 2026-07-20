@@ -821,7 +821,7 @@ def get_help(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["admin_commands_list"].format(sorted(admin_commands)))
     wrapper.pm(messages["commands_further_help"])
 
-def get_wiki_page(URI):
+async def get_wiki_page(URI):
     try:
         response = urllib.request.urlopen(URI, timeout=2).read().decode("utf-8", errors="replace")
     except (urllib.error.URLError, socket.timeout):
@@ -834,12 +834,12 @@ def get_wiki_page(URI):
     return True, parsed
 
 @command("wiki", pm=True)
-def wiki(wrapper: MessageDispatcher, message: str):
+async def wiki(wrapper: MessageDispatcher, message: str):
     """Prints information from the wiki."""
 
     # no arguments, just print a link to the wiki
     if not message:
-        wrapper.reply("https://werewolf.chat")
+        await wrapper.reply("https://werewolf.chat")
         return
     rest = message.replace(" ", "_").lower()
 
@@ -883,12 +883,12 @@ def wiki(wrapper: MessageDispatcher, message: str):
         page = page[:page.find("\n")]
 
     wikilink = "https://werewolf.chat/{0}".format(suggestion.replace(" ", "_"))
-    wrapper.reply(wikilink)
+    await wrapper.reply(wikilink)
     if "#" not in wikilink:
-        wrapper.pm(page)
+        await wrapper.pm(page)
 
 @hook("invite")
-def on_invite(cli, raw_nick, something, chan, **tags):
+async def on_invite(cli, raw_nick, something, chan, **tags):
     if chan == config.Main.get("transports[0].channels.main"):
         cli.join(chan)
         return # No questions
@@ -897,10 +897,10 @@ def on_invite(cli, raw_nick, something, chan, **tags):
         cli.join(chan) # Allows the bot to be present in any channel
 
 @command("coin", pm=False)
-def coin(wrapper: MessageDispatcher, message: str):
+async def coin(wrapper: MessageDispatcher, message: str):
     """It's a bad idea to base any decisions on this command."""
 
-    wrapper.send(messages["coin_toss"].format(wrapper.source))
+    await wrapper.send(messages["coin_toss"].format(wrapper.source))
     rnd = random.random()
     # 59/29/12 split, 59+29=88
     if rnd < 0.59:
@@ -909,13 +909,13 @@ def coin(wrapper: MessageDispatcher, message: str):
         coin = messages.get("coin_land", 1)
     else:
         coin = messages.get("coin_land", 2)
-    wrapper.send(coin.format())
+    await wrapper.send(coin.format())
 
 @command("pony", pm=False)
-def pony(wrapper: MessageDispatcher, message: str):
+async def pony(wrapper: MessageDispatcher, message: str):
     """Toss a magical pony into the air and see what happens!"""
 
-    wrapper.send(messages["pony_toss"].format(wrapper.source))
+    await wrapper.send(messages["pony_toss"].format(wrapper.source))
     # 59/29/7/5 split
     rnd = random.random()
     if rnd < 0.59:
@@ -926,15 +926,15 @@ def pony(wrapper: MessageDispatcher, message: str):
         pony = messages.get("pony_land", 2)
     else:
         pony = messages.get("pony_land", 3)
-    wrapper.send(pony.format(nick=wrapper.source))
+    await wrapper.send(pony.format(nick=wrapper.source))
 
 @command("cat", pm=False)
-def cat(wrapper: MessageDispatcher, message: str):
+async def cat(wrapper: MessageDispatcher, message: str):
     """Toss a cat into the air and see what happens!"""
-    wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"].format(), sep="\n")
+    await wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"].format(), sep="\n")
 
 @command("roles", pm=True)
-def list_roles(wrapper: MessageDispatcher, message: str):
+async def list_roles(wrapper: MessageDispatcher, message: str):
     """Display which roles are in play for a specific gamemode."""
     from src.gamemodes import GAME_MODES
 
@@ -948,12 +948,12 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
     if not pieces[0] or pieces[0].isdigit():
         if not var or not var.in_game:
-            wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
+            await wrapper.reply(messages["roles_need_gamemode"], prefix_nick=True)
             return
         if gamemode and not gamemode.ROLE_GUIDE:
             minp = max(GAME_MODES[gamemode.name][1], config.Main.get("gameplay.player_limits.minimum"))
             msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
-            wrapper.reply(msg, prefix_nick=True)
+            await wrapper.reply(msg, prefix_nick=True)
             return
 
     msg = []
@@ -970,10 +970,10 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
         matches = match_mode(mode, scope=valid, remove_spaces=True)
         if len(matches) == 0:
-            wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
+            await wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
             return
         elif len(matches) > 1:
-            wrapper.reply(messages["ambiguous_mode"].format([m.local for m in matches]), prefix_nick=True)
+            await wrapper.reply(messages["ambiguous_mode"].format([m.local for m in matches]), prefix_nick=True)
             return
 
         mode = matches.get().key
@@ -982,7 +982,7 @@ def list_roles(wrapper: MessageDispatcher, message: str):
 
         if not gamemode.ROLE_GUIDE:
             minp = max(GAME_MODES[mode][1], config.Main.get("gameplay.player_limits.minimum"))
-            wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
+            await wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
     strip = lambda x: re.sub(r"\(.*\)", "", x)
@@ -1076,10 +1076,10 @@ def list_roles(wrapper: MessageDispatcher, message: str):
     if not msg:
         msg.append(messages["roles_undefined"].format(specific or lpl))
 
-    wrapper.send(*msg)
+    await wrapper.send(*msg)
 
 @command("myrole", pm=True, in_game_only=True)
-def myrole(wrapper: MessageDispatcher, message: str):
+async def myrole(wrapper: MessageDispatcher, message: str):
     """Remind you of your current role."""
 
     var = wrapper.game_state
@@ -1099,18 +1099,18 @@ def myrole(wrapper: MessageDispatcher, message: str):
         return
     role = evt.data["role"]
 
-    wrapper.pm(messages["show_role"].format(role))
+    await wrapper.pm(messages["show_role"].format(role))
     if secondary:
-        wrapper.pm(messages["show_secondary_roles"].format(sorted(secondary)))
+        await wrapper.pm(messages["show_secondary_roles"].format(sorted(secondary)))
 
     for msg in evt.data["messages"]:
-        wrapper.pm(msg)
+        await wrapper.pm(msg)
 
 @command("faftergame", flag="D", pm=True)
-def aftergame(wrapper: MessageDispatcher, message: str):
+async def aftergame(wrapper: MessageDispatcher, message: str):
     """Schedule a command to be run after the current game."""
     if not message.strip():
-        wrapper.pm(messages["incorrect_syntax"])
+        await wrapper.pm(messages["incorrect_syntax"])
         return
 
     var = wrapper.game_state
@@ -1125,79 +1125,79 @@ def aftergame(wrapper: MessageDispatcher, message: str):
         return
 
     if cmd in COMMANDS:
-        def do_action():
+        async def do_action():
             for fn in COMMANDS[cmd]:
                 fn.aftergame = True
                 context = MessageDispatcher(wrapper.source, channels.Main if fn.chan else users.Bot)
                 fn.caller(context, " ".join(args))
                 fn.aftergame = False
     else:
-        wrapper.pm(messages["command_not_found"])
+        await wrapper.pm(messages["command_not_found"])
         return
 
     if var is None:
-        do_action()
+        await do_action()
         return
 
-    channels.Main.send(messages["command_scheduled"].format(" ".join([cmd] + args), wrapper.source))
+    await channels.Main.send(messages["command_scheduled"].format(" ".join([cmd] + args), wrapper.source))
     trans.ENDGAME_COMMAND = do_action
 
-def _command_disabled(wrapper: MessageDispatcher, message: str):
-    wrapper.send(messages["command_disabled_admin"])
+async def _command_disabled(wrapper: MessageDispatcher, message: str):
+    await wrapper.send(messages["command_disabled_admin"])
 
 @command("flastgame", flag="D", pm=True)
-def flastgame(wrapper: MessageDispatcher, message: str):
+async def flastgame(wrapper: MessageDispatcher, message: str):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     for cmdcls in (COMMANDS["join"] + COMMANDS["start"]):
         cmdcls.func = _command_disabled
 
-    channels.Main.send(messages["disable_new_games"].format(wrapper.source))
+    await channels.Main.send(messages["disable_new_games"].format(wrapper.source))
     trans.ADMIN_STOPPED.append(wrapper.source)
 
     if message.strip():
-        aftergame.func(wrapper, message)
+        await aftergame.func(wrapper, message)
 
 @command("whoami", pm=True)
-def whoami(wrapper: MessageDispatcher, message: str):
+async def whoami(wrapper: MessageDispatcher, message: str):
     if wrapper.source.account:
-        wrapper.pm(messages["whoami_loggedin"].format(wrapper.source.account))
+        await wrapper.pm(messages["whoami_loggedin"].format(wrapper.source.account))
     else:
-        wrapper.pm(messages["whoami_loggedout"])
+        await wrapper.pm(messages["whoami_loggedout"])
 
 @command("setdisplay", pm=True)
-def setdisplay(wrapper: MessageDispatcher, message: str):
+async def setdisplay(wrapper: MessageDispatcher, message: str):
     if not wrapper.source.account:
-        wrapper.pm(messages["not_logged_in"])
+        await wrapper.pm(messages["not_logged_in"])
         return
 
     db.set_primary_player(wrapper.source.account)
-    wrapper.reply(messages["display_name_set"].format(wrapper.source.account))
+    await wrapper.reply(messages["display_name_set"].format(wrapper.source.account))
 
 # Called from !game and !join, used to vote for a game mode
-def vote_gamemode(wrapper: MessageDispatcher, gamemode, doreply): # FIXME: remove var
+async def vote_gamemode(wrapper: MessageDispatcher, gamemode, doreply): # FIXME: remove var
     from src.gamemodes import GAME_MODES
     if wrapper.game_state.current_mode is not None:
         if doreply:
-            wrapper.pm(messages["admin_forced_game"])
+            await wrapper.pm(messages["admin_forced_game"])
         return
 
     allowed = GAME_MODES.keys() - {"roles"} - set(config.Main.get("gameplay.disable.gamemodes"))
     matches = match_mode(gamemode, scope=allowed, remove_spaces=True)
     if len(matches) == 0:
         if doreply:
-            wrapper.pm(messages["invalid_mode"].format(gamemode))
+            await wrapper.pm(messages["invalid_mode"].format(gamemode))
         return
     elif len(matches) > 1:
         if doreply:
-            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
+            await wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
         return
 
     gamemode = matches.get().key
     if votes.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
-        wrapper.pm(messages["already_voted_game"].format(gamemode))
+        await wrapper.pm(messages["already_voted_game"].format(gamemode))
     else:
         votes.GAMEMODE_VOTES[wrapper.source] = gamemode
-        wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
+        await wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
 
 def _get_gamemodes(var):
     from src.gamemodes import GAME_MODES

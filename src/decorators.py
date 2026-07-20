@@ -1,7 +1,7 @@
 from __future__ import annotations
 import functools
 import logging
-from typing import Callable, Optional, Iterable
+from typing import Callable, Optional, Iterable, Coroutine
 from collections import defaultdict
 
 import src
@@ -39,7 +39,7 @@ class command:
         self.roles = roles
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
         self.in_game_only = in_game_only
-        self.func: Callable[[MessageDispatcher, str], None] = None # type: ignore[assignment]
+        self.func: Coroutine[[MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name: str = commands[0]
         self.internal_name = cmd
@@ -93,7 +93,7 @@ class command:
             self._registered = False
 
     @handle_error
-    def caller(self, wrapper: MessageDispatcher, message: str):
+    async def caller(self, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
         if (not self.pm and wrapper.private) or (not self.chan and wrapper.public):
             return # channel or PM command that we don't allow
@@ -103,7 +103,7 @@ class command:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            self.func(wrapper, message)
+            await self.func(wrapper, message)
             return
 
         if self.phases and (wrapper.game_state is None or wrapper.game_state.current_phase not in self.phases):
@@ -112,16 +112,16 @@ class command:
         if self.in_game_only and (wrapper.game_state is None or not wrapper.game_state.in_game):
             return
 
-        wrapper.source.update_account_data(self.key, functools.partial(self._thunk, wrapper, message))
+        await wrapper.source.update_account_data(self.key, functools.partial(self._thunk, wrapper, message))
 
     @handle_error
-    def _thunk(self, wrapper: MessageDispatcher, message: str, user: User):
+    async def _thunk(self, wrapper: MessageDispatcher, message: str, user: User):
         _ignore_locals_ = True
         wrapper.source = user
-        self._caller(wrapper, message)
+        await self._caller(wrapper, message)
 
     @handle_error
-    def _caller(self, wrapper: MessageDispatcher, message: str):
+    async def _caller(self, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
         var = wrapper.game_state # FIXME
         from src import reaper
@@ -150,11 +150,11 @@ class command:
                 return
 
         if self.silenced and src.status.is_silent(var, wrapper.source):
-            wrapper.pm(messages["silenced"])
+            await wrapper.pm(messages["silenced"])
             return
 
         if self.playing or self.roles or self.users:
-            self.func(wrapper, message) # don't check restrictions for game commands
+            await self.func(wrapper, message) # don't check restrictions for game commands
             # Role commands might end the night if it's nighttime
             if var.current_phase == "night":
                 from src.wolfgame import chk_nightdone
@@ -164,10 +164,10 @@ class command:
         if self.owner_only:
             if wrapper.source.is_owner():
                 logger.info(command_log_line, command_log_args)
-                self.func(wrapper, message)
+                await self.func(wrapper, message)
                 return
 
-            wrapper.pm(messages["not_owner"])
+            await wrapper.pm(messages["not_owner"])
             return
 
         temp = wrapper.source.lower()
@@ -176,24 +176,24 @@ class command:
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
             logger.info(command_log_line, command_log_args)
-            return self.func(wrapper, message)
+            return await self.func(wrapper, message)
 
         denied_commands = db.DENY[temp.account]
 
         if self.internal_name in denied_commands:
-            wrapper.pm(messages["invalid_permissions"])
+            await wrapper.pm(messages["invalid_permissions"])
             return
 
         if self.flag:
             if self.flag in flags:
                 logger.info(command_log_line, command_log_args)
-                self.func(wrapper, message)
+                await self.func(wrapper, message)
                 return
 
-            wrapper.pm(messages["not_an_admin"])
+            await wrapper.pm(messages["not_an_admin"])
             return
 
-        self.func(wrapper, message)
+        await self.func(wrapper, message)
 
 class hook:
     def __init__(self, name, hookid=-1):
@@ -212,9 +212,9 @@ class hook:
         return self
 
     @handle_error
-    def caller(self, *args, **kwargs):
+    async def caller(self, *args, **kwargs):
         _ignore_locals_ = True
-        return self.func(*args, **kwargs)
+        return await self.func(*args, **kwargs)
 
     @staticmethod
     def unhook(hookid):

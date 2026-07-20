@@ -23,7 +23,7 @@ PINGED_ALREADY: set[str] = set()
 PINGING_PLAYERS: bool = False
 
 @command("join", pm=True, allow_alt=False)
-def join(wrapper: MessageDispatcher, message: str):
+async def join(wrapper: MessageDispatcher, message: str):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     from src.wolfgame import vote_gamemode
     var = wrapper.game_state
@@ -32,16 +32,16 @@ def join(wrapper: MessageDispatcher, message: str):
         if wrapper.private:
             return
 
-        def _cb():
+        async def _cb():
             if message:
-                vote_gamemode(wrapper, message.lower().split()[0], doreply=False)
-        join_player(wrapper, callback=_cb)
+                await vote_gamemode(wrapper, message.lower().split()[0], doreply=False)
+        await join_player(wrapper, callback=_cb)
 
     else: # join deadchat
         if wrapper.private and wrapper.source is not wrapper.target:
             relay.join_deadchat(var, wrapper.source)
 
-def join_player(wrapper: MessageDispatcher,
+async def join_player(wrapper: MessageDispatcher,
                 who: Optional[User] = None,
                 forced: bool = False,
                 *,
@@ -61,15 +61,15 @@ def join_player(wrapper: MessageDispatcher,
 
     if not wrapper.source.is_fake and not wrapper.source.account:
         if forced:
-            who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
+            await who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
         else:
-            wrapper.source.send(messages["not_logged_in"], notice=True)
+            await wrapper.source.send(messages["not_logged_in"], notice=True)
         return
 
-    if _join_player(wrapper, who, forced) and callback:
-        callback() # FIXME: join_player should be async and return bool; caller can await it for result
+    if await _join_player(wrapper, who, forced) and callback:
+        await callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
-def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=False):
+async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=False):
     from src import trans
     var = wrapper.game_state
     pl = get_players(var)
@@ -175,13 +175,13 @@ def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, forced=
     return True
 
 @handle_error
-def kill_join(var: GameState, wrapper: MessageDispatcher):
+async def kill_join(var: GameState, wrapper: MessageDispatcher):
     from src import trans
     pl = [x.nick for x in get_players(var)]
     pl.sort(key=lambda x: x.lower())
     trans.reset(var)
-    wrapper.send(*pl, first="PING! ")
-    wrapper.send(messages["game_idle_cancel"])
+    await wrapper.send(*pl, first="PING! ")
+    await wrapper.send(messages["game_idle_cancel"])
     # use this opportunity to expire pending stasis
     db.expire_stasis()
     db.init_vars()
@@ -191,7 +191,7 @@ def kill_join(var: GameState, wrapper: MessageDispatcher):
         trans.ENDGAME_COMMAND = None
 
 @command("fjoin", flag="A")
-def fjoin(wrapper: MessageDispatcher, message: str):
+async def fjoin(wrapper: MessageDispatcher, message: str):
     """Force someone to join a game.
 
     :param wrapper: Dispatcher
@@ -200,7 +200,7 @@ def fjoin(wrapper: MessageDispatcher, message: str):
 
     success = False
     if not message.strip():
-        join_player(wrapper, forced=True)
+        await join_player(wrapper, forced=True)
         return
 
     parts = re.split(" +", message)
@@ -221,35 +221,35 @@ def fjoin(wrapper: MessageDispatcher, message: str):
     for tojoin in to_join:
         if isinstance(tojoin, users.User):
             if tojoin is users.Bot:
-                wrapper.pm(messages["not_allowed"])
+                await wrapper.pm(messages["not_allowed"])
             else:
-                join_player(type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
+                await join_player(type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
                 success = True
         # Allow joining single number fake users in debug mode
         elif users.predicate(tojoin) and debug_mode:
             user = users.add(wrapper.client, nick=tojoin)
-            join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+            await join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
             success = True
         # Allow joining ranges of numbers as fake users in debug mode
         elif "-" in tojoin and debug_mode:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
                 if int(last)+1 - int(first) > config.Main.get("gameplay.player_limits.maximum") - len(get_players(wrapper.game_state)):
-                    wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
+                    await wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
                     break
                 success = True
                 for i in range(int(first), int(last)+1):
                     user = users.add(wrapper.client, nick=str(i))
-                    join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+                    await join_player(type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
     if success:
-        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(wrapper.game_state))))
+        await wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players(wrapper.game_state))))
 
 @command("pingif", pm=True)
-def altpinger(wrapper: MessageDispatcher, message: str):
+async def altpinger(wrapper: MessageDispatcher, message: str):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
 
     if not wrapper.source.account:
-        wrapper.pm(messages["not_logged_in"])
+        await wrapper.pm(messages["not_logged_in"])
         return
 
     players = wrapper.source.get_pingif_count()
@@ -292,10 +292,10 @@ def altpinger(wrapper: MessageDispatcher, message: str):
     else:
         msg.append(messages["pingif_invalid"])
 
-    wrapper.pm(*msg, sep="\n")
+    await wrapper.pm(*msg, sep="\n")
 
 @handle_error
-def join_timer_handler(var):
+async def join_timer_handler(var):
     global PINGING_PLAYERS
     with locks.join_timer:
         PINGING_PLAYERS = True
@@ -335,7 +335,7 @@ def join_timer_handler(var):
                 PINGED_ALREADY.add(temp.account)
                 return
 
-        def ping_altpingers(event, request):
+        async def ping_altpingers(event, request):
             if request is channels.Main:
                 global PINGING_PLAYERS
                 PINGING_PLAYERS = False
@@ -344,7 +344,7 @@ def join_timer_handler(var):
                     user_list = [(user.ref or user).nick for user in to_ping]
 
                     msg_prefix = messages["ping_player"].format(len(pl))
-                    channels.Main.send(*user_list, first=msg_prefix)
+                    await channels.Main.send(*user_list, first=msg_prefix)
                     del to_ping[:]
 
                 who_result.remove("who_result")
@@ -358,7 +358,7 @@ def join_timer_handler(var):
         channels.Main.who()
 
 @command("leave", pm=True)
-def leave_game(wrapper: MessageDispatcher, message: str):
+async def leave_game(wrapper: MessageDispatcher, message: str):
     """Quits the game."""
     var = wrapper.game_state
     if var is None:
@@ -376,21 +376,21 @@ def leave_game(wrapper: MessageDispatcher, message: str):
         else:
             args = re.split(" +", message)
             if args[0] not in messages.raw("_commands", "leave opt force"):
-                wrapper.pm(messages["leave_game_ingame_safeguard"])
+                await wrapper.pm(messages["leave_game_ingame_safeguard"])
                 return
             population = ""
     elif wrapper.private:
         if var.in_game and wrapper.source not in get_players(var) and wrapper.source in relay.DEADCHAT_PLAYERS:
-            relay.leave_deadchat(var, wrapper.source)
+            await relay.leave_deadchat(var, wrapper.source)
         return
     else:
         return
 
     if var.in_game and var.role_reveal in ("on", "team"):
         role = get_reveal_role(var, wrapper.source)
-        channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
+        await channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
-        channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
+        await channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
     if var.current_phase != "join":
         reaper.DCED_LOSERS.add(wrapper.source)
         if config.Main.get("reaper.enabled") and config.Main.get("reaper.leave.enabled") and config.Main.get("reaper.autowarn"):
@@ -402,10 +402,10 @@ def leave_game(wrapper: MessageDispatcher, message: str):
     if not var.in_game and len(get_players(var)) == 0:
         # chk_win handles ending game at 0 players if a game is running, don't need to do so here
         from src.trans import stop_game
-        stop_game(var, log=False)
+        await stop_game(var, log=False)
 
 @command("fleave", flag="A", pm=True)
-def fleave(wrapper: MessageDispatcher, message: str):
+async def fleave(wrapper: MessageDispatcher, message: str):
     """Force someone to leave the game."""
 
     var = wrapper.game_state
@@ -424,7 +424,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
         if target:
             target = target.get()
             if wrapper.target is not channels.Main:
-                wrapper.pm(messages["fquit_fail"])
+                await wrapper.pm(messages["fquit_fail"])
                 return
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
@@ -437,7 +437,7 @@ def fleave(wrapper: MessageDispatcher, message: str):
                     to_say = "no_players_remaining"
                 msg.append(messages[to_say].format(player_count))
 
-            wrapper.send(*msg)
+            await wrapper.send(*msg)
 
             if var.current_phase != "join":
                 reaper.DCED_LOSERS.add(target)
@@ -447,16 +447,16 @@ def fleave(wrapper: MessageDispatcher, message: str):
             if not var.in_game and len(get_players(var)) == 0:
                 # chk_win handles ending game at 0 players if a game is running, don't need to do so here
                 from src.trans import stop_game
-                stop_game(var, log=False)
+                await stop_game(var, log=False)
 
         elif dead_target:
             dead_target = dead_target.get()
-            relay.leave_deadchat(var, dead_target, force=wrapper.source)
+            await relay.leave_deadchat(var, dead_target, force=wrapper.source)
             if wrapper.source not in relay.DEADCHAT_PLAYERS:
-                wrapper.pm(messages["admin_fleave_deadchat"].format(dead_target))
+                await wrapper.pm(messages["admin_fleave_deadchat"].format(dead_target))
 
         else:
-            wrapper.send(messages["not_playing"].format(person))
+            await wrapper.send(messages["not_playing"].format(person))
             return
 
 @event_listener("reset")

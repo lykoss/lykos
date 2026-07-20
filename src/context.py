@@ -45,7 +45,7 @@ def _who(cli, target, data=b""):
 
     return int.from_bytes(data, "little")
 
-def _send(data, first, sep, client, send_type, name, chan=None):
+async def _send(data, first, sep, client, send_type, name, chan=None):
     full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
 
     # Maximum length of sent data is 512 bytes. However, we have to
@@ -194,7 +194,7 @@ class IRCContext:
         self._messages[message].append(self)
 
     @classmethod
-    def send_messages(cls, *, notice=False, privmsg=False):
+    async def send_messages(cls, *, notice=False, privmsg=False):
         messages = list(cls._messages.items())
         cls._messages.clear()
         for message, targets in messages:
@@ -211,7 +211,7 @@ class IRCContext:
                 max_targets = Features["TARGMAX"][send_type]
                 while send_targets:
                     using, send_targets = send_targets[:max_targets], send_targets[max_targets:]
-                    _send(message, "", " ", using[0].client, send_type, ",".join([t.nick for t in using]), send_chan)
+                    await _send(message, "", " ", using[0].client, send_type, ",".join([t.nick for t in using]), send_chan)
 
     @classmethod
     def get_context_type(cls, *, max_types=1):
@@ -269,7 +269,7 @@ class IRCContext:
                 return "CNOTICE", cprivmsg_eligible.name
         return send_type, None
 
-    def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
+    async def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
         new = []
         for line in data:
             # support deferred messages
@@ -302,7 +302,7 @@ class IRCContext:
             first = ""
         if sep is None:
             sep = " "
-        _send(new, first, sep, self.client, send_type, name, send_chan)
+        await _send(new, first, sep, self.client, send_type, name, send_chan)
 
     @property
     def prefix(self):

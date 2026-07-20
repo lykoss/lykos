@@ -3,7 +3,7 @@ from __future__ import annotations
 import fnmatch
 import time
 import re
-from typing import Callable, Optional, Iterable, TYPE_CHECKING
+from typing import Callable, Coroutine, Optional, Iterable, TYPE_CHECKING
 
 from src.context import IRCContext, Features, NotLoggedIn, lower
 from src import config, db
@@ -223,7 +223,7 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
-def _update_account(evt, user):
+async def _update_account(evt, user):
     """Updates account data of a user for networks which don't support certain features."""
     if evt.params.old in _pending_account_updates:
         updates = list(_pending_account_updates[evt.params.old].items())
@@ -233,7 +233,7 @@ def _update_account(evt, user):
         for command, callback in updates:
             # handle_error swallows exceptions so that a callback raising an exception
             # does not prevent other registered callbacks from running
-            handle_error(callback)(user)
+            await handle_error(callback)(user)
 
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
@@ -422,7 +422,7 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
-    def swap(self, new: User, *, same_user=False):
+    async def swap(self, new: User, *, same_user=False):
         """Swap yourself out with the new user everywhere.
 
         :param new: New user to replace current one with.
@@ -482,7 +482,7 @@ class User(IRCContext):
             temp.ref = self.ref or self
         return temp
 
-    def is_owner(self):
+    async def is_owner(self):
         if self.is_fake:
             return False
 
@@ -495,7 +495,7 @@ class User(IRCContext):
 
         return False
 
-    def is_admin(self):
+    async def is_admin(self):
         if self.is_fake:
             return False
 
@@ -511,7 +511,7 @@ class User(IRCContext):
             except AttributeError:
                 pass
 
-            return self.is_owner()
+            return await self.is_owner()
 
         return True
 
@@ -567,7 +567,7 @@ class User(IRCContext):
         """Return the number of games the user is in stasis for."""
         return db.STASISED.get(self.lower().account, 0)
 
-    def update_account_data(self, command: str, callback: Callable):
+    async def update_account_data(self, command: str, callback: Coroutine):
         """Refresh stale account data on networks that don't support certain features.
 
         :param command: Command name that prompted the call to update_account_data.
@@ -583,12 +583,12 @@ class User(IRCContext):
         _ignore_locals_ = True
         # Nothing to update for fake nicks
         if self.is_fake:
-            callback(self)
+            await callback(self)
             return
 
         if self.account and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
-            callback(self)
+            await callback(self)
             return
 
         # at this point we might actually care about locals in tracebacks when debugging account tracking issues
@@ -597,13 +597,13 @@ class User(IRCContext):
         if self.account and (not services.supports_account_change() or self.account_timestamp > time.time() - 900):
             # account data is less than 15 minutes old or we can't change accounts on this ircd,
             # use existing data instead of refreshing
-            callback(self)
+            await callback(self)
             return
 
         evt = Event("update_account_data", {})
         if not evt.dispatch(self):
             new_user = get(self.nick, self.ident, self.host, allow_ghosts=True)
-            callback(new_user)
+            await callback(new_user)
             return
 
         if self not in _pending_account_updates:

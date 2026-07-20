@@ -35,7 +35,7 @@ CAN_START_TIME: datetime = datetime.now()
 FORCE_ROLES: DefaultUserDict[str, UserSet] = DefaultUserDict(UserSet)
 
 @command("wait", playing=True, phases=("join",))
-def wait(wrapper: MessageDispatcher, message: str):
+async def wait(wrapper: MessageDispatcher, message: str):
     """Increase the wait time until !start can be used."""
     if wrapper.target is not channels.Main:
         return
@@ -51,7 +51,7 @@ def wait(wrapper: MessageDispatcher, message: str):
         now = datetime.now()
         if ((LAST_WAIT and wrapper.source in LAST_WAIT and LAST_WAIT[wrapper.source] +
                 timedelta(seconds=config.Main.get("ratelimits.wait")) > now) or WAIT_TOKENS < 1):
-            wrapper.pm(messages["command_ratelimited"])
+            await wrapper.pm(messages["command_ratelimited"])
             return
 
         LAST_WAIT[wrapper.source] = now
@@ -63,10 +63,10 @@ def wait(wrapper: MessageDispatcher, message: str):
             CAN_START_TIME = now + timedelta(seconds=wait_amount)
         else:
             CAN_START_TIME += timedelta(seconds=wait_amount)
-        wrapper.send(messages["wait_time_increase"].format(wrapper.source, wait_amount))
+        await wrapper.send(messages["wait_time_increase"].format(wrapper.source, wait_amount))
 
 @command("fwait", flag="w", phases=("join",))
-def fwait(wrapper: MessageDispatcher, message: str):
+async def fwait(wrapper: MessageDispatcher, message: str):
     """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
     global CAN_START_TIME
 
@@ -86,25 +86,25 @@ def fwait(wrapper: MessageDispatcher, message: str):
         CAN_START_TIME += timedelta(seconds=extra)
 
     if extra >= 0:
-        wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra)))
+        await wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra)))
     else:
-        wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra)))
+        await wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra)))
 
 @command("start", phases=("join",))
-def start_cmd(wrapper: MessageDispatcher, message: str):
+async def start_cmd(wrapper: MessageDispatcher, message: str):
     """Start a game of Werewolf."""
     if wrapper.target is channels.Main:
-        start(wrapper)
+        await start(wrapper)
 
 @command("fstart", flag="S", phases=("join",))
-def fstart(wrapper: MessageDispatcher, message: str):
+async def fstart(wrapper: MessageDispatcher, message: str):
     """Force the game to start immediately."""
-    channels.Main.send(messages["fstart_success"].format(wrapper.source))
+    await channels.Main.send(messages["fstart_success"].format(wrapper.source))
     wrapper.target = channels.Main
-    start(wrapper, forced=True)
+    await start(wrapper, forced=True)
 
 @command("retract", phases=("day", "join"))
-def retract(wrapper: MessageDispatcher, message: str):
+async def retract(wrapper: MessageDispatcher, message: str):
     """Take back your vote during the day."""
     from src.trans import TIMERS
     var = wrapper.game_state
@@ -114,10 +114,10 @@ def retract(wrapper: MessageDispatcher, message: str):
     with locks.reaper, locks.join_timer:
         if var.current_phase == "join":
             if wrapper.source not in START_VOTES:
-                wrapper.pm(messages["start_novote"])
+                await wrapper.pm(messages["start_novote"])
             else:
                 START_VOTES.discard(wrapper.source)
-                wrapper.send(messages["start_retract"].format(wrapper.source))
+                await wrapper.send(messages["start_retract"].format(wrapper.source))
 
                 if not START_VOTES:
                     TIMERS["start_votes"][0].cancel()
@@ -137,13 +137,13 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
                 TIMERS["start_votes"][0].cancel()
                 del TIMERS["start_votes"]
 
-def start(wrapper: MessageDispatcher, *, forced: bool = False):
+async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     from src.trans import stop_game, ADMIN_STOPPED, TIMERS
 
     pregame_state: PregameState = wrapper.game_state
 
     if pregame_state.in_game:
-        wrapper.source.send(messages["werewolf_already_running"])
+        await wrapper.source.send(messages["werewolf_already_running"])
         return
 
     villagers = get_players(pregame_state)
@@ -153,29 +153,29 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
         return
 
     if len(villagers) < config.Main.get("gameplay.player_limits.minimum"):
-        wrapper.send(messages["not_enough_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.minimum")))
+        await wrapper.send(messages["not_enough_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.minimum")))
         return
 
     if len(villagers) > config.Main.get("gameplay.player_limits.maximum"):
-        wrapper.send(messages["max_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.maximum")))
+        await wrapper.send(messages["max_players"].format(wrapper.source, config.Main.get("gameplay.player_limits.maximum")))
         return
 
     dur = int((CAN_START_TIME - datetime.now()).total_seconds())
     if dur > 0 and not forced:
-        wrapper.send(messages["please_wait"].format(dur))
+        await wrapper.send(messages["please_wait"].format(dur))
         return
 
     if (not forced and LAST_START and wrapper.source in LAST_START and
             LAST_START[wrapper.source][0] + timedelta(seconds=config.Main.get("ratelimits.start")) > datetime.now()):
         LAST_START[wrapper.source][1] += 1
-        wrapper.source.send(messages["command_ratelimited"])
+        await wrapper.source.send(messages["command_ratelimited"])
         return
 
     LAST_START[wrapper.source] = [datetime.now(), 1]
 
     with locks.join_timer:
         if not forced and wrapper.source in START_VOTES:
-            wrapper.pm(messages["start_already_voted"])
+            await wrapper.pm(messages["start_already_voted"])
             return
 
         start_votes_required = min(math.ceil(len(villagers) * config.Main.get("gameplay.start.scale")), config.Main.get("gameplay.start.maximum"))
@@ -186,7 +186,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
             if len(START_VOTES) < start_votes_required - 1:
                 START_VOTES.add(wrapper.source)
                 remaining_votes = start_votes_required - len(START_VOTES)
-                wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes))
+                await wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes))
 
                 # If this was the first vote
                 if len(START_VOTES) == 1:
@@ -239,7 +239,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state
-    channels.Main.game_state = ingame_state = GameState(pregame_state)
+    await channels.Main.game_state = ingame_state = GameState(pregame_state)
     random.seed(ingame_state.rng_seed)
 
     event = Event("role_attribution", {"addroles": Counter()})
@@ -260,14 +260,14 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 if defroles[srole] == 0:
                     del defroles[srole]
         if not defroles:
-            wrapper.send(messages["no_settings_defined"].format(wrapper.source, lv))
+            await wrapper.send(messages["no_settings_defined"].format(wrapper.source, lv))
             stop_game(ingame_state, abort=True, log=False)
             return
         for role, num in defroles.items():
             # if an event defined this role, use that number. Otherwise use the number from ROLE_GUIDE
             addroles[role] = addroles.get(role, num)
         if sum([addroles[r] for r in addroles if r not in ingame_state.current_mode.SECONDARY_ROLES]) > lv:
-            wrapper.send(messages["too_many_roles"])
+            await wrapper.send(messages["too_many_roles"])
             stop_game(ingame_state, abort=True, log=False)
             return
         for role in All:
@@ -393,7 +393,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
         if count == 0:
             continue
         if len(possible) < count:
-            wrapper.send(messages["not_enough_targets"].format(role))
+            await wrapper.send(messages["not_enough_targets"].format(role))
             stop_game(ingame_state, abort=True, log=False)
             return
         ingame_state.roles[role].update(x for x in random.sample(possible, count))
@@ -475,7 +475,7 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
     key = "welcome_simple"
     if options:
         key = "welcome_options"
-    wrapper.send(messages[key].format(villagers, gamemode, options))
+    await wrapper.send(messages[key].format(villagers, gamemode, options))
     wrapper.target.mode("+m")
 
     if start_event.data["custom_game_callback"]:
@@ -502,21 +502,21 @@ def start(wrapper: MessageDispatcher, *, forced: bool = False):
         reapertimer.daemon = True
         reapertimer.start()
 
-def _command_disabled(wrapper: MessageDispatcher, message: str):
-    wrapper.send(messages["command_disabled_admin"])
+async def _command_disabled(wrapper: MessageDispatcher, message: str):
+    await wrapper.send(messages["command_disabled_admin"])
 
 @handle_error
-def expire_start_votes(var: GameState, channel: Channel):
+async def expire_start_votes(var: GameState, channel: Channel):
     # Should never happen as the timer is removed on game start, but just to be safe
     if var.current_phase != "join":
         return
 
     with locks.join_timer:
         START_VOTES.clear()
-        channel.send(messages["start_expired"])
+        await channel.send(messages["start_expired"])
 
 @command("frole", flag="d", phases=("join",))
-def frole(wrapper: MessageDispatcher, message: str):
+async def frole(wrapper: MessageDispatcher, message: str):
     """Force a player into a certain role."""
     pl = get_players(wrapper.game_state)
 
@@ -525,7 +525,7 @@ def frole(wrapper: MessageDispatcher, message: str):
         try:
             (name, role) = part.split(":", 1)
         except ValueError:
-            wrapper.send(messages["frole_incorrect"].format(part))
+            await wrapper.send(messages["frole_incorrect"].format(part))
             return
         umatch = users.complete_match(name.strip(), pl)
         rmatch = match_role(role.strip(), allow_special=False)
@@ -533,11 +533,11 @@ def frole(wrapper: MessageDispatcher, message: str):
         if rmatch:
             role = rmatch.get().key
         if not umatch or not rmatch:
-            wrapper.send(messages["frole_incorrect"].format(part))
+            await wrapper.send(messages["frole_incorrect"].format(part))
             return
         FORCE_ROLES[role].add(umatch.get())
 
-    wrapper.send(messages["operation_successful"])
+    await wrapper.send(messages["operation_successful"])
 
 @event_listener("reset")
 def on_reset(evt: Event, var: GameState):

@@ -20,7 +20,7 @@ WOLFCHAT_SPECTATE: UserSet = UserSet()
 VAMPCHAT_SPECTATE: UserSet = UserSet()
 
 @command("", chan=False, pm=True)
-def relay_wolfchat(wrapper: MessageDispatcher, message: str):
+async def relay_wolfchat(wrapper: MessageDispatcher, message: str):
     """Relay wolfchat/vampchat messages and commands."""
     var = wrapper.game_state
 
@@ -78,10 +78,10 @@ def relay_wolfchat(wrapper: MessageDispatcher, message: str):
         # relay_message_wolfchat relay_action_wolfchat relay_message_vampchat relay_action_vampchat
         player.queue_message(messages[key + spectate_key_suffix].format(wrapper.source, message))
 
-    User.send_messages()
+    await User.send_messages()
 
 @command("", chan=False, pm=True)
-def relay_deadchat(wrapper: MessageDispatcher, message: str):
+async def relay_deadchat(wrapper: MessageDispatcher, message: str):
     """Relay deadchat messages."""
     if message.startswith(config.Main.get("transports[0].user.command_prefix")):
         return
@@ -97,9 +97,9 @@ def relay_deadchat(wrapper: MessageDispatcher, message: str):
         for user in DEADCHAT_SPECTATE:
             user.queue_message(messages[key + "_deadchat"].format(wrapper.source, message))
 
-        User.send_messages()
+        await User.send_messages()
 
-def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
+async def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
     # if allowed in normal games, restrict it so that it can only be used by dead players and
     # non-players (don't allow active vengeful ghosts either).
     # also don't allow in-channel (e.g. make it pm only)
@@ -110,17 +110,17 @@ def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
     pl = get_participants(wrapper.game_state)
 
     if wrapper.source in pl:
-        wrapper.pm(messages[key])
+        await wrapper.pm(messages[key])
         return False
 
     if wrapper.source.account in {player.account for player in pl}:
-        wrapper.pm(messages[key])
+        await wrapper.pm(messages[key])
         return False
 
     return True
 
-def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: bool):
-    if not try_restricted_cmd(wrapper, "spectate_restricted"):
+async def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: bool):
+    if not await try_restricted_cmd(wrapper, "spectate_restricted"):
         return
 
     var = wrapper.game_state
@@ -128,14 +128,14 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
     params = message.split(" ")
     on = "on"
     if not len(params):
-        wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
+        await wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
         return
     elif len(params) > 1:
         on = params[1].lower()
     what = params[0].lower()
     allowed = ("wolfchat", "vampchat", "deadchat") if is_fspectate else ("wolfchat", "vampchat")
     if what not in allowed or on not in ("on", "off"):
-        wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
+        await wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
         return
 
     if on == "off":
@@ -145,7 +145,7 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
             VAMPCHAT_SPECTATE.discard(wrapper.source)
         else:
             DEADCHAT_SPECTATE.discard(wrapper.source)
-        wrapper.pm(messages["spectate_off_{0}".format(what)])
+        await wrapper.pm(messages["spectate_off_{0}".format(what)])
     else:
         if what in ("wolfchat", "vampchat"):
             if what == "wolfchat":
@@ -176,29 +176,29 @@ def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectate: boo
                     User.send_messages()
         elif config.Main.get("gameplay.deadchat"):
             if wrapper.source in DEADCHAT_PLAYERS:
-                wrapper.pm(messages["spectate_in_deadchat"])
+                await wrapper.pm(messages["spectate_in_deadchat"])
                 return
             DEADCHAT_SPECTATE.add(wrapper.source)
             players = DEADCHAT_PLAYERS
         else:
-            wrapper.pm(messages["spectate_deadchat_disabled"])
+            await wrapper.pm(messages["spectate_deadchat_disabled"])
             return
         # keys used: spectate_on_deadchat spectate_on_wolfchat spectate_on_vampchat
-        wrapper.pm(messages["spectate_on_{0}".format(what)])
-        wrapper.pm(messages["players_list"].format(players))
+        await wrapper.pm(messages["spectate_on_{0}".format(what)])
+        await wrapper.pm(messages["players_list"].format(players))
 
 @command("spectate", flag="p", pm=True, in_game_only=True)
-def spectate(wrapper: MessageDispatcher, message: str):
+async def spectate(wrapper: MessageDispatcher, message: str):
     """Spectate wolfchat, vampire chat, or deadchat."""
-    spectate_chat(wrapper, message, is_fspectate=False)
+    await spectate_chat(wrapper, message, is_fspectate=False)
 
 @command("fspectate", flag="F", pm=True, in_game_only=True)
-def fspectate(wrapper: MessageDispatcher, message: str):
+async def fspectate(wrapper: MessageDispatcher, message: str):
     """Spectate wolfchat, vampire chat, or deadchat."""
-    spectate_chat(wrapper, message, is_fspectate=True)
+    await spectate_chat(wrapper, message, is_fspectate=True)
 
 @command("revealroles", flag="a", pm=True, in_game_only=True)
-def revealroles(wrapper: MessageDispatcher, message: str):
+async def revealroles(wrapper: MessageDispatcher, message: str):
     """Reveal role information."""
 
     if not try_restricted_cmd(wrapper, "temp_invalid_perms"):
@@ -234,11 +234,11 @@ def revealroles(wrapper: MessageDispatcher, message: str):
     evt.dispatch(var)
 
     if config.Main.get("debug.enabled"):
-        wrapper.send(*output, sep=" | ")
+        await wrapper.send(*output, sep=" | ")
     else:
-        wrapper.pm(*output, sep=" | ")
+        await wrapper.pm(*output, sep=" | ")
 
-def join_deadchat(var: GameState, *all_users: User):
+async def join_deadchat(var: GameState, *all_users: User):
     if not config.Main.get("gameplay.deadchat") or not var.in_game:
         return
 
@@ -268,18 +268,18 @@ def join_deadchat(var: GameState, *all_users: User):
     DEADCHAT_PLAYERS.update(to_join)
     DEADCHAT_SPECTATE.difference_update(to_join)
 
-    User.send_messages() # send all messages at once
+    await User.send_messages() # send all messages at once
 
-def leave_deadchat(var: GameState, user: User, *, force=None):
+async def leave_deadchat(var: GameState, user: User, *, force=None):
     if not config.Main.get("gameplay.deadchat") or not var.in_game or user not in DEADCHAT_PLAYERS:
         return
 
     DEADCHAT_PLAYERS.remove(user)
     if force is None:
-        user.send(messages["leave_deadchat"])
+        await user.send(messages["leave_deadchat"])
         msg = messages["player_left_deadchat"].format(user)
     else:
-        user.send(messages["force_leave_deadchat"].format(force))
+        await user.send(messages["force_leave_deadchat"].format(force))
         msg = messages["player_force_leave_deadchat"].format(user, force)
 
     if DEADCHAT_PLAYERS or DEADCHAT_SPECTATE:
@@ -288,10 +288,10 @@ def leave_deadchat(var: GameState, user: User, *, force=None):
         for user in DEADCHAT_SPECTATE:
             user.queue_message(messages["relay_command_deadchat"].format(msg))
 
-        User.send_messages()
+        await User.send_messages()
 
 @command("deadchat", pm=True)
-def deadchat_pref(wrapper: MessageDispatcher, message: str):
+async def deadchat_pref(wrapper: MessageDispatcher, message: str):
     """Toggles auto joining deadchat on death."""
     if not config.Main.get("gameplay.deadchat"):
         return
@@ -299,14 +299,14 @@ def deadchat_pref(wrapper: MessageDispatcher, message: str):
     temp = wrapper.source.lower()
 
     if not wrapper.source.account:
-        wrapper.pm(messages["not_logged_in"])
+        await wrapper.pm(messages["not_logged_in"])
         return
 
     if temp.account in db.DEADCHAT_PREFS:
-        wrapper.pm(messages["chat_on_death"])
+        await wrapper.pm(messages["chat_on_death"])
         db.DEADCHAT_PREFS.remove(temp.account)
     else:
-        wrapper.pm(messages["no_chat_on_death"])
+        await wrapper.pm(messages["no_chat_on_death"])
         db.DEADCHAT_PREFS.add(temp.account)
 
     db.toggle_deadchat(temp.account)

@@ -469,7 +469,7 @@ def chk_nightdone(var: GameState):
     if var.current_phase == "night" and actedcount >= len(nightroles):
         event.data["transition_day"](var)
 
-def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody, abort=False, additional_winners=None, log=True):
+async def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody, abort=False, additional_winners=None, log=True):
     global DAY_TIMEDELTA, NIGHT_TIMEDELTA, ENDGAME_COMMAND
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
@@ -540,7 +540,7 @@ def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody
         evt = Event("game_end_messages", {"messages": roles_msg})
         evt.dispatch(var)
 
-        channels.Main.send(*roles_msg)
+        await channels.Main.send(*roles_msg)
 
         # map player: all roles of that player (for below)
         allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
@@ -638,15 +638,15 @@ def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody
             # spit out the list of winners
             if winners:
                 sorted_winners = sorted(winners, key=lambda u: u.nick)
-                channels.Main.send(messages["winners"].format(sorted_winners))
+                await channels.Main.send(messages["winners"].format(sorted_winners))
             else:
-                channels.Main.send(messages["no_winners"])
+                await channels.Main.send(messages["no_winners"])
 
     # Message players in deadchat letting them know that the game has ended
     for user in relay.DEADCHAT_PLAYERS:
         user.queue_message(messages["endgame_deadchat"].format(channels.Main))
 
-    User.send_messages()
+    await User.send_messages()
 
     reset(var)
     expire_tempbans()
@@ -659,7 +659,7 @@ def stop_game(var: Optional[GameState | PregameState], winner: Category = Nobody
         channels.Main.send(messages["fstop_ping"].format(ADMIN_STOPPED))
         ADMIN_STOPPED.clear()
 
-def chk_win(var: GameState, *, end_game=True, winner=None, count_absent=True):
+async def chk_win(var: GameState, *, end_game=True, winner=None, count_absent=True):
     """ Returns True if someone won """
     global ENDGAME_COMMAND
     lpl = len(get_players(var))
@@ -673,7 +673,7 @@ def chk_win(var: GameState, *, end_game=True, winner=None, count_absent=True):
                 ENDGAME_COMMAND()
                 ENDGAME_COMMAND = None
             if ADMIN_STOPPED:  # It was an flastgame
-                channels.Main.send(messages["fstop_ping"].format(ADMIN_STOPPED))
+                await channels.Main.send(messages["fstop_ping"].format(ADMIN_STOPPED))
                 ADMIN_STOPPED.clear()
 
             return True
@@ -681,9 +681,9 @@ def chk_win(var: GameState, *, end_game=True, winner=None, count_absent=True):
     if var.setup_completed and not var.in_game:
         return False # some other thread already ended game probably
 
-    return chk_win_conditions(var, var.roles, var.main_roles, end_game, winner, count_absent)
+    return await chk_win_conditions(var, var.roles, var.main_roles, end_game, winner, count_absent)
 
-def chk_win_conditions(var: GameState,
+async def chk_win_conditions(var: GameState,
                        rolemap: dict[str, set[User]] | UserDict[str, UserSet],
                        mainroles: dict[User, str] | UserDict[User, str],
                        end_game=True,
@@ -733,12 +733,12 @@ def chk_win_conditions(var: GameState,
             return False
 
         if end_game:
-            channels.Main.send(message)
-            stop_game(var, winner, additional_winners=event.data["additional_winners"])
+            await channels.Main.send(message)
+            await stop_game(var, winner, additional_winners=event.data["additional_winners"])
         return True
 
 @command("fstop", flag="S")
-def reset_game(wrapper: MessageDispatcher, message: str):
+async def reset_game(wrapper: MessageDispatcher, message: str):
     """Forces the game to stop."""
     var = wrapper.game_state
     if var is None:
@@ -748,10 +748,10 @@ def reset_game(wrapper: MessageDispatcher, message: str):
     if var.current_phase == "join":
         pl = [p for p in get_players(var) if not p.is_fake]
 
-    wrapper.send(messages["fstop_success"].format(wrapper.source))
-    stop_game(var, log=False)
+    await wrapper.send(messages["fstop_success"].format(wrapper.source))
+    await stop_game(var, log=False)
     if pl:
-        wrapper.send(messages["fstop_ping"].format(pl))
+        await wrapper.send(messages["fstop_ping"].format(pl))
 
 def reset(var: Optional[GameState | PregameState]):
     # Reset game timers
