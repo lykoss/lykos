@@ -312,7 +312,7 @@ async def deadchat_pref(wrapper: MessageDispatcher, message: str):
     db.toggle_deadchat(temp.account)
 
 @event_listener("reset")
-def on_reset(evt, var):
+async def on_reset(evt, var):
     DEADCHAT_PLAYERS.clear()
     DEADCHAT_SPECTATE.clear()
     WOLFCHAT_SPECTATE.clear()

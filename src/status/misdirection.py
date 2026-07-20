@@ -59,12 +59,12 @@ def in_misdirection_scope(var: GameState, roles: Category | set[str] | str, *, a
     return True
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     # don't clear AS_ACTOR here; we want dead players to still be misdirected (e.g. vengeful ghost)
     AS_TARGET.discard(player)
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if AS_ACTOR or AS_TARGET:
         misdirected = AS_ACTOR | AS_TARGET
         out = []
@@ -78,11 +78,11 @@ def on_revealroles(evt: Event, var: GameState):
         evt.data["output"].append(messages["misdirection_revealroles"].format(out))
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     AS_ACTOR.clear()
     AS_TARGET.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     AS_ACTOR.clear()
     AS_TARGET.clear()

@@ -39,8 +39,8 @@ class EventListener:
     def __hash__(self):
         return hash(self._id)
 
-    def __call__(self, *args, **kwargs):
-        self.callback(*args, **kwargs)
+    async def __call__(self, *args, **kwargs):
+        return await self.callback(*args, **kwargs)
 
     @property
     def id(self):
@@ -80,6 +80,8 @@ class event_listener:
             self.__doc__ = self.func.__doc__
             return self
         else:
+            # XXX This is a coroutine, and normally wouldn't work here
+            # except to call it you need to use 'await', which will await *this*
             return self.func(*args, **kwargs)
 
     def install(self):
@@ -96,13 +98,13 @@ class Event:
         self.data = _data
         self.params = SimpleNamespace(**kwargs)
 
-    def dispatch(self, *args, **kwargs):
+    async def dispatch(self, *args, **kwargs):
         self.stop_processing = False
         self.prevent_default = False
         listeners = list(EVENT_CALLBACKS[self.name])
         listeners.sort(key=lambda x: x.priority)
         for listener in listeners:
-            listener(self, *args, **kwargs)
+            await listener(self, *args, **kwargs)
             if self.stop_processing:
                 break
 

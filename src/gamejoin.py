@@ -324,7 +324,7 @@ async def join_timer_handler(var):
             PINGING_PLAYERS = False
             return
 
-        def get_altpingers(event: Event, chan: Channel, user: User):
+        async def get_altpingers(event: Event, chan: Channel, user: User):
             if (event.params.away or user.stasis_count() or not PINGING_PLAYERS or
                     chan is not channels.Main or user is users.Bot or user in pl):
                 return
@@ -460,7 +460,7 @@ async def fleave(wrapper: MessageDispatcher, message: str):
             return
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global PINGING_PLAYERS
     PINGED_ALREADY.clear()
     PINGING_PLAYERS = False

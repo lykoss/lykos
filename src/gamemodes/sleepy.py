@@ -87,12 +87,12 @@ class SleepyMode(GameMode):
         self.nightmare_progress.clear()
         self.nightmare_acted.clear()
 
-    def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
+    async def dullahan_targets(self, evt: Event, var: GameState, dullahan, max_targets):
         evt.data["exclude"].update(get_players(var, Wolf))
         # dulla needs 1 fewer target to win than normal
         evt.data["num_targets"] = max_targets - 1
 
-    def setup_nightmares(self, evt: Event, var: GameState):
+    async def setup_nightmares(self, evt: Event, var: GameState):
         from src.roles.dullahan import KILLS
         dullahans = get_players(var, ("dullahan",))
         # don't give nightmares to other dullas, because that'd just be awkward
@@ -102,7 +102,7 @@ class SleepyMode(GameMode):
 
     # called from trans.py when night ends and dulla has kills
     @handle_error
-    def do_nightmares(self, var: GameState):
+    async def do_nightmares(self, var: GameState):
         from src.roles.dullahan import KILLS
         self.having_nightmare.update(KILLS)
         self.nightmare_progress.clear()
@@ -120,42 +120,42 @@ class SleepyMode(GameMode):
             self.nightmare_progress[dulla] = 3 - steps
             self.nightmare_progress[target] = 4 - steps
             counts[target] += 1
-            dulla.send(messages["sleepy_nightmare_start_dullahan"].format(target))
+            await dulla.send(messages["sleepy_nightmare_start_dullahan"].format(target))
             if timers_enabled and time_limit:
                 dulla.queue_message(messages["sleepy_nightmare_timer_notify"].format(time_limit))
 
         # send the initial messages to targets too
         for target, count in counts.items():
             if count == 1:
-                target.send(messages["sleepy_nightmare_start_target"])
+                await target.send(messages["sleepy_nightmare_start_target"])
             else:
-                target.send(messages["sleepy_nightmare_start_target_multiple"].format(count))
+                await target.send(messages["sleepy_nightmare_start_target_multiple"].format(count))
             if timers_enabled and time_limit:
                 target.queue_message(messages["sleepy_nightmare_timer_notify"].format(time_limit))
 
         # send timer_notify messages
-        User.send_messages()
+        await User.send_messages()
 
         # kick it all off
-        self.nightmare_step(var)
+        await self.nightmare_step(var)
 
     @handle_error
-    def nightmare_timer(self, timer_type: str, var: GameState):
+    async def nightmare_timer(self, timer_type: str, var: GameState):
         idlers = False
         for dulla, target in self.having_nightmare.items():
             if dulla not in self.nightmare_acted:
                 idlers = True
                 self.nightmare_progress[dulla] += 2
-                dulla.send(messages["sleepy_nightmare_dullahan_idle"])
+                await dulla.send(messages["sleepy_nightmare_dullahan_idle"])
             if target not in self.nightmare_acted:
                 idlers = True
                 self.nightmare_progress[target] += 1
-                target.send(messages["sleepy_nightmare_target_idle"])
+                await target.send(messages["sleepy_nightmare_target_idle"])
 
         if idlers:
-            self.nightmare_step(var)
+            await self.nightmare_step(var)
 
-    def nightmare_step(self, var: GameState):
+    async def nightmare_step(self, var: GameState):
         from src.roles.dullahan import KILLS
         # keep track of who was already sent messages in case they're being chased by multiple dullahans
         notified = set()
@@ -169,8 +169,8 @@ class SleepyMode(GameMode):
                 del self.having_nightmare[dulla]
                 if target not in notified:
                     notified.add(target)
-                    target.send(messages["sleepy_nightmare_caught"].format(dulla_counts[target]))
-                dulla.send(messages["sleepy_nightmare_kill"].format(target))
+                    await target.send(messages["sleepy_nightmare_caught"].format(dulla_counts[target]))
+                await dulla.send(messages["sleepy_nightmare_kill"].format(target))
                 KILLS[dulla] = target
                 remove_all_protections(var, target, dulla, "dullahan", "nightmare")
             elif self.nightmare_progress[dulla] > self.nightmare_progress[target]:
@@ -180,21 +180,21 @@ class SleepyMode(GameMode):
                 if remaining == 0 and target not in notified:
                     # target escapes fully
                     notified.add(target)
-                    target.send(messages["sleepy_nightmare_escape_hide"].format(dulla_counts[target]))
-                dulla.send(messages["sleepy_nightmare_fail_hide"])
+                    await target.send(messages["sleepy_nightmare_escape_hide"].format(dulla_counts[target]))
+                await dulla.send(messages["sleepy_nightmare_fail_hide"])
             elif self.nightmare_progress[target] == 4:
                 # target escapes
                 del self.having_nightmare[dulla]
                 if target not in notified:
                     notified.add(target)
-                    target.send(messages["sleepy_nightmare_escape_run"].format(dulla_counts[target]))
-                dulla.send(messages["sleepy_nightmare_fail_river"])
+                    await target.send(messages["sleepy_nightmare_escape_run"].format(dulla_counts[target]))
+                await dulla.send(messages["sleepy_nightmare_fail_river"])
             else:
                 # target still being chased
                 if target not in notified:
                     notified.add(target)
-                    target.send(messages["sleepy_nightmare_target_step_{0}".format(self.nightmare_progress[target])])
-                dulla.send(messages["sleepy_nightmare_dullahan_step"].format(4 - self.nightmare_progress[target]))
+                    await target.send(messages["sleepy_nightmare_target_step_{0}".format(self.nightmare_progress[target])])
+                await dulla.send(messages["sleepy_nightmare_dullahan_step"].format(4 - self.nightmare_progress[target]))
 
         self.nightmare_acted.clear()
         if self.having_nightmare:
@@ -206,53 +206,53 @@ class SleepyMode(GameMode):
             # all nightmares resolved, can finally make it daytime
             from src.trans import transition_day
             self.nightmare_progress.clear()
-            transition_day(var)
+            await transition_day(var)
 
-    def _resolve_nightmare_command(self, wrapper: MessageDispatcher, cmd: str):
+    async def _resolve_nightmare_command(self, wrapper: MessageDispatcher, cmd: str):
         self.nightmare_acted.add(wrapper.source)
-        wrapper.reply(messages["sleepy_nightmare_success"].format(cmd))
+        await wrapper.reply(messages["sleepy_nightmare_success"].format(cmd))
         need_act = set(self.having_nightmare.keys()) | set(self.having_nightmare.values())
         if need_act == set(self.nightmare_acted):
-            self.nightmare_step(wrapper.game_state)
+            await self.nightmare_step(wrapper.game_state)
 
-    def hide(self, wrapper: MessageDispatcher, message: str):
+    async def hide(self, wrapper: MessageDispatcher, message: str):
         """Attempt to hide from the dullahan chasing you."""
         if wrapper.source in self.nightmare_acted:
-            wrapper.reply(messages["sleepy_nightmare_acted"])
+            await wrapper.reply(messages["sleepy_nightmare_acted"])
             return
 
-        self._resolve_nightmare_command(wrapper, "hide")
+        await self._resolve_nightmare_command(wrapper, "hide")
 
-    def run(self, wrapper: MessageDispatcher, message: str):
+    async def run(self, wrapper: MessageDispatcher, message: str):
         """Attempt to run from the dullahan chasing you."""
         if wrapper.source in self.nightmare_acted:
-            wrapper.reply(messages["sleepy_nightmare_acted"])
+            await wrapper.reply(messages["sleepy_nightmare_acted"])
             return
 
         self.nightmare_progress[wrapper.source] += 1
-        self._resolve_nightmare_command(wrapper, "run")
+        await self._resolve_nightmare_command(wrapper, "run")
 
-    def search(self, wrapper: MessageDispatcher, message: str):
+    async def search(self, wrapper: MessageDispatcher, message: str):
         """Chase at a slower pace to catch hiding targets."""
         if wrapper.source in self.nightmare_acted:
-            wrapper.reply(messages["sleepy_nightmare_acted"])
+            await wrapper.reply(messages["sleepy_nightmare_acted"])
             return
 
         self.nightmare_progress[wrapper.source] += 1
-        self._resolve_nightmare_command(wrapper, "search")
+        await self._resolve_nightmare_command(wrapper, "search")
 
-    def chase(self, wrapper: MessageDispatcher, message: str):
+    async def chase(self, wrapper: MessageDispatcher, message: str):
         """Chase at a faster pace to catch running targets."""
         if wrapper.source in self.nightmare_acted:
-            wrapper.reply(messages["sleepy_nightmare_acted"])
+            await wrapper.reply(messages["sleepy_nightmare_acted"])
             return
 
         self.nightmare_progress[wrapper.source] += 2
-        self._resolve_nightmare_command(wrapper, "chase")
+        await self._resolve_nightmare_command(wrapper, "chase")
 
-    def happy_fun_times(self, evt: Event, var: GameState, player, all_roles, death_triggers):
+    async def happy_fun_times(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         if death_triggers and evt.params.main_role == "priest":
-            channels.Main.send(messages["sleepy_priest_death"])
+            await channels.Main.send(messages["sleepy_priest_death"])
 
             mapping = {"seer": "doomsayer",
                        "cultist": "demoniac",
@@ -305,10 +305,10 @@ class SleepyMode(GameMode):
                             newstats.add(frozenset(d.items()))
                 var.set_role_stats(newstats)
 
-    def on_remove_protection(self, evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
+    async def on_remove_protection(self, evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
         if reason == "nightmare":
             evt.data["remove"] = True
 
-    def on_revealroles(self, evt: Event, var: GameState):
+    async def on_revealroles(self, evt: Event, var: GameState):
         if self.having_nightmare:
             evt.data["output"].append(messages["sleepy_revealroles"].format(self.having_nightmare.values()))

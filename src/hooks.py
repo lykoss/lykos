@@ -764,7 +764,7 @@ async def kicked_from_chan(cli, rawnick, chan, target, reason, *, tags):
     else:
         ch.remove_user(user)
 
-def quit(context, message=""):
+async def quit(context, message=""):
     """Quit the bot from IRC."""
 
     cli = context.client
@@ -791,7 +791,7 @@ async def on_quit(cli, rawnick, reason, *, tags):
     """
 
     user = users.get(rawnick, allow_bot=True, update=True)
-    Event("server_quit", {}).dispatch(user, reason)
+    await Event("server_quit", {}).dispatch(user, reason)
 
     # removing the user from all channels marks them as a ghost if they're playing,
     # so doing that explicitly here is unnecessary

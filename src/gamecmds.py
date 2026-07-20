@@ -169,7 +169,7 @@ async def stats(wrapper: MessageDispatcher, message: str):
     await wrapper.reply(messages["stats_reply"].format(var.current_phase, first_count, entries))
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
+async def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
     global LAST_STATS
     LAST_STATS = None
 
@@ -233,14 +233,14 @@ async def show_admins(wrapper: MessageDispatcher, message: str):
 
     ADMIN_PINGING = True
 
-    def admin_whoreply(event, chan, user):
+    async def admin_whoreply(event, chan, user):
         if not ADMIN_PINGING or chan is not channels.Main:
             return
 
-        if user.is_admin() and user is not users.Bot and not event.params.away:
+        if await user.is_admin() and user is not users.Bot and not event.params.away:
             admins.append(user)
 
-    def admin_endwho(event, target):
+    async def admin_endwho(event, target):
         global ADMIN_PINGING
         if not ADMIN_PINGING or target is not channels.Main:
             return
@@ -248,7 +248,7 @@ async def show_admins(wrapper: MessageDispatcher, message: str):
         who_result.remove("who_result")
         who_end.remove("who_end")
         admins.sort(key=lambda x: x.nick)
-        wrapper.reply(messages["available_admins"].format(admins))
+        await wrapper.reply(messages["available_admins"].format(admins))
         ADMIN_PINGING = False
 
     who_result = EventListener(admin_whoreply)
@@ -292,11 +292,11 @@ async def fgoat(wrapper: MessageDispatcher, message: str):
     await wrapper.send(messages["goat_success"].format(wrapper.source, togoat))
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     LAST_GOAT.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global LAST_STATS, LAST_TIME
     LAST_STATS = None
     LAST_TIME = None

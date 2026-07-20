@@ -23,7 +23,7 @@ from src.transport.irc import get_services
 from src.channels import Channel
 
 @handle_error
-def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
+async def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
@@ -64,7 +64,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
         return  # not allowed in settings
 
     for fn in decorators.COMMANDS[""]:
-        fn.caller(wrapper, msg)
+        await fn.caller(wrapper, msg)
 
     parts = msg.split(sep=" ", maxsplit=1)
     key = parts[0].lower()
@@ -75,7 +75,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
 
     if wrapper.public and not key.startswith(config.Main.get("transports[0].user.command_prefix")):
         return  # channel message but no prefix; ignore
-    parse_and_dispatch(wrapper, key, message)
+    await parse_and_dispatch(wrapper, key, message)
 
 async def parse_and_dispatch(wrapper: MessageDispatcher,
                        key: str,
@@ -288,7 +288,7 @@ def connect_callback(cli: IRCClient):
 
         hook.unhook(294)
 
-    def setup_handler(evt, target: User | Channel):
+    async def setup_handler(evt, target: User | Channel):
         target.client.command_handler["privmsg"] = on_privmsg
         target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
         who_end.remove("who_end")

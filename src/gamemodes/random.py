@@ -45,7 +45,7 @@ class RandomMode(GameMode):
             "chK_win": EventListener(self.lovers_chk_win, listener_id="lovers_chk_win")
         }
 
-    def role_attribution(self, evt: Event, var: GameState, villagers):
+    async def role_attribution(self, evt: Event, var: GameState, villagers):
         lpl = len(villagers)
         addroles = evt.data["addroles"]
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
@@ -79,7 +79,7 @@ class RandomMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if chk_win_conditions(var, rolemap, mainroles, end_game=False):
-            return self.role_attribution(evt, var, villagers)
+        if await chk_win_conditions(var, rolemap, mainroles, end_game=False):
+            return await self.role_attribution(evt, var, villagers)
 
         evt.prevent_default = True

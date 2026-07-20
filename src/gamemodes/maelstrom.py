@@ -26,17 +26,17 @@ class MaelstromMode(GameMode):
             "transition_night_begin": EventListener(self.transition_night_begin)
         }
 
-    def role_attribution(self, evt: Event, var: GameState, villagers):
-        evt.data["addroles"].update(self._role_attribution(var, villagers, True))
+    async def role_attribution(self, evt: Event, var: GameState, villagers):
+        evt.data["addroles"].update(await self._role_attribution(var, villagers, True))
         evt.prevent_default = True
 
-    def transition_night_begin(self, evt: Event, var: GameState):
+    async def transition_night_begin(self, evt: Event, var: GameState):
         # don't do this n1
         if var.night_count == 0:
             return
         villagers = get_players(var)
         lpl = len(villagers)
-        addroles = self._role_attribution(var, villagers, False)
+        addroles = await self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
         for role, rs in var.roles.items():
@@ -53,7 +53,7 @@ class MaelstromMode(GameMode):
             for x in selected:
                 villagers.remove(x)
                 new_evt.data["role"] = role
-                new_evt.dispatch(var, x, var.original_main_roles[x])
+                await new_evt.dispatch(var, x, var.original_main_roles[x])
                 var.roles[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
@@ -75,7 +75,7 @@ class MaelstromMode(GameMode):
                 var.final_roles[p] = role
                 var.main_roles[p] = role
 
-    def _role_attribution(self, var, villagers, do_templates):
+    async def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers)
         addroles = Counter()
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
@@ -114,7 +114,7 @@ class MaelstromMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if chk_win_conditions(var, rolemap, mainroles, end_game=False):
-            return self._role_attribution(var, villagers, do_templates)
+        if await chk_win_conditions(var, rolemap, mainroles, end_game=False):
+            return await self._role_attribution(var, villagers, do_templates)
 
         return addroles

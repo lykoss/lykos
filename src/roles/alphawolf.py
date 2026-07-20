@@ -23,7 +23,7 @@ ALPHAS = UserSet()
 BITTEN: UserDict[User, User] = UserDict()
 
 @command("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
-def observe(wrapper: MessageDispatcher, message: str):
+async def observe(wrapper: MessageDispatcher, message: str):
     """Turn a player into a wolf!"""
     if not ENABLED:
         wrapper.pm(messages["alpha_no_bite"])
@@ -49,7 +49,7 @@ def observe(wrapper: MessageDispatcher, message: str):
     send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("alpha wolf",))
-def retract(wrapper: MessageDispatcher, message: str):
+async def retract(wrapper: MessageDispatcher, message: str):
     """Retract your bite."""
     if wrapper.source in BITTEN:
         del BITTEN[wrapper.source]
@@ -57,13 +57,13 @@ def retract(wrapper: MessageDispatcher, message: str):
         send_wolfchat_message(wrapper.game_state, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     global ENABLED
     if death_triggers and evt.params.main_role in Wolf:
         ENABLED = True
 
 @event_listener("night_kills")
-def on_night_kills(evt: Event, var: GameState):
+async def on_night_kills(evt: Event, var: GameState):
     global ENABLED
     for alpha, target in BITTEN.items():
         # bite is now separate but some people may try to double up still
@@ -79,7 +79,7 @@ def on_night_kills(evt: Event, var: GameState):
     ENABLED = False
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     # Refund failed bites
     for alpha, target in BITTEN.items():
         if alpha in get_players(var) and target not in get_players(var, Wolf):
@@ -90,14 +90,14 @@ def on_begin_day(evt: Event, var: GameState):
     BITTEN.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global ENABLED
     ENABLED = False
     BITTEN.clear()
     ALPHAS.clear()
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     if not ENABLED:
         return
     can_act = get_all_players(var, ("alpha wolf",)) - ALPHAS
@@ -105,7 +105,7 @@ def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(can_act)
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "alpha wolf" and evt.data["role"] != "alpha wolf":
         BITTEN.pop(player, None)
         ALPHAS.discard(player)
@@ -113,7 +113,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         evt.data["messages"].append(messages["wolf_bite"])
 
 @event_listener("wolf_notify")
-def on_wolf_notify(evt: Event, var: GameState, role):
+async def on_wolf_notify(evt: Event, var: GameState, role):
     if not ENABLED or role != "alpha wolf":
         return
     can_bite = get_all_players(var, ("alpha wolf",)) - ALPHAS
@@ -123,7 +123,7 @@ def on_wolf_notify(evt: Event, var: GameState, role):
         User.send_messages()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills" and ENABLED:
         # biting someone has a chance of killing them instead of turning
         # and it can be guarded against, so it's close enough to a kill by that measure

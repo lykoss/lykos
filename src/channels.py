@@ -78,7 +78,7 @@ def channels():
     """Iterate over all the current channels."""
     yield from _channels.values()
 
-def _chan_join(evt, channel: Channel, user: User):
+async def _chan_join(evt, channel: Channel, user: User):
     if isinstance(user, BotUser):
         channel.state = _States.Joined
 
@@ -149,23 +149,23 @@ class Channel(IRCContext):
                 Event(name, params).dispatch(*args)
             self._pending = None
 
-    def join(self, key=""):
+    async def join(self, key=""):
         if self.state in (_States.NotJoined, _States.Left):
             if not key:
                 key = self.key
             self.state = _States.PendingJoin
             self.client.send("JOIN {0} :{1}".format(self.name, key))
 
-    def part(self, message=""):
+    async def part(self, message=""):
         if self.state is _States.Joined:
             self.state = _States.PendingLeave
             self.client.send("PART {0} :{1}".format(self.name, message))
 
-    def kick(self, target, message=""):
+    async def kick(self, target, message=""):
         if self.state is _States.Joined:
             self.client.send("KICK {0} {1} :{2}".format(self.name, target, message))
 
-    def mode(self, *changes):
+    async def mode(self, *changes):
         """Perform a mode change on the channel.
 
         Usage:
@@ -332,13 +332,13 @@ class FakeChannel(Channel):
 
     is_fake = True
 
-    def join(self, key=""):
+    async def join(self, key=""):
         self.state = _States.Joined
 
-    def part(self, message=""):
+    async def part(self, message=""):
         self.state = _States.Left
 
-    def mode(self, *changes):
+    async def mode(self, *changes):
         if not changes:
             return
 

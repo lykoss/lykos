@@ -27,5 +27,5 @@ class MadMode(GameMode):
             "gun_bullets": EventListener(self.gunner_bullets)
         }
 
-    def gunner_bullets(self, evt, var, player, role):
+    async def gunner_bullets(self, evt, var, player, role):
         evt.data["bullets"] = 1 # gunner and sharpshooter only get 1 bullet in this mode

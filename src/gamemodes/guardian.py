@@ -49,7 +49,7 @@ class GuardianMode(GameMode):
             "chk_win": EventListener(self.chk_win)
         }
 
-    def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
+    async def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         lguardians = len(get_players(var, ["guardian angel", "bodyguard"], mainroles=mainroles))
 
         if lpl < 1:

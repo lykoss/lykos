@@ -152,7 +152,7 @@ class PactBreakerMode(GameMode):
         self.collected_evidence.clear()
         self.clue_tokens.clear()
 
-    def on_del_player(self, evt: Event, var: GameState, player, all_roles, death_triggers):
+    async def on_del_player(self, evt: Event, var: GameState, player, all_roles, death_triggers):
         # self.night_kills isn't updated because it is short-lived
         # and won't have del_player run in the middle of it in a way that matters
         self.active_players.discard(player)
@@ -175,14 +175,14 @@ class PactBreakerMode(GameMode):
         if self.last_voted is player:
             self.last_voted = None
 
-    def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
+    async def on_start_game(self, evt: Event, var: GameState, mode_name: str, mode: GameMode):
         # mark every player as active at start of game
         pl = get_players(var)
         self.active_players.update(pl)
         # initialize clue pool
         self.clue_pool = math.ceil(config.Main.get("gameplay.modes.pactbreaker.clue.pool") * len(pl))
 
-    def on_send_role(self, evt: Event, var: GameState):
+    async def on_send_role(self, evt: Event, var: GameState):
         pl = get_players(var)
         for player in pl:
             # wolf, vigilante, and vampire already got a player list from their send_role event,
@@ -191,9 +191,9 @@ class PactBreakerMode(GameMode):
                 ps = pl[:]
                 random.shuffle(ps)
                 ps.remove(player)
-                player.send(messages["players_list"].format(ps))
+                await player.send(messages["players_list"].format(ps))
 
-    def on_myrole(self, evt: Event, var: GameState, player: User):
+    async def on_myrole(self, evt: Event, var: GameState, player: User):
         player.send(messages["pactbreaker_info_clues"].format(self.clue_tokens[player]))
         evidence: dict[User, str] = {}
         # roles earlier in the order can be fake evidence for later roles
@@ -211,7 +211,7 @@ class PactBreakerMode(GameMode):
                 entries.append(messages["pactbreaker_info_evidence_entry"].format(target, role))
             evt.data["messages"].append(messages["pactbreaker_info_evidence"].format(sorted(entries)))
 
-    def on_revealroles(self, evt: Event, var: GameState):
+    async def on_revealroles(self, evt: Event, var: GameState):
         tlist = []
         for player, tokens in self.clue_tokens.items():
             if tokens > 0:
@@ -219,14 +219,14 @@ class PactBreakerMode(GameMode):
         if tlist:
             evt.data["output"].append(messages["pactbreaker_revealroles"].format(sorted(tlist)))
 
-    def on_chk_nightdone(self, evt: Event, var: GameState):
+    async def on_chk_nightdone(self, evt: Event, var: GameState):
         evt.data["acted"].clear()
         evt.data["nightroles"].clear()
         evt.data["acted"].extend(self.visiting)
         evt.data["nightroles"].extend(self.active_players)
         evt.stop_processing = True
 
-    def on_transition_night_begin(self, evt: Event, var: GameState):
+    async def on_transition_night_begin(self, evt: Event, var: GameState):
         # figure out who is in the stocks (if anyone)
         stocks_players = set(get_players(var)) - self.active_players
         for player in stocks_players:
@@ -265,7 +265,7 @@ class PactBreakerMode(GameMode):
         random.shuffle(deck)
         return deck, num_draws
 
-    def on_night_kills(self, evt: Event, var: GameState):
+    async def on_night_kills(self, evt: Event, var: GameState):
         self.night_kill_messages.clear()
         all_wolves = set(get_players(var, ("wolf",)))
         all_vamps = set(get_players(var, ("vampire",)))
@@ -360,7 +360,7 @@ class PactBreakerMode(GameMode):
                         tokens = min(self.clue_pool, config.Main.get("gameplay.modes.pactbreaker.clue.graveyard"))
                         self.clue_pool -= tokens
                         self.clue_tokens[visitor] += tokens
-                        visitor.send(messages[f"pactbreaker_{loc}_clue"].format(tokens))
+                        await visitor.send(messages[f"pactbreaker_{loc}_clue"].format(tokens))
                     elif location is VillageSquare:
                         # has to be handled after everyone finishes drawing
                         shares.add(visitor)
@@ -396,7 +396,7 @@ class PactBreakerMode(GameMode):
                         tokens = min(self.clue_pool, config.Main.get(f"gameplay.modes.pactbreaker.clue.{loc}"))
                         self.clue_pool -= tokens
                         self.clue_tokens[visitor] += tokens
-                        visitor.send(messages[f"pactbreaker_{loc}_special"].format(tokens))
+                        await visitor.send(messages[f"pactbreaker_{loc}_special"].format(tokens))
                         # process the next player since we've fully handled this one here
                         continue
                 elif location is Streets:
@@ -417,22 +417,22 @@ class PactBreakerMode(GameMode):
                         if num_evidence == 2 and target_role == "vigilante" and visitor_role == "villager":
                             target_role = "villager"
                         self.collected_evidence[visitor][target_role].add(evidence_target)
-                        visitor.send(messages[f"pactbreaker_{loc}_evidence"].format(evidence_target, target_role))
+                        await visitor.send(messages[f"pactbreaker_{loc}_evidence"].format(evidence_target, target_role))
                     elif self.clue_pool > 0 and location is not VillageSquare:
                         empty = False
                         tokens = min(self.clue_pool, config.Main.get(f"gameplay.modes.pactbreaker.clue.{loc}"))
                         self.clue_pool -= tokens
                         self.clue_tokens[visitor] += tokens
-                        visitor.send(messages[f"pactbreaker_{loc}_clue"].format(tokens))
+                        await visitor.send(messages[f"pactbreaker_{loc}_clue"].format(tokens))
 
                 if empty:
-                    visitor.send(messages[f"pactbreaker_{loc}_empty"])
+                    await visitor.send(messages[f"pactbreaker_{loc}_empty"])
 
         # handle share cards
         if len(shares) <= 1:
             for visitor in shares:
                 loc = self.visiting[visitor].name
-                visitor.send(messages[f"pactbreaker_{loc}_empty"])
+                await visitor.send(messages[f"pactbreaker_{loc}_empty"])
         elif len(shares) > 1:
             num_tokens = min(math.floor(self.clue_pool / len(shares)),
                              config.Main.get("gameplay.modes.pactbreaker.clue.square"))
@@ -441,11 +441,11 @@ class PactBreakerMode(GameMode):
                 if num_tokens > 0:
                     self.clue_pool -= num_tokens
                     self.clue_tokens[visitor] += num_tokens
-                    visitor.send(messages[f"pactbreaker_{loc}_clue"].format(num_tokens))
+                    await visitor.send(messages[f"pactbreaker_{loc}_clue"].format(num_tokens))
                 else:
-                    visitor.send(messages[f"pactbreaker_{loc}_empty"])
+                    await visitor.send(messages[f"pactbreaker_{loc}_empty"])
 
-    def on_player_protected(self,
+    async def on_player_protected(self,
                             evt: Event,
                             var: GameState,
                             target: User,
@@ -460,8 +460,8 @@ class PactBreakerMode(GameMode):
             # mark them for vampires' private player listings (during !stats or nighttime notification messages)
             vvar = var # type: VampireGameState
             vvar.vampire_drained.add(target)
-            attacker.send(messages["pactbreaker_drain"].format(target))
-            target.send(messages["pactbreaker_drained"])
+            await attacker.send(messages["pactbreaker_drain"].format(target))
+            await target.send(messages["pactbreaker_drained"])
             # give the victim tokens before vamp so that pool exhaustion doesn't overly benefit vamp
             victim_tokens = min(config.Main.get("gameplay.modes.pactbreaker.clue.bitten"), self.clue_pool)
             self.clue_pool -= victim_tokens
@@ -472,7 +472,7 @@ class PactBreakerMode(GameMode):
         elif protector_role == "vigilante":
             # if the vampire fully drains a vigilante, they might turn into a vampire instead of dying
             # this protection triggering means they should turn
-            attacker.send(messages["pactbreaker_drain_turn"].format(target))
+            await attacker.send(messages["pactbreaker_drain_turn"].format(target))
             change_role(var, target, get_main_role(var, target), "vampire", message="pactbreaker_drained_vigilante")
             self.turned.add(target)
             self.drained.discard(target)
@@ -480,7 +480,7 @@ class PactBreakerMode(GameMode):
         # don't tell the attacker that their kill failed in case someone else also attacks the target the same night
         self.night_kill_messages.discard((attacker, target))
 
-    def on_night_death_message(self, evt: Event, var: GameState, victim: User, killer: User | str):
+    async def on_night_death_message(self, evt: Event, var: GameState, victim: User, killer: User | str):
         if not isinstance(killer, User):
             # vigilante self-kill
             return
@@ -488,33 +488,33 @@ class PactBreakerMode(GameMode):
         killer_role = get_main_role(var, killer, mainroles=evt.params.mainroles)
 
         if killer_role == "vampire":
-            victim.send(messages["pactbreaker_drained_dead"])
-            killer.send(messages["pactbreaker_drain_kill"].format(victim))
+            await victim.send(messages["pactbreaker_drained_dead"])
+            await killer.send(messages["pactbreaker_drain_kill"].format(victim))
         elif killer_role == "wolf" and victim is self.in_stocks:
-            victim.send(messages["pactbreaker_hunted_stocks"])
-            killer.send(messages["pactbreaker_hunter_stocks"].format(victim))
+            await victim.send(messages["pactbreaker_hunted_stocks"])
+            await killer.send(messages["pactbreaker_hunter_stocks"].format(victim))
         elif killer_role == "wolf":
-            victim.send(messages["pactbreaker_hunted"])
-            killer.send(messages["pactbreaker_hunter"].format(victim))
+            await victim.send(messages["pactbreaker_hunted"])
+            await killer.send(messages["pactbreaker_hunter"].format(victim))
         elif killer_role == "vigilante" and victim is self.in_stocks:
-            victim.send(messages["pactbreaker_shot_stocks"])
-            killer.send(messages["pactbreaker_shooter_stocks"].format(victim))
+            await victim.send(messages["pactbreaker_shot_stocks"])
+            await killer.send(messages["pactbreaker_shooter_stocks"].format(victim))
         elif killer_role == "vigilante":
-            victim.send(messages["pactbreaker_shot"])
-            killer.send(messages["pactbreaker_shooter"].format(victim))
+            await victim.send(messages["pactbreaker_shot"])
+            await killer.send(messages["pactbreaker_shooter"].format(victim))
         else:
             # shouldn't happen; indicates a bug in the mode
             raise RuntimeError(f"Unknown night death situation ({killer_role})")
 
-    def on_transition_day_resolve(self, evt: Event, var: GameState, dead: set[User], killers: dict[User, User | str]):
+    async def on_transition_day_resolve(self, evt: Event, var: GameState, dead: set[User], killers: dict[User, User | str]):
         # check for players meant to kill someone but got their kill pre-empted by someone else
         for killer, victim in self.killing.items():
             if victim in dead and killers[victim] is not killer and (killer, victim) in self.night_kill_messages:
-                killer.send(messages["pactbreaker_kill_fail"].format(victim))
+                await killer.send(messages["pactbreaker_kill_fail"].format(victim))
 
         self.night_kill_messages.clear()
 
-    def on_begin_day(self, evt: Event, var: GameState):
+    async def on_begin_day(self, evt: Event, var: GameState):
         # every player is active again (stocks only lasts for one night)
         self.in_stocks = None
         self.active_players.clear()
@@ -530,34 +530,34 @@ class PactBreakerMode(GameMode):
         for player, amount in self.clue_tokens.items():
             if amount == 0:
                 continue
-            player.send(messages["pactbreaker_clue_notify"].format(amount, observe_tokens, id_tokens))
+            await player.send(messages["pactbreaker_clue_notify"].format(amount, observe_tokens, id_tokens))
 
-    def on_day_vote(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
+    async def on_day_vote(self, evt: Event, var: GameState, votee: User, voters: Iterable[User]):
         self.last_voted = votee
         self.voted[votee] += 1
         if self.voted[votee] < 3:
-            channels.Main.send(messages["pactbreaker_vote"].format(votee))
+            await channels.Main.send(messages["pactbreaker_vote"].format(votee))
             self.active_players.discard(votee)
             self.in_stocks = votee
             # don't kill the votee
             evt.prevent_default = True
 
-    def on_abstain(self, evt: Event, var: GameState, abstains):
+    async def on_abstain(self, evt: Event, var: GameState, abstains):
         self.last_voted = None
 
-    def on_day_vote_immunity(self, evt: Event, var: GameState, player: User, reason: str):
+    async def on_day_vote_immunity(self, evt: Event, var: GameState, player: User, reason: str):
         if reason == "pactbreaker":
-            channels.Main.send(messages["pactbreaker_stocks_escape"].format(player))
+            await channels.Main.send(messages["pactbreaker_stocks_escape"].format(player))
             evt.data["immune"] = True
 
-    def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
+    async def on_wolf_numkills(self, evt: Event, var: GameState, wolf):
         evt.data["numkills"] = 0
 
-    def on_update_stats(self, evt: Event, var: GameState, player, main_role, reveal_role, all_roles):
+    async def on_update_stats(self, evt: Event, var: GameState, player, main_role, reveal_role, all_roles):
         if main_role == "vampire":
             evt.data["possible"].add("vigilante")
 
-    def on_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
+    async def on_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         num_vigilantes = len(get_players(var, ("vigilante",), mainroles=mainroles))
         num_villagers = len(get_players(var, ("villager",), mainroles=mainroles))
 
@@ -583,15 +583,15 @@ class PactBreakerMode(GameMode):
             evt.data["winner"] = Vampire_Team
             evt.data["message"] = messages["pactbreaker_vampire_win"]
 
-    def on_team_win(self, evt: Event, var: GameState, player: User, main_role: str, all_roles: Iterable[str], winner: Category):
+    async def on_team_win(self, evt: Event, var: GameState, player: User, main_role: str, all_roles: Iterable[str], winner: Category):
         if winner is Wolfteam and main_role == "villager":
             evt.data["team_win"] = True
 
-    def visit(self, wrapper: MessageDispatcher, message: str):
+    async def visit(self, wrapper: MessageDispatcher, message: str):
         """Visit a location to collect evidence."""
         var = wrapper.game_state
         if wrapper.source is self.in_stocks:
-            wrapper.pm(messages["pactbreaker_no_visit"])
+            await wrapper.pm(messages["pactbreaker_no_visit"])
             return
 
         prefix = re.split(" +", message)[0]
@@ -613,31 +613,31 @@ class PactBreakerMode(GameMode):
         target_name = target_location.name
         del self.killing[:wrapper.source:]
         self.visiting[wrapper.source] = target_location
-        wrapper.pm(messages["pactbreaker_visiting_{0}".format(target_location.name)])
+        await wrapper.pm(messages["pactbreaker_visiting_{0}".format(target_location.name)])
 
         # relay to wolfchat/vampire chat as appropriate
         relay_key = "pactbreaker_relay_visit_{0}".format(target_name)
         if player_role in Wolf:
             # command is "kill" so that this is relayed even if gameplay.wolfchat.only_kill_command is true
-            send_wolfchat_message(var,
-                                  wrapper.source,
-                                  messages[relay_key].format(wrapper.source),
-                                  Wolf,
-                                  role="wolf",
-                                  command="kill")
+            await send_wolfchat_message(var,
+                                        wrapper.source,
+                                        messages[relay_key].format(wrapper.source),
+                                        Wolf,
+                                        role="wolf",
+                                        command="kill")
         elif player_role in Vampire:
             # same logic as wolfchat for why we use "bite" as the command here
-            send_vampire_chat_message(var,
-                                      wrapper.source,
-                                      messages[relay_key].format(wrapper.source),
-                                      Vampire,
-                                      cmd="bite")
+            await send_vampire_chat_message(var,
+                                            wrapper.source,
+                                            messages[relay_key].format(wrapper.source),
+                                            Vampire,
+                                            cmd="bite")
 
-    def kill(self, wrapper: MessageDispatcher, message: str):
+    async def kill(self, wrapper: MessageDispatcher, message: str):
         """Kill a player in the stocks or that you have collected evidence on."""
         var = wrapper.game_state
         if wrapper.source is self.in_stocks:
-            wrapper.pm(messages["pactbreaker_no_kill_stocks"])
+            await wrapper.pm(messages["pactbreaker_no_kill_stocks"])
             return
 
         target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
@@ -646,7 +646,7 @@ class PactBreakerMode(GameMode):
 
         player_role = get_main_role(var, wrapper.source)
         if is_known_wolf_ally(var, wrapper.source, target):
-            wrapper.pm(messages["wolf_no_target_wolf"])
+            await wrapper.pm(messages["wolf_no_target_wolf"])
             return
 
         have_evidence = False
@@ -657,22 +657,22 @@ class PactBreakerMode(GameMode):
                     break
 
             if target is not self.in_stocks and not have_evidence:
-                wrapper.send(messages["pactbreaker_no_kill_evidence"].format(target))
+                await wrapper.send(messages["pactbreaker_no_kill_evidence"].format(target))
                 return
 
         self.killing[wrapper.source] = target
         self.visiting[wrapper.source] = Limbo
-        wrapper.pm(messages["player_kill"].format(target))
+        await wrapper.pm(messages["player_kill"].format(target))
         msg = messages["wolfchat_kill"].format(wrapper.source, target)
 
         if player_role in Wolf:
-            send_wolfchat_message(var, wrapper.source, msg, Wolf, role="wolf", command="kill")
+            await send_wolfchat_message(var, wrapper.source, msg, Wolf, role="wolf", command="kill")
 
-    def bite(self, wrapper: MessageDispatcher, message: str):
+    async def bite(self, wrapper: MessageDispatcher, message: str):
         """Bite a player to drain their blood; those in the stocks will be killed entirely."""
         var = wrapper.game_state
         if wrapper.source is self.in_stocks:
-            wrapper.pm(messages["pactbreaker_no_kill_stocks"])
+            await wrapper.pm(messages["pactbreaker_no_kill_stocks"])
             return
 
         target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
@@ -680,7 +680,7 @@ class PactBreakerMode(GameMode):
             return
 
         if is_known_vampire_ally(var, wrapper.source, target):
-            wrapper.send(messages["no_target_vampire"])
+            await wrapper.send(messages["no_target_vampire"])
             return
 
         for killer, victim in self.killing.items():
@@ -689,19 +689,19 @@ class PactBreakerMode(GameMode):
                 # doesn't really do anything but giving an error is even weirder
                 continue
             if target is victim and is_known_vampire_ally(var, wrapper.source, killer):
-                wrapper.send(messages["already_bitten_tonight"].format(target))
+                await wrapper.send(messages["already_bitten_tonight"].format(target))
                 return
 
         self.killing[wrapper.source] = target
         self.visiting[wrapper.source] = Limbo
-        wrapper.pm(messages["vampire_bite"].format(target))
-        send_vampire_chat_message(var,
-                                  wrapper.source,
-                                  messages["vampire_bite_vampchat"].format(wrapper.source, target),
-                                  Vampire,
-                                  cmd="bite")
+        await wrapper.pm(messages["vampire_bite"].format(target))
+        await send_vampire_chat_message(var,
+                                        wrapper.source,
+                                        messages["vampire_bite_vampchat"].format(wrapper.source, target),
+                                        Vampire,
+                                        cmd="bite")
 
-    def observe(self, wrapper: MessageDispatcher, message: str):
+    async def observe(self, wrapper: MessageDispatcher, message: str):
         """Spend clue tokens to learn about a player's role, however some roles may give inaccurate results."""
         var = wrapper.game_state
         target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
@@ -711,7 +711,7 @@ class PactBreakerMode(GameMode):
         num_tokens = self.clue_tokens[wrapper.source]
         min_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.observe")
         if num_tokens < min_tokens:
-            wrapper.send(messages["pactbreaker_no_observe"].format(min_tokens, num_tokens))
+            await wrapper.send(messages["pactbreaker_no_observe"].format(min_tokens, num_tokens))
             return
 
         self.clue_pool += min_tokens
@@ -728,9 +728,9 @@ class PactBreakerMode(GameMode):
             target_role = "villager"
 
         self.collected_evidence[wrapper.source][target_role].add(target)
-        wrapper.send(messages["pactbreaker_observe_success"].format(target, target_role))
+        await wrapper.send(messages["pactbreaker_observe_success"].format(target, target_role))
 
-    def identify(self, wrapper: MessageDispatcher, message: str):
+    async def identify(self, wrapper: MessageDispatcher, message: str):
         """Spend clue tokens to accurately learn about a player's role."""
         var = wrapper.game_state
         target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
@@ -740,14 +740,14 @@ class PactBreakerMode(GameMode):
         num_tokens = self.clue_tokens[wrapper.source]
         min_tokens = config.Main.get("gameplay.modes.pactbreaker.clue.identify")
         if num_tokens < min_tokens:
-            wrapper.send(messages["pactbreaker_no_id"].format(min_tokens, num_tokens))
+            await wrapper.send(messages["pactbreaker_no_id"].format(min_tokens, num_tokens))
             return
 
         self.clue_pool += min_tokens
         self.clue_tokens[wrapper.source] -= min_tokens
         target_role = get_main_role(var, target)
         self.collected_evidence[wrapper.source][target_role].add(target)
-        wrapper.send(messages["investigate_success"].format(target, target_role))
+        await wrapper.send(messages["investigate_success"].format(target, target_role))
 
-    def stats(self, wrapper: MessageDispatcher, message: str):
-        wrapper.reply(messages["pactbreaker_stats"].format(self.clue_pool))
+    async def stats(self, wrapper: MessageDispatcher, message: str):
+        await wrapper.reply(messages["pactbreaker_stats"].format(self.clue_pool))

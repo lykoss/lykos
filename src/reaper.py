@@ -191,12 +191,12 @@ async def return_to_village(var: GameState, target: User, *, show_message: bool,
                 await return_to_village(var, userlist[0], show_message=show_message, new_user=target)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if var.in_game: # remove the player from variables if they're in there
         DISCONNECTED.pop(player, None)
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     # Add warnings for people that idled out night
     if config.Main.get("reaper.autowarn") and config.Main.get("reaper.night_idle.enabled"):
         for player in NIGHT_IDLED:

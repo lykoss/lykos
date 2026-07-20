@@ -305,7 +305,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             transition_night(var)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     if var.current_phase == "day":
         if player in VOTES:
             del VOTES[player] # Delete other people's votes on the player
@@ -322,7 +322,7 @@ def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], 
         del GAMEMODE_VOTES[:player:]
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     global LAST_VOTES, VOTED
     LAST_VOTES = None
     VOTED = 0
@@ -330,7 +330,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
     VOTES.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global ABSTAINED, LAST_VOTES, VOTED
     ABSTAINED = False
     LAST_VOTES = None

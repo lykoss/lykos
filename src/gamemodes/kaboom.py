@@ -31,7 +31,7 @@ class KaboomMode(GameMode):
             "role_attribution_end": EventListener(self.on_role_attribution_end)
         }
 
-    def on_role_attribution_end(self, evt, var: GameState, main_roles, roles):
+    async def on_role_attribution_end(self, evt, var: GameState, main_roles, roles):
         # ensure the blessed wolf and the wolf oracle aren't the same wolf
         if not roles.get("oracle", None):
             return

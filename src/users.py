@@ -205,7 +205,7 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
     return _raw_nick_pattern.search(rawnick).groupdict(default)
 
-def _cleanup_user(evt, var: GameState, user: User):
+async def _cleanup_user(evt, var: GameState, user: User):
     """Removes a user from our global tracking set once it has left all channels."""
     # if user is in-game, keep them around so that other players can act on them
     # and so that they can return to the village. If they aren't in game, erase
@@ -216,7 +216,7 @@ def _cleanup_user(evt, var: GameState, user: User):
         user.disconnected = False
         _users.discard(user)
 
-def _reset(evt, var):
+async def _reset(evt, var):
     """Cleans up users that left during game during game end."""
     for user in _ghosts:
         if not user.channels:

@@ -94,7 +94,7 @@ def connect_callback():
     if SIGUSR2:
         signal.signal(SIGUSR2, sighandler)
 
-    def who_end(event, request):
+    async def who_end(event, request):
         if request is channels.Main:
             # Devoice all on connect
             mode = hooks.Features["PREFIX"]["+"]
@@ -109,14 +109,14 @@ def connect_callback():
 
             players = db.get_pre_restart_state()
             if players:
-                channels.Main.send(*players, first="PING! ")
-                channels.Main.send(messages["game_restart_cancel"])
+                await channels.Main.send(*players, first="PING! ")
+                await channels.Main.send(messages["game_restart_cancel"])
 
             reset(channels.Main.game_state)
 
             who_end_listener.remove("who_end")
 
-    def end_listmode(event, chan: Channel, mode: str):
+    async def end_listmode(event, chan: Channel, mode: str):
         if chan is channels.Main and mode == get_ircd().quiet_mode:
             pending = []
             for quiet in chan.modes.get(mode, ()):
@@ -127,7 +127,7 @@ def connect_callback():
 
             end_listmode_listener.remove("end_listmode")
 
-    def mode_change(event, actor, target):
+    async def mode_change(event, actor, target):
         if target is channels.Main: # we may or may not be opped; assume we are
             accumulator.send(("-m",))
             next(accumulator, None)
@@ -141,7 +141,7 @@ def connect_callback():
     mode_change_listener = EventListener(mode_change)
     mode_change_listener.install("mode_change")
 
-    def accumulate_cmodes(count):
+    async def accumulate_cmodes(count):
         modes = []
         for i in range(count):
             item = yield
@@ -149,21 +149,21 @@ def connect_callback():
             yield i
 
         if modes:
-            channels.Main.mode(*modes)
+            await channels.Main.mode(*modes)
 
     accumulator = accumulate_cmodes(3)
     accumulator.send(None)
 
 @command("sync", flag="m", pm=True)
-def fsync(wrapper: MessageDispatcher, message: str):
+async def fsync(wrapper: MessageDispatcher, message: str):
     """Makes the bot apply the currently appropriate channel modes."""
-    sync_modes()
+    await sync_modes()
 
 @event_listener("sync_modes")
-def on_sync_modes(evt):
-    sync_modes()
+async def on_sync_modes(evt):
+    await sync_modes()
 
-def sync_modes():
+async def sync_modes():
     game_state = channels.Main.game_state
     voices = [None]
     mode = hooks.Features["PREFIX"]["+"]
@@ -183,18 +183,18 @@ def sync_modes():
     else:
         voices[0] = "-m"
 
-    channels.Main.mode(*voices)
+    await channels.Main.mode(*voices)
 
 @command("refreshdb", flag="m", pm=True)
-def refreshdb(wrapper: MessageDispatcher, message: str):
+async def refreshdb(wrapper: MessageDispatcher, message: str):
     """Updates our tracking vars to the current db state."""
     db.expire_stasis()
     db.init_vars()
     expire_tempbans()
-    wrapper.reply("Done.")
+    await wrapper.reply("Done.")
 
 @command("fdie", flag="F", pm=True)
-def forced_exit(wrapper: MessageDispatcher, message: str):
+async def forced_exit(wrapper: MessageDispatcher, message: str):
     """Forces the bot to close."""
 
     var = wrapper.game_state
@@ -215,7 +215,7 @@ def forced_exit(wrapper: MessageDispatcher, message: str):
         if var.current_phase == "join" or force or wrapper.source.nick == "<console>":
             stop_game(var, log=False)
         elif var.in_game:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
+            await wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
             return
 
     msg = "{0} quit from {1}"
@@ -238,7 +238,7 @@ def _restart_program(mode=None):
     os.execl(python, python, sys.argv[0], *args)
 
 @command("frestart", flag="D", pm=True)
-def restart_program(wrapper: MessageDispatcher, message: str):
+async def restart_program(wrapper: MessageDispatcher, message: str):
     """Restarts the bot."""
 
     var = wrapper.game_state
@@ -257,7 +257,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
             db.set_pre_restart_state(p.nick for p in get_players(var))
             stop_game(var, log=False)
         else:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
+            await wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
             return
 
     msg = "{0} restart from {1}".format(
@@ -276,7 +276,7 @@ def restart_program(wrapper: MessageDispatcher, message: str):
             valid_modes = ("normal", "debug")
 
             if mode not in valid_modes:
-                wrapper.pm(messages["invalid_restart_mode"].format(mode, valid_modes))
+                await wrapper.pm(messages["invalid_restart_mode"].format(mode, valid_modes))
                 return
 
             msg += " in {0} mode".format(mode)
@@ -285,12 +285,12 @@ def restart_program(wrapper: MessageDispatcher, message: str):
     if message:
         msg += " ({0})".format(message.strip())
 
-    hooks.quit(wrapper, msg.format(wrapper.source, message.strip()))
+    await hooks.quit(wrapper, msg.format(wrapper.source, message.strip()))
 
-    def restart_buffer(evt, user, reason):
+    async def restart_buffer(evt, user, reason):
         # restart the bot once our quit message goes though to ensure entire IRC queue is sent
         if user is users.Bot:
-            _restart_program(mode)
+            await _restart_program(mode)
 
     EventListener(restart_buffer).install("server_quit")
 
@@ -302,12 +302,12 @@ def restart_program(wrapper: MessageDispatcher, message: str):
 restart_program.restarting = False
 
 @command("ping", pm=True)
-def pinger(wrapper: MessageDispatcher, message: str):
+async def pinger(wrapper: MessageDispatcher, message: str):
     """Check if you or the bot is still connected."""
-    wrapper.reply(messages["ping"].format(nick=wrapper.source, bot_nick=users.Bot))
+    await wrapper.reply(messages["ping"].format(nick=wrapper.source, bot_nick=users.Bot))
 
 @command("notice", pm=True)
-def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
+async def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
     """Makes the bot NOTICE you for every interaction."""
     if wrapper.private and message:
         # Ignore if called in PM with parameters, likely a message to wolfchat
@@ -319,7 +319,7 @@ def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
     account = temp.account
 
     if not account:
-        wrapper.pm(messages["not_logged_in"])
+        await wrapper.pm(messages["not_logged_in"])
         return
 
     notice = wrapper.source.prefers_notice()
@@ -328,13 +328,13 @@ def mark_prefer_notice(wrapper: MessageDispatcher, message: str):
     action(account)
     db.toggle_notice(account)
     # message keys used: "notice_on", "notice_off"
-    wrapper.pm(messages["notice_" + toggle])
+    await wrapper.pm(messages["notice_" + toggle])
 
 @command("swap", pm=True)
-def replace(wrapper: MessageDispatcher, message: str):
+async def replace(wrapper: MessageDispatcher, message: str):
     """Swap out a player logged in to your account."""
     if wrapper.source not in channels.Main.users:
-        wrapper.pm(messages["invalid_channel"].format(channels.Main))
+        await wrapper.pm(messages["invalid_channel"].format(channels.Main))
         return
 
     var = wrapper.game_state
@@ -343,11 +343,11 @@ def replace(wrapper: MessageDispatcher, message: str):
 
     pl = get_players(var)
     if wrapper.source in pl:
-        wrapper.pm(messages["you_already_playing"])
+        await wrapper.pm(messages["you_already_playing"])
         return
 
     if not wrapper.source.account:
-        wrapper.pm(messages["not_logged_in"])
+        await wrapper.pm(messages["not_logged_in"])
         return
 
     participants = get_participants(var)
@@ -360,11 +360,11 @@ def replace(wrapper: MessageDispatcher, message: str):
             elif target is None:
                 target = user
             else:
-                wrapper.pm(messages["swap_notice"])
+                await wrapper.pm(messages["swap_notice"])
                 return
 
     if target is None:
-        wrapper.pm(messages["account_not_playing"])
+        await wrapper.pm(messages["account_not_playing"])
         return
     elif target is not wrapper.source:
         target.swap(wrapper.source)
@@ -391,19 +391,19 @@ def replace(wrapper: MessageDispatcher, message: str):
             myrole.func(wrapper, "")
 
 @event_listener("chan_kick")
-def kicked_modes(evt, chan: Channel, actor, target, reason):
+async def kicked_modes(evt, chan: Channel, actor, target, reason):
     if target is users.Bot and chan is channels.Main:
         chan.join()
     channels.Main.old_modes.pop(target, None)
 
 @event_listener("chan_part")
-def parted_modes(evt, chan: Channel, user, reason):
+async def parted_modes(evt, chan: Channel, user, reason):
     if user is users.Bot and chan is channels.Main:
         chan.join()
     channels.Main.old_modes.pop(user, None)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if not var.in_game:
         return
 
@@ -439,7 +439,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)
-def on_kill_players(evt: Event, var: GameState, players: set[User]):
+async def on_kill_players(evt: Event, var: GameState, players: set[User]):
     cmode = []
     deadchat = []
     game_ending = False
@@ -489,15 +489,15 @@ def on_kill_players(evt: Event, var: GameState, players: set[User]):
         evt.prevent_default = True
 
 @event_listener("chan_join", priority=1)
-def on_join(evt, chan, user: User):
+async def on_join(evt, chan, user: User):
     if user is users.Bot:
         logging.getLogger("transport.{}".format(config.Main.get("transports[0].name"))).info("Joined {0}".format(chan))
     if chan is not channels.Main:
         return
-    user.update_account_data("<chan_join>", lambda new_user: reaper.return_to_village(channels.Main.game_state, new_user, show_message=True))
+    await user.update_account_data("<chan_join>", lambda new_user: reaper.return_to_village(channels.Main.game_state, new_user, show_message=True))
 
 @event_listener("account_change")
-def account_change(evt, user: User, old_account): # FIXME: This uses var
+async def account_change(evt, user: User, old_account): # FIXME: This uses var
     if user not in channels.Main.users or not channels.Main.game_state:
         return # We only care about game-related changes in this function
 
@@ -507,24 +507,24 @@ def account_change(evt, user: User, old_account): # FIXME: This uses var
     if user in pl and user.account not in trans.ORIGINAL_ACCOUNTS.values() and user not in reaper.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.current_phase != "join":
-            channels.Main.mode(["-v", user.nick])
+            await channels.Main.mode(["-v", user.nick])
     elif (user not in pl or user in reaper.DISCONNECTED) and user.account in trans.ORIGINAL_ACCOUNTS.values():
         # if they were gone, maybe mark them as back
-        reaper.return_to_village(var, user, show_message=True)
+        await reaper.return_to_village(var, user, show_message=True)
 
 @event_listener("chan_part")
-def left_channel(evt, chan: Channel, user, reason): # FIXME: This uses var
-    leave(chan.game_state, "part", user, chan)
+async def left_channel(evt, chan: Channel, user, reason): # FIXME: This uses var
+    await leave(chan.game_state, "part", user, chan)
 
 @event_listener("chan_kick") # FIXME: This uses var
-def channel_kicked(evt, chan: Channel, actor, user, reason):
-    leave(chan.game_state, "kick", user, chan)
+async def channel_kicked(evt, chan: Channel, actor, user, reason):
+    await leave(chan.game_state, "kick", user, chan)
 
 @event_listener("server_quit")
-def quit_server(evt, user, reason): # FIXME: This uses var
-    leave(channels.Main.game_state, "quit", user, reason)
+async def quit_server(evt, user, reason): # FIXME: This uses var
+    await leave(channels.Main.game_state, "quit", user, reason)
 
-def leave(var: Optional[GameState | PregameState], what: str, user: User, why=None):
+async def leave(var: Optional[GameState | PregameState], what: str, user: User, why=None):
     if what in ("part", "kick") and why is not channels.Main:
         return
     if var is None:
@@ -538,7 +538,7 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
 
     # leaving the game channel means you leave deadchat
     if user in relay.DEADCHAT_PLAYERS:
-        relay.leave_deadchat(var, user)
+        await relay.leave_deadchat(var, user)
 
     if user not in ps or user in reaper.DISCONNECTED:
         return
@@ -583,7 +583,7 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
         if reason != "quit":
             # message keys: "part_grace_time_notice", "account_grace_time_notice"
             # No message is sent for quit because the user won't be online to receive it...
-            user.send(messages["{0}_grace_time_notice".format(reason)].format(grace_times[reason], chan=channels.Main))
+            await user.send(messages["{0}_grace_time_notice".format(reason)].format(grace_times[reason], chan=channels.Main))
         msg = messages["player_missing"]
         population = ""
         killplayer = False
@@ -592,10 +592,10 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
     if var.in_game:
         role = get_reveal_role(var, user)
 
-    channels.Main.send(msg.format(user, role) + population)
+    await channels.Main.send(msg.format(user, role) + population)
     relay.WOLFCHAT_SPECTATE.discard(user)
     relay.DEADCHAT_SPECTATE.discard(user)
-    relay.leave_deadchat(var, user)
+    await relay.leave_deadchat(var, user)
 
     if killplayer:
         add_dying(var, user, "bot", what, death_triggers=False)
@@ -606,17 +606,17 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
     if not var.in_game and num_remaining <= 0:
         # chk_win handles ending game at 0 players if a game is running, don't need to do so here
         from src.trans import stop_game
-        stop_game(var, log=False)
+        await stop_game(var, log=False)
 
 @hook("error")
-def on_error(cli, pfx, msg: str, **tags):
+async def on_error(cli, pfx, msg: str, **tags):
     if restart_program.restarting or msg.lower().endswith("(excess flood)"):
         _restart_program()
     elif msg.lower().startswith("closing link:"):
         sys.exit()
 
 @command("ftemplate", flag="F", pm=True)
-def ftemplate(wrapper: MessageDispatcher, message: str):
+async def ftemplate(wrapper: MessageDispatcher, message: str):
     params = re.split(" +", message)
     var = wrapper.game_state
 
@@ -624,12 +624,12 @@ def ftemplate(wrapper: MessageDispatcher, message: str):
         # display a list of all templates
         tpls = db.get_templates()
         if not tpls:
-            wrapper.reply(messages["no_templates"])
+            await wrapper.reply(messages["no_templates"])
         else:
             tpls = ["{0} (+{1})".format(name, "".join(sorted(flags))) for name, flags in tpls]
-            wrapper.reply(*tpls, sep=", ")
+            await wrapper.reply(*tpls, sep=", ")
     elif len(params) == 1:
-        wrapper.reply(messages["not_enough_parameters"])
+        await wrapper.reply(messages["not_enough_parameters"])
     else:
         name = params[0].upper()
         flags = params[1]
@@ -641,11 +641,11 @@ def ftemplate(wrapper: MessageDispatcher, message: str):
             tpl_name = flags.upper()
             tpl_id, tpl_flags = db.get_template(tpl_name)
             if tpl_id is None:
-                wrapper.reply(messages["template_not_found"].format(tpl_name))
+                await wrapper.reply(messages["template_not_found"].format(tpl_name))
                 return
             tpl_flags = "".join(sorted(tpl_flags))
             db.update_template(name, tpl_flags)
-            wrapper.reply(messages["template_set"].format(name, tpl_flags))
+            await wrapper.reply(messages["template_set"].format(name, tpl_flags))
         else:
             adding = True
             for flag in flags:
@@ -662,7 +662,7 @@ def ftemplate(wrapper: MessageDispatcher, message: str):
                         cur_flags = set()
                     continue
                 elif flag not in db.ALL_FLAGS:
-                    wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(db.ALL_FLAGS))))
+                    await wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(db.ALL_FLAGS))))
                     return
                 elif adding:
                     cur_flags.add(flag)
@@ -671,18 +671,18 @@ def ftemplate(wrapper: MessageDispatcher, message: str):
             if cur_flags:
                 tpl_flags = "".join(sorted(cur_flags))
                 db.update_template(name, tpl_flags)
-                wrapper.reply(messages["template_set"].format(name, tpl_flags))
+                await wrapper.reply(messages["template_set"].format(name, tpl_flags))
             elif tid is None:
-                wrapper.reply(messages["template_not_found"].format(name))
+                await wrapper.reply(messages["template_not_found"].format(name))
             else:
                 db.delete_template(name)
-                wrapper.reply(messages["template_deleted"].format(name))
+                await wrapper.reply(messages["template_deleted"].format(name))
 
         # re-init db.FLAGS since it may have changed
         db.init_vars()
 
 @command("fflags", flag="F", pm=True)
-def fflags(wrapper: MessageDispatcher, message: str):
+async def fflags(wrapper: MessageDispatcher, message: str):
     params = re.split(" +", message)
     params = [p for p in params if p]
 
@@ -691,7 +691,7 @@ def fflags(wrapper: MessageDispatcher, message: str):
     _fa = messages.raw("_commands", "warn opt account")
     _fh = messages.raw("_commands", "warn opt help")
     if not params or params[0] in _fh:
-        wrapper.reply(messages["fflags_usage"])
+        await wrapper.reply(messages["fflags_usage"])
         return
 
     account = False
@@ -700,7 +700,7 @@ def fflags(wrapper: MessageDispatcher, message: str):
         account = True
 
     if not params:
-        wrapper.reply(messages["fflags_usage"])
+        await wrapper.reply(messages["fflags_usage"])
         return
 
     nick = params.pop(0)
@@ -716,9 +716,9 @@ def fflags(wrapper: MessageDispatcher, message: str):
                 continue
             parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
         if not parts:
-            wrapper.reply(messages["no_access"])
+            await wrapper.reply(messages["no_access"])
         else:
-            wrapper.reply(*parts, sep=", ")
+            await wrapper.reply(*parts, sep=", ")
         return
 
     if account:
@@ -728,7 +728,7 @@ def fflags(wrapper: MessageDispatcher, message: str):
         if m:
             acc = m.get().account
             if not acc:
-                wrapper.reply(messages["account_not_logged_in"].format(m))
+                await wrapper.reply(messages["account_not_logged_in"].format(m))
                 return
         else:
             acc = nick
@@ -740,9 +740,9 @@ def fflags(wrapper: MessageDispatcher, message: str):
     if not flags:
         # display access for the given user
         if not db.FLAGS[lacc]:
-            wrapper.reply(messages["no_access_account"].format(acc))
+            await wrapper.reply(messages["no_access_account"].format(acc))
         else:
-            wrapper.reply(messages["access_account"].format(acc, "".join(sorted(db.FLAGS[lacc]))))
+            await wrapper.reply(messages["access_account"].format(acc, "".join(sorted(db.FLAGS[lacc]))))
         return
 
     cur_flags = set(db.FLAGS[lacc])
@@ -751,11 +751,11 @@ def fflags(wrapper: MessageDispatcher, message: str):
         tpl_name = flags.upper()
         tpl_id, tpl_flags = db.get_template(tpl_name)
         if tpl_id is None:
-            wrapper.reply(messages["template_not_found"].format(tpl_name))
+            await wrapper.reply(messages["template_not_found"].format(tpl_name))
             return
         tpl_flags = "".join(sorted(tpl_flags))
         db.set_access(acc, tid=tpl_id)
-        wrapper.reply(messages["access_set_account"].format(acc, tpl_flags))
+        await wrapper.reply(messages["access_set_account"].format(acc, tpl_flags))
     else:
         adding = True
         for flag in flags:
@@ -772,7 +772,7 @@ def fflags(wrapper: MessageDispatcher, message: str):
                     cur_flags = set()
                 continue
             elif flag not in db.ALL_FLAGS:
-                wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(db.ALL_FLAGS))))
+                await wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(db.ALL_FLAGS))))
                 return
             elif adding:
                 cur_flags.add(flag)
@@ -781,26 +781,26 @@ def fflags(wrapper: MessageDispatcher, message: str):
         if cur_flags:
             flags = "".join(sorted(cur_flags))
             db.set_access(acc, flags=flags)
-            wrapper.reply(messages["access_set_account"].format(acc, flags))
+            await wrapper.reply(messages["access_set_account"].format(acc, flags))
         else:
             db.set_access(acc, flags=None)
-            wrapper.reply(messages["access_deleted_account"].format(acc))
+            await wrapper.reply(messages["access_deleted_account"].format(acc))
 
         # re-init db.FLAGS since it may have changed
         db.init_vars()
 
 @command("rules", pm=True)
-def show_rules(wrapper: MessageDispatcher, message: str):
+async def show_rules(wrapper: MessageDispatcher, message: str):
     """Displays the rules."""
 
     rules = config.Main.get("gameplay.rules")
     if rules:
-        wrapper.reply(messages["channel_rules"].format(channels.Main, rules))
+        await wrapper.reply(messages["channel_rules"].format(channels.Main, rules))
     else:
-        wrapper.reply(messages["no_channel_rules"].format(channels.Main))
+        await wrapper.reply(messages["no_channel_rules"].format(channels.Main))
 
 @command("help", pm=True)
-def get_help(wrapper: MessageDispatcher, message: str):
+async def get_help(wrapper: MessageDispatcher, message: str):
     """Gets help."""
     commands = set()
     for name, functions in COMMANDS.items():
@@ -816,10 +816,10 @@ def get_help(wrapper: MessageDispatcher, message: str):
             for fn in functions:
                 if fn.flag and name not in fn.aliases:
                     admin_commands.add(name)
-    wrapper.pm(messages["commands_list"].format(sorted(commands)))
+    await wrapper.pm(messages["commands_list"].format(sorted(commands)))
     if admin_commands:
-        wrapper.pm(messages["admin_commands_list"].format(sorted(admin_commands)))
-    wrapper.pm(messages["commands_further_help"])
+        await wrapper.pm(messages["admin_commands_list"].format(sorted(admin_commands)))
+    await wrapper.pm(messages["commands_further_help"])
 
 async def get_wiki_page(URI):
     try:
@@ -847,21 +847,21 @@ async def wiki(wrapper: MessageDispatcher, message: str):
     URI = "https://werewolf.chat/w/api.php?action=opensearch&format=json&search={0}".format(rest)
     success, suggestionjson = get_wiki_page(URI)
     if not success:
-        wrapper.pm(suggestionjson)
+        await wrapper.pm(suggestionjson)
         return
 
     # Parse suggested pages, take the first result
     try:
         suggestion = suggestionjson[1][0].replace(" ", "_")
     except IndexError:
-        wrapper.pm(messages["wiki_no_info"])
+        await wrapper.pm(messages["wiki_no_info"])
         return
 
     # Fetch a page from the api, in json format
     URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&redirects&format=json".format(suggestion)
     success, pagejson = get_wiki_page(URI)
     if not success:
-        wrapper.pm(pagejson)
+        await wrapper.pm(pagejson)
         return
 
     try:
@@ -869,7 +869,7 @@ async def wiki(wrapper: MessageDispatcher, message: str):
         suggestion = p["title"]
         page = p["extract"]
     except (KeyError, IndexError):
-        wrapper.pm(messages["wiki_no_info"])
+        await wrapper.pm(messages["wiki_no_info"])
         return
 
     try:
@@ -893,7 +893,7 @@ async def on_invite(cli, raw_nick, something, chan, **tags):
         cli.join(chan)
         return # No questions
     user = users.get(raw_nick, allow_none=True)
-    if user and user.is_admin():
+    if user and await user.is_admin():
         cli.join(chan) # Allows the bot to be present in any channel
 
 @command("coin", pm=False)
@@ -1129,7 +1129,7 @@ async def aftergame(wrapper: MessageDispatcher, message: str):
             for fn in COMMANDS[cmd]:
                 fn.aftergame = True
                 context = MessageDispatcher(wrapper.source, channels.Main if fn.chan else users.Bot)
-                fn.caller(context, " ".join(args))
+                await fn.caller(context, " ".join(args))
                 fn.aftergame = False
     else:
         await wrapper.pm(messages["command_not_found"])
@@ -1217,20 +1217,20 @@ def _get_gamemodes(var):
     return gamemodes
 
 @command("game", playing=True, phases=("join",))
-def game(wrapper: MessageDispatcher, message: str):
+async def game(wrapper: MessageDispatcher, message: str):
     """Vote for a game mode to be picked."""
     var = wrapper.game_state
     if message:
-        vote_gamemode(wrapper, message.lower().split()[0], doreply=True)
+        await vote_gamemode(wrapper, message.lower().split()[0], doreply=True)
     else:
-        wrapper.pm(messages["no_mode_specified"].format(_get_gamemodes(var)))
+        await wrapper.pm(messages["no_mode_specified"].format(_get_gamemodes(var)))
 
 @command("games", pm=True)
-def show_modes(wrapper: MessageDispatcher, message: str):
+async def show_modes(wrapper: MessageDispatcher, message: str):
     """Show the available game modes."""
-    wrapper.pm(messages["available_modes"].format(_get_gamemodes(wrapper.game_state)))
+    await wrapper.pm(messages["available_modes"].format(_get_gamemodes(wrapper.game_state)))
 
-def _call_command(wrapper, command, no_out=False):
+async def _call_command(wrapper, command, no_out=False):
     """
     Executes a system command.
 
@@ -1246,7 +1246,7 @@ def _call_command(wrapper, command, no_out=False):
 
     if not (no_out and ret == 0):
         for line in (out + err).splitlines():
-            wrapper.pm(line.decode("utf-8"))
+            await wrapper.pm(line.decode("utf-8"))
 
     if ret != 0:
         if ret < 0:
@@ -1255,11 +1255,11 @@ def _call_command(wrapper, command, no_out=False):
         else:
             cause = "status"
 
-        wrapper.pm(messages["process_exited"].format(command, cause, ret))
+        await wrapper.pm(messages["process_exited"].format(command, cause, ret))
 
     return ret, out
 
-def _git_pull(wrapper):
+async def _git_pull(wrapper):
     (ret, _) = _call_command(wrapper, "git fetch")
     if ret != 0:
         return False
@@ -1270,23 +1270,23 @@ def _git_pull(wrapper):
 
     if not re.search(rb"behind \d+", out.splitlines()[0]):
         # Already up-to-date
-        wrapper.pm(messages["already_up_to_date"])
+        await wrapper.pm(messages["already_up_to_date"])
         return False
 
-    (ret, _) = _call_command(wrapper, "git pull --stat --ff-only")
+    (ret, _) = await _call_command(wrapper, "git pull --stat --ff-only")
     if ret != 0:
         return False
 
-    (ret, _) = _call_command(wrapper, "git submodule foreach git pull --stat --ff-only")
+    (ret, _) = await _call_command(wrapper, "git submodule foreach git pull --stat --ff-only")
     return ret == 0
 
 @command("fpull", flag="D", pm=True)
-def fpull(wrapper: MessageDispatcher, message: str):
+async def fpull(wrapper: MessageDispatcher, message: str):
     """Pulls from the repository to update the bot."""
-    _git_pull(wrapper)
+    await _git_pull(wrapper)
 
 @command("update", flag="D", pm=True)
-def update(wrapper: MessageDispatcher, message: str):
+async def update(wrapper: MessageDispatcher, message: str):
     """Pull from the repository and restart the bot to update it."""
 
     var = wrapper.game_state
@@ -1295,29 +1295,29 @@ def update(wrapper: MessageDispatcher, message: str):
 
     if var:
         if not var.in_game or force:
-            stop_game(var, log=False)
+            await stop_game(var, log=False)
         else:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="update"))
+            await wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="update"))
             return
 
     if update.aftergame:
         # Display "Scheduled restart" instead of "Forced restart" when called with !faftergame
         restart_program.aftergame = True
 
-    ret = _git_pull(wrapper)
+    ret = await _git_pull(wrapper)
     if ret:
-        restart_program.func(wrapper, "Updating bot")
+        await restart_program.func(wrapper, "Updating bot")
 
 @command("fsend", owner_only=True, pm=True)
-def fsend(wrapper: MessageDispatcher, message: str):
+async def fsend(wrapper: MessageDispatcher, message: str):
     """Send raw IRC commands to the server."""
     wrapper.source.client.send(message)
 
-def _say(wrapper, rest, cmd, action=False):
+async def _say(wrapper, rest, cmd, action=False):
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
-        wrapper.pm(messages["fsend_usage"].format(cmd))
+        await wrapper.pm(messages["fsend_usage"].format(cmd))
         return
 
     target, message = rest
@@ -1335,26 +1335,26 @@ def _say(wrapper, rest, cmd, action=False):
         targ = IRCContext(target, wrapper.source.client)
 
     if not wrapper.source.is_owner() and targ is not channels.Main:
-        wrapper.pm(messages["invalid_fsend_permissions"])
+        await wrapper.pm(messages["invalid_fsend_permissions"])
         return
 
     if action:
         message = "\u0001ACTION {0}\u0001".format(message)
 
-    targ.send(message, privmsg=True)
+    await targ.send(message, privmsg=True)
 
 @command("fsay", flag="s", pm=True)
-def fsay(wrapper: MessageDispatcher, message: str):
+async def fsay(wrapper: MessageDispatcher, message: str):
     """Talk through the bot as a normal message."""
-    _say(wrapper, message, "fsay")
+    await _say(wrapper, message, "fsay")
 
 @command("fdo", flag="s", pm=True)
-def fdo(wrapper: MessageDispatcher, message: str):
+async def fdo(wrapper: MessageDispatcher, message: str):
     """Act through the bot as an action."""
-    _say(wrapper, message, "fdo", action=True)
+    await _say(wrapper, message, "fdo", action=True)
 
 @command("fgame", flag="g", phases=("join",))
-def fgame(wrapper: MessageDispatcher, message: str):
+async def fgame(wrapper: MessageDispatcher, message: str):
     """Force a certain game mode to be picked. Disable voting for game modes upon use."""
     from src.gamemodes import GAME_MODES
     var = wrapper.game_state
@@ -1372,25 +1372,25 @@ def fgame(wrapper: MessageDispatcher, message: str):
         if gamemode in _fr:
             var.current_mode.teardown()
             var.current_mode = None
-            channels.Main.send(messages["fgame_success"].format(wrapper.source))
+            await channels.Main.send(messages["fgame_success"].format(wrapper.source))
             return
 
         allowed = GAME_MODES.keys() - set(config.Main.get("gameplay.disable.gamemodes"))
         gamemode = gamemode.split()[0]
         match = match_mode(gamemode, scope=allowed, remove_spaces=True)
         if len(match) == 0:
-            wrapper.pm(messages["invalid_mode"].format(gamemode))
+            await wrapper.pm(messages["invalid_mode"].format(gamemode))
             return
         elif len(match) > 1:
-            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in match]))
+            await wrapper.pm(messages["ambiguous_mode"].format([m.local for m in match]))
             return
         parts[0] = match.get().key
 
         from src.gamestate import set_gamemode
         if set_gamemode(var, "=".join(parts)):
-            channels.Main.send(messages["fgame_success"].format(wrapper.source))
+            await channels.Main.send(messages["fgame_success"].format(wrapper.source))
     else:
-        wrapper.pm(fgame_help())
+        await wrapper.pm(fgame_help())
 
 def fgame_help(args=""):
     args = args.strip()
@@ -1406,26 +1406,26 @@ def fgame_help(args=""):
 # eval/exec/freceive are owner-only but also marked with "d" flag
 # to disable them outside of debug mode
 @command("eval", owner_only=True, flag="d", pm=True)
-def pyeval(wrapper: MessageDispatcher, message: str):
+async def pyeval(wrapper: MessageDispatcher, message: str):
     """Evaluate a Python expression."""
     import inspect  # for more expressive debugging
     var = wrapper.game_state
     try:
-        wrapper.send(str(eval(message))[:500])
+        await wrapper.send(str(eval(message))[:500])
     except Exception as e:
-        wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
+        await wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
 @command("exec", owner_only=True, flag="d", pm=True)
-def py(wrapper: MessageDispatcher, message: str):
+async def py(wrapper: MessageDispatcher, message: str):
     """Execute arbitrary Python code."""
     var = wrapper.game_state
     try:
         exec(message)
     except Exception as e:
-        wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
+        await wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
 @command("freceive", owner_only=True, flag="d", pm=True)
-def freceive(wrapper: MessageDispatcher, message: str):
+async def freceive(wrapper: MessageDispatcher, message: str):
     from oyoyo.parse import parse_raw_irc_command
     try:
         line = message.encode("utf-8")
@@ -1434,29 +1434,29 @@ def freceive(wrapper: MessageDispatcher, message: str):
         args = [arg.decode("utf-8") for arg in args if isinstance(arg, bytes)]
         if cmd in ("privmsg", "notice"):
             is_notice = cmd == "notice"
-            handler.on_privmsg(wrapper.client, prefix, *args, notice=is_notice)
+            await handler.on_privmsg(wrapper.client, prefix, *args, notice=is_notice)
         else:
-            handler.unhandled(wrapper.client, prefix, cmd, *args)
+            await handler.unhandled(wrapper.client, prefix, cmd, *args)
     except Exception as e:
-        wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
+        await wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
 @command("ferror", flag="d")
-def force_error(wrapper: MessageDispatcher, message: str):
+async def force_error(wrapper: MessageDispatcher, message: str):
     if not message:
         message = f"Error requested by {wrapper.source.name}"
     raise RuntimeError(message)
 
-def _force_command(wrapper: MessageDispatcher, name: str, players, message):
+async def _force_command(wrapper: MessageDispatcher, name: str, players, message):
     for user in players:
-        handler.parse_and_dispatch(wrapper, name, message, force=user)
-    wrapper.send(messages["operation_successful"])
+        await handler.parse_and_dispatch(wrapper, name, message, force=user)
+    await wrapper.send(messages["operation_successful"])
 
 @command("force", flag="d")
-def force(wrapper: MessageDispatcher, message: str):
+async def force(wrapper: MessageDispatcher, message: str):
     """Force a certain player to use a specific command."""
     msg = re.split(" +", message)
     if len(msg) < 2:
-        wrapper.send(messages["incorrect_syntax"])
+        await wrapper.send(messages["incorrect_syntax"])
         return
 
     target = msg.pop(0).strip()
@@ -1464,19 +1464,19 @@ def force(wrapper: MessageDispatcher, message: str):
     if target == "*":
         players = get_players(wrapper.game_state)
     elif not match:
-        wrapper.send(messages["invalid_target"])
+        await wrapper.send(messages["invalid_target"])
         return
     else:
         players = [match.get()]
 
-    _force_command(wrapper, msg.pop(0), players, " ".join(msg))
+    await _force_command(wrapper, msg.pop(0), players, " ".join(msg))
 
 @command("rforce", flag="d")
-def rforce(wrapper: MessageDispatcher, message: str):
+async def rforce(wrapper: MessageDispatcher, message: str):
     """Force all players of a given role to perform a certain action."""
     msg = re.split(" +", message)
     if len(msg) < 2:
-        wrapper.send(messages["incorrect_syntax"])
+        await wrapper.send(messages["incorrect_syntax"])
         return
 
     var = wrapper.game_state
@@ -1488,20 +1488,20 @@ def rforce(wrapper: MessageDispatcher, message: str):
     elif possible:
         players = get_all_players(var, (possible.get().key,))
     elif len(possible) > 1:
-        wrapper.send(messages["ambiguous_role"].format([r.singular for r in possible]))
+        await wrapper.send(messages["ambiguous_role"].format([r.singular for r in possible]))
         return
     else:
-        wrapper.send(messages["no_such_role"].format(message))
+        await wrapper.send(messages["no_such_role"].format(message))
         return
 
-    _force_command(wrapper, msg.pop(0), players, " ".join(msg))
+    await _force_command(wrapper, msg.pop(0), players, " ".join(msg))
 
 @command("ftotem", flag="d", phases=("night",))
-def ftotem(wrapper: MessageDispatcher, message: str):
+async def ftotem(wrapper: MessageDispatcher, message: str):
     """Force a shaman to have a particular totem."""
     msg = re.split(" +", message)
     if len(msg) < 2:
-        wrapper.send(messages["incorrect_syntax"])
+        await wrapper.send(messages["incorrect_syntax"])
         return
 
     var = wrapper.game_state
@@ -1509,14 +1509,14 @@ def ftotem(wrapper: MessageDispatcher, message: str):
     target = msg.pop(0).strip()
     match = users.complete_match(target, get_players(var))
     if not match:
-        wrapper.send(messages["invalid_target"])
+        await wrapper.send(messages["invalid_target"])
         return
 
     from src.roles.helper.shamans import change_totem
     try:
         change_totem(var, match.get(), " ".join(msg))
     except ValueError as e:
-        wrapper.send(str(e))
+        await wrapper.send(str(e))
         return
 
-    wrapper.send(messages["operation_successful"])
+    await wrapper.send(messages["operation_successful"])

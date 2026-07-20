@@ -128,7 +128,7 @@ def get_team(var: GameState, role: str) -> Category:
     else:
         raise RuntimeError(f"No team defined for role {role}")
 
-def _register_roles(evt: Event):
+async def _register_roles(evt: Event):
     global FROZEN
     team_evt = Event("get_role_metadata", {
         "teams": {"Wolfteam", "Vampire Team", "Village", "Neutral", "Hidden"}

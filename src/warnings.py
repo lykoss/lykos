@@ -135,17 +135,17 @@ def add_warning(target: str | users.User, amount: int, actor: users.User, reason
     return sid
 
 @command("stasis", chan=True, pm=True)
-def stasis(wrapper: MessageDispatcher, message: str):
+async def stasis(wrapper: MessageDispatcher, message: str):
     st = wrapper.source.stasis_count()
     if st:
         msg = messages["your_current_stasis"].format(st)
     else:
         msg = messages["you_not_in_stasis"]
 
-    wrapper.reply(msg, prefix_nick=True)
+    await wrapper.reply(msg, prefix_nick=True)
 
 @command("fstasis", flag="A", chan=True, pm=True)
-def fstasis(wrapper: MessageDispatcher, message: str):
+async def fstasis(wrapper: MessageDispatcher, message: str):
     """Removes or views stasis penalties."""
 
     data = re.split(" +", message)
@@ -158,35 +158,35 @@ def fstasis(wrapper: MessageDispatcher, message: str):
         else:
             acc = data[0]
         if not acc:
-            wrapper.reply(messages["account_not_logged_in"].format(m))
+            await wrapper.reply(messages["account_not_logged_in"].format(m))
             return
         cur = db.STASISED[irc_lower(acc)]
 
         if len(data) == 1:
             if db.STASISED[irc_lower(acc)] == cur and cur > 0:
-                wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
+                await wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
             else:
-                wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
+                await wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
         else:
             try:
                 amt = int(data[1])
             except ValueError:
-                wrapper.reply(messages["stasis_non_negative"])
+                await wrapper.reply(messages["stasis_non_negative"])
                 return
 
             if amt < 0:
-                wrapper.reply(messages["stasis_non_negative"])
+                await wrapper.reply(messages["stasis_non_negative"])
                 return
             elif amt == 0 and cur == 0:
-                wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
+                await wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
                 return
 
             db.set_stasis(amt, acc)
             db.init_vars()
             if amt > 0:
-                wrapper.reply(messages["fstasis_account_add"].format(data[0], acc, amt))
+                await wrapper.reply(messages["fstasis_account_add"].format(data[0], acc, amt))
             else:
-                wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
+                await wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
     else:
         stasised = {}
         for acc in db.STASISED:
@@ -197,9 +197,9 @@ def fstasis(wrapper: MessageDispatcher, message: str):
             msg = messages["currently_stasised"].format(", ".join(
                 "\u0002{0}\u0002 ({1})".format(usr, number)
                 for usr, number in stasised.items()))
-            wrapper.reply(msg)
+            await wrapper.reply(msg)
         else:
-            wrapper.reply(messages["noone_stasised"])
+            await wrapper.reply(messages["noone_stasised"])
 
 def _parse_expires(expires: str, base: Optional[str] = None) -> Optional[datetime]:
     if expires in messages.raw("never_aliases"):
@@ -237,9 +237,9 @@ def _parse_expires(expires: str, base: Optional[str] = None) -> Optional[datetim
     expires_dt += timedelta(minutes=round_add)
     return expires_dt
 
-def warn_list(wrapper: MessageDispatcher, args):
+async def warn_list(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["warn_list_syntax"])
+        await wrapper.reply(messages["warn_list_syntax"])
         return
 
     acc = wrapper.source.account
@@ -248,7 +248,7 @@ def warn_list(wrapper: MessageDispatcher, args):
 
     warnings = db.list_warnings(acc, expired=args.all, skip=(args.page - 1) * 10, show=11)
     points = db.get_warning_points(acc)
-    wrapper.pm(messages["warn_list_header"].format(points))
+    await wrapper.pm(messages["warn_list_header"].format(points))
 
     for i, warning in enumerate(warnings):
         if i == 10:
@@ -256,16 +256,16 @@ def warn_list(wrapper: MessageDispatcher, args):
             if args.all:
                 parts.append(_wall[0])
             parts.append(str(args.page + 1))
-            wrapper.pm(messages["warn_list_footer"].format("warn", parts))
+            await wrapper.pm(messages["warn_list_footer"].format("warn", parts))
             break
-        wrapper.pm(messages["warn_list"].format(**warning))
+        await wrapper.pm(messages["warn_list"].format(**warning))
 
     if not warnings:
-        wrapper.pm(messages["fwarn_list_empty"])
+        await wrapper.pm(messages["fwarn_list_empty"])
 
-def warn_view(wrapper: MessageDispatcher, args):
+async def warn_view(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["warn_view_syntax"])
+        await wrapper.reply(messages["warn_view_syntax"])
         return
 
     acc = wrapper.source.account
@@ -274,13 +274,13 @@ def warn_view(wrapper: MessageDispatcher, args):
 
     warning = db.get_warning(args.id, acc)
     if not warning:
-        wrapper.reply(messages["fwarn_invalid_warning"])
+        await wrapper.reply(messages["fwarn_invalid_warning"])
         return
 
-    wrapper.pm(messages["warn_view_header"].format(**warning))
-    wrapper.pm(warning["reason"])
+    await wrapper.pm(messages["warn_view_header"].format(**warning))
+    await wrapper.pm(warning["reason"])
     if not warning["ack"]:
-        wrapper.pm(messages["warn_view_ack"].format(warning["id"]))
+        await wrapper.pm(messages["warn_view_ack"].format(warning["id"]))
 
     sanctions = []
     if warning["sanctions"]:
@@ -289,11 +289,11 @@ def warn_view(wrapper: MessageDispatcher, args):
         if "deny" in warning["sanctions"]:
             sanctions.append(messages["warn_view_deny"].format(warning["sanctions"]["deny"]))
     if sanctions:
-        wrapper.pm(messages["warn_view_sanctions"].format(sanctions))
+        await wrapper.pm(messages["warn_view_sanctions"].format(sanctions))
 
-def warn_ack(wrapper: MessageDispatcher, args):
+async def warn_ack(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["warn_ack_syntax"])
+        await wrapper.reply(messages["warn_ack_syntax"])
         return
 
     acc = wrapper.source.account
@@ -302,7 +302,7 @@ def warn_ack(wrapper: MessageDispatcher, args):
 
     warning = db.get_warning(args.id, acc)
     if not warning:
-        wrapper.reply(messages["fwarn_invalid_warning"])
+        await wrapper.reply(messages["fwarn_invalid_warning"])
         return
 
     # only add stasis if this is the first time this warning is being acknowledged
@@ -311,23 +311,23 @@ def warn_ack(wrapper: MessageDispatcher, args):
         db.init_vars()
 
     db.acknowledge_warning(args.id)
-    wrapper.reply(messages["fwarn_done"])
+    await wrapper.reply(messages["fwarn_done"])
 
-def warn_help(wrapper: MessageDispatcher, args):
+async def warn_help(wrapper: MessageDispatcher, args):
     if args.command in _wl:
-        wrapper.reply(messages["warn_list_syntax"])
+        await wrapper.reply(messages["warn_list_syntax"])
     elif args.command in _wv:
-        wrapper.reply(messages["warn_view_syntax"])
+        await wrapper.reply(messages["warn_view_syntax"])
     elif args.command in _wa:
-        wrapper.reply(messages["warn_ack_syntax"])
+        await wrapper.reply(messages["warn_ack_syntax"])
     elif args.command in _wh:
-        wrapper.reply(messages["warn_help_syntax"])
+        await wrapper.reply(messages["warn_help_syntax"])
     else:
-        wrapper.reply(messages["warn_usage"])
+        await wrapper.reply(messages["warn_usage"])
 
-def fwarn_add(wrapper: MessageDispatcher, args):
+async def fwarn_add(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["fwarn_add_syntax"])
+        await wrapper.reply(messages["fwarn_add_syntax"])
         return
 
     if args.account:
@@ -340,20 +340,20 @@ def fwarn_add(wrapper: MessageDispatcher, args):
             target = args.nick
 
     if args.points < 0:
-        wrapper.reply(messages["fwarn_points_invalid"])
+        await wrapper.reply(messages["fwarn_points_invalid"])
         return
 
     try:
         expires = _parse_expires(args.expires)
     except ValueError:
-        wrapper.reply(messages["fwarn_expiry_invalid"])
+        await wrapper.reply(messages["fwarn_expiry_invalid"])
         return
 
     sanctions = {}
 
     if args.stasis is not None:
         if args.stasis < 1:
-            wrapper.reply(messages["fwarn_stasis_invalid"])
+            await wrapper.reply(messages["fwarn_stasis_invalid"])
             return
         sanctions["stasis"] = args.stasis
 
@@ -374,7 +374,7 @@ def fwarn_add(wrapper: MessageDispatcher, args):
             try:
                 tempban = int(args.ban)
             except ValueError:
-                wrapper.reply(messages["fwarn_tempban_invalid"])
+                await wrapper.reply(messages["fwarn_tempban_invalid"])
                 return
         sanctions["tempban"] = tempban
 
@@ -387,10 +387,10 @@ def fwarn_add(wrapper: MessageDispatcher, args):
 
     warn_id = add_warning(target, args.points, wrapper.source, reason, notes, expires, sanctions)
     if not warn_id:
-        wrapper.reply(messages["fwarn_cannot_add"])
+        await wrapper.reply(messages["fwarn_cannot_add"])
         return
 
-    wrapper.reply(messages["fwarn_added"].format(warn_id))
+    await wrapper.reply(messages["fwarn_added"].format(warn_id))
     # Log to ops/log channel (even if the warning was placed in that channel)
     logger = logging.getLogger("commands.fwarn.add")
     log_reason = reason
@@ -402,42 +402,42 @@ def fwarn_add(wrapper: MessageDispatcher, args):
         log_exp = messages["fwarn_log_add_expiry"].format(expires)
     logger.info(messages["fwarn_log_add"].format(warn_id, target, wrapper.source, log_reason, args.points, log_exp))
 
-def fwarn_del(wrapper: MessageDispatcher, args):
+async def fwarn_del(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["fwarn_del_syntax"])
+        await wrapper.reply(messages["fwarn_del_syntax"])
         return
 
     warning = db.get_warning(args.id)
     if not warning:
-        wrapper.reply(messages["fwarn_invalid_warning"])
+        await wrapper.reply(messages["fwarn_invalid_warning"])
         return
 
     warning["deleted_by"] = wrapper.source
     db.del_warning(args.id, wrapper.source.account)
     db.init_vars()
-    wrapper.reply(messages["fwarn_done"])
+    await wrapper.reply(messages["fwarn_done"])
 
     logger = logging.getLogger("commands.fwarn.del")
     msg = messages["fwarn_log_del"].format(**warning)
     logger.info(messages["fwarn_log_del"].format(**warning))
 
-def fwarn_help(wrapper: MessageDispatcher, args):
+async def fwarn_help(wrapper: MessageDispatcher, args):
     if args.command in _fa:
-        wrapper.reply(messages["fwarn_add_syntax"])
+        await wrapper.reply(messages["fwarn_add_syntax"])
     elif args.command in _fd:
-        wrapper.reply(messages["fwarn_del_syntax"])
+        await wrapper.reply(messages["fwarn_del_syntax"])
     elif args.command in _fh:
-        wrapper.reply(messages["fwarn_help_syntax"])
+        await wrapper.reply(messages["fwarn_help_syntax"])
     elif args.command in _fs:
-        wrapper.reply(messages["fwarn_set_syntax"])
+        await wrapper.reply(messages["fwarn_set_syntax"])
     elif args.command in _fv:
-        wrapper.reply(messages["fwarn_view_syntax"])
+        await wrapper.reply(messages["fwarn_view_syntax"])
     else:
-        wrapper.reply(messages["fwarn_usage"])
+        await wrapper.reply(messages["fwarn_usage"])
 
-def fwarn_list(wrapper: MessageDispatcher, args):
+async def fwarn_list(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["fwarn_list_syntax"])
+        await wrapper.reply(messages["fwarn_list_syntax"])
         return
 
     if args.account or args.nick == "*":
@@ -450,7 +450,7 @@ def fwarn_list(wrapper: MessageDispatcher, args):
             acc = args.nick
 
     if not acc:
-        wrapper.reply(messages["fwarn_nick_invalid"].format(args.nick))
+        await wrapper.reply(messages["fwarn_nick_invalid"].format(args.nick))
         return
 
     if acc == "*":
@@ -458,7 +458,7 @@ def fwarn_list(wrapper: MessageDispatcher, args):
     else:
         warnings = db.list_warnings(acc, expired=args.all, deleted=args.all, skip=(args.page - 1) * 10, show=11)
         points = db.get_warning_points(acc)
-        wrapper.pm(messages["fwarn_list_header"].format(acc, points))
+        await wrapper.pm(messages["fwarn_list_header"].format(acc, points))
 
     for i, warning in enumerate(warnings):
         if i == 10:
@@ -467,28 +467,28 @@ def fwarn_list(wrapper: MessageDispatcher, args):
                 parts.append(_wall[0])
             parts.append(acc)
             parts.append(str(args.page + 1))
-            wrapper.pm(messages["warn_list_footer"].format("fwarn", parts))
+            await wrapper.pm(messages["warn_list_footer"].format("fwarn", parts))
             break
-        wrapper.pm(messages["fwarn_list"].format(**warning))
+        await wrapper.pm(messages["fwarn_list"].format(**warning))
 
     if not warnings:
-        wrapper.pm(messages["fwarn_list_empty"])
+        await wrapper.pm(messages["fwarn_list_empty"])
 
-def fwarn_set(wrapper: MessageDispatcher, args):
+async def fwarn_set(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["fwarn_set_syntax"])
+        await wrapper.reply(messages["fwarn_set_syntax"])
         return
 
     warning = db.get_warning(args.id)
     if not warning:
-        wrapper.reply(messages["fwarn_invalid_warning"])
+        await wrapper.reply(messages["fwarn_invalid_warning"])
         return
 
     if args.expires is not None:
         try:
             expires = _parse_expires(args.expires, warning["issued"])
         except ValueError:
-            wrapper.reply(messages["fwarn_expiry_invalid"])
+            await wrapper.reply(messages["fwarn_expiry_invalid"])
             return
     else:
         expires = warning["expires"]
@@ -496,7 +496,7 @@ def fwarn_set(wrapper: MessageDispatcher, args):
     if args.reason is not None:
         reason = " ".join(args.reason).strip()
         if not reason:
-            wrapper.reply(messages["fwarn_reason_invalid"])
+            await wrapper.reply(messages["fwarn_reason_invalid"])
             return
     else:
         # maintain existing reason if none was specified
@@ -512,7 +512,7 @@ def fwarn_set(wrapper: MessageDispatcher, args):
         notes = warning["notes"]
 
     db.set_warning(args.id, expires, reason, notes)
-    wrapper.reply(messages["fwarn_done"])
+    await wrapper.reply(messages["fwarn_done"])
 
     logger = logging.getLogger("commands.fwarn.set")
 
@@ -533,23 +533,23 @@ def fwarn_set(wrapper: MessageDispatcher, args):
     if changes:
         logger.info(messages["fwarn_log_set"].format(**warning))
 
-def fwarn_view(wrapper: MessageDispatcher, args):
+async def fwarn_view(wrapper: MessageDispatcher, args):
     if args.help:
-        wrapper.reply(messages["fwarn_view_syntax"])
+        await wrapper.reply(messages["fwarn_view_syntax"])
         return
 
     warning = db.get_warning(args.id)
     if warning is None:
-        wrapper.reply(messages["fwarn_invalid_warning"])
+        await wrapper.reply(messages["fwarn_invalid_warning"])
         return
 
-    wrapper.pm(messages["fwarn_view_header"].format(**warning))
+    await wrapper.pm(messages["fwarn_view_header"].format(**warning))
     reason = warning["reason"]
     if warning["notes"] is not None:
         reason += " | " + warning["notes"]
-    wrapper.pm(reason)
+    await wrapper.pm(reason)
     if not warning["ack"]:
-        wrapper.pm(messages["fwarn_view_ack"])
+        await wrapper.pm(messages["fwarn_view_ack"])
 
     sanctions = []
     if warning["sanctions"]:
@@ -560,7 +560,7 @@ def fwarn_view(wrapper: MessageDispatcher, args):
         if "tempban" in warning["sanctions"]:
             sanctions.append(messages["warn_view_tempban"].format(warning["sanctions"]["tempban"]))
     if sanctions:
-        wrapper.pm(messages["warn_view_sanctions"].format(sanctions))
+        await wrapper.pm(messages["warn_view_sanctions"].format(sanctions))
 
 warn_parser = LineParser(prog="warn")
 warn_subparsers = warn_parser.add_subparsers()
@@ -651,7 +651,7 @@ _fwarn_help.add_argument("command", nargs="?", default="help")
 _fwarn_help.set_defaults(func=fwarn_help)
 
 @command("warn", pm=True)
-def warn(wrapper: MessageDispatcher, message: str):
+async def warn(wrapper: MessageDispatcher, message: str):
     """View and acknowledge your warnings."""
     # !warn list [-all] [page] - lists all active warnings, or all warnings if all passed
     # !warn view <id> - views details on warning id
@@ -664,18 +664,18 @@ def warn(wrapper: MessageDispatcher, message: str):
     params = [p for p in params if p]
     try:
         args = warn_parser.parse_args(params)
-        args.func(wrapper, args)
+        await args.func(wrapper, args)
     except LineParseError as e:
         if config.Main.get("debug.enabled"):
             # this isn't translated so debug mode only for now?
-            wrapper.reply(e.message)
+            await wrapper.reply(e.message)
         try:
-            wrapper.reply(messages[e.parser.prog.replace(" ", "_") + "_syntax"])
+            await wrapper.reply(messages[e.parser.prog.replace(" ", "_") + "_syntax"])
         except KeyError:
-            wrapper.reply(messages["warn_usage"])
+            await wrapper.reply(messages["warn_usage"])
 
 @command("fwarn", flag="F", pm=True)
-def fwarn(wrapper: MessageDispatcher, message: str):
+async def fwarn(wrapper: MessageDispatcher, message: str):
     """Issues a warning to someone or views warnings."""
     # !fwarn list [-all] [-account] [nick] [page]
     # -all => Shows all warnings, if omitted only shows active (non-expired and non-deleted) ones.
@@ -702,15 +702,15 @@ def fwarn(wrapper: MessageDispatcher, message: str):
     params = [p for p in params if p]
     try:
         args = fwarn_parser.parse_args(params)
-        args.func(wrapper, args)
+        await args.func(wrapper, args)
     except WantsHelp as e:
         args = e.namespace
-        args.func(wrapper, args)
+        await args.func(wrapper, args)
     except LineParseError as e:
         if config.Main.get("debug.enabled"):
             # this isn't translated so debug mode only for now?
-            wrapper.reply(e.message)
+            await wrapper.reply(e.message)
         try:
-            wrapper.reply(messages[e.parser.prog.replace(" ", "_") + "_syntax"])
+            await wrapper.reply(messages[e.parser.prog.replace(" ", "_") + "_syntax"])
         except KeyError:
-            wrapper.reply(messages["fwarn_usage"])
+            await wrapper.reply(messages["fwarn_usage"])

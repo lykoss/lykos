@@ -57,11 +57,11 @@ class MudkipMode(GameMode):
             "daylight_warning": EventListener(self.daylight_warning)
         }
 
-    def day_vote_behaviour(self, evt: Event, var: GameState):
+    async def day_vote_behaviour(self, evt: Event, var: GameState):
         evt.data["kill_ties"] = True
         voters = sum(map(len, evt.params.votes.values()))
         if voters == evt.params.players:
             evt.data["force"] = True
 
-    def daylight_warning(self, evt: Event, var: GameState):
+    async def daylight_warning(self, evt: Event, var: GameState):
         evt.data["message"] = "daylight_warning_killtie"

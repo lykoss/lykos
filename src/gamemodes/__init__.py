@@ -314,7 +314,7 @@ class GameMode:
 
     # Here so any game mode can use it
     # FIXME: lovers should be a status or something more generic so we don't need to import matchmaker here
-    def lovers_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
+    async def lovers_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         winner = evt.data["winner"]
         if winner in Win_Stealer:
             return # fool won, lovers can't win even if they would
@@ -329,12 +329,12 @@ class GameMode:
             evt.data["winner"] = Lovers
             evt.data["message"] = messages["lovers_win"]
 
-    def all_dead_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
+    async def all_dead_chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         if evt.data["winner"] is Nobody:
             evt.data["winner"] = All
             evt.data["message"] = messages["everyone_died_won"]
 
-    def custom_gun_chances(self, evt: Event, var: GameState, player: User, role: str):
+    async def custom_gun_chances(self, evt: Event, var: GameState, player: User, role: str):
         if role in self.GUN_CHANCES:
             for key, value in self.GUN_CHANCES[role].items():
                 evt.data[key] += value

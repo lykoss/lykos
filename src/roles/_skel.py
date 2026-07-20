@@ -27,36 +27,36 @@ from src.random import random
 # acted lists all Users who have this role and have already acted tonight
 # Used to determine when all roles have acted (and therefore night should end)
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     pass
 
 # PM players who have this role with instructions
 # Set priority=2 if this is a main role, and priority=5 if this is a secondary role
 # (secondary roles are like gunner, assassin, etc. which by default stack on top of main roles)
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt: Event, var: GameState):
+async def on_transition_night_end(evt: Event, var: GameState):
     pass
 
 # Create initial role state and handle swapping roles with someone else
 # If two players have the same role and their state needs to be exchanged, don't do it here
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     pass
 
 # Swap role state for two players. Only called during an actual exchange
 @event_listener("swap_role_state")
-def on_swap_role_state(evt: Event, var: GameState, actor: User, target: User, role: str):
+async def on_swap_role_state(evt: Event, var: GameState, actor: User, target: User, role: str):
     pass
 
 # Update any game state which happens when player dies. If this role does things upon death,
 # ensure that you check death_triggers (it's a bool) before firing it.
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     pass
 
 # Clear all game state. Called whenever the game ends.
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     pass
 
 # Gets metadata about this role; kind will be a str with one of the following values:
@@ -77,5 +77,5 @@ def on_reset(evt: Event, var: GameState):
 #                  evt.data["rolename"] = {"cat1", "cat2", ...} (the value is a set)
 #                  All roles must implement this kind of metadata.
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     pass

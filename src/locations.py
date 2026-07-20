@@ -98,7 +98,7 @@ def set_home(var: GameState, player: User, home: Location):
     var.home_locations[player] = home
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     if var.in_game:
         del var.home_locations[:player:]
         del var.current_locations[:player:]

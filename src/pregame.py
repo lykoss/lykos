@@ -124,7 +124,7 @@ async def retract(wrapper: MessageDispatcher, message: str):
                     del TIMERS["start_votes"]
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     from src.trans import TIMERS
     if var.current_phase == "join":
         for role in FORCE_ROLES:
@@ -540,7 +540,7 @@ async def frole(wrapper: MessageDispatcher, message: str):
     await wrapper.send(messages["operation_successful"])
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
     LAST_START.clear()
     LAST_WAIT.clear()

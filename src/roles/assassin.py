@@ -19,10 +19,10 @@ TARGETED: UserDict[users.User, users.User] = UserDict()
 PREV_ACTED = UserSet()
 
 @command("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
-def target_cmd(wrapper: MessageDispatcher, message: str):
+async def target_cmd(wrapper: MessageDispatcher, message: str):
     """Pick a player as your target, killing them if you die."""
     if wrapper.source in PREV_ACTED:
-        wrapper.send(messages["assassin_already_targeted"])
+        await wrapper.send(messages["assassin_already_targeted"])
         return
 
     var = wrapper.game_state
@@ -33,20 +33,20 @@ def target_cmd(wrapper: MessageDispatcher, message: str):
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     TARGETED[wrapper.source] = target
 
-    wrapper.send(messages["assassin_target_success"].format(orig))
+    await wrapper.send(messages["assassin_target_success"].format(orig))
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("assassin",)) - PREV_ACTED)
     evt.data["acted"].extend(TARGETED.keys() - PREV_ACTED)
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     # This event runs before first day even if we're starting with day.
     # Don't select random targets for assassins that didn't even get a chance to act yet.
     if var.start_with_day and var.day_count == 1:
@@ -64,7 +64,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
     PREV_ACTED.update(TARGETED.keys())
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     for ass in get_all_players(var, ("assassin",)):
         if ass in TARGETED:
             continue # someone already targeted
@@ -85,7 +85,7 @@ def on_send_role(evt: Event, var: GameState):
                 ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if player in TARGETED.values():
         for x, y in list(TARGETED.items()):
             if y is player:
@@ -108,7 +108,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             add_dying(var, target, killer_role=evt.params.main_role, reason="assassin", killer=player)
 
 @event_listener("myrole")
-def on_myrole(evt: Event, var: GameState, user):
+async def on_myrole(evt: Event, var: GameState, user):
     if user in get_all_players(var, ("assassin",)):
         if user in TARGETED:
             evt.data["messages"].append(messages["assassin_targeting"].format(TARGETED[user]))
@@ -116,16 +116,16 @@ def on_myrole(evt: Event, var: GameState, user):
             evt.data["messages"].append(messages["assassin_no_target"])
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt: Event, var: GameState, user, role):
+async def on_revealroles_role(evt: Event, var: GameState, user, role):
     if role == "assassin" and user in TARGETED:
         evt.data["special_case"].append(messages["assassin_revealroles"].format(TARGETED[user]))
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     TARGETED.clear()
     PREV_ACTED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["assassin"] = {"Village"}
