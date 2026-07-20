@@ -21,14 +21,14 @@ from src.random import random
 
 _rolestate: dict[str, dict[str, Any]] = {}
 
-def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
+async def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
     GUNNERS: UserDict[User, int] = UserDict()
     _rolestate[rolename] = {
         "GUNNERS": GUNNERS
     }
 
     @command("shoot", playing=True, silenced=True, phases=("day",), roles=(rolename,))
-    def shoot(wrapper: MessageDispatcher, message: str):
+    async def shoot(wrapper: MessageDispatcher, message: str):
         """Use this to fire off a bullet at someone in the day if you have bullets."""
         if not GUNNERS[wrapper.source]:
             wrapper.pm(messages["no_bullets"])
@@ -107,13 +107,13 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
             wrapper.send(messages["gunner_miss"].format(wrapper.source))
 
     @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
-    def on_send_role(evt: Event, var: GameState):
+    async def on_send_role(evt: Event, var: GameState):
         for gunner in get_all_players(var, (rolename,)):
             if GUNNERS[gunner] or var.always_pm_role:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("del_player", listener_id="gunners.<{}>.on_del_player".format(rolename))
-    def on_del_player(evt: Event, var: GameState, victim: User, all_roles: set[str], death_triggers: bool):
+    async def on_del_player(evt: Event, var: GameState, victim: User, all_roles: set[str], death_triggers: bool):
         if not death_triggers:
             return
         if GUNNERS.get(victim) and rolename in all_roles and evt.params.killer_role == "wolf" and evt.params.reason == "night_kill":
@@ -163,21 +163,21 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                     looter.send(messages["wolf_gunner"].format(victim))
 
     @event_listener("myrole", listener_id="gunners.<{}>.on_myrole".format(rolename))
-    def on_myrole(evt: Event, var: GameState, user: User):
+    async def on_myrole(evt: Event, var: GameState, user: User):
         if GUNNERS.get(user):
             evt.data["messages"].append(messages["gunner_myrole"].format(rolename, GUNNERS[user]))
 
     @event_listener("revealroles_role", listener_id="gunners.<{}>.on_revealroles_role".format(rolename))
-    def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
+    async def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):
         if role == rolename and user in GUNNERS:
             evt.data["special_case"].append(messages["gunner_revealroles"].format(GUNNERS[user]))
 
     @event_listener("reset", listener_id="gunners.<{}>.on_reset".format(rolename))
-    def on_reset(evt: Event, var: GameState):
+    async def on_reset(evt: Event, var: GameState):
         GUNNERS.clear()
 
     @event_listener("new_role", listener_id="gunners.<{}>.on_new_role".format(rolename))
-    def on_new_role(evt: Event, var: GameState, user: User, old_role: str):
+    async def on_new_role(evt: Event, var: GameState, user: User, old_role: str):
         if old_role == rolename:
             if evt.data["role"] != rolename:
                 del GUNNERS[user]
@@ -189,7 +189,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
             GUNNERS[user] = event.data["bullets"]
 
     @event_listener("gun_chances", listener_id="gunners.<{}>.on_gun_chances".format(rolename))
-    def on_gun_chances(evt: Event, var: GameState, player: User, role: str):
+    async def on_gun_chances(evt: Event, var: GameState, player: User, role: str):
         if role == rolename:
             evt.data["hit"] = hit
             evt.data["headshot"] = headshot

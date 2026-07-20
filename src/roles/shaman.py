@@ -17,7 +17,7 @@ from src.random import random
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("shaman", knows_totem=True)
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
-def shaman_totem(wrapper: MessageDispatcher, message: str):
+async def shaman_totem(wrapper: MessageDispatcher, message: str):
     """Give a totem to a player."""
 
     var = wrapper.game_state
@@ -52,7 +52,7 @@ def shaman_totem(wrapper: MessageDispatcher, message: str):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("transition_day_begin", priority=4)
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     # Select random totem recipients if shamans didn't act
     pl = get_players(var)
     for shaman in get_all_players(var, ("shaman",)):
@@ -78,7 +78,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("send_role")
-def on_transition_night_end(evt: Event, var: GameState):
+async def on_transition_night_end(evt: Event, var: GameState):
     chances = var.current_mode.TOTEM_CHANCES
     max_totems = sum(x["shaman"] for x in chances.values())
     ps = get_players(var)
@@ -131,14 +131,14 @@ def on_transition_night_end(evt: Event, var: GameState):
         shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["shaman"] = {"Village", "Safe", "Nocturnal"}
     elif kind == "lycanthropy_role":
         evt.data["shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
-def set_shaman_totems(evt: Event, chances: dict[str, dict[str, int]]):
+async def set_shaman_totems(evt: Event, chances: dict[str, dict[str, int]]):
     chances["death"]        ["shaman"] = 1
     chances["protection"]   ["shaman"] = 1
     chances["silence"]      ["shaman"] = 1

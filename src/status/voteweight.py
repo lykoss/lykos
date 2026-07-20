@@ -31,11 +31,11 @@ def get_vote_weight(var: GameState, target: User) -> int:
     return max(WEIGHT.get(target, 1), 0)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     del WEIGHT[:player:]
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if WEIGHT:
         ilist = []
         for p, n in WEIGHT.items():
@@ -43,9 +43,9 @@ def on_revealroles(evt: Event, var: GameState):
         evt.data["output"].append(messages["vote_weight_revealroles"].format(ilist))
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt: Event, var: GameState):
+async def on_transition_night_begin(evt: Event, var: GameState):
     WEIGHT.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     WEIGHT.clear()

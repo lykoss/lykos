@@ -24,16 +24,16 @@ def is_awake(var: GameState, player: User):
     return player in AWAKE or (player not in ASLEEP and get_all_roles(var, player) & Nocturnal)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     AWAKE.discard(player)
     ASLEEP.discard(player)
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     AWAKE.clear()
     ASLEEP.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     AWAKE.clear()
     ASLEEP.clear()

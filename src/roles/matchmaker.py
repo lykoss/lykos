@@ -17,7 +17,7 @@ from src.users import User
 from src.random import random
 
 class GameState(gamestate.GameState):
-    def __init__(self):
+    async def __init__(self):
         self.matchmaker_acted: UserSet = UserSet()
         self.matchmaker_acted_tonight: UserSet = UserSet()
         # active lover pairings (no dead players), contains forward and reverse mappings
@@ -27,7 +27,7 @@ class GameState(gamestate.GameState):
 
 Lovers = Category("Lovers")
 
-def _set_lovers(var: GameState, target1: User, target2: User):
+async def _set_lovers(var: GameState, target1: User, target2: User):
     # ensure that PAIRINGS maps lower id to higher ids
     if target2 < target1:
         target1, target2 = target2, target1
@@ -50,7 +50,7 @@ def _set_lovers(var: GameState, target1: User, target2: User):
     target1.send(messages["matchmaker_target_notify"].format(target2))
     target2.send(messages["matchmaker_target_notify"].format(target1))
 
-def get_all_lovers(var: GameState) -> list[set[User]]:
+async def get_all_lovers(var: GameState) -> list[set[User]]:
     """ Get all sets of currently alive lovers.
 
     This method fully resolves lover chains and returns a list of every polycule.
@@ -69,7 +69,7 @@ def get_all_lovers(var: GameState) -> list[set[User]]:
 
     return lovers
 
-def get_lovers(var: GameState, player: User, *, include_player: bool = False) -> set[User]:
+async def get_lovers(var: GameState, player: User, *, include_player: bool = False) -> set[User]:
     """ Get all alive players this player is currently in love with.
 
     :param var: Game state
@@ -93,7 +93,7 @@ def get_lovers(var: GameState, player: User, *, include_player: bool = False) ->
     return visited if include_player else visited - {player}
 
 @command("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose(wrapper: MessageDispatcher, message: str):
+async def choose(wrapper: MessageDispatcher, message: str):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     var = wrapper.game_state
     if wrapper.source in var.matchmaker_acted:
@@ -121,7 +121,7 @@ def choose(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["matchmaker_success"].format(target1, target2))
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     var.matchmaker_acted_tonight.clear()
     pl = get_players(var)
     for mm in get_all_players(var, ("matchmaker",)):
@@ -132,7 +132,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
             mm.send(messages["random_matchmaker"])
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for mm in get_all_players(var, ("matchmaker",)):
         if mm in var.matchmaker_acted and not var.always_pm_role:
@@ -144,7 +144,7 @@ def on_send_role(evt: Event, var: GameState):
             mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers):
+async def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers):
     if not var.in_game:
         return
     var.matchmaker_acted.discard(player)
@@ -170,7 +170,7 @@ def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers)
         del var.matchmaker_lovers[player]
 
 @event_listener("game_end_messages")
-def on_game_end_messages(evt: Event, var: GameState):
+async def on_game_end_messages(evt: Event, var: GameState):
     lovers = []
     for lover1, lset in var.matchmaker_pairings.items():
         for lover2 in lset:
@@ -180,12 +180,12 @@ def on_game_end_messages(evt: Event, var: GameState):
         evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
 
 @event_listener("team_win")
-def on_team_win(evt: Event, var: GameState, player, main_role, allroles, winner):
+async def on_team_win(evt: Event, var: GameState, player, main_role, allroles, winner):
     if winner is Lovers and player in var.matchmaker_lovers:
         evt.data["team_win"] = True
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
+async def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if player in var.matchmaker_pairings or player in itertools.chain.from_iterable(var.matchmaker_pairings.values()):
         evt.data["special"].append("lover")
         # grant lover a win if any of the other lovers in their polycule got a team win
@@ -193,24 +193,24 @@ def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_
             evt.data["individual_win"] = True
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     mms = (get_all_players(var, ("matchmaker",)) - var.matchmaker_acted) | var.matchmaker_acted_tonight
     evt.data["acted"].extend(var.matchmaker_acted_tonight)
     evt.data["nightroles"].extend(mms)
 
 @event_listener("get_team_affiliation")
-def on_get_team_affiliation(evt: Event, var: GameState, target1, target2):
+async def on_get_team_affiliation(evt: Event, var: GameState, target1, target2):
     if target1 in var.matchmaker_lovers and target2 in get_lovers(var, target1):
         evt.data["same"] = True
 
 @event_listener("myrole")
-def on_myrole(evt: Event, var: GameState, user):
+async def on_myrole(evt: Event, var: GameState, user):
     # Remind lovers of each other
     if user in get_players(var) and user in var.matchmaker_lovers:
         evt.data["messages"].append(messages["matched_info"].format(var.matchmaker_lovers[user]))
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     # print out lovers
     pl = get_players(var)
     lovers = []
@@ -225,7 +225,7 @@ def on_revealroles(evt: Event, var: GameState):
         evt.data["output"].append(messages["lovers_revealroles"].format(lovers))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["matchmaker"] = {"Village", "Safe"}
     elif kind == "special_keys":

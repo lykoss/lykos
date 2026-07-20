@@ -16,23 +16,23 @@ register_wolf("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
-def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
+async def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
     if ANGRY_WOLVES and is_known_wolf_ally(var, wolf, wolf):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if death_triggers and "wolf cub" in all_roles:
         global ANGRY_WOLVES
         ANGRY_WOLVES = True
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if ANGRY_WOLVES and evt.data["in_wolfchat"] and wolf_can_kill(var, player):
         evt.data["messages"].append(messages["angry_wolves"])
 
 @event_listener("wolf_notify")
-def on_wolf_notify(evt: Event, var: GameState, role: str):
+async def on_wolf_notify(evt: Event, var: GameState, role: str):
     if not ANGRY_WOLVES or role not in Wolf & Killer:
         return
 
@@ -47,7 +47,7 @@ def on_wolf_notify(evt: Event, var: GameState, role: str):
     users.User.send_messages()
 
 @event_listener("chk_win", priority=1)
-def on_chk_win(evt: Event,
+async def on_chk_win(evt: Event,
                var: GameState,
                rolemap: dict[str, set[User]],
                mainroles: dict[User, str],
@@ -73,7 +73,7 @@ def on_chk_win(evt: Event,
         evt.stop_processing = True
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
+async def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
     # if we're making new wolves or there aren't cubs, nothing to do here
     if reason == "howl" or roleset["wolf cub"] == 0:
         return
@@ -85,16 +85,16 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
         roleset["wolf cub"] = 0
 
 @event_listener("transition_day_resolve")
-def on_transition_day_resolve(evt: Event, var: GameState, dead, killers):
+async def on_transition_day_resolve(evt: Event, var: GameState, dead, killers):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam", "Wolf Objective", "Evil"}

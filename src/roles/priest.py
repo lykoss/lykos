@@ -18,7 +18,7 @@ from src.locations import move_player, Graveyard
 PRIESTS = UserSet()
 
 @command("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def bless(wrapper: MessageDispatcher, message: str):
+async def bless(wrapper: MessageDispatcher, message: str):
     """Bless a player, preventing them from being killed for the remainder of the game."""
     if wrapper.source in PRIESTS:
         wrapper.pm(messages["already_blessed"])
@@ -40,7 +40,7 @@ def bless(wrapper: MessageDispatcher, message: str):
     target.send(messages["blessed_notify_target"])
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def consecrate(wrapper: MessageDispatcher, message: str):
+async def consecrate(wrapper: MessageDispatcher, message: str):
     """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
     var = wrapper.game_state
     alive = get_players(var)
@@ -73,15 +73,15 @@ def consecrate(wrapper: MessageDispatcher, message: str):
         chk_decision(var)
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     for priest in get_all_players(var, ("priest",)):
         priest.send(messages["priest_notify"])
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     PRIESTS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["priest"] = {"Village", "Safe", "Innocent"}

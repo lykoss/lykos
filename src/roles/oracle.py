@@ -17,7 +17,7 @@ from src.gamestate import GameState
 SEEN = setup_variables("oracle")
 
 @command("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("oracle",))
-def see(wrapper: MessageDispatcher, message: str):
+async def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal powers to determine the role or alignment of a player."""
     if wrapper.source in SEEN:
         wrapper.send(messages["seer_fail"])
@@ -54,7 +54,7 @@ def see(wrapper: MessageDispatcher, message: str):
     SEEN.add(wrapper.source)
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["oracle"] = {"Village", "Nocturnal", "Spy", "Safe"}
     elif kind == "lycanthropy_role":

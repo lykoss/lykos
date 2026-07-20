@@ -20,7 +20,7 @@ HUNTERS = UserSet()
 PASSED = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
-def hunter_kill(wrapper: MessageDispatcher, message: str):
+async def hunter_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone once per game."""
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])
@@ -42,7 +42,7 @@ def hunter_kill(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["player_kill"].format(orig))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
-def hunter_retract(wrapper: MessageDispatcher, message: str):
+async def hunter_retract(wrapper: MessageDispatcher, message: str):
     """Removes a hunter's kill selection."""
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
         return
@@ -54,7 +54,7 @@ def hunter_retract(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["retracted_kill"])
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
-def hunter_pass(wrapper: MessageDispatcher, message: str):
+async def hunter_pass(wrapper: MessageDispatcher, message: str):
     """Do not use hunter's once-per-game kill tonight."""
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])
@@ -66,7 +66,7 @@ def hunter_pass(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["hunter_pass"])
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     HUNTERS.discard(player)
     PASSED.discard(player)
     del KILLS[:player:]
@@ -77,7 +77,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
             del KILLS[h]
 
 @event_listener("night_kills")
-def on_night_kills(evt: Event, var: GameState):
+async def on_night_kills(evt: Event, var: GameState):
     for k, d in list(KILLS.items()):
         evt.data["victims"].add(d)
         evt.data["killers"][d].append(k)
@@ -85,21 +85,21 @@ def on_night_kills(evt: Event, var: GameState):
         del KILLS[k]
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "hunter":
         del KILLS[:player:]
         HUNTERS.discard(player)
         PASSED.discard(player)
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(KILLS)
     evt.data["acted"].extend(PASSED)
     hunter_users = get_all_players(var, ("hunter",))
     evt.data["nightroles"].extend([p for p in hunter_users if p not in HUNTERS or p in KILLS])
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for hunter in get_all_players(var, ("hunter",)):
         if hunter in HUNTERS:
@@ -112,18 +112,18 @@ def on_send_role(evt: Event, var: GameState):
             hunter.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     KILLS.clear()
     PASSED.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     KILLS.clear()
     PASSED.clear()
     HUNTERS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "night_kills":
         # hunters is the set of all hunters that have not killed in a *previous* night
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)

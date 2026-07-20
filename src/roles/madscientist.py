@@ -11,7 +11,7 @@ from src.status import try_protection, add_dying
 from src.users import User
 
 
-def _get_targets(var: GameState, pl: set[User], user: User):
+async def _get_targets(var: GameState, pl: set[User], user: User):
     index = var.players.index(user)
     num_players = len(var.players)
     # determine left player
@@ -32,7 +32,7 @@ def _get_targets(var: GameState, pl: set[User], user: User):
     return target1, target2
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     if not death_triggers or "mad scientist" not in all_roles:
         return
 
@@ -68,7 +68,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     channels.Main.send(messages[to_send].format(player, target1, role1, target2, role2))
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     for ms in get_all_players(var, ("mad scientist",)):
         pl = get_all_players(var)
         target1, target2 = _get_targets(var, pl, ms)
@@ -76,20 +76,20 @@ def on_send_role(evt: Event, var: GameState):
         ms.send(messages["mad_scientist_notify"].format(target1, target2))
 
 @event_listener("myrole")
-def on_myrole(evt: Event, var: GameState, user: User):
+async def on_myrole(evt: Event, var: GameState, user: User):
     if user in var.roles["mad scientist"]:
         pl = get_all_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
-def on_revealroles(evt: Event, var: GameState,  user: User, role: str):
+async def on_revealroles(evt: Event, var: GameState,  user: User, role: str):
     if role == "mad scientist":
         pl = get_all_players(var)
         target1, target2 = _get_targets(var, pl, user)
         evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["mad scientist"] = {"Village", "Cursed"}

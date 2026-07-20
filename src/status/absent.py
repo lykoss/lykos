@@ -25,7 +25,7 @@ def add_absent(var: GameState, target: User, reason: str):
                 del VOTES[votee]
             break
 
-def try_absent(var: GameState, user: User):
+async def try_absent(var: GameState, user: User):
     if user in ABSENT:
         user.send(messages[ABSENT[user] + "_absent"])
         return True
@@ -35,18 +35,18 @@ def get_absent(var: GameState):
     return set(ABSENT)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     del ABSENT[:player:]
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if ABSENT:
         evt.data["output"].append(messages["absent_revealroles"].format(ABSENT))
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt: Event, var: GameState):
+async def on_transition_night_begin(evt: Event, var: GameState):
     ABSENT.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     ABSENT.clear()

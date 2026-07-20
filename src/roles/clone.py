@@ -21,7 +21,7 @@ ACTED = UserSet()
 CLONE_ENABLED = False # becomes True if at least one person died and there are clones
 
 @command("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",))
-def clone(wrapper: MessageDispatcher, message: str):
+async def clone(wrapper: MessageDispatcher, message: str):
     """Clone another player. You will turn into their role if they die."""
     if wrapper.source in CLONED:
         wrapper.pm(messages["already_cloned"])
@@ -37,12 +37,12 @@ def clone(wrapper: MessageDispatcher, message: str):
     wrapper.pm(messages["clone_target_success"].format(target))
 
 @event_listener("get_reveal_role")
-def on_get_reveal_role(evt: Event, var: GameState, user):
+async def on_get_reveal_role(evt: Event, var: GameState, user):
     if config.Main.get("gameplay.hidden.clone") and user in var.original_roles["clone"]:
         evt.data["role"] = "clone"
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     # clone happens regardless of death_triggers being true or not
     if not var.in_game:
         return
@@ -77,7 +77,7 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
     ACTED.discard(player)
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     CAN_ACT.update(get_all_players(var, ("clone",)) - CLONED.keys())
     for clone in get_all_players(var, ("clone",)):
@@ -91,12 +91,12 @@ def on_send_role(evt: Event, var: GameState):
             clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(ACTED)
     evt.data["nightroles"].extend(CAN_ACT)
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     # Select a random target for clone if they didn't choose someone
     pl = get_players(var)
     for clone in get_all_players(var, ("clone",)):
@@ -109,14 +109,14 @@ def on_transition_day_begin(evt: Event, var: GameState):
                 clone.send(messages["random_clone"].format(target))
 
 @event_listener("swap_role_state")
-def on_swap_role_state(evt: Event, var: GameState, actor, target, role):
+async def on_swap_role_state(evt: Event, var: GameState, actor, target, role):
     if role == "clone":
         CLONED[target], CLONED[actor] = CLONED.pop(actor), CLONED.pop(target)
         evt.data["target_messages"].append(messages["clone_target"].format(CLONED[target]))
         evt.data["actor_messages"].append(messages["clone_target"].format(CLONED[actor]))
 
 @event_listener("del_player", priority=1)
-def first_death_occured(evt: Event, var: GameState, player, all_roles, death_triggers):
+async def first_death_occured(evt: Event, var: GameState, player, all_roles, death_triggers):
     global CLONE_ENABLED
     if CLONE_ENABLED:
         return
@@ -124,28 +124,28 @@ def first_death_occured(evt: Event, var: GameState, player, all_roles, death_tri
         CLONE_ENABLED = True
 
 @event_listener("update_stats")
-def on_update_stats(evt: Event, var: GameState, player, mainrole, revealrole, allroles):
+async def on_update_stats(evt: Event, var: GameState, player, mainrole, revealrole, allroles):
     if CLONE_ENABLED and not config.Main.get("gameplay.hidden.clone"):
         evt.data["possible"].add("clone")
 
 @event_listener("myrole")
-def on_myrole(evt: Event, var: GameState, user):
+async def on_myrole(evt: Event, var: GameState, user):
     # Remind clone who they have cloned
     if evt.data["role"] == "clone" and user in CLONED:
         evt.data["messages"].append(messages["clone_target"].format(CLONED[user]))
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt: Event, var: GameState, user, role):
+async def on_revealroles_role(evt: Event, var: GameState, user, role):
     if role == "clone" and user in CLONED:
         evt.data["special_case"].append(messages["clone_revealroles"].format(CLONED[user]))
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     CAN_ACT.clear()
     ACTED.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global CLONE_ENABLED
     CLONE_ENABLED = False
     CLONED.clear()
@@ -153,6 +153,6 @@ def on_reset(evt: Event, var: GameState):
     ACTED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["clone"] = {"Village", "Team Switcher"}

@@ -14,13 +14,13 @@ from src.users import User
 # mystic_night_num, mystic_day_num, mystic_info,
 # mystic_notify, wolf_mystic_notify
 
-def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
+async def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
     LAST_COUNT: UserDict[User, list[tuple[str, int]]] = UserDict()
 
     role = rolename.replace(" ", "_")
 
     @event_listener("send_role", listener_id="mystics.<{}>.on_send_role".format(rolename))
-    def on_send_role(evt: Event, var: GameState):
+    async def on_send_role(evt: Event, var: GameState):
         values = []
 
         for i, t in enumerate(types):
@@ -43,7 +43,7 @@ def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
             mystic.send(msg)
 
     @event_listener("new_role", listener_id="mystics.<{}>.on_new_role".format(rolename))
-    def on_new_role(evt: Event, var: GameState, player: User, old_role: str):
+    async def on_new_role(evt: Event, var: GameState, player: User, old_role: str):
         if evt.params.inherit_from in LAST_COUNT and old_role != rolename and evt.data["role"] == rolename:
             values = LAST_COUNT.pop(evt.params.inherit_from)
             LAST_COUNT[player] = values
@@ -52,11 +52,11 @@ def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
             evt.data["messages"].append(msg)
 
     @event_listener("reset", listener_id="mystics.<{}>.on_reset".format(rolename))
-    def on_reset(evt: Event, var: GameState):
+    async def on_reset(evt: Event, var: GameState):
         LAST_COUNT.clear()
 
     @event_listener("myrole", listener_id="mystics.<{}>.on_myrole".format(rolename))
-    def on_myrole(evt: Event, var: GameState, user: User):
+    async def on_myrole(evt: Event, var: GameState, user: User):
         if user in get_all_players(var, (rolename,)):
             values = LAST_COUNT[user]
             key = "mystic_info_{0}".format(var.current_phase)

@@ -67,7 +67,7 @@ def get_forced_abstains(var: GameState) -> set[User]:
     return {player for player, count in FORCED_COUNTS.items() if count < 0}
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):
     del FORCED_COUNTS[:player:]
     del FORCED_TARGETS[:player:]
     for votee, targets in list(FORCED_TARGETS.items()):
@@ -79,7 +79,7 @@ def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], 
                 del FORCED_COUNTS[votee]
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if FORCED_COUNTS:
         num_players = len(get_players(var))
         vlist = []
@@ -98,11 +98,11 @@ def on_revealroles(evt: Event, var: GameState):
             evt.data["output"].append(messages["forced_abstentions_revealroles"].format(alist))
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt: Event, var: GameState):
+async def on_transition_night_begin(evt: Event, var: GameState):
     FORCED_COUNTS.clear()
     FORCED_TARGETS.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     FORCED_COUNTS.clear()
     FORCED_TARGETS.clear()

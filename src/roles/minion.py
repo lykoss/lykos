@@ -14,13 +14,13 @@ from src.random import random
 RECEIVED_INFO = UserSet()
 KNOWS_MINIONS = UserSet()
 
-def wolf_list(var: GameState):
+async def wolf_list(var: GameState):
     wolves = [wolf.nick for wolf in get_all_players(var, Wolf)]
     random.shuffle(wolves)
     return messages["wolves_list"].format(", ".join(wolves))
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     for minion in get_all_players(var, ("minion",)):
         if minion in RECEIVED_INFO and not var.always_pm_role:
             continue
@@ -29,7 +29,7 @@ def on_send_role(evt: Event, var: GameState):
         RECEIVED_INFO.add(minion)
 
 @event_listener("transition_night_end")
-def on_transition_night_end(evt: Event, var: GameState):
+async def on_transition_night_end(evt: Event, var: GameState):
     minions = len(get_all_players(var, ("minion",)))
     if minions == 0:
         return
@@ -39,13 +39,13 @@ def on_transition_night_end(evt: Event, var: GameState):
         KNOWS_MINIONS.add(wolf)
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role is not None and evt.data["role"] == "minion":
         evt.data["messages"].append(wolf_list(var))
         RECEIVED_INFO.add(player)
 
 @event_listener("myrole")
-def on_myrole(evt: Event, var: GameState, user: User):
+async def on_myrole(evt: Event, var: GameState, user: User):
     if user in get_all_players(var, ("minion",)):
         wolves = []
         for wolfrole in Wolf:
@@ -54,11 +54,11 @@ def on_myrole(evt: Event, var: GameState, user: User):
         evt.data["messages"].append(messages["original_wolves"].format(wolves))
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     RECEIVED_INFO.clear()
     KNOWS_MINIONS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["minion"] = {"Wolfteam", "Intuitive", "Evil"}

@@ -18,7 +18,7 @@ ACTED = UserSet()
 SWAPS: UserDict[User, tuple[int, int]] = UserDict()
 
 @command("choose", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("master of teleportation",))
-def choose(wrapper: MessageDispatcher, message: str):
+async def choose(wrapper: MessageDispatcher, message: str):
     pieces = re.split(" +", message)
     if len(pieces) < 2:
         return
@@ -39,24 +39,24 @@ def choose(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["master_of_teleportation_success"].format(target1, target2))
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     for player in get_all_players(var, ("master of teleportation",)):
         player.send(messages["master_of_teleportation_notify"])
         if var.next_phase == "night":
             player.send(messages["players_list"].format(get_players(var)))
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(ACTED)
     evt.data["nightroles"].extend(get_all_players(var, ("master of teleportation",)))
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
+async def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if main_role == "master of teleportation":
         evt.data["count_game"] = False
 
 @event_listener("transition_day_begin", priority=3)
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     swaps = list(SWAPS.values())
     random.shuffle(swaps)
     for (index1, index2) in swaps:
@@ -68,11 +68,11 @@ def on_transition_day_begin(evt: Event, var: GameState):
     SWAPS.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     ACTED.clear()
     SWAPS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["master of teleportation"] = {"Neutral", "Nocturnal"}

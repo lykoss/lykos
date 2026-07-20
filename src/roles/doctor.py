@@ -20,7 +20,7 @@ IMMUNIZED = UserSet()
 DOCTORS: UserDict[users.User, int] = UserDict()
 
 @command("immunize", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
-def immunize(wrapper: MessageDispatcher, message: str):
+async def immunize(wrapper: MessageDispatcher, message: str):
     """Immunize a player, preventing them from turning into a wolf."""
     if not DOCTORS[wrapper.source]:
         wrapper.pm(messages["doctor_fail"])
@@ -49,17 +49,17 @@ def immunize(wrapper: MessageDispatcher, message: str):
     remove_disease(var, target)
 
 @event_listener("add_lycanthropy")
-def on_add_lycanthropy(evt: Event, var: GameState, target):
+async def on_add_lycanthropy(evt: Event, var: GameState, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
 @event_listener("add_disease")
-def on_add_disease(evt: Event, var: GameState, target):
+async def on_add_disease(evt: Event, var: GameState, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for doctor in get_all_players(var, ("doctor",)):
         if DOCTORS[doctor]: # has immunizations remaining
@@ -69,23 +69,23 @@ def on_send_role(evt: Event, var: GameState):
             doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if IMMUNIZED:
         evt.data["output"].append(messages["immunized_revealroles"].format(IMMUNIZED))
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if evt.data["role"] == "doctor" and old_role != "doctor":
         DOCTORS[player] = math.ceil(config.Main.get("gameplay.safes.doctor_shots") * len(get_players(var)))
     if evt.data["role"] != "doctor" and old_role == "doctor":
         del DOCTORS[player]
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["doctor"] = {"Village", "Safe"}
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     DOCTORS.clear()
     IMMUNIZED.clear()

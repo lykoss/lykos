@@ -27,7 +27,7 @@ TIME_ATTRIBUTES = (
 TRIGGERED = False
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     global TRIGGERED
     if not death_triggers or "time lord" not in all_roles:
         return
@@ -76,17 +76,17 @@ def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str],
                     t.start()
 
 @event_listener("night_idled")
-def on_night_idled(evt: Event, var: GameState, player: User):
+async def on_night_idled(evt: Event, var: GameState, player: User):
     # don't give people warning points on night idle when time lord is active
     if TRIGGERED:
         evt.prevent_default = True
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global TRIGGERED
     TRIGGERED = False
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["time lord"] = {"Hidden"}

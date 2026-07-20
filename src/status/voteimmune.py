@@ -17,7 +17,7 @@ def add_day_vote_immunity(var: GameState, user: User, reason: str):
         return
     IMMUNITY[user].add(reason)
 
-def try_day_vote_immunity(var: GameState, user: User) -> bool:
+async def try_day_vote_immunity(var: GameState, user: User) -> bool:
     if user in IMMUNITY:
         reason = IMMUNITY[user].pop() # get a random reason
         evt = Event("day_vote_immunity", {"immune": False})
@@ -27,14 +27,14 @@ def try_day_vote_immunity(var: GameState, user: User) -> bool:
     return False
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if IMMUNITY:
         evt.data["output"].append(messages["day_vote_immune_revealroles"].format(IMMUNITY))
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt: Event, var: GameState):
+async def on_transition_night_begin(evt: Event, var: GameState):
     IMMUNITY.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     IMMUNITY.clear()

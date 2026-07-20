@@ -12,11 +12,11 @@ from src.dispatcher import MessageDispatcher
 from src.random import random
 
 class GameState(gamestate.GameState):
-    def __init__(self):
+    async def __init__(self):
         self.prophet_prayed = UserSet()
 
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
-def pray(wrapper: MessageDispatcher, message: str):
+async def pray(wrapper: MessageDispatcher, message: str):
     """Receive divine visions of who has a role."""
     var: GameState = wrapper.game_state
 
@@ -61,20 +61,20 @@ def pray(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["vision_players"].format(role, part))
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     for pht in get_all_players(var, ("prophet",)):
         pht.send(messages["prophet_notify"])
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["nightroles"].extend(get_all_players(var, ("prophet",)))
     evt.data["acted"].extend(var.prophet_prayed)
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     var.prophet_prayed.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["prophet"] = {"Village", "Safe", "Nocturnal", "Spy"}

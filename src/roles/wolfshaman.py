@@ -20,7 +20,7 @@ TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("wolf sh
 register_wolf("wolf shaman")
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
-def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
+async def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
     """Give a totem to a player."""
 
     var = wrapper.game_state
@@ -57,7 +57,7 @@ def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
     send_wolfchat_message(var, wrapper.source, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), role="wolf shaman", command="totem")
 
 @event_listener("transition_day_begin", priority=4)
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     # Select random totem recipients if shamans didn't act
     pl = get_players(var)
     for shaman in get_all_players(var, ("wolf shaman",)):
@@ -84,7 +84,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("send_role")
-def on_transition_night_end(evt: Event, var: GameState):
+async def on_transition_night_end(evt: Event, var: GameState):
     chances = var.current_mode.TOTEM_CHANCES
     max_totems = sum(x["wolf shaman"] for x in chances.values())
     ps = get_players(var)
@@ -137,12 +137,12 @@ def on_transition_night_end(evt: Event, var: GameState):
         # player list and notification that WS can kill is handled by shared wolves handler
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["wolf shaman"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective", "Evil"}
 
 @event_listener("default_totems")
-def set_wolf_totems(evt: Event, chances: dict[str, dict[str, int]]):
+async def set_wolf_totems(evt: Event, chances: dict[str, dict[str, int]]):
     chances["protection"]   ["wolf shaman"] = 1
     chances["silence"]      ["wolf shaman"] = 1
     chances["impatience"]   ["wolf shaman"] = 1

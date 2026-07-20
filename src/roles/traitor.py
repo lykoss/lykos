@@ -15,7 +15,7 @@ from src.users import User
 register_wolf("traitor")
 
 @event_listener("get_reveal_role")
-def on_get_reveal_role(evt: Event, var: GameState, user: User):
+async def on_get_reveal_role(evt: Event, var: GameState, user: User):
     # in team reveal, show traitor as wolfteam, otherwise team stats won't sync with how
     # they're revealed upon death. Team stats should show traitor as wolfteam or else
     # the stats are wrong in that they'll report one less wolf than actually exists,
@@ -24,19 +24,19 @@ def on_get_reveal_role(evt: Event, var: GameState, user: User):
         evt.data["role"] = var.hidden_role
 
 @event_listener("get_final_role")
-def on_get_final_role(evt: Event, var: GameState, user: User, role: str):
+async def on_get_final_role(evt: Event, var: GameState, user: User, role: str):
     # if a traitor turns we want to show them as traitor in the end game readout
     # instead of "wolf (was traitor)"
     if role == "traitor" and evt.data["role"] == "wolf":
         evt.data["role"] = "traitor"
 
 @event_listener("update_stats", priority=1)
-def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
+async def on_update_stats1(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
     if mainrole == var.hidden_role and config.Main.get("gameplay.hidden.traitor"):
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)
-def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
+async def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, revealrole: str, allroles: set[str]):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
     wolfchat = get_wolfchat_roles()
@@ -75,7 +75,7 @@ def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: str, re
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
 @event_listener("chk_win", priority=1.1)
-def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
+async def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):
     did_something = False
     if lrealwolves - lvampires == 0:
         for traitor in list(rolemap["traitor"]):
@@ -118,6 +118,6 @@ def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainro
         evt.stop_processing = True
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["traitor"] = {"Wolfchat", "Wolfteam", "Wolf Objective", "Evil"}

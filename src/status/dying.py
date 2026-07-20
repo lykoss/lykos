@@ -65,7 +65,7 @@ def is_dead(var: GameState, player: User) -> bool:
     """
     return player in DEAD
 
-def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = True) -> bool:
+async def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = True) -> bool:
     """
     Kill all players marked as dying.
 
@@ -141,7 +141,7 @@ def kill_players(var: Optional[GameState | PregameState], *, end_game: bool = Tr
         return not evt.dispatch(var, dead)
 
 @event_listener("night_kills")
-def kill_off_dying_players(evt: Event, var: GameState):
+async def kill_off_dying_players(evt: Event, var: GameState):
     evt.data["victims"].update(DYING)
     # this priority (and killer entry) doesn't matter because we do an explicit test for is_dying in transition_day,
     # but doing this lets us sort @dying first for easier debugging into game logic
@@ -150,6 +150,6 @@ def kill_off_dying_players(evt: Event, var: GameState):
         evt.data["killers"][victim].append("@dying")
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     DEAD.clear()
     DYING.clear()

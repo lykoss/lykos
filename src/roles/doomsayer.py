@@ -28,7 +28,7 @@ LYCANS: UserDict[User, User] = UserDict()
 _mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
 
 @command("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("doomsayer",))
-def see(wrapper: MessageDispatcher, message: str):
+async def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal senses to determine a player's doom."""
     if wrapper.source in SEEN:
         wrapper.send(messages["seer_fail"])
@@ -62,25 +62,25 @@ def see(wrapper: MessageDispatcher, message: str):
     LASTSEEN[wrapper.source] = target
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "doomsayer" and evt.data["role"] != "doomsayer":
         SEEN.discard(player)
         for name, mapping in _mappings:
             del mapping[:player:]
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     # only remove from SEEN; keep results of sees intact on death
     # so that we can apply them in begin_day even if doomsayer dies.
     SEEN.discard(player)
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt: Event, var: GameState):
+async def on_chk_nightdone(evt: Event, var: GameState):
     evt.data["acted"].extend(SEEN)
     evt.data["nightroles"].extend(get_all_players(var, ("doomsayer",)))
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     for target in SICK.values():
         target.queue_message(messages["player_sick"])
         status.add_absent(var, target, "illness")
@@ -88,13 +88,13 @@ def on_transition_day_begin(evt: Event, var: GameState):
     User.send_messages()
 
 @event_listener("night_kills")
-def on_night_kills(evt: Event, var: GameState):
+async def on_night_kills(evt: Event, var: GameState):
     for killer, victim in list(KILLS.items()):
         evt.data["victims"].add(victim)
         evt.data["killers"][victim].append(killer)
 
 @event_listener("transition_night_end")
-def on_transition_night_end(evt: Event, var: GameState):
+async def on_transition_night_end(evt: Event, var: GameState):
     if LASTSEEN:
         # if doomsayer is in play and at least one of them saw someone the previous night,
         # let stats know that anyone could be a lycan
@@ -108,7 +108,7 @@ def on_transition_night_end(evt: Event, var: GameState):
     SICK.clear()
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     # clear out LASTSEEN for people that didn't see last night
     for doom in list(LASTSEEN.keys()):
         if doom not in SEEN:
@@ -118,13 +118,13 @@ def on_begin_day(evt: Event, var: GameState):
     KILLS.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     SEEN.clear()
     KILLS.clear()
     SICK.clear()
     LYCANS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["doomsayer"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective", "Evil"}

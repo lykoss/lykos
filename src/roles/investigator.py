@@ -18,7 +18,7 @@ from src.random import random
 INVESTIGATED = UserSet()
 
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
-def investigate(wrapper: MessageDispatcher, message: str):
+async def investigate(wrapper: MessageDispatcher, message: str):
     """Investigate two players to determine their relationship to each other."""
     if wrapper.source in INVESTIGATED:
         wrapper.pm(messages["already_investigated"])
@@ -67,16 +67,16 @@ def investigate(wrapper: MessageDispatcher, message: str):
     INVESTIGATED.add(wrapper.source)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     INVESTIGATED.discard(player)
 
 @event_listener("new_role")
-def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
+async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):
     if old_role == "investigator" and evt.data["role"] != "investigator":
         INVESTIGATED.discard(player)
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     ps = get_players(var)
     for inv in var.roles["investigator"]:
         pl = ps[:]
@@ -85,14 +85,14 @@ def on_send_role(evt: Event, var: GameState):
         inv.send(messages["investigator_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt: Event, var: GameState):
+async def on_transition_night_begin(evt: Event, var: GameState):
     INVESTIGATED.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     INVESTIGATED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["investigator"] = {"Village", "Spy", "Safe"}

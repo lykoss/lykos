@@ -12,7 +12,7 @@ __all__ = ["add_disease", "remove_disease", "wolves_diseased"]
 DISEASED = UserSet()
 DISEASED_WOLVES = False
 
-def add_disease(var: GameState, target: User):
+async def add_disease(var: GameState, target: User):
     """Effect the target with disease. Fire the add_disease event."""
     if target in DISEASED or target not in get_players(var):
         return
@@ -29,7 +29,7 @@ def wolves_diseased(var: GameState):
     return DISEASED_WOLVES
 
 @event_listener("transition_day_resolve")
-def on_transition_day_resolve(evt: Event, var: GameState, dead: set[User], killers: dict[User, Union[User, str]]):
+async def on_transition_day_resolve(evt: Event, var: GameState, dead: set[User], killers: dict[User, Union[User, str]]):
     global DISEASED_WOLVES
     for victim in dead:
         # Silly wolves, eating a sick person... tsk tsk
@@ -40,17 +40,17 @@ def on_transition_day_resolve(evt: Event, var: GameState, dead: set[User], kille
         DISEASED_WOLVES = False
 
 @event_listener("begin_day")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     DISEASED.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     global DISEASED_WOLVES
     DISEASED.clear()
     DISEASED_WOLVES = False
 
 @event_listener("wolf_numkills", priority=10)
-def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
+async def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
     if wolves_diseased(var):
         evt.data["numkills"] = 0
         evt.data["message"] = "ill_wolves"

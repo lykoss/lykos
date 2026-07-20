@@ -12,7 +12,7 @@ SHOTS_MULTIPLIER = 0.06
 GUNNERS = setup_variables("sharpshooter", hit=HIT_CHANCE, headshot=HEADSHOT_CHANCE, explode=EXPLODE_CHANCE, multiplier=SHOTS_MULTIPLIER)
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["sharpshooter"] = {"Village", "Safe", "Killer"}
     elif kind == "lycanthropy_role":

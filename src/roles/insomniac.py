@@ -6,7 +6,7 @@ from src.messages import messages
 from src.events import Event, event_listener
 from src.status import is_awake
 
-def _get_targets(var: GameState, pl, user):
+async def _get_targets(var: GameState, pl, user):
     index = var.players.index(user)
     num_players = len(var.players)
     # determine left player
@@ -27,13 +27,13 @@ def _get_targets(var: GameState, pl, user):
     return target1, target2
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     if not var.setup_completed or var.always_pm_role:
         for insomniac in get_all_players(var, ("insomniac",)):
             insomniac.send(messages["insomniac_notify"])
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     if var.night_count == 0 and var.start_with_day: # starting with day
         return
     pl = get_players(var)
@@ -53,6 +53,6 @@ def on_transition_day_begin(evt: Event, var: GameState):
             insomniac.send(messages["insomniac_asleep"].format(p1, p2))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["insomniac"] = {"Village", "Nocturnal"}

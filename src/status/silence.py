@@ -28,17 +28,17 @@ def is_silent(var: GameState, user: User):
 # No del_player listener - we want roles that can act when dead to remain silenced (e.g. vengeful ghost)
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if SILENT:
         evt.data["output"].append(messages["silence_revealroles"].format(SILENT))
 
 @event_listener("transition_day_end")
-def on_transition_day_end(evt: Event, var: GameState):
+async def on_transition_day_end(evt: Event, var: GameState):
     SILENT.clear()
     SILENT.update(PENDING)
     PENDING.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     SILENT.clear()
     PENDING.clear()

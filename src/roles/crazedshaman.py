@@ -19,7 +19,7 @@ from src.random import random
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET, ORIG_TARGET_MAP = setup_variables("crazed shaman", knows_totem=False)
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
-def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
+async def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
     """Give a random totem to a player."""
 
     var = wrapper.game_state
@@ -56,12 +56,12 @@ def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
-def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
+async def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
     if main_role == "crazed shaman":
         evt.data["count_game"] = False
 
 @event_listener("transition_day_begin", priority=4)
-def on_transition_day_begin(evt: Event, var: GameState):
+async def on_transition_day_begin(evt: Event, var: GameState):
     # Select random totem recipients if shamans didn't act
     pl = get_players(var)
     for shaman in get_all_players(var, ("crazed shaman",)):
@@ -87,7 +87,7 @@ def on_transition_day_begin(evt: Event, var: GameState):
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     chances = var.current_mode.TOTEM_CHANCES
     max_totems = sum(x["crazed shaman"] for x in chances.values())
     ps = get_players(var)
@@ -138,13 +138,13 @@ def on_send_role(evt: Event, var: GameState):
         shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["crazed shaman"] = {"Neutral", "Nocturnal"}
     elif kind == "lycanthropy_role":
         evt.data["crazed shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
-def set_crazed_totems(evt: Event, chances: dict[str, dict[str, int]]):
+async def set_crazed_totems(evt: Event, chances: dict[str, dict[str, int]]):
     for chance in chances.values():
         chance["crazed shaman"] = 1

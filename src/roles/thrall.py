@@ -11,7 +11,7 @@ from src.cats import Hidden, Vampire_Team
 
 
 @event_listener("send_role")
-def on_send_role(evt: Event, var: GameState):
+async def on_send_role(evt: Event, var: GameState):
     if not var.setup_completed or var.always_pm_role:
         send_roles = {"thrall"}
         if var.hidden_role == "thrall":
@@ -22,7 +22,7 @@ def on_send_role(evt: Event, var: GameState):
         User.send_messages()
 
 @event_listener("chk_win", priority=3)
-def on_chk_win(evt: Event,
+async def on_chk_win(evt: Event,
                var: GameState,
                role_map: dict[str, set[User]],
                main_roles: dict[User, str],
@@ -40,6 +40,6 @@ def on_chk_win(evt: Event,
         evt.data["message"] = messages["vampire_win_greater"]
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
+async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
     if kind == "role_categories":
         evt.data["thrall"] = {"Vampire Team", "Evil", "Hidden Eligible"}

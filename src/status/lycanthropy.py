@@ -35,7 +35,7 @@ SCOPE = set()
 #   By default, if this is not filled in, the bot will error.
 #   If a role is given that is not one of the possible roles specified in the metadata, the bot will error.
 
-def add_lycanthropy(var: GameState, target: User, prefix="lycan"):
+async def add_lycanthropy(var: GameState, target: User, prefix="lycan"):
     """Effect the target with lycanthropy. Fire the add_lycanthropy event."""
     if target in LYCANTHROPES or target not in get_players(var):
         return True
@@ -54,7 +54,7 @@ def add_lycanthropy_scope(var: GameState, scope: Category | set[str]):
     """Add a scope for roles that can effect lycanthropy, for stats."""
     SCOPE.update(scope)
 
-def try_lycanthropy(var: GameState, target: User) -> bool:
+async def try_lycanthropy(var: GameState, target: User) -> bool:
     """Trigger lycanthropy on the target, if able."""
     if target not in LYCANTHROPES:
         return False
@@ -86,7 +86,7 @@ def try_lycanthropy(var: GameState, target: User) -> bool:
     return True
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
+async def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: str):
     from src.roles.helper.wolves import get_wolfchat_roles
     if reason != "howl" or not SCOPE:
         return
@@ -118,20 +118,20 @@ def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, reason: s
             evt.data["new"].append(rs)
 
 @event_listener("del_player")
-def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
+async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     remove_lycanthropy(var, player)
 
 @event_listener("revealroles")
-def on_revealroles(evt: Event, var: GameState):
+async def on_revealroles(evt: Event, var: GameState):
     if LYCANTHROPES:
         evt.data["output"].append(messages["lycanthropy_revealroles"].format(LYCANTHROPES))
 
 @event_listener("transition_night_begin")
-def on_begin_day(evt: Event, var: GameState):
+async def on_begin_day(evt: Event, var: GameState):
     LYCANTHROPES.clear()
     SCOPE.clear()
 
 @event_listener("reset")
-def on_reset(evt: Event, var: GameState):
+async def on_reset(evt: Event, var: GameState):
     LYCANTHROPES.clear()
     SCOPE.clear()
