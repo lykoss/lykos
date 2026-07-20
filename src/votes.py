@@ -265,7 +265,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             await channels.Main.send(messages["village_abstain"])
 
             from src.trans import transition_night
-            transition_night(var)
+            await transition_night(var)
             return
 
         if to_vote:
@@ -302,7 +302,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                 return
 
             from src.trans import transition_night
-            transition_night(var)
+            await transition_night(var)
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):

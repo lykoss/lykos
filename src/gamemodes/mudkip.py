@@ -13,27 +13,6 @@ class MudkipMode(GameMode):
         self.CUSTOM_SETTINGS.abstain_enabled = False
         self.CUSTOM_SETTINGS.start_with_day = True
 
-        self.TOTEM_CHANCES = {
-            "death"         : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 0},
-            "protection"    : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 1},
-            "silence"       : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 0},
-            "revealing"     : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
-            "desperation"   : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
-            "impatience"    : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 0},
-            "pacifism"      : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 0},
-            "influence"     : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 1},
-            "narcolepsy"    : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
-            "exchange"      : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
-            "lycanthropy"   : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 1},
-            "luck"          : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 1},
-            "pestilence"    : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 1},
-            "retribution"   : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 1},
-            "misdirection"  : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 0},
-            "deceit"        : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
-        }
-
-        self.set_default_totem_chances()
-
         # make assassin a primary role
         self.SECONDARY_ROLES.pop("assassin", None)
 
@@ -56,6 +35,29 @@ class MudkipMode(GameMode):
             "day_vote_behaviour": EventListener(self.day_vote_behaviour),
             "daylight_warning": EventListener(self.daylight_warning)
         }
+
+    async def setup_totems(self):
+        await super().setup_totems()
+        self.TOTEM_CHANCES = {
+            "death"         : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 0},
+            "protection"    : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 1},
+            "silence"       : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 0},
+            "revealing"     : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
+            "desperation"   : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
+            "impatience"    : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 0},
+            "pacifism"      : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 0},
+            "influence"     : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 1},
+            "narcolepsy"    : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
+            "exchange"      : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
+            "lycanthropy"   : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 1},
+            "luck"          : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 1},
+            "pestilence"    : {"shaman": 1, "wolf shaman": 0, "crazed shaman": 1},
+            "retribution"   : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 1},
+            "misdirection"  : {"shaman": 0, "wolf shaman": 1, "crazed shaman": 0},
+            "deceit"        : {"shaman": 0, "wolf shaman": 0, "crazed shaman": 0},
+        }
+
+        self.set_default_totem_chances()
 
     async def day_vote_behaviour(self, evt: Event, var: GameState):
         evt.data["kill_ties"] = True

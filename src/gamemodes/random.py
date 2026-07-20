@@ -18,6 +18,15 @@ class RandomMode(GameMode):
         for role in self.SECONDARY_ROLES:
             self.SECONDARY_ROLES[role] = All
 
+        self.ROLE_SETS["gunner/sharpshooter"] = {"gunner": 8, "sharpshooter": 4}
+
+        self.EVENTS = {
+            "role_attribution": EventListener(self.role_attribution),
+            "chK_win": EventListener(self.lovers_chk_win, listener_id="lovers_chk_win")
+        }
+
+    async def setup_totems(self):
+        await super().setup_totems()
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 8, "wolf shaman": 1},
             "protection"    : {"shaman": 6, "wolf shaman": 6},
@@ -36,14 +45,7 @@ class RandomMode(GameMode):
             "misdirection"  : {"shaman": 6, "wolf shaman": 4},
             "deceit"        : {"shaman": 3, "wolf shaman": 6},
         }
-
-        self.ROLE_SETS["gunner/sharpshooter"] = {"gunner": 8, "sharpshooter": 4}
         self.set_default_totem_chances()
-
-        self.EVENTS = {
-            "role_attribution": EventListener(self.role_attribution),
-            "chK_win": EventListener(self.lovers_chk_win, listener_id="lovers_chk_win")
-        }
 
     async def role_attribution(self, evt: Event, var: GameState, villagers):
         lpl = len(villagers)

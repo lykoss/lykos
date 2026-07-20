@@ -28,6 +28,7 @@ async def set_gamemode(var: PregameState, arg: str) -> bool:
         try:
             gm = GAME_MODES[md][0](*modeargs)
             gm.startup()
+            await gm.setup_totems()
             var.current_mode = gm
             return True
         except InvalidModeException as e:

@@ -57,6 +57,25 @@ class BorealMode(GameMode):
             "wolf_shaman_notify": None
         }
 
+        self.hunger_levels = DefaultUserDict(int)
+        self.totem_tracking = defaultdict(int) # no need to make a user container, this is only non-empty a very short time
+        self.phase = 1
+        self.max_nights = config.Main.get("gameplay.modes.boreal.nights")
+        self.village_hunger = 0
+        self.village_hunger_percent_base = config.Main.get("gameplay.modes.boreal.tribe.base")
+        self.village_hunger_percent_adj = config.Main.get("gameplay.modes.boreal.tribe.adjust")
+        self.ws_num_totem_percent = 0.5
+        self.ws_extra_totem = 0
+        self.village_starve = 0
+        self.max_village_starve = config.Main.get("gameplay.modes.boreal.tribe.starve")
+        self.num_retribution = 0
+        self.saved_messages: dict[str, str] = {}
+        kwargs = dict(chan=False, pm=True, playing=True, silenced=True, phases=("night",),
+                      roles=("shaman", "wolf shaman"), register=False)
+        self.feed_command = command("feed", **kwargs)(self.feed)
+
+    async def setup_totems(self):
+        await super().setup_totems()
         self.TOTEM_CHANCES = {totem: {} for totem in self.DEFAULT_TOTEM_CHANCES}
         self.set_default_totem_chances()
         for totem, roles in self.TOTEM_CHANCES.items():
@@ -77,22 +96,6 @@ class BorealMode(GameMode):
         self.TOTEM_CHANCES["silence"]["wolf shaman"] = 10
         self.TOTEM_CHANCES["pacifism"]["wolf shaman"] = 10
 
-        self.hunger_levels = DefaultUserDict(int)
-        self.totem_tracking = defaultdict(int) # no need to make a user container, this is only non-empty a very short time
-        self.phase = 1
-        self.max_nights = config.Main.get("gameplay.modes.boreal.nights")
-        self.village_hunger = 0
-        self.village_hunger_percent_base = config.Main.get("gameplay.modes.boreal.tribe.base")
-        self.village_hunger_percent_adj = config.Main.get("gameplay.modes.boreal.tribe.adjust")
-        self.ws_num_totem_percent = 0.5
-        self.ws_extra_totem = 0
-        self.village_starve = 0
-        self.max_village_starve = config.Main.get("gameplay.modes.boreal.tribe.starve")
-        self.num_retribution = 0
-        self.saved_messages: dict[str, str] = {}
-        kwargs = dict(chan=False, pm=True, playing=True, silenced=True, phases=("night",),
-                      roles=("shaman", "wolf shaman"), register=False)
-        self.feed_command = command("feed", **kwargs)(self.feed)
 
     def startup(self):
         super().startup()

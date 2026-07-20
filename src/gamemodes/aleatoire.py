@@ -9,6 +9,24 @@ class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self, arg=""):
         super().__init__(arg)
+        self.set_default_totem_chances()
+
+        self.ROLE_GUIDE = {
+            8:  ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
+            9:  ["vengeful ghost"],
+            10: ["wolf(2)", "gunner"],
+            12: ["hag", "guardian angel", "amnesiac"],
+            13: ["assassin"],
+            14: ["turncoat"],
+            15: ["werecrow", "augur", "mayor"],
+            17: ["wolf(3)", "hunter"],
+            18: ["vengeful ghost(2)"],
+            20: ["wolf cub", "time lord"],
+            22: ["sorcerer", "assassin(2)"]
+        }
+
+    async def setup_totems(self):
+        await super().setup_totems()
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 4},
             "protection"    : {"shaman": 8},
@@ -28,18 +46,3 @@ class AleatoireMode(GameMode):
             "deceit"        : {"shaman": 0},
         }
 
-        self.set_default_totem_chances()
-
-        self.ROLE_GUIDE = {
-            8:  ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
-            9:  ["vengeful ghost"],
-            10: ["wolf(2)", "gunner"],
-            12: ["hag", "guardian angel", "amnesiac"],
-            13: ["assassin"],
-            14: ["turncoat"],
-            15: ["werecrow", "augur", "mayor"],
-            17: ["wolf(3)", "hunter"],
-            18: ["vengeful ghost(2)"],
-            20: ["wolf cub", "time lord"],
-            22: ["sorcerer", "assassin(2)"]
-        }

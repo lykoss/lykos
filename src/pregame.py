@@ -476,19 +476,19 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     if options:
         key = "welcome_options"
     await wrapper.send(messages[key].format(villagers, gamemode, options))
-    wrapper.target.mode("+m")
+    await wrapper.target.mode("+m")
 
     if start_event.data["custom_game_callback"]:
         start_event.data["custom_game_callback"](ingame_state)
     elif not ingame_state.start_with_day:
         from src.trans import transition_night
-        transition_night(ingame_state)
+        await transition_night(ingame_state)
     else:
         # send role messages
         evt = Event("send_role", {})
         await evt.dispatch(ingame_state)
         from src.trans import transition_day
-        transition_day(ingame_state)
+        await transition_day(ingame_state)
 
     decrement_stasis()
 

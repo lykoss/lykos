@@ -26,6 +26,12 @@ class GuardianMode(GameMode):
             22: ["minion"],
             23: ["vigilante"]
         }
+        self.EVENTS = {
+            "chk_win": EventListener(self.chk_win)
+        }
+
+    async def setup_totems(self):
+        await super().setup_totems()
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 10},
             "protection"    : {"shaman": 0},
@@ -45,9 +51,6 @@ class GuardianMode(GameMode):
             "deceit"        : {"shaman": 0},
         }
         self.set_default_totem_chances()
-        self.EVENTS = {
-            "chk_win": EventListener(self.chk_win)
-        }
 
     async def chk_win(self, evt: Event, var: GameState, rolemap, mainroles, lpl, lwolves, lrealwolves, lvampires):
         lguardians = len(get_players(var, ["guardian angel", "bodyguard"], mainroles=mainroles))

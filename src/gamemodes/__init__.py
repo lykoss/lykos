@@ -210,8 +210,6 @@ class GameMode:
             if "traitor" in All:
                 self.SECONDARY_ROLES["assassin"] -= {"traitor"}
 
-        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
-        self.NUM_TOTEMS = {}
         self.GUN_CHANCES = {}
 
         self.EVENTS = {}
@@ -219,26 +217,6 @@ class GameMode:
 
         self.CUSTOM_SETTINGS = CustomSettings()
         self.MESSAGE_OVERRIDES = {}
-
-        # Support all shamans and totems
-        # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
-        # Totems (both the default and custom ones) get filled with every shaman role at a chance of 0
-        # Add totems with a priority of 1 and shamans with a priority of 3
-        # Listeners at priority 5 can make use of this information freely
-        evt = Event("default_totems", {"shaman_roles": set()})
-        # ASYNC-CHECK
-        #await evt.dispatch(self.TOTEM_CHANCES)
-
-        shamans = evt.data["shaman_roles"]
-        for chances in self.TOTEM_CHANCES.values():
-            if chances.keys() != shamans:
-                for role in shamans:
-                    if role not in chances:
-                        chances[role] = 0 # default to 0 for new totems/shamans
-
-        for role in shamans:
-            if role not in self.NUM_TOTEMS:
-                self.NUM_TOTEMS[role] = 1 # shamans get 1 totem per night by default
 
         if not arg:
             return
@@ -279,6 +257,28 @@ class GameMode:
                 else:
                     raise InvalidModeException(messages["invalid_abstain"].format(val))
                 self.CUSTOM_SETTINGS.add_override("abstain_enabled", "limit_abstain")
+
+    async def setup_totems(self):
+        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
+        self.NUM_TOTEMS = {}
+        # Support all shamans and totems
+        # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
+        # Totems (both the default and custom ones) get filled with every shaman role at a chance of 0
+        # Add totems with a priority of 1 and shamans with a priority of 3
+        # Listeners at priority 5 can make use of this information freely
+        evt = Event("default_totems", {"shaman_roles": set()})
+        await evt.dispatch(self.TOTEM_CHANCES)
+
+        shamans = evt.data["shaman_roles"]
+        for chances in self.TOTEM_CHANCES.values():
+            if chances.keys() != shamans:
+                for role in shamans:
+                    if role not in chances:
+                        chances[role] = 0 # default to 0 for new totems/shamans
+
+        for role in shamans:
+            if role not in self.NUM_TOTEMS:
+                self.NUM_TOTEMS[role] = 1 # shamans get 1 totem per night by default
 
     def startup(self):
         for event, listeners in self.EVENTS.items():
