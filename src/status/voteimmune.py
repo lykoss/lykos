@@ -21,7 +21,7 @@ async def try_day_vote_immunity(var: GameState, user: User) -> bool:
     if user in IMMUNITY:
         reason = IMMUNITY[user].pop() # get a random reason
         evt = Event("day_vote_immunity", {"immune": False})
-        evt.dispatch(var, user, reason)
+        await evt.dispatch(var, user, reason)
         return evt.data["immune"]
 
     return False

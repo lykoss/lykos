@@ -49,7 +49,7 @@ async def see(wrapper: MessageDispatcher, message: str):
         targrole = var.hidden_role
 
     evt = Event("see", {"role": targrole})
-    evt.dispatch(var, wrapper.source, target)
+    await evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]
 
     await wrapper.send(messages["seer_success"].format(target, targrole))

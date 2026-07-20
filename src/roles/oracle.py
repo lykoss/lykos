@@ -43,7 +43,7 @@ async def see(wrapper: MessageDispatcher, message: str):
         targrole = "wolf"
 
     evt = Event("see", {"role": targrole})
-    evt.dispatch(var, wrapper.source, target)
+    await evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]
 
     to_send = "oracle_success_not_wolf"

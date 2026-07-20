@@ -100,7 +100,7 @@ async def on_transition_night_end(evt: Event, var: GameState):
                 pl.remove(given)
 
         event = Event("num_totems", {"num": var.current_mode.NUM_TOTEMS["shaman"]})
-        event.dispatch(var, shaman, "shaman")
+        await event.dispatch(var, shaman, "shaman")
         num_totems = event.data["num"]
 
         totems = {}
@@ -116,19 +116,19 @@ async def on_transition_night_end(evt: Event, var: GameState):
                         totems[t] = 1
                     break
         event = Event("totem_assignment", {"totems": totems})
-        event.dispatch(var, shaman, "shaman")
+        await event.dispatch(var, shaman, "shaman")
         TOTEMS[shaman] = event.data["totems"]
 
         num_totems = sum(TOTEMS[shaman].values())
         if num_totems > 1:
-            shaman.send(messages["shaman_notify_multiple_known"].format("shaman"))
+            await shaman.send(messages["shaman_notify_multiple_known"].format("shaman"))
         else:
-            shaman.send(messages["shaman_notify"].format("shaman"))
+            await shaman.send(messages["shaman_notify"].format("shaman"))
         tmsg = totem_message(TOTEMS[shaman])
         for totem in TOTEMS[shaman]:
             tmsg += " " + messages[totem + "_totem"]
-        shaman.send(tmsg)
-        shaman.send(messages["players_list"].format(pl))
+        await shaman.send(tmsg)
+        await shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
 async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):

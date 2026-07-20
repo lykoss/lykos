@@ -416,7 +416,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     event = Event("update_stats", {"possible": {evt.params.main_role, evt.params.reveal_role}, "known_role": False},
                   killer_role=evt.params.killer_role,
                   reason=evt.params.reason)
-    event.dispatch(var, player, evt.params.main_role, evt.params.reveal_role, all_roles)
+    await event.dispatch(var, player, evt.params.main_role, evt.params.reveal_role, all_roles)
     # Given the set of possible roles this nick could be (or its actual role if known_role is True),
     # figure out the set of roles that need deducting from their counts in the role stats
     if event.data["known_role"]:
@@ -471,19 +471,19 @@ async def on_kill_players(evt: Event, var: GameState, players: set[User]):
 
     # see if we need to end the game or transition phases
     # FIXME: make state transitions part of the overall event loop
-    game_ending = chk_win(var)
+    game_ending = await chk_win(var)
 
     if not game_ending:
         # if game isn't about to end, join people to deadchat
-        relay.join_deadchat(var, *deadchat)
+        await relay.join_deadchat(var, *deadchat)
 
         if not var.in_phase_transition:
             if var.current_phase == "day":
                 # ensure we only induce vote during actual daytime
-                chk_decision(var)
+                await chk_decision(var)
             elif var.current_phase == "night":
                 # ensure we only try to end night during actual nighttime
-                chk_nightdone(var)
+                await chk_nightdone(var)
     else:
         # HACK: notify kill_players that game is ending so it can pass it to its caller
         evt.prevent_default = True

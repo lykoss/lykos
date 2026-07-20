@@ -62,15 +62,15 @@ async def consecrate(wrapper: MessageDispatcher, message: str):
     # regardless if this has any actual effect or not, it still removes the priest from being able to vote
 
     evt = Event("consecrate", {})
-    evt.dispatch(var, wrapper.source, target)
+    await evt.dispatch(var, wrapper.source, target)
 
     await wrapper.pm(messages["consecrate_success"].format(target))
     add_absent(var, wrapper.source, "consecrating")
     move_player(var, wrapper.source, Graveyard)
     from src.votes import chk_decision
-    if not chk_win(var):
+    if not await chk_win(var):
         # game didn't immediately end due to marking as absent, see if we should force through a vote
-        chk_decision(var)
+        await chk_decision(var)
 
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):

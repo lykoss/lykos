@@ -172,7 +172,7 @@ class SleepyMode(GameMode):
                     await target.send(messages["sleepy_nightmare_caught"].format(dulla_counts[target]))
                 await dulla.send(messages["sleepy_nightmare_kill"].format(target))
                 KILLS[dulla] = target
-                remove_all_protections(var, target, dulla, "dullahan", "nightmare")
+                await remove_all_protections(var, target, dulla, "dullahan", "nightmare")
             elif self.nightmare_progress[dulla] > self.nightmare_progress[target]:
                 # dulla passed the target by (maybe escaping or maybe a different dulla catches them)
                 del self.having_nightmare[dulla]

@@ -57,12 +57,12 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
 
     if wrapper.source is not target:
         if target not in get_all_players(var, ("succubus",)):
-            target.send(messages["notify_succubus_target"].format(wrapper.source))
+            await target.send(messages["notify_succubus_target"].format(wrapper.source))
         else:
-            target.send(messages["harlot_success"].format(wrapper.source))
+            await target.send(messages["harlot_success"].format(wrapper.source))
 
         revt = Event("visit", {})
-        revt.dispatch(var, "succubus", wrapper.source, target)
+        await revt.dispatch(var, "succubus", wrapper.source, target)
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):

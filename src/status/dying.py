@@ -106,7 +106,7 @@ async def kill_players(var: Optional[GameState | PregameState], *, end_game: boo
             else:
                 # left during join phase
                 var.players.remove(player)
-                channels.Main.mode(("-v", player.nick))
+                await channels.Main.mode(("-v", player.nick))
 
             # notify listeners that the player died for possibility of chained deaths
             evt = Event("del_player", {},
@@ -116,7 +116,7 @@ async def kill_players(var: Optional[GameState | PregameState], *, end_game: boo
                         reveal_role=reveal_role,
                         reason=reason)
             evt_death_triggers = death_triggers and var.in_game
-            evt.dispatch(var, player, all_roles, evt_death_triggers)
+            await evt.dispatch(var, player, all_roles, evt_death_triggers)
 
         if not var.in_game:
             return False
@@ -127,7 +127,7 @@ async def kill_players(var: Optional[GameState | PregameState], *, end_game: boo
         for rs in var.get_role_stats():
             d = Counter(dict(rs))
             evt.data["new"] = [d]
-            evt.dispatch(var, d, "del_player")
+            await evt.dispatch(var, d, "del_player")
             for v in evt.data["new"]:
                 if min(v.values()) >= 0:
                     newstats.add(frozenset(v.items()))
@@ -138,7 +138,7 @@ async def kill_players(var: Optional[GameState | PregameState], *, end_game: boo
         # (priority 10 listener sets prevent_default if end_game=True and game is ending; that's another temporary hack)
         # Once hacks are removed, this function will not have any return value and the end_game kwarg will go away
         evt = Event("kill_players", {}, end_game=end_game)
-        return not evt.dispatch(var, dead)
+        return not await evt.dispatch(var, dead)
 
 @event_listener("night_kills")
 async def kill_off_dying_players(evt: Event, var: GameState):

@@ -97,7 +97,7 @@ async def on_transition_night_end(evt: Event, var: GameState):
     random.shuffle(shamans)
     for shaman in shamans:
         if var.next_phase != "night":
-            shaman.send(messages["shaman_notify"].format("wolf shaman"))
+            await shaman.send(messages["shaman_notify"].format("wolf shaman"))
             continue
         pl = ps[:]
         random.shuffle(pl)
@@ -106,7 +106,7 @@ async def on_transition_night_end(evt: Event, var: GameState):
                 pl.remove(given)
 
         event = Event("num_totems", {"num": var.current_mode.NUM_TOTEMS["wolf shaman"]})
-        event.dispatch(var, shaman, "wolf shaman")
+        await event.dispatch(var, shaman, "wolf shaman")
         num_totems = event.data["num"]
 
         totems = {}
@@ -122,18 +122,18 @@ async def on_transition_night_end(evt: Event, var: GameState):
                         totems[t] = 1
                     break
         event = Event("totem_assignment", {"totems": totems})
-        event.dispatch(var, shaman, "wolf shaman")
+        await event.dispatch(var, shaman, "wolf shaman")
         TOTEMS[shaman] = event.data["totems"]
 
         num_totems = sum(TOTEMS[shaman].values())
         if num_totems > 1:
-            shaman.send(messages["shaman_notify_multiple_known"].format("wolf shaman"))
+            await shaman.send(messages["shaman_notify_multiple_known"].format("wolf shaman"))
         else:
-            shaman.send(messages["shaman_notify"].format("wolf shaman"))
+            await shaman.send(messages["shaman_notify"].format("wolf shaman"))
         tmsg = totem_message(TOTEMS[shaman])
         for totem in TOTEMS[shaman]:
             tmsg += " " + messages[totem + "_totem"]
-        shaman.send(tmsg)
+        await shaman.send(tmsg)
         # player list and notification that WS can kill is handled by shared wolves handler
 
 @event_listener("get_role_metadata")

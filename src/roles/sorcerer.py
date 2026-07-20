@@ -49,7 +49,7 @@ async def observe(wrapper: MessageDispatcher, message: str):
         key = "sorcerer_success"
         targrole = spy_roles[0]
         evt = Event("spy", {"role": targrole})
-        evt.dispatch(var, wrapper.source, target, "sorcerer")
+        await evt.dispatch(var, wrapper.source, target, "sorcerer")
         targrole = evt.data["role"]
         args.append(targrole)
 

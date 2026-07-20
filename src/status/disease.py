@@ -17,7 +17,8 @@ async def add_disease(var: GameState, target: User):
     if target in DISEASED or target not in get_players(var):
         return
 
-    if Event("add_disease", {}).dispatch(var, target):
+    evt = Event("add_disease", {})
+    if await evt.dispatch(var, target):
         DISEASED.add(target)
 
 def remove_disease(var: GameState, target: User):

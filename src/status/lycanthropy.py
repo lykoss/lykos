@@ -40,7 +40,8 @@ async def add_lycanthropy(var: GameState, target: User, prefix="lycan"):
     if target in LYCANTHROPES or target not in get_players(var):
         return True
 
-    if Event("add_lycanthropy", {}).dispatch(var, target):
+    evt = Event("add_lycanthropy", {})
+    if await evt.dispatch(var, target):
         LYCANTHROPES[target] = prefix
         return True
 
@@ -92,7 +93,7 @@ async def on_reconfigure_stats(evt: Event, var: GameState, roleset: Counter, rea
         return
 
     evt2 = Event("get_role_metadata", {})
-    evt2.dispatch(var, "lycanthropy_role")
+    await evt2.dispatch(var, "lycanthropy_role")
 
     roles = {}
 

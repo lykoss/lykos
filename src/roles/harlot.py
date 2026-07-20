@@ -47,9 +47,9 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
     move_player(var, wrapper.source, get_home(var, target))
     await wrapper.pm(messages["harlot_success"].format(target))
     if target is not wrapper.source:
-        target.send(messages["harlot_success"].format(wrapper.source))
+        await target.send(messages["harlot_success"].format(wrapper.source))
         revt = Event("visit", {})
-        revt.dispatch(var, "harlot", wrapper.source, target)
+        await revt.dispatch(var, "harlot", wrapper.source, target)
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):

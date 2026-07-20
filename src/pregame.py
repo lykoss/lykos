@@ -243,7 +243,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     random.seed(ingame_state.rng_seed)
 
     event = Event("role_attribution", {"addroles": Counter()})
-    if event.dispatch(ingame_state, villagers):
+    if await event.dispatch(ingame_state, villagers):
         addroles = event.data["addroles"]
         strip = lambda x: re.sub(r"\(.*\)", "", x)
         lv = len(villagers)
@@ -369,7 +369,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     event = Event("reconfigure_stats", {"new": []})
     for pr in possible_rolesets:
         event.data["new"] = [pr]
-        event.dispatch(ingame_state, pr, "start")
+        await event.dispatch(ingame_state, pr, "start")
         for v in event.data["new"]:
             if min(v.values()) >= 0:
                 possible_rolesets_set.add(frozenset(v.items()))
@@ -406,7 +406,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     # ("remove", User, str) -- removes a secondary role from the user (no-op if it's not a secondary role for user)
     # Actions are applied in order
     event = Event("role_attribution_end", {"actions": []})
-    event.dispatch(ingame_state, ingame_state.main_roles, ingame_state.roles)
+    await event.dispatch(ingame_state, ingame_state.main_roles, ingame_state.roles)
     for tup in event.data["actions"]:
         if tup[0] == "swap":
             if tup[1] not in ingame_state.main_roles or tup[2] not in ingame_state.main_roles:
@@ -436,7 +436,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     # set default location for each player to a unique house
     for i, p in enumerate(get_players(ingame_state)):
         home_event = Event("player_home", {"home": Location("house_{0}".format(i))})
-        home_event.dispatch(ingame_state, p)
+        await home_event.dispatch(ingame_state, p)
         set_home(ingame_state, p, home_event.data["home"])
 
     with locks.join_timer: # cancel timers
@@ -448,11 +448,11 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     for role, players in ingame_state.roles.items():
         for player in players:
             evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
-            evt.dispatch(ingame_state, player, None)
+            await evt.dispatch(ingame_state, player, None)
 
     start_event = Event("start_game", {"custom_game_callback": None})  # defined here to make the linter happy
     gamemode = ingame_state.current_mode.name
-    start_event.dispatch(ingame_state, gamemode, ingame_state.current_mode)
+    await start_event.dispatch(ingame_state, gamemode, ingame_state.current_mode)
 
     # Alert the players to option changes they may not be aware of
     # All keys begin with gso_* (game start options)
@@ -486,7 +486,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     else:
         # send role messages
         evt = Event("send_role", {})
-        evt.dispatch(ingame_state)
+        await evt.dispatch(ingame_state)
         from src.trans import transition_day
         transition_day(ingame_state)
 

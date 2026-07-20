@@ -10,7 +10,7 @@ from src.gamestate import GameState
 from src.users import User
 from src.random import random
 
-async def setup_variables(rolename):
+def setup_variables(rolename):
     SEEN = UserSet()
 
     @event_listener("del_player", listener_id="<{}>.on_del_player".format(rolename))
@@ -34,9 +34,9 @@ async def setup_variables(rolename):
             random.shuffle(pl)
             pl.remove(seer)  # remove self from list
 
-            seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
+            await seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
             if var.next_phase == "night":
-                seer.send(messages["players_list"].format(pl))
+                await seer.send(messages["players_list"].format(pl))
 
     @event_listener("begin_day", listener_id="<{}>.on_begin_day".format(rolename))
     async def on_begin_day(evt: Event, var: GameState):

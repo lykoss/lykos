@@ -266,7 +266,7 @@ def connect_callback(cli: IRCClient):
 
         # give bot operators an opportunity to do some custom stuff here if they wish
         event = Event("irc_connected", {})
-        event.dispatch(cli)
+        await event.dispatch(cli)
 
         main_channel = config.Main.get("transports[0].channels.main")
         channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"], prefix=main_channel["prefix"])

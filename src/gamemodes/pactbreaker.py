@@ -446,14 +446,14 @@ class PactBreakerMode(GameMode):
                     await visitor.send(messages[f"pactbreaker_{loc}_empty"])
 
     async def on_player_protected(self,
-                            evt: Event,
-                            var: GameState,
-                            target: User,
-                            attacker: Optional[User],
-                            attacker_role: str,
-                            protector: Optional[User],
-                            protector_role: str,
-                            reason: str):
+                                  evt: Event,
+                                  var: GameState,
+                                  target: User,
+                                  attacker: Optional[User],
+                                  attacker_role: str,
+                                  protector: Optional[User],
+                                  protector_role: str,
+                                  reason: str):
         if protector_role in ("vampire", "wolf"):
             # mark them for internal gameplay purposes (wolves go into protected before drained)
             self.protected.add(target) if protector_role == "wolf" else self.drained.add(target)

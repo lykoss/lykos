@@ -601,7 +601,7 @@ class User(IRCContext):
             return
 
         evt = Event("update_account_data", {})
-        if not evt.dispatch(self):
+        if not await evt.dispatch(self):
             new_user = get(self.nick, self.ident, self.host, allow_ghosts=True)
             await callback(new_user)
             return

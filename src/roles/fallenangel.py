@@ -18,7 +18,7 @@ async def on_try_protection(evt: Event, var: GameState, target: User, attacker: 
     main_fas = get_players(var, ("fallen angel",))
     all_roles = get_all_roles(var, attacker) if attacker is not None else set()
     if (attacker_role == "wolf" and main_fas) or "fallen angel" in all_roles:
-        status.remove_all_protections(var, target, attacker=attacker, attacker_role="fallen angel", reason="fallen_angel")
+        await status.remove_all_protections(var, target, attacker=attacker, attacker_role="fallen angel", reason="fallen_angel")
         evt.prevent_default = True
 
 @event_listener("get_role_metadata")

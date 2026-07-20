@@ -65,7 +65,7 @@ async def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, 
 
     _who_old[user.nick] = user
     event = Event("who_result", {}, away=is_away, data=0, old=user)
-    event.dispatch(ch, user)
+    await event.dispatch(ch, user)
 
 @hook("whospcrpl")
 async def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname, *, tags):
@@ -123,7 +123,8 @@ async def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_ad
         old_account = user.account
         user.account = account
         new_user = users.get(nick, ident, host, account, allow_bot=True)
-        Event("account_change", {}, old=user).dispatch(new_user, old_account)
+        evt = Event("account_change", {}, old=user)
+        await evt.dispatch(new_user, old_account)
 
     ch = channels.get(chan, allow_none=True) if chan != "*" else None
     if ch is not None and ch not in user.channels:
@@ -136,7 +137,7 @@ async def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_ad
 
     _who_old[new_user.nick] = user
     event = Event("who_result", {}, away=is_away, data=data, old=user)
-    event.dispatch(ch, new_user)
+    await event.dispatch(ch, new_user)
 
 @hook("endofwho")
 async def end_who(cli, bot_server, bot_nick, target, rest, *, tags):
@@ -291,12 +292,14 @@ async def on_whois_end(cli, bot_server, bot_nick, nick, message, *, tags):
         old_account = user.account
         user.account = values["account"]
         new_user = users.get(user.nick, user.ident, user.host, values["account"], allow_bot=True)
-        Event("account_change", {}, old=user).dispatch(new_user, old_account)
+        evt = Event("account_change", {}, old=user)
+        await evt.dispatch(new_user, old_account)
 
     event = Event("who_result", {}, away=values["away"], data=0, old=user)
     for chan in values["channels"]:
-        event.dispatch(chan, new_user)
-    Event("who_end", {}, old=user).dispatch(new_user)
+        await event.dispatch(chan, new_user)
+    evt2 = Event("who_end", {}, old=user)
+    await evt2.dispatch(new_user)
 
 @hook("event_hosthidden")
 async def host_hidden(cli, server, nick, host, message, *, tags):
@@ -458,7 +461,7 @@ async def mode_change(cli, rawnick, chan, mode, *targets, tags):
         # 2) other bots might start a fight over modes
         # 3) recursion; we see our own mode changes.
         evt = Event("sync_modes", {})
-        evt.dispatch()
+        await evt.dispatch()
         return
 
     actor = users.get(rawnick, allow_none=True)

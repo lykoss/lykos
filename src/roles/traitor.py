@@ -60,7 +60,7 @@ async def on_update_stats3(evt: Event, var: GameState, player: User, mainrole: s
 
     if var.current_phase == "day" and var.in_phase_transition:
         mevt = Event("get_role_metadata", {})
-        mevt.dispatch(var, "night_kills")
+        await mevt.dispatch(var, "night_kills")
         nonwolf = 0
         total = 0
         for role, num in mevt.data.items():

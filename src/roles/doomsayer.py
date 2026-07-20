@@ -100,9 +100,9 @@ async def on_transition_night_end(evt: Event, var: GameState):
         # let stats know that anyone could be a lycan
         status.add_lycanthropy_scope(var, All)
     for lycan in LYCANS.values():
-        status.add_lycanthropy(var, lycan)
+        await status.add_lycanthropy(var, lycan)
     for sick in SICK.values():
-        status.add_disease(var, sick)
+        await status.add_disease(var, sick)
 
     LYCANS.clear()
     SICK.clear()

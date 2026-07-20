@@ -72,7 +72,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         with TARGETS[player].intersection(pl) as targets:
             if targets:
                 target = random.choice(list(targets))
-                protected = try_protection(var, target, player, "dullahan", "dullahan_die")
+                protected = await try_protection(var, target, player, "dullahan", "dullahan_die")
                 if protected is not None:
                     await channels.Main.send(*protected)
                     return
@@ -103,7 +103,7 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
         TARGETS[player] = UserSet()
 
         dull_targets = Event("dullahan_targets", {"targets": set(), "exclude": set(), "num_targets": max_targets})
-        dull_targets.dispatch(var, player, max_targets)
+        await dull_targets.dispatch(var, player, max_targets)
         TARGETS[player].update(dull_targets.data["targets"] - dull_targets.data["exclude"])
         max_targets = dull_targets.data["num_targets"]
 

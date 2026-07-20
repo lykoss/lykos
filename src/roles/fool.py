@@ -24,7 +24,7 @@ async def on_day_vte(evt: Event, var: GameState, votee, voters):
         lmsg = messages["day_vote_reveal"].format(votee, "fool")
         VOTED = votee
         await channels.Main.send(lmsg)
-        chk_win(var, winner=Fools)
+        await chk_win(var, winner=Fools)
 
         evt.prevent_default = True
         evt.stop_processing = True

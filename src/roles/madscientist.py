@@ -11,7 +11,7 @@ from src.status import try_protection, add_dying
 from src.users import User
 
 
-async def _get_targets(var: GameState, pl: set[User], user: User):
+def _get_targets(var: GameState, pl: set[User], user: User):
     index = var.players.index(user)
     num_players = len(var.players)
     # determine left player
@@ -38,8 +38,8 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
 
     target1, target2 = _get_targets(var, get_all_players(var), player)
 
-    prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
-    prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
+    prots1 = await try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
+    prots2 = await try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
     if prots1:
         await channels.Main.send(*prots1)
     if prots2:

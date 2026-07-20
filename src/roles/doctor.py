@@ -37,11 +37,11 @@ async def immunize(wrapper: MessageDispatcher, message: str):
         return
 
     doctor_evt = Event("doctor_immunize", {"message": "villager_immunized"})
-    doctor_evt.dispatch(var, wrapper.source, target)
+    await doctor_evt.dispatch(var, wrapper.source, target)
 
     await wrapper.pm(messages["doctor_success"].format(target))
 
-    target.send(messages["immunization_success"].format(messages[doctor_evt.data["message"]]))
+    await target.send(messages["immunization_success"].format(messages[doctor_evt.data["message"]]))
 
     IMMUNIZED.add(target)
     DOCTORS[wrapper.source] -= 1

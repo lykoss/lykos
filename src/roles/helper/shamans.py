@@ -194,10 +194,10 @@ def setup_variables(rolename, *, knows_totem):
                         DECEIT.add(victim)
                     else:
                         event = Event("apply_totem", {})
-                        event.dispatch(var, rolename, totem, shaman, victim)
+                        await event.dispatch(var, rolename, totem, shaman, victim)
 
                     if target is not victim:
-                        shaman.send(messages["totem_retarget"].format(victim, target))
+                        await shaman.send(messages["totem_retarget"].format(victim, target))
                     LASTGIVEN[shaman][totem].append(victim)
                     havetotem.append(victim)
 
@@ -482,14 +482,14 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         return
 
     ret_evt = Event("retribution_kill", {"target": loser, "message": []})
-    ret_evt.dispatch(var, player, loser)
+    await ret_evt.dispatch(var, player, loser)
     loser = ret_evt.data["target"]
     await channels.Main.send(*ret_evt.data["message"])
     if loser not in all_players:
         # another check for the person already being dead since it may have changed via the event
         loser = None
     if loser is not None:
-        protected = try_protection(var, loser, player, evt.params.main_role, "retribution_totem")
+        protected = await try_protection(var, loser, player, evt.params.main_role, "retribution_totem")
         if protected is not None:
             await channels.Main.send(*protected)
             return
@@ -523,9 +523,9 @@ async def on_transition_night_end(evt: Event, var: GameState):
     # will remove them before they even get used
     ps = get_all_players(var)
     for player in LYCANTHROPY & ps:
-        status.add_lycanthropy(var, player)
+        await status.add_lycanthropy(var, player)
     for player in PESTILENCE & ps:
-        status.add_disease(var, player)
+        await status.add_disease(var, player)
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):

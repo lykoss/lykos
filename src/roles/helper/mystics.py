@@ -14,7 +14,7 @@ from src.users import User
 # mystic_night_num, mystic_day_num, mystic_info,
 # mystic_notify, wolf_mystic_notify
 
-async def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
+def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str]):
     LAST_COUNT: UserDict[User, list[tuple[str, int]]] = UserDict()
 
     role = rolename.replace(" ", "_")
@@ -39,8 +39,8 @@ async def register_mystic(rolename: str, *, send_role: bool, types: Iterable[str
             LAST_COUNT[mystic] = values
             if send_role:
                 to_send = "{0}_notify".format(role)
-                mystic.send(messages[to_send].format(rolename))
-            mystic.send(msg)
+                await mystic.send(messages[to_send].format(rolename))
+            await mystic.send(msg)
 
     @event_listener("new_role", listener_id="mystics.<{}>.on_new_role".format(rolename))
     async def on_new_role(evt: Event, var: GameState, player: User, old_role: str):

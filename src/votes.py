@@ -80,7 +80,7 @@ async def abstain(wrapper: MessageDispatcher, message: str):
     elif var.limit_abstain and var.day_count == 1:
         await wrapper.pm(messages["no_abstain_day_one"])
         return
-    elif try_absent(var, wrapper.source):
+    elif await try_absent(var, wrapper.source):
         return
     for voter in list(VOTES):
         if wrapper.source in VOTES[voter]:
@@ -227,7 +227,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
             to_vote = plurality
 
         behaviour_evt = Event("day_vote_behaviour", {"num_votes": 1, "kill_ties": False, "force": timeout}, votes=VOTES, players=avail)
-        behaviour_evt.dispatch(var)
+        await behaviour_evt.dispatch(var)
 
         num_votes = behaviour_evt.data["num_votes"]
         kill_ties = behaviour_evt.data["kill_ties"]
@@ -255,7 +255,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                     await channels.Main.send(messages["player_meek_abstain"].format(forced_abstainer))
 
             abstain_evt = Event("abstain", {})
-            abstain_evt.dispatch(var, (ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var))
+            await abstain_evt.dispatch(var, (ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var))
 
             if not admin_forced:
                 # if this is an admin-forced abstain that isn't also a timeout (currently doesn't exist in the bot),
@@ -282,7 +282,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                         await channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
                         voters.append(forced_voter) # they need to be counted as voting for them still
 
-                if not try_day_vote_immunity(var, votee):
+                if not await try_day_vote_immunity(var, votee):
                     vote_evt = Event("day_vote", {}, players=avail)
                     if await vote_evt.dispatch(var, votee, voters):
                         to_send = "day_vote_no_reveal"

@@ -26,8 +26,8 @@ def register_wolf(rolename):
         wolves = get_all_players(var, (rolename,))
         for wolf in wolves:
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
-            wolf.send(messages[msg])
-            wolf.send(messages["players_list"].format(await get_wolflist(var, wolf)))
+            await wolf.send(messages[msg])
+            await wolf.send(messages["players_list"].format(await get_wolflist(var, wolf)))
             if var.next_phase == "night":
                 nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
                 await nevt.dispatch(var, wolf)
@@ -288,7 +288,7 @@ async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
         total_kills = 0
         for wolf in wolves:
             nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-            nevt.dispatch(var, wolf)
+            await nevt.dispatch(var, wolf)
             num_kills = nevt.data["numkills"]
             if await is_known_wolf_ally(var, wolf, wolf):
                 total_kills = max(total_kills, num_kills)

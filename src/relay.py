@@ -215,7 +215,7 @@ async def revealroles(wrapper: MessageDispatcher, message: str):
             # go through each nickname, adding extra info if necessary
             for user in users:
                 evt = Event("revealroles_role", {"special_case": []})
-                evt.dispatch(var, user, role)
+                await evt.dispatch(var, user, role)
                 special_case: list[str] = evt.data["special_case"]
 
                 if not evt.prevent_default and user not in var.original_roles[role] and role not in var.current_mode.SECONDARY_ROLES:
@@ -231,7 +231,7 @@ async def revealroles(wrapper: MessageDispatcher, message: str):
             output.append(messages["revealroles_output"].format(role, out))
 
     evt = Event("revealroles", {"output": output})
-    evt.dispatch(var)
+    await evt.dispatch(var)
 
     if config.Main.get("debug.enabled"):
         await wrapper.send(*output, sep=" | ")

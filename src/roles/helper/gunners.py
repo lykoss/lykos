@@ -21,7 +21,7 @@ from src.random import random
 
 _rolestate: dict[str, dict[str, Any]] = {}
 
-async def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
+def setup_variables(rolename: str, *, hit: float, headshot: float, explode: float, multiplier: float):
     GUNNERS: UserDict[User, int] = UserDict()
     _rolestate[rolename] = {
         "GUNNERS": GUNNERS
@@ -75,7 +75,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                     add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                     await kill_players(var)
             elif shoot_evt.data["kill"]:
-                protected = try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
+                protected = await try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
                 if protected is not None:
                     await channels.Main.send(*protected)
                 else:
@@ -102,7 +102,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                 to_send = "gunner_suicide"
             await wrapper.send(messages[to_send].format(wrapper.source, await get_reveal_role(var, wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
-            kill_players(var)
+            await kill_players(var)
         else:
             await wrapper.send(messages["gunner_miss"].format(wrapper.source))
 
@@ -110,7 +110,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
     async def on_send_role(evt: Event, var: GameState):
         for gunner in get_all_players(var, (rolename,)):
             if GUNNERS[gunner] or var.always_pm_role:
-                gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
+                await gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("del_player", listener_id="gunners.<{}>.on_del_player".format(rolename))
     async def on_del_player(evt: Event, var: GameState, victim: User, all_roles: set[str], death_triggers: bool):
@@ -126,10 +126,10 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                 if wolves:
                     shot = random.choice(wolves)
                     event = Event("gun_shoot", {"hit": True, "kill": True, "explode": False})
-                    event.dispatch(var, victim, shot, rolename)
+                    await event.dispatch(var, victim, shot, rolename)
                     GUNNERS[victim] -= 1  # deduct the used bullet
                     if event.data["hit"] and event.data["kill"]:
-                        protected = try_protection(var, shot, victim, rolename, "gunner_overnight_fail")
+                        protected = await try_protection(var, shot, victim, rolename, "gunner_overnight_fail")
                         if protected is not None:
                             await channels.Main.send(*protected)
                         else:
@@ -160,7 +160,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                     _rolestate["wolf gunner"]["GUNNERS"][looter] = _rolestate["wolf gunner"]["GUNNERS"].get(looter, 0) + 1
                     del GUNNERS[victim]
                     var.roles["wolf gunner"].add(looter)
-                    looter.send(messages["wolf_gunner"].format(victim))
+                    await looter.send(messages["wolf_gunner"].format(victim))
 
     @event_listener("myrole", listener_id="gunners.<{}>.on_myrole".format(rolename))
     async def on_myrole(evt: Event, var: GameState, user: User):
@@ -185,7 +185,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
         elif evt.data["role"] == rolename:
             bullets = math.ceil(multiplier * len(get_players(var)))
             event = Event("gun_bullets", {"bullets": bullets})
-            event.dispatch(var, user, rolename)
+            await event.dispatch(var, user, rolename)
             GUNNERS[user] = event.data["bullets"]
 
     @event_listener("gun_chances", listener_id="gunners.<{}>.on_gun_chances".format(rolename))

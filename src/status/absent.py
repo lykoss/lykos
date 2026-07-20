@@ -27,7 +27,7 @@ def add_absent(var: GameState, target: User, reason: str):
 
 async def try_absent(var: GameState, user: User):
     if user in ABSENT:
-        user.send(messages[ABSENT[user] + "_absent"])
+        await user.send(messages[ABSENT[user] + "_absent"])
         return True
     return False
 

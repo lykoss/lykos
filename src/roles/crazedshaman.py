@@ -110,7 +110,7 @@ async def on_send_role(evt: Event, var: GameState):
                 pl.remove(given)
 
         event = Event("num_totems", {"num": var.current_mode.NUM_TOTEMS["crazed shaman"]})
-        event.dispatch(var, shaman, "crazed shaman")
+        await event.dispatch(var, shaman, "crazed shaman")
         num_totems = event.data["num"]
 
         totems = {}
@@ -126,7 +126,7 @@ async def on_send_role(evt: Event, var: GameState):
                         totems[t] = 1
                     break
         event = Event("totem_assignment", {"totems": totems})
-        event.dispatch(var, shaman, "crazed shaman")
+        await event.dispatch(var, shaman, "crazed shaman")
         TOTEMS[shaman] = event.data["totems"]
 
         num_totems = sum(TOTEMS[shaman].values())
