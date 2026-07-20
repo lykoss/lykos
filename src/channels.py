@@ -151,19 +151,19 @@ class Channel(IRCContext):
                 await evt.dispatch(*args)
             self._pending = None
 
-    async def join(self, key=""):
+    def join(self, key=""):
         if self.state in (_States.NotJoined, _States.Left):
             if not key:
                 key = self.key
             self.state = _States.PendingJoin
             self.client.send("JOIN {0} :{1}".format(self.name, key))
 
-    async def part(self, message=""):
+    def part(self, message=""):
         if self.state is _States.Joined:
             self.state = _States.PendingLeave
             self.client.send("PART {0} :{1}".format(self.name, message))
 
-    async def kick(self, target, message=""):
+    def kick(self, target, message=""):
         if self.state is _States.Joined:
             self.client.send("KICK {0} {1} :{2}".format(self.name, target, message))
 
@@ -334,10 +334,10 @@ class FakeChannel(Channel):
 
     is_fake = True
 
-    async def join(self, key=""):
+    def join(self, key=""):
         self.state = _States.Joined
 
-    async def part(self, message=""):
+    def part(self, message=""):
         self.state = _States.Left
 
     async def mode(self, *changes):

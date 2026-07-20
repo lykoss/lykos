@@ -27,14 +27,14 @@ class MessageDispatcher:
     async def pm(self, *messages, **kwargs):
         """Send a private message or notice to the sender."""
         kwargs.setdefault("notice", self.public)
-        self.source.send(*messages, **kwargs)
+        await self.source.send(*messages, **kwargs)
 
     async def send(self, *messages, **kwargs):
         """Send a message to the channel or a private message."""
         if self.private:
             await self.pm(*messages, **kwargs)
         else:
-            self.target.send(*messages, **kwargs)
+            await self.target.send(*messages, **kwargs)
 
     async def reply(self, *messages, prefix_nick=False, **kwargs):
         """Reply to the user, either in channel or privately."""
@@ -42,7 +42,7 @@ class MessageDispatcher:
         if prefix_nick:
             first = "{0}: ".format(self.source)
         if self.private:
-            self.source.send(*messages, **kwargs)
+            await self.source.send(*messages, **kwargs)
         else:
             kwargs.setdefault("first", first)
-            self.target.send(*messages, **kwargs)
+            await self.target.send(*messages, **kwargs)

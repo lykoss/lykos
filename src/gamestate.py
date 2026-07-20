@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import math
-import threading
+import asyncio
 from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
 import time
 
@@ -172,19 +172,16 @@ class GameState:
         self.current_phase = self.next_phase
         self.next_phase = None
         if config.Main.get("timers.enabled"):
+            loop = asyncio.get_event_loop()
             if time_limit:
-                timer = threading.Timer(time_limit, timer_cb, ("limit",) + tuple(cb_args))
-                timer.daemon = True
-                timer.start()
+                timer = loop.call_later(time_limit, timer_cb, ("limit",) + tuple(cb_args))
                 TIMERS[f"{self.current_phase}_limit"] = (timer, time.time(), time_limit)
 
             if time_warn:
-                timer = threading.Timer(time_warn, timer_cb, ("warn",) + tuple(cb_args))
-                timer.daemon = True
-                timer.start()
+                timer = loop.call_later(time_warn, timer_cb, ("warn",) + tuple(cb_args))
                 TIMERS[f"{self.current_phase}_warn"] = (timer, time.time(), time_warn)
 
-    def extend_phase_limit(self, minimum: int = 0):
+    async def extend_phase_limit(self, minimum: int = 0):
         """Ensure that the phase limit timer has a minimum amount of seconds remaining."""
         from src.trans import TIMERS
         if minimum <= 0:
@@ -194,9 +191,8 @@ class GameState:
             elapsed = math.ceil(time.time() - started)
             if elapsed + minimum > limit:
                 timer.cancel()
-                extended = threading.Timer(minimum, timer.function, timer.args, timer.kwargs)
-                extended.daemon = True
-                extended.start()
+                loop = asyncio.get_event_loop()
+                extended = loop.call_later(minimum, timer.function, timer.args, timer.kwargs)
                 TIMERS[f"{self.current_phase}_limit"] = (extended, started, elapsed + minimum)
 
     @property

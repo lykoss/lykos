@@ -422,7 +422,7 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
-    async def swap(self, new: User, *, same_user=False):
+    def swap(self, new: User, *, same_user=False):
         """Swap yourself out with the new user everywhere.
 
         :param new: New user to replace current one with.

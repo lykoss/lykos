@@ -43,7 +43,3 @@ if not getattr(custom_gamemodes, "CUSTOM_MODES_DEFINED", False):
 
 # Import user-defined hooks
 import hooks as custom_hooks # type: ignore
-
-# Perform final initialization
-# ASYNC-CHECK
-events.Event("init", {}).dispatch()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import threading
+import asyncio
 import time
 from typing import Optional
 
@@ -60,20 +60,17 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         time_left = int((TIMERS[f"{var.current_phase}_limit"][1] + TIMERS[f"{var.current_phase}_limit"][2]) - time.time())
 
         if time_left > time_limit > 0:
-            t = threading.Timer(time_limit, cb, limit_args)
+            loop = asyncio.get_event_loop()
+            t = loop.call_later(time_limit, cb, limit_args)
             TIMERS[f"{var.current_phase}_limit"] = (t, time.time(), time_limit)
-            t.daemon = True
-            t.start()
 
             # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
             if timer_name in TIMERS and time_warn > 0:
                 timer = TIMERS[timer_name][0]
                 if not timer.finished.is_set():
                     timer.cancel()
-                    t = threading.Timer(time_warn, cb, warn_args)
+                    t = loop.call_later(time_warn, cb, warn_args)
                     TIMERS[timer_name] = (t, time.time(), time_warn)
-                    t.daemon = True
-                    t.start()
 
 @event_listener("night_idled")
 async def on_night_idled(evt: Event, var: GameState, player: User):

@@ -25,12 +25,12 @@ def decrement_stasis(user=None):
     db.expire_stasis()
     db.init_vars()
 
-def expire_tempbans():
+async def expire_tempbans():
     acclist = db.expire_tempbans()
     cmodes = []
     for acc in acclist:
         cmodes.append(("-b", "{0}{1}".format(get_ircd().account_prefix, acc)))
-    channels.Main.mode(*cmodes)
+    await channels.Main.mode(*cmodes)
 
 def _get_auto_sanctions(sanctions, prev, cur):
     for sanc in config.Main.get("warnings.sanctions"):

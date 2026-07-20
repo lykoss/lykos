@@ -1,7 +1,10 @@
 # Generated from D:/Code/lykos/src/messages\message_lexer.g4 by ANTLR 4.8
 from antlr4 import *
 from io import StringIO
-from typing.io import TextIO
+try:
+     from typing.io import TextIO
+except ModuleNotFoundError:
+     from typing import TextIO
 import sys
 
 

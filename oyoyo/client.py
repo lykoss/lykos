@@ -163,7 +163,7 @@ class IRCClient:
                 time.sleep(0.3)
             self.socket.send(msg + bytes("\r\n", "utf_8"))
 
-    def connect(self):
+    async def connect(self):
         """ initiates the connection to the server set in self.host:self.port
         and returns a generator object.
 
@@ -315,9 +315,9 @@ class IRCClient:
                                 # so that we don't waste CPU cycles doing string formatting when the message is never going to be displayed
                                 self.stream_handler("     @{0}".format(";".join("{0}={1}".format(k, v) if v else k for k, v in tags.items())), level="debug")
                             if command in self.command_handler:
-                                self.command_handler[command](self, prefix, *fargs, tags=tags)
+                                await self.command_handler[command](self, prefix, *fargs, tags=tags)
                             elif "" in self.command_handler:
-                                self.command_handler[""](self, prefix, command, *fargs, tags=tags)
+                                await self.command_handler[""](self, prefix, command, *fargs, tags=tags)
                         except Exception as e:
                             sys.stderr.write(traceback.format_exc())
                             raise e  # ?
@@ -386,10 +386,9 @@ class IRCClient:
             self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def user(self, ident, rname):
         self.send("USER", ident, "0", "*", ":{0}".format(rname or ident))
-    def mainLoop(self):
-        conn = self.connect()
-        while True:
-            if not next(conn):
+    async def mainLoop(self):
+        async for res in self.connect():
+            if not res:
                 self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
 

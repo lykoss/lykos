@@ -649,7 +649,7 @@ async def stop_game(var: Optional[GameState | PregameState], winner: Category = 
     await User.send_messages()
 
     await reset(var)
-    expire_tempbans()
+    await expire_tempbans()
 
     # This must be after reset()
     if ENDGAME_COMMAND is not None:

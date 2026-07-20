@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import functools
-import threading
+import asyncio
 import subprocess
 import platform
 import time
@@ -78,10 +78,10 @@ async def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
     await parse_and_dispatch(wrapper, key, message)
 
 async def parse_and_dispatch(wrapper: MessageDispatcher,
-                       key: str,
-                       message: str,
-                       role: Optional[str] = None,
-                       force: Optional[User] = None) -> None:
+                             key: str,
+                             message: str,
+                             role: Optional[str] = None,
+                             force: Optional[User] = None) -> None:
     """ Parses a command key and dispatches it should it match a valid command.
 
     :param wrapper: Information about who is executing command and where command is being executed
@@ -251,7 +251,7 @@ def connect_callback(cli: IRCClient):
 
         # This callback only sets up event listeners
         from src import wolfgame
-        wolfgame.connect_callback()
+        await wolfgame.connect_callback()
 
         # just in case we haven't managed to successfully auth yet
         nick = config.Main.get("transports[0].user.nick")
@@ -277,14 +277,13 @@ def connect_callback(cli: IRCClient):
         users.Bot.change_nick(nick)
 
         if config.Main.get("transports[0].server_ping"):
-            def ping_server_timer(cli: IRCClient):
+            async def ping_server_timer(cli: IRCClient):
                 ping_server(cli)
 
-                t = threading.Timer(config.Main.get("transports[0].server_ping"), ping_server_timer, args=(cli,))
-                t.daemon = True
-                t.start()
+                loop = asyncio.get_event_loop()
+                loop.call_later(config.Main.get("transports[0].server_ping"), ping_server_timer, args=(cli,))
 
-            ping_server_timer(cli)
+            await ping_server_timer(cli)
 
         hook.unhook(294)
 

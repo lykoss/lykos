@@ -39,7 +39,7 @@ async def try_exchange(var: GameState, actor: User, target: User):
 
         await actor.send(*evt.data["actor_messages"])
         await target.send(*evt.data["target_messages"])
-        var.extend_phase_limit(config.Main.get("gameplay.totems.exchange.minimum_time"))
+        await var.extend_phase_limit(config.Main.get("gameplay.totems.exchange.minimum_time"))
 
     return True
 

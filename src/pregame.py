@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 
-import threading
+import asyncio
 import itertools
 import time
 import math
@@ -190,10 +190,9 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
                 # If this was the first vote
                 if len(START_VOTES) == 1:
-                    t = threading.Timer(60, expire_start_votes, (pregame_state, wrapper.target))
+                    loop = asyncio.get_event_loop()
+                    t = loop.call_later(60, expire_start_votes, (pregame_state, wrapper.target))
                     TIMERS["start_votes"] = (t, time.time(), 60)
-                    t.daemon = True
-                    t.start()
                 return
 
     if pregame_state.current_mode is None:
@@ -239,7 +238,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state
-    await channels.Main.game_state = ingame_state = GameState(pregame_state)
+    channels.Main.game_state = ingame_state = GameState(pregame_state)
     random.seed(ingame_state.rng_seed)
 
     event = Event("role_attribution", {"addroles": Counter()})

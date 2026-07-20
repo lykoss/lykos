@@ -18,6 +18,7 @@
 # THE SOFTWARE.
 
 import traceback
+import asyncio
 import sys
 import os
 import argparse
@@ -69,9 +70,9 @@ if args.config:
 
 from oyoyo.client import IRCClient, TokenBucket
 
-from src import handler, config
+from src import handler, config, events
 
-def main():
+async def main():
     # fetch IRC transport
     irc = config.Main.get("transports[0].type", None)
     if irc != "irc":
@@ -81,6 +82,9 @@ def main():
             "Please see comments in botconfig.yml or check https://ww.chat/config for help",
             "on how to configure lykos."]))
         sys.exit(1)
+
+    evt = events.Event("init", {})
+    await evt.dispatch()
 
     general_logger = logging.getLogger("general")
     general_logger.info("Loading Werewolf IRC bot")
@@ -104,9 +108,11 @@ def main():
     transport_logger = logging.getLogger("transport.{}".format(transport_name))
     # this uses %-style formatting to ensure that our logger is capable of handling both styles
     transport_logger.info("Connecting to %s:%s%d", host, "+" if use_ssl else "", port)
+    async def _unset(*s, **k):
+        pass
     cmd_handler = {
-        "privmsg": lambda *s, **k: None,
-        "notice": lambda *s, **k: None,
+        "privmsg": _unset,
+        "notice": _unset,
         "": handler.unhandled
     }
 
@@ -144,11 +150,11 @@ def main():
         connect_cb=handler.connect_callback,
         stream_handler=stream_handler,
     )
-    cli.mainLoop()
+    await cli.mainLoop()
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except Exception:
         # can't rely on logging utilities here, they might be broken or closed already
         traceback.print_exc()

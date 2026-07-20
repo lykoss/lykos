@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import threading
+import asyncio
 import time
 import re
 from datetime import datetime, timedelta
@@ -115,10 +115,9 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
 
         # Set join timer
         if config.Main.get("timers.enabled") and config.Main.get("timers.join.enabled"):
-            t = threading.Timer(config.Main.get("timers.join.limit"), kill_join, [var, wrapper])
-            trans.TIMERS["join"] = (t, time.time(), config.Main.get("timers.join.limit"))
-            t.daemon = True
-            t.start()
+            loop = asyncio.get_event_loop()
+            handle = loop.call_later(config.Main.get("timers.join.limit"), kill_join, [var, wrapper])
+            trans.TIMERS["join"] = (handle, time.time(), config.Main.get("timers.join.limit"))
 
     elif wrapper.source in pl:
         key = "you_already_playing" if who is wrapper.source else "other_already_playing"
@@ -164,13 +163,12 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
         if "join_pinger" in trans.TIMERS:
             trans.TIMERS["join_pinger"][0].cancel()
 
-        t = threading.Timer(10, join_timer_handler, (var,))
-        trans.TIMERS["join_pinger"] = (t, time.time(), 10)
-        t.daemon = True
-        t.start()
+        loop = asyncio.get_event_loop()
+        handle = loop.call_later(10, join_timer_handler, (var,))
+        trans.TIMERS["join_pinger"] = (handle, time.time(), 10)
 
     if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
-        channels.Main.mode(*cmodes)
+        await channels.Main.mode(*cmodes)
 
     return True
 
@@ -185,7 +183,7 @@ async def kill_join(var: GameState, wrapper: MessageDispatcher):
     # use this opportunity to expire pending stasis
     db.expire_stasis()
     db.init_vars()
-    expire_tempbans()
+    await expire_tempbans()
     if trans.ENDGAME_COMMAND is not None:
         trans.ENDGAME_COMMAND()
         trans.ENDGAME_COMMAND = None

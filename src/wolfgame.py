@@ -66,12 +66,13 @@ from src.functions import (
 # dummy line just to make the src import not unused; having src in scope is useful for !eval and !exec
 assert src is not None
 
-def connect_callback():
+async def connect_callback():
     db.init_vars()
     SIGUSR1 = getattr(signal, "SIGUSR1", None)
     SIGUSR2 = getattr(signal, "SIGUSR2", None)
 
     def sighandler(signum, frame):
+        sys.exit()
         wrapper = dispatcher.MessageDispatcher(users.FakeUser.from_nick("<console>"), channels.Main)
         if signum == signal.SIGINT:
             # Exit immediately if Ctrl-C is pressed twice
@@ -101,18 +102,18 @@ def connect_callback():
             pending = []
             for user in channels.Main.modes.get(mode, ()):
                 pending.append(("-" + mode, user))
-            accumulator.send(pending)
-            next(accumulator, None)
+            await accumulator.asend(pending)
+            await anext(accumulator, None)
 
             # Expire tempbans
-            expire_tempbans()
+            await expire_tempbans()
 
             players = db.get_pre_restart_state()
             if players:
                 await channels.Main.send(*players, first="PING! ")
                 await channels.Main.send(messages["game_restart_cancel"])
 
-            reset(channels.Main.game_state)
+            await reset(channels.Main.game_state)
 
             who_end_listener.remove("who_end")
 
@@ -122,15 +123,15 @@ def connect_callback():
             for quiet in chan.modes.get(mode, ()):
                 if re.search(r"^{0}.+!\*@\*$".format(get_ircd().quiet_prefix), quiet):
                     pending.append(("-" + mode, quiet))
-            accumulator.send(pending)
-            next(accumulator, None)
+            await accumulator.asend(pending)
+            await anext(accumulator, None)
 
             end_listmode_listener.remove("end_listmode")
 
     async def mode_change(event, actor, target):
         if target is channels.Main: # we may or may not be opped; assume we are
-            accumulator.send(("-m",))
-            next(accumulator, None)
+            await accumulator.asend(("-m",))
+            await anext(accumulator, None)
 
             mode_change_listener.remove("mode_change")
 
@@ -152,7 +153,7 @@ def connect_callback():
             await channels.Main.mode(*modes)
 
     accumulator = accumulate_cmodes(3)
-    accumulator.send(None)
+    await accumulator.asend(None)
 
 @command("sync", flag="m", pm=True)
 async def fsync(wrapper: MessageDispatcher, message: str):
@@ -190,7 +191,7 @@ async def refreshdb(wrapper: MessageDispatcher, message: str):
     """Updates our tracking vars to the current db state."""
     db.expire_stasis()
     db.init_vars()
-    expire_tempbans()
+    await expire_tempbans()
     await wrapper.reply("Done.")
 
 @command("fdie", flag="F", pm=True)

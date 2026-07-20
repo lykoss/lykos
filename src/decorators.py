@@ -158,11 +158,11 @@ class command:
             # Role commands might end the night if it's nighttime
             if var.current_phase == "night":
                 from src.wolfgame import chk_nightdone
-                chk_nightdone(var)
+                await chk_nightdone(var)
             return
 
         if self.owner_only:
-            if wrapper.source.is_owner():
+            if await wrapper.source.is_owner():
                 logger.info(command_log_line, command_log_args)
                 await self.func(wrapper, message)
                 return
@@ -174,7 +174,7 @@ class command:
 
         flags = db.FLAGS[temp.account]
 
-        if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
+        if self.flag and (await wrapper.source.is_admin() or await wrapper.source.is_owner()):
             logger.info(command_log_line, command_log_args)
             return await self.func(wrapper, message)
 
