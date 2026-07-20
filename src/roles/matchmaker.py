@@ -97,7 +97,7 @@ async def choose(wrapper: MessageDispatcher, message: str):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     var = wrapper.game_state
     if wrapper.source in var.matchmaker_acted:
-        wrapper.send(messages["already_matched"])
+        await wrapper.send(messages["already_matched"])
         return
 
     pieces = re.split(" +", message)
@@ -110,7 +110,7 @@ async def choose(wrapper: MessageDispatcher, message: str):
         return
 
     if target1 is target2:
-        wrapper.send(messages["choose_different_people"])
+        await wrapper.send(messages["choose_different_people"])
         return
 
     var.matchmaker_acted.add(wrapper.source)
@@ -118,7 +118,7 @@ async def choose(wrapper: MessageDispatcher, message: str):
 
     _set_lovers(var, target1, target2)
 
-    wrapper.send(messages["matchmaker_success"].format(target1, target2))
+    await wrapper.send(messages["matchmaker_success"].format(target1, target2))
 
 @event_listener("transition_day_begin")
 async def on_transition_day_begin(evt: Event, var: GameState):
@@ -159,7 +159,7 @@ async def on_del_player(evt: Event, var: GameState, player, all_roles, death_tri
                 to_send = "lover_suicide_no_reveal"
                 if var.role_reveal in ("on", "team"):
                     to_send = "lover_suicide"
-                channels.Main.send(messages[to_send].format(lover, await get_reveal_role(var, lover)))
+                await channels.Main.send(messages[to_send].format(lover, await get_reveal_role(var, lover)))
                 add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide", killer=evt.params.killer)
 
         for lover in lovers:

@@ -23,7 +23,7 @@ PASSED = UserSet()
 async def hunter_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone once per game."""
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
-        wrapper.pm(messages["hunter_already_killed"])
+        await wrapper.pm(messages["hunter_already_killed"])
         return
     var = wrapper.game_state
     target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
@@ -32,14 +32,14 @@ async def hunter_kill(wrapper: MessageDispatcher, message: str):
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     KILLS[wrapper.source] = target
     HUNTERS.add(wrapper.source)
     PASSED.discard(wrapper.source)
 
-    wrapper.pm(messages["player_kill"].format(orig))
+    await wrapper.pm(messages["player_kill"].format(orig))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
 async def hunter_retract(wrapper: MessageDispatcher, message: str):
@@ -51,19 +51,19 @@ async def hunter_retract(wrapper: MessageDispatcher, message: str):
     HUNTERS.discard(wrapper.source)
     PASSED.discard(wrapper.source)
 
-    wrapper.pm(messages["retracted_kill"])
+    await wrapper.pm(messages["retracted_kill"])
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
 async def hunter_pass(wrapper: MessageDispatcher, message: str):
     """Do not use hunter's once-per-game kill tonight."""
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
-        wrapper.pm(messages["hunter_already_killed"])
+        await wrapper.pm(messages["hunter_already_killed"])
         return
 
     del KILLS[:wrapper.source:]
     HUNTERS.discard(wrapper.source)
     PASSED.add(wrapper.source)
-    wrapper.pm(messages["hunter_pass"])
+    await wrapper.pm(messages["hunter_pass"])
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

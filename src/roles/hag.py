@@ -25,7 +25,7 @@ LASTHEXED: UserDict[users.User, users.User] = UserDict()
 async def hex_cmd(wrapper: MessageDispatcher, message: str):
     """Hex someone, preventing them from acting the next day and night."""
     if wrapper.source in HEXED:
-        wrapper.pm(messages["already_hexed"])
+        await wrapper.pm(messages["already_hexed"])
         return
 
     var = wrapper.game_state
@@ -35,20 +35,20 @@ async def hex_cmd(wrapper: MessageDispatcher, message: str):
         return
 
     if LASTHEXED.get(wrapper.source) is target:
-        wrapper.pm(messages["no_multiple_hex"].format(target))
+        await wrapper.pm(messages["no_multiple_hex"].format(target))
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     if await is_known_wolf_ally(var, wrapper.source, target):
-        wrapper.pm(messages["no_hex_wolf"])
+        await wrapper.pm(messages["no_hex_wolf"])
         return
 
     HEXED[wrapper.source] = target
 
-    wrapper.pm(messages["hex_success"].format(target))
+    await wrapper.pm(messages["hex_success"].format(target))
 
     send_wolfchat_message(var, wrapper.source, messages["hex_success_wolfchat"].format(wrapper.source, target), {"hag"}, role="hag", command="hex")
 

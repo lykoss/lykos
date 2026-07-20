@@ -21,7 +21,7 @@ PRIESTS = UserSet()
 async def bless(wrapper: MessageDispatcher, message: str):
     """Bless a player, preventing them from being killed for the remainder of the game."""
     if wrapper.source in PRIESTS:
-        wrapper.pm(messages["already_blessed"])
+        await wrapper.pm(messages["already_blessed"])
         return
 
     var = wrapper.game_state
@@ -36,7 +36,7 @@ async def bless(wrapper: MessageDispatcher, message: str):
 
     PRIESTS.add(wrapper.source)
     var.roles["blessed villager"].add(target)
-    wrapper.pm(messages["blessed_success"].format(target))
+    await wrapper.pm(messages["blessed_success"].format(target))
     target.send(messages["blessed_notify_target"])
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
@@ -46,13 +46,13 @@ async def consecrate(wrapper: MessageDispatcher, message: str):
     alive = get_players(var)
     targ = re.split(" +", message)[0]
     if not targ:
-        wrapper.pm(messages["not_enough_parameters"])
+        await wrapper.pm(messages["not_enough_parameters"])
         return
 
     dead = set(var.players) - set(alive)
     target = users.complete_match(targ, dead)
     if not target:
-        wrapper.pm(messages["consecrate_fail"].format(targ))
+        await wrapper.pm(messages["consecrate_fail"].format(targ))
         return
     target = target.get()
 
@@ -64,7 +64,7 @@ async def consecrate(wrapper: MessageDispatcher, message: str):
     evt = Event("consecrate", {})
     evt.dispatch(var, wrapper.source, target)
 
-    wrapper.pm(messages["consecrate_success"].format(target))
+    await wrapper.pm(messages["consecrate_success"].format(target))
     add_absent(var, wrapper.source, "consecrating")
     move_player(var, wrapper.source, Graveyard)
     from src.votes import chk_decision

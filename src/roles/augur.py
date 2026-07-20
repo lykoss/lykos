@@ -19,7 +19,7 @@ SEEN = setup_variables("augur")
 async def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal powers to determine the role or alignment of a player."""
     if wrapper.source in SEEN:
-        wrapper.send(messages["seer_fail"])
+        await wrapper.send(messages["seer_fail"])
         return
 
     var = wrapper.game_state

@@ -31,7 +31,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
     async def shoot(wrapper: MessageDispatcher, message: str):
         """Use this to fire off a bullet at someone in the day if you have bullets."""
         if not GUNNERS[wrapper.source]:
-            wrapper.pm(messages["no_bullets"])
+            await wrapper.pm(messages["no_bullets"])
             return
 
         var = wrapper.game_state
@@ -41,7 +41,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
             return
 
         target = try_misdirection(var, wrapper.source, target)
-        if try_exchange(var, wrapper.source, target):
+        if await try_exchange(var, wrapper.source, target):
             return
 
         GUNNERS[wrapper.source] -= 1
@@ -62,7 +62,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
         targrole = await get_reveal_role(var, target)
 
         if shoot_evt.data["hit"]:
-            wrapper.send(messages["shoot_success"].format(wrapper.source, target))
+            await wrapper.send(messages["shoot_success"].format(wrapper.source, target))
             if realrole in Wolf and shoot_evt.data["kill"]:
                 protected = await try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
                 if protected is not None:
@@ -71,7 +71,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                     to_send = "gunner_victim_wolf_death_no_reveal"
                     if var.role_reveal == "on":
                         to_send = "gunner_victim_wolf_death"
-                    wrapper.send(messages[to_send].format(target, targrole))
+                    await wrapper.send(messages[to_send].format(target, targrole))
                     add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                     await kill_players(var)
             elif shoot_evt.data["kill"]:
@@ -82,13 +82,13 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                     to_send = "gunner_victim_villager_death_accident"
                     if gun_evt.data["headshot"] == 1: # would always headshot
                         to_send = "gunner_victim_villager_death"
-                    wrapper.send(messages[to_send].format(target))
+                    await wrapper.send(messages[to_send].format(target))
                     if var.role_reveal in ("on", "team"):
-                        wrapper.send(messages["gunner_victim_role"].format(targrole))
+                        await wrapper.send(messages["gunner_victim_role"].format(targrole))
                     add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                     await kill_players(var)
             else:
-                wrapper.send(messages["gunner_victim_injured"].format(target))
+                await wrapper.send(messages["gunner_victim_injured"].format(target))
                 add_absent(var, target, "wounded")
                 move_player_home(var, target)
                 from src.votes import chk_decision
@@ -100,11 +100,11 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
             to_send = "gunner_suicide_no_reveal"
             if var.role_reveal in ("on", "team"):
                 to_send = "gunner_suicide"
-            wrapper.send(messages[to_send].format(wrapper.source, await get_reveal_role(var, wrapper.source)))
+            await wrapper.send(messages[to_send].format(wrapper.source, await get_reveal_role(var, wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
         else:
-            wrapper.send(messages["gunner_miss"].format(wrapper.source))
+            await wrapper.send(messages["gunner_miss"].format(wrapper.source))
 
     @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
     async def on_send_role(evt: Event, var: GameState):
@@ -131,22 +131,22 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                     if event.data["hit"] and event.data["kill"]:
                         protected = try_protection(var, shot, victim, rolename, "gunner_overnight_fail")
                         if protected is not None:
-                            channels.Main.send(*protected)
+                            await channels.Main.send(*protected)
                         else:
                             to_send = "gunner_killed_wolf_overnight_no_reveal"
                             if var.role_reveal in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
-                            channels.Main.send(messages[to_send].format(victim, shot, await get_reveal_role(var, shot)))
+                            await channels.Main.send(messages[to_send].format(victim, shot, await get_reveal_role(var, shot)))
                             add_dying(var, shot, killer_role=evt.params.main_role, reason="assassin", killer=victim)
                     elif event.data["hit"]:
                         # shot hit, but didn't kill
-                        channels.Main.send(messages["gunner_shoot_overnight_hit"].format(victim))
+                        await channels.Main.send(messages["gunner_shoot_overnight_hit"].format(victim))
                         add_absent(var, shot, "wounded")
                         # player will be moved back to home after daytime locations are fixed;
                         # doing it here will simply get overwritten
                     else:
                         # shot was fired and missed
-                        channels.Main.send(messages["gunner_shoot_overnight_missed"].format(victim))
+                        await channels.Main.send(messages["gunner_shoot_overnight_missed"].format(victim))
 
             # let wolf steal gun if the gunner has any bullets remaining
             # this gives the looter the "wolf gunner" secondary role

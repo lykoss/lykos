@@ -20,7 +20,7 @@ SEEN = setup_variables("seer")
 async def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal powers to determine the role or alignment of a player."""
     if wrapper.source in SEEN:
-        wrapper.send(messages["seer_fail"])
+        await wrapper.send(messages["seer_fail"])
         return
 
     var = wrapper.game_state
@@ -30,7 +30,7 @@ async def see(wrapper: MessageDispatcher, message: str):
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     targrole = await get_main_role(var, target)
@@ -52,7 +52,7 @@ async def see(wrapper: MessageDispatcher, message: str):
     evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]
 
-    wrapper.send(messages["seer_success"].format(target, targrole))
+    await wrapper.send(messages["seer_success"].format(target, targrole))
 
     SEEN.add(wrapper.source)
 

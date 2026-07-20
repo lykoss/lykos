@@ -24,23 +24,23 @@ OBSERVED: UserDict[users.User, users.User] = UserDict()
 async def observe(wrapper: MessageDispatcher, message: str):
     """Observe a player to see whether they are able to act at night."""
     if wrapper.source in OBSERVED:
-        wrapper.pm(messages["werecrow_already_observing"].format(OBSERVED[wrapper.source]))
+        await wrapper.pm(messages["werecrow_already_observing"].format(OBSERVED[wrapper.source]))
         return
     var = wrapper.game_state
     target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
     if not target:
         return
     if await is_known_wolf_ally(var, wrapper.source, target):
-        wrapper.pm(messages["werecrow_no_target_wolf"])
+        await wrapper.pm(messages["werecrow_no_target_wolf"])
         return
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     OBSERVED[wrapper.source] = target
-    wrapper.pm(messages["werecrow_observe_success"].format(orig))
+    await wrapper.pm(messages["werecrow_observe_success"].format(orig))
     await send_wolfchat_message(var, wrapper.source, messages["wolfchat_observe"].format(wrapper.source, target), {"werecrow"}, role="werecrow", command="observe")
 
 @event_listener("transition_day_begin")

@@ -21,11 +21,11 @@ INVESTIGATED = UserSet()
 async def investigate(wrapper: MessageDispatcher, message: str):
     """Investigate two players to determine their relationship to each other."""
     if wrapper.source in INVESTIGATED:
-        wrapper.pm(messages["already_investigated"])
+        await wrapper.pm(messages["already_investigated"])
         return
     pieces = re.split(" +", message)
     if len(pieces) == 1:
-        wrapper.pm(messages["investigator_help"])
+        await wrapper.pm(messages["investigator_help"])
         return
     var = wrapper.game_state
     target1 = pieces[0]
@@ -35,7 +35,7 @@ async def investigate(wrapper: MessageDispatcher, message: str):
     if not target1 or not target2:
         return
     elif target1 is target2:
-        wrapper.pm(messages["investigator_help"])
+        await wrapper.pm(messages["investigator_help"])
         return
 
     target1 = try_misdirection(var, wrapper.source, target1)
@@ -60,9 +60,9 @@ async def investigate(wrapper: MessageDispatcher, message: str):
     await evt.dispatch(var, target1, target2)
 
     if evt.data["same"]:
-        wrapper.pm(messages["investigator_results_same"].format(target1, target2))
+        await wrapper.pm(messages["investigator_results_same"].format(target1, target2))
     else:
-        wrapper.pm(messages["investigator_results_different"].format(target1, target2))
+        await wrapper.pm(messages["investigator_results_different"].format(target1, target2))
 
     INVESTIGATED.add(wrapper.source)
 

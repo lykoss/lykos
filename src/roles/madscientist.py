@@ -41,9 +41,9 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
     prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
     if prots1:
-        channels.Main.send(*prots1)
+        await channels.Main.send(*prots1)
     if prots2:
-        channels.Main.send(*prots2)
+        await channels.Main.send(*prots2)
 
     kill1 = prots1 is None and add_dying(var, target1, killer_role="mad scientist", reason="mad_scientist", killer=player)
     kill2 = prots2 is None and target1 is not target2 and add_dying(var, target2, killer_role="mad scientist", reason="mad_scientist", killer=player)
@@ -65,7 +65,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     if to_send != "mad_scientist_fail" and var.role_reveal not in ("on", "team"):
         to_send += "_no_reveal"
 
-    channels.Main.send(messages[to_send].format(player, target1, role1, target2, role2))
+    await channels.Main.send(messages[to_send].format(player, target1, role1, target2, role2))
 
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):

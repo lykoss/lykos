@@ -91,7 +91,7 @@ async def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], 
                 traitor.send(messages["traitor_turn"])
     if did_something:
         if var.in_game:
-            channels.Main.send(messages["traitor_turn_channel"])
+            await channels.Main.send(messages["traitor_turn_channel"])
             # fix !stats to show that traitor turned as well
             newstats = set()
             for rs in var.get_role_stats():

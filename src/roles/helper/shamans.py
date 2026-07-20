@@ -326,7 +326,7 @@ async def get_totem_target(var: GameState, wrapper: MessageDispatcher, message, 
         return None, None
 
     if target in itertools.chain.from_iterable(lastgiven.get(wrapper.source, {}).values()):
-        wrapper.send(messages["shaman_no_target_twice"].format(target))
+        await wrapper.send(messages["shaman_no_target_twice"].format(target))
         return None, None
 
     return totem, target
@@ -336,11 +336,11 @@ async def give_totem(var: GameState, wrapper: MessageDispatcher, target: User, t
 
     orig_target = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return None
 
     # keys: shaman_success_night_known, shaman_success_random_known, shaman_success_night_unknown, shaman_success_random_unknown
-    wrapper.send(messages[key].format(orig_target, totem))
+    await wrapper.send(messages[key].format(orig_target, totem))
     return target, orig_target
 
 def change_totem(var: GameState, player: User, totem: str, roles=None):
@@ -484,14 +484,14 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     ret_evt = Event("retribution_kill", {"target": loser, "message": []})
     ret_evt.dispatch(var, player, loser)
     loser = ret_evt.data["target"]
-    channels.Main.send(*ret_evt.data["message"])
+    await channels.Main.send(*ret_evt.data["message"])
     if loser not in all_players:
         # another check for the person already being dead since it may have changed via the event
         loser = None
     if loser is not None:
         protected = try_protection(var, loser, player, evt.params.main_role, "retribution_totem")
         if protected is not None:
-            channels.Main.send(*protected)
+            await channels.Main.send(*protected)
             return
 
         # message keys: retribution_totem_night_death, retribution_totem_day_death,
@@ -499,7 +499,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         to_send = f"retribution_totem_{var.current_phase}_death_no_reveal"
         if var.role_reveal in ("on", "team"):
             to_send = f"retribution_totem_{var.current_phase}_death"
-        channels.Main.send(messages[to_send].format(player, loser, await get_reveal_role(var, loser)))
+        await channels.Main.send(messages[to_send].format(player, loser, await get_reveal_role(var, loser)))
         add_dying(var, loser, evt.params.main_role, "retribution_totem", killer=player)
 
 @event_listener("transition_day_end")
@@ -514,7 +514,7 @@ async def on_transition_day_end(evt: Event, var: GameState):
         message.append(messages[to_send].format(player, ntotems))
     for player in brokentotem:
         message.append(messages["totem_broken"].format(player))
-    channels.Main.send("\n".join(message))
+    await channels.Main.send("\n".join(message))
 
 @event_listener("transition_night_end")
 async def on_transition_night_end(evt: Event, var: GameState):

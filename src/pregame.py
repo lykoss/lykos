@@ -214,7 +214,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 votes[gamemode] = votes.get(gamemode, 0) + 1
         voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
         if voted:
-            set_gamemode(pregame_state, random.choice(voted))
+            await set_gamemode(pregame_state, random.choice(voted))
         else:
             possiblegamemodes = []
             numvotes = 0
@@ -235,7 +235,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
                     if _isvalid(gamemode, False):
                         possiblegamemodes += [gamemode] * config.Main.get(f"gameplay.modes.{gamemode}.weight", 0)
                 gamemode = random.choice(possiblegamemodes)
-            set_gamemode(pregame_state, gamemode)
+            await set_gamemode(pregame_state, gamemode)
 
     # Initial checks passed, game mode has been fully initialized
     # We move from pregame state to in-game state

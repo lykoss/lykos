@@ -386,7 +386,7 @@ async def replace(wrapper: MessageDispatcher, message: str):
 
         channels.Main.mode(*cmodes)
 
-        channels.Main.send(messages["player_swap"].format(wrapper.source, target))
+        await channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         if var.in_game:
             myrole.func(wrapper, "")
 
@@ -1387,7 +1387,7 @@ async def fgame(wrapper: MessageDispatcher, message: str):
         parts[0] = match.get().key
 
         from src.gamestate import set_gamemode
-        if set_gamemode(var, "=".join(parts)):
+        if await set_gamemode(var, "=".join(parts)):
             await channels.Main.send(messages["fgame_success"].format(wrapper.source))
     else:
         await wrapper.pm(fgame_help())

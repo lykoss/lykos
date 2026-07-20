@@ -23,7 +23,7 @@ DOCTORS: UserDict[users.User, int] = UserDict()
 async def immunize(wrapper: MessageDispatcher, message: str):
     """Immunize a player, preventing them from turning into a wolf."""
     if not DOCTORS[wrapper.source]:
-        wrapper.pm(messages["doctor_fail"])
+        await wrapper.pm(messages["doctor_fail"])
         return
 
     var = wrapper.game_state
@@ -33,13 +33,13 @@ async def immunize(wrapper: MessageDispatcher, message: str):
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     doctor_evt = Event("doctor_immunize", {"message": "villager_immunized"})
     doctor_evt.dispatch(var, wrapper.source, target)
 
-    wrapper.pm(messages["doctor_success"].format(target))
+    await wrapper.pm(messages["doctor_success"].format(target))
 
     target.send(messages["immunization_success"].format(messages[doctor_evt.data["message"]]))
 

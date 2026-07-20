@@ -24,7 +24,7 @@ CLONE_ENABLED = False # becomes True if at least one person died and there are c
 async def clone(wrapper: MessageDispatcher, message: str):
     """Clone another player. You will turn into their role if they die."""
     if wrapper.source in CLONED:
-        wrapper.pm(messages["already_cloned"])
+        await wrapper.pm(messages["already_cloned"])
         return
 
     params = re.split(" +", message)
@@ -34,7 +34,7 @@ async def clone(wrapper: MessageDispatcher, message: str):
 
     CLONED[wrapper.source] = target
     ACTED.add(wrapper.source)
-    wrapper.pm(messages["clone_target_success"].format(target))
+    await wrapper.pm(messages["clone_target_success"].format(target))
 
 @event_listener("get_reveal_role")
 async def on_get_reveal_role(evt: Event, var: GameState, user):

@@ -36,12 +36,12 @@ async def vg_kill(wrapper: MessageDispatcher, message: str):
         return
 
     if target is wrapper.source:
-        wrapper.pm(messages["player_dead"])
+        await wrapper.pm(messages["player_dead"])
         return
 
     if target not in TARGETS[wrapper.source]:
         # keys: vengeful_ghost_wolf vengeful_ghost_villager
-        wrapper.pm(messages["vengeful_ghost_{0}".format(GHOSTS[wrapper.source])])
+        await wrapper.pm(messages["vengeful_ghost_{0}".format(GHOSTS[wrapper.source])])
         return
 
     orig = target
@@ -49,7 +49,7 @@ async def vg_kill(wrapper: MessageDispatcher, message: str):
 
     KILLS[wrapper.source] = target
 
-    wrapper.pm(messages["player_kill"].format(orig))
+    await wrapper.pm(messages["player_kill"].format(orig))
 
 @command("retract", chan=False, pm=True, playing=False, phases=("night",))
 async def vg_retract(wrapper: MessageDispatcher, message: str):
@@ -59,7 +59,7 @@ async def vg_retract(wrapper: MessageDispatcher, message: str):
 
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]
-        wrapper.pm(messages["retracted_kill"])
+        await wrapper.pm(messages["retracted_kill"])
 
 @event_listener("get_participants")
 async def on_get_participants(evt: Event, var: GameState):

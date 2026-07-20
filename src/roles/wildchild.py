@@ -27,7 +27,7 @@ _turned: set[User] = set()
 async def choose_idol(wrapper: MessageDispatcher, message: str):
     """Pick your idol, if they die, you'll become a wolf!"""
     if wrapper.source in IDOLS:
-        wrapper.pm(messages["wild_child_already_picked"])
+        await wrapper.pm(messages["wild_child_already_picked"])
         return
 
     idol = await get_target(wrapper, re.split(" +", message)[0])
@@ -36,7 +36,7 @@ async def choose_idol(wrapper: MessageDispatcher, message: str):
 
     IDOLS[wrapper.source] = idol
     ACTED.add(wrapper.source)
-    wrapper.send(messages["wild_child_success"].format(idol))
+    await wrapper.send(messages["wild_child_success"].format(idol))
 
 @event_listener("see")
 async def on_see(evt: Event, var: GameState, seer: User, target: User):

@@ -28,7 +28,7 @@ async def curse(wrapper: MessageDispatcher, message: str):
         return
 
     if target in get_all_players(var, ("cursed villager",)):
-        wrapper.pm(messages["target_already_cursed"].format(target))
+        await wrapper.pm(messages["target_already_cursed"].format(target))
         return
 
     # There may actually be valid strategy in cursing other wolfteam members,
@@ -36,18 +36,18 @@ async def curse(wrapper: MessageDispatcher, message: str):
     # villager across multiple nights, safes can use that as a tell that the
     # person is likely wolf-aligned.
     if await is_known_wolf_ally(var, wrapper.source, target):
-        wrapper.pm(messages["no_curse_wolf"])
+        await wrapper.pm(messages["no_curse_wolf"])
         return
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     CURSED[wrapper.source] = target
     PASSED.discard(wrapper.source)
 
-    wrapper.pm(messages["curse_success"].format(orig))
+    await wrapper.pm(messages["curse_success"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, orig), {"warlock"}, role="warlock", command="curse")
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
@@ -56,7 +56,7 @@ async def pass_cmd(wrapper: MessageDispatcher, message: str):
     del CURSED[:wrapper.source:]
     PASSED.add(wrapper.source)
 
-    wrapper.pm(messages["warlock_pass"])
+    await wrapper.pm(messages["warlock_pass"])
     send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
 
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
@@ -65,7 +65,7 @@ async def retract(wrapper: MessageDispatcher, message: str):
     del CURSED[:wrapper.source:]
     PASSED.discard(wrapper.source)
 
-    wrapper.pm(messages["warlock_retract"])
+    await wrapper.pm(messages["warlock_retract"])
     send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
 
 @event_listener("chk_nightdone")

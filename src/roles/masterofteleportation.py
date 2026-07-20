@@ -29,14 +29,14 @@ async def choose(wrapper: MessageDispatcher, message: str):
         return
 
     if target1 is target2:
-        wrapper.send(messages["choose_different_people"])
+        await wrapper.send(messages["choose_different_people"])
         return
 
     index1 = var.players.index(target1)
     index2 = var.players.index(target2)
     SWAPS[wrapper.source] = (index1, index2)
     ACTED.add(wrapper.source)
-    wrapper.send(messages["master_of_teleportation_success"].format(target1, target2))
+    await wrapper.send(messages["master_of_teleportation_success"].format(target1, target2))
 
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):

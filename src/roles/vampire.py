@@ -52,7 +52,7 @@ async def vampire_bite(wrapper: MessageDispatcher, message: str):
         return
 
     var.vampire_acted[wrapper.source] = target
-    wrapper.send(messages["vampire_bite"].format(orig))
+    await wrapper.send(messages["vampire_bite"].format(orig))
     await send_vampire_chat_message(var,
                                     wrapper.source,
                                     messages["vampire_bite_vampchat"].format(wrapper.source, target),

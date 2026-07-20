@@ -117,7 +117,7 @@ async def player_stats(wrapper: MessageDispatcher, message: str):
             return
 
         role = matches.get().key
-        wrapper.send(db.get_player_stats(account, role))
+        await wrapper.send(db.get_player_stats(account, role))
 
 @command("mystats", pm=True)
 async def my_stats(wrapper: MessageDispatcher, message: str):

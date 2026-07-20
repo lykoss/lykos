@@ -29,13 +29,13 @@ async def vigilante_kill(wrapper: MessageDispatcher, message: str):
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     KILLS[wrapper.source] = target
     PASSED.discard(wrapper.source)
 
-    wrapper.send(messages["player_kill"].format(orig))
+    await wrapper.send(messages["player_kill"].format(orig))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
 async def vigilante_retract(wrapper: MessageDispatcher, message: str):
@@ -46,14 +46,14 @@ async def vigilante_retract(wrapper: MessageDispatcher, message: str):
     del KILLS[:wrapper.source:]
     PASSED.discard(wrapper.source)
 
-    wrapper.send(messages["retracted_kill"])
+    await wrapper.send(messages["retracted_kill"])
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 async def vigilante_pass(wrapper: MessageDispatcher, message: str):
     """Do not kill anyone tonight as a vigilante."""
     del KILLS[:wrapper.source:]
     PASSED.add(wrapper.source)
-    wrapper.send(messages["hunter_pass"])
+    await wrapper.send(messages["hunter_pass"])
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

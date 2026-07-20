@@ -201,7 +201,8 @@ class print_traceback:
                 variables[i] = re.sub(r"<(module .*?) from .*?>", r"<\1>", variables[i])
 
         if channels.Main:
-            channels.Main.send(messages["error_log"])
+            pass # can't send message from non-async anymore
+            #await channels.Main.send(messages["error_log"])
         message = [str(messages["error_log"])]
 
         link = _tracebacks.get(full_tb)
@@ -256,10 +257,10 @@ class handle_error:
             return type(self)(self.func, instance=instance)
         return self
 
-    def __call__(*args, **kwargs):
+    async def __call__(*args, **kwargs):
         _ignore_locals_ = True
         self, *args = args
         if self.instance is not None:
             args = [self.instance] + args
         with print_traceback():
-            return self.func(*args, **kwargs)
+            return await self.func(*args, **kwargs)

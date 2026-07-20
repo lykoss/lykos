@@ -24,7 +24,7 @@ DYING = UserSet()
 async def guard(wrapper: MessageDispatcher, message: str):
     """Guard a player, preventing them from being killed that night."""
     if wrapper.source in GUARDED:
-        wrapper.pm(messages["already_protecting"])
+        await wrapper.pm(messages["already_protecting"])
         return
 
     var = wrapper.game_state
@@ -34,24 +34,24 @@ async def guard(wrapper: MessageDispatcher, message: str):
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     # we want bodyguard to fire last out of actual protections
     add_protection(var, target, wrapper.source, "bodyguard", priority=20)
     GUARDED[wrapper.source] = target
 
-    wrapper.pm(messages["protecting_target"].format(target))
+    await wrapper.pm(messages["protecting_target"].format(target))
     target.send(messages["target_protected"])
 
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
     if wrapper.source in GUARDED:
-        wrapper.pm(messages["already_protecting"])
+        await wrapper.pm(messages["already_protecting"])
         return
     PASSED.add(wrapper.source)
-    wrapper.pm(messages["guardian_no_protect"])
+    await wrapper.pm(messages["guardian_no_protect"])
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

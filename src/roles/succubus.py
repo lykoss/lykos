@@ -29,11 +29,11 @@ Succubi = Category("Succubi")
 async def hvisit(wrapper: MessageDispatcher, message: str):
     """Entrance a player, converting them to your team."""
     if VISITED.get(wrapper.source):
-        wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))
+        await wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))
         return
 
     if wrapper.source in FORCE_PASSED:
-        wrapper.send(messages["already_being_visited"])
+        await wrapper.send(messages["already_being_visited"])
         return
 
     var = wrapper.game_state
@@ -43,7 +43,7 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     VISITED[wrapper.source] = target
@@ -51,9 +51,9 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
     move_player(var, wrapper.source, get_home(var, target))
     if target not in get_all_players(var, ("succubus",)):
         ENTRANCED.add(target)
-        wrapper.send(messages["succubus_target_success"].format(target))
+        await wrapper.send(messages["succubus_target_success"].format(target))
     else:
-        wrapper.send(messages["harlot_success"].format(target))
+        await wrapper.send(messages["harlot_success"].format(target))
 
     if wrapper.source is not target:
         if target not in get_all_players(var, ("succubus",)):
@@ -68,11 +68,11 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Do not entrance someone tonight."""
     if VISITED.get(wrapper.source):
-        wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))
+        await wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))
         return
 
     PASSED.add(wrapper.source)
-    wrapper.send(messages["succubus_pass"])
+    await wrapper.send(messages["succubus_pass"])
 
 @event_listener("visit")
 async def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visited: User):

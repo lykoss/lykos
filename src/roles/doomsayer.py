@@ -31,7 +31,7 @@ _mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
 async def see(wrapper: MessageDispatcher, message: str):
     """Use your paranormal senses to determine a player's doom."""
     if wrapper.source in SEEN:
-        wrapper.send(messages["seer_fail"])
+        await wrapper.send(messages["seer_fail"])
         return
 
     var = wrapper.game_state
@@ -40,20 +40,20 @@ async def see(wrapper: MessageDispatcher, message: str):
         return
 
     if await is_known_wolf_ally(var, wrapper.source, target):
-        wrapper.send(messages["no_see_wolf"])
+        await wrapper.send(messages["no_see_wolf"])
         return
 
     if LASTSEEN.get(wrapper.source) is target:
-        wrapper.send(messages["no_see_same"])
+        await wrapper.send(messages["no_see_same"])
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     mode, mapping = random.choice(_mappings)
     # keys: doomsayer_death, doomsayer_lycan, doomsayer_sick
-    wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
+    await wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
     mapping[wrapper.source] = target
 
     await send_wolfchat_message(var, wrapper.source, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), role="doomsayer", command="see")

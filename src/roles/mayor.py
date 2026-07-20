@@ -20,7 +20,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
 @event_listener("day_vote_immunity")
 async def on_day_vote_immunity(evt: Event, var: GameState, user: User, reason: str):
     if reason == "mayor":
-        channels.Main.send(messages["mayor_reveal"].format(user))
+        await channels.Main.send(messages["mayor_reveal"].format(user))
         evt.data["immune"] = True
         REVEALED_MAYORS.add(user)
 

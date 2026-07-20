@@ -125,7 +125,7 @@ async def begin_day(var: GameState):
     await chk_decision(var)
 
 async def _night_warn(var: GameState):
-    channels.Main.send(messages["twilight_warning"])
+    await channels.Main.send(messages["twilight_warning"])
 
     # determine who hasn't acted yet and remind them to act
     event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})

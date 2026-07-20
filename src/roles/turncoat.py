@@ -21,7 +21,7 @@ PASSED = UserSet()
 async def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): # is sendmsg useful at all?
     var = wrapper.game_state
     if TURNCOATS[wrapper.source][1] == var.night_count - 1:
-        wrapper.pm(messages["turncoat_already_turned"])
+        await wrapper.pm(messages["turncoat_already_turned"])
         return
 
     teams = []
@@ -36,12 +36,12 @@ async def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): 
     team = re.split(" +", message)[0]
     team = await match_role(team, scope=teams)
     if not team:
-        wrapper.pm(messages["turncoat_error"])
+        await wrapper.pm(messages["turncoat_error"])
         return
 
     team = team.get().key
 
-    wrapper.pm(messages["turncoat_success"].format(team))
+    await wrapper.pm(messages["turncoat_success"].format(team))
     TURNCOATS[wrapper.source] = (team, var.night_count)
     PASSED.discard(wrapper.source)
 
@@ -52,10 +52,10 @@ async def pass_cmd(wrapper: MessageDispatcher, message: str):
     if TURNCOATS[wrapper.source][1] == var.night_count:
         # theoretically passing would revert them to how they were before, but
         # we aren't tracking that, so just tell them to change it back themselves.
-        wrapper.pm(messages["turncoat_fail"])
+        await wrapper.pm(messages["turncoat_fail"])
         return
 
-    wrapper.pm(messages["turncoat_pass"])
+    await wrapper.pm(messages["turncoat_pass"])
     if TURNCOATS[wrapper.source][1] == var.night_count - 1:
         # don't add to PASSED since we aren't counting them anyway for nightdone
         # let them still use !pass though to make them feel better or something

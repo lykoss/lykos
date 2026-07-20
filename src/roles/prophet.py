@@ -21,20 +21,20 @@ async def pray(wrapper: MessageDispatcher, message: str):
     var: GameState = wrapper.game_state
 
     if wrapper.source in var.prophet_prayed:
-        wrapper.pm(messages["already_prayed"])
+        await wrapper.pm(messages["already_prayed"])
         return
 
     if not message:
-        wrapper.pm(messages["not_enough_parameters"])
+        await wrapper.pm(messages["not_enough_parameters"])
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
     matches = await match_role(message, allow_special=False)
     if len(matches) == 0:
-        wrapper.pm(messages["no_such_role"].format(message))
+        await wrapper.pm(messages["no_such_role"].format(message))
         return
     elif len(matches) > 1:
-        wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
+        await wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
         return
 
     role = matches.get().key
@@ -46,7 +46,7 @@ async def pray(wrapper: MessageDispatcher, message: str):
     people = set(get_all_players(var, (role,))) | {p for p, r in amn_roles.items() if p in pl and r == role}
     if len(people) == 0:
         # role is not in this game, this still counts as a successful activation of the power!
-        wrapper.pm(messages["vision_none"].format(role))
+        await wrapper.pm(messages["vision_none"].format(role))
         return
 
     target = random.choice(list(people))
@@ -56,9 +56,9 @@ async def pray(wrapper: MessageDispatcher, message: str):
     random.shuffle(part)
 
     if len(part) == 1:
-        wrapper.pm(messages["vision_role"].format(role, target))
+        await wrapper.pm(messages["vision_role"].format(role, target))
     else:
-        wrapper.pm(messages["vision_players"].format(role, part))
+        await wrapper.pm(messages["vision_players"].format(role, part))
 
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 __all__ = ["GameState", "PregameState", "set_gamemode"]
 
-def set_gamemode(var: PregameState, arg: str) -> bool:
+async def set_gamemode(var: PregameState, arg: str) -> bool:
     from src.gamemodes import GAME_MODES, InvalidModeException
     modeargs = arg.split("=", 1)
 
@@ -31,10 +31,10 @@ def set_gamemode(var: PregameState, arg: str) -> bool:
             var.current_mode = gm
             return True
         except InvalidModeException as e:
-            channels.Main.send(f"Invalid mode: {e}")
+            await channels.Main.send(f"Invalid mode: {e}")
             return False
 
-    channels.Main.send(messages["game_mode_not_found"].format(modeargs[0]))
+    await channels.Main.send(messages["game_mode_not_found"].format(modeargs[0]))
     return False
 
 class PregameState:

@@ -23,7 +23,7 @@ INVESTIGATED = UserSet()
 async def investigate(wrapper: MessageDispatcher, message: str):
     """Investigate a player to determine their exact role."""
     if wrapper.source in INVESTIGATED:
-        wrapper.send(messages["already_investigated"])
+        await wrapper.send(messages["already_investigated"])
         return
 
     var = wrapper.game_state
@@ -43,7 +43,7 @@ async def investigate(wrapper: MessageDispatcher, message: str):
     targrole = evt.data["role"]
 
     INVESTIGATED.add(wrapper.source)
-    wrapper.send(messages["investigate_success"].format(target, targrole))
+    await wrapper.send(messages["investigate_success"].format(target, targrole))
 
     if random.randrange(0, 100) < config.Main.get("gameplay.safes.detective_reveal"):  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised! Let the wolves know

@@ -27,7 +27,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
 @event_listener("day_vote_immunity")
 async def on_day_vote_immunity(evt: Event, var: GameState, player: User, reason: str):
     if reason == "tough_wolf":
-        channels.Main.send(messages["tough_wolf_reveal"].format(player))
+        await channels.Main.send(messages["tough_wolf_reveal"].format(player))
         evt.data["immune"] = True
         ACTIVATED.add(player)
 

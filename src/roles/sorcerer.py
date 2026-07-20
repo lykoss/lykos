@@ -28,15 +28,15 @@ async def observe(wrapper: MessageDispatcher, message: str):
         return
 
     if wrapper.source in OBSERVED:
-        wrapper.pm(messages["already_observed"])
+        await wrapper.pm(messages["already_observed"])
         return
 
     if await is_known_wolf_ally(var, wrapper.source, target):
-        wrapper.pm(messages["no_observe_wolf"])
+        await wrapper.pm(messages["no_observe_wolf"])
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     OBSERVED.add(wrapper.source)
@@ -53,7 +53,7 @@ async def observe(wrapper: MessageDispatcher, message: str):
         targrole = evt.data["role"]
         args.append(targrole)
 
-    wrapper.pm(messages[key].format(*args))
+    await wrapper.pm(messages[key].format(*args))
     send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")
 
 @event_listener("chk_nightdone")

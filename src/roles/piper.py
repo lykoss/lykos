@@ -51,22 +51,22 @@ async def charm(wrapper: MessageDispatcher, message: str):
     if target2 is not None:
         target2 = try_misdirection(var, wrapper.source, target2)
 
-    if try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
+    if await try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
         return
 
     # Do these checks based on original targets, so piper doesn't know to change due to misdirection/luck totem
     if orig1 is orig2:
-        wrapper.send(messages["must_charm_multiple"])
+        await wrapper.send(messages["must_charm_multiple"])
         return
 
     if orig1 in CHARMED and orig2 in CHARMED:
-        wrapper.send(messages["targets_already_charmed"].format(orig1, orig2))
+        await wrapper.send(messages["targets_already_charmed"].format(orig1, orig2))
         return
     elif orig1 in CHARMED:
-        wrapper.send(messages["target_already_charmed"].format(orig1))
+        await wrapper.send(messages["target_already_charmed"].format(orig1))
         return
     elif orig2 in CHARMED:
-        wrapper.send(messages["target_already_charmed"].format(orig2))
+        await wrapper.send(messages["target_already_charmed"].format(orig2))
         return
 
     if wrapper.source in TOBECHARMED:
@@ -78,9 +78,9 @@ async def charm(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     if orig2:
-        wrapper.send(messages["charm_multiple_success"].format(orig1, orig2))
+        await wrapper.send(messages["charm_multiple_success"].format(orig1, orig2))
     else:
-        wrapper.send(messages["charm_success"].format(orig1))
+        await wrapper.send(messages["charm_success"].format(orig1))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
@@ -88,7 +88,7 @@ async def pass_cmd(wrapper: MessageDispatcher, message: str):
     del TOBECHARMED[:wrapper.source:]
     PASSED.add(wrapper.source)
 
-    wrapper.send(messages["piper_pass"])
+    await wrapper.send(messages["piper_pass"])
 
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 async def retract(wrapper: MessageDispatcher, message: str):
@@ -97,7 +97,7 @@ async def retract(wrapper: MessageDispatcher, message: str):
         del TOBECHARMED[:wrapper.source:]
         PASSED.discard(wrapper.source)
 
-        wrapper.send(messages["piper_retract"])
+        await wrapper.send(messages["piper_retract"])
 
 @event_listener("chk_win", priority=2)
 async def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):

@@ -23,7 +23,7 @@ async def on_day_vte(evt: Event, var: GameState, votee, voters):
         # so we want to show "fool" even if it's a template
         lmsg = messages["day_vote_reveal"].format(votee, "fool")
         VOTED = votee
-        channels.Main.send(lmsg)
+        await channels.Main.send(lmsg)
         chk_win(var, winner=Fools)
 
         evt.prevent_default = True

@@ -25,7 +25,7 @@ async def dullahan_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone at night as a dullahan until everyone on your list is dead."""
     var = wrapper.game_state
     if not TARGETS[wrapper.source] & set(get_players(var)):
-        wrapper.pm(messages["dullahan_targets_dead"])
+        await wrapper.pm(messages["dullahan_targets_dead"])
         return
 
     target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
@@ -33,23 +33,23 @@ async def dullahan_kill(wrapper: MessageDispatcher, message: str):
         return
 
     if target not in TARGETS[wrapper.source]:
-        wrapper.pm(messages["dullahan_not_target"].format(target))
+        await wrapper.pm(messages["dullahan_not_target"].format(target))
         return
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     KILLS[wrapper.source] = target
-    wrapper.pm(messages["player_kill"].format(orig))
+    await wrapper.pm(messages["player_kill"].format(orig))
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
 async def dullahan_retract(wrapper: MessageDispatcher, message: str):
     """Removes a dullahan's kill selection."""
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]
-        wrapper.pm(messages["retracted_kill"])
+        await wrapper.pm(messages["retracted_kill"])
 
 @event_listener("player_win")
 async def on_player_win(evt: Event, var: GameState, player: User, main_role: str, all_roles: set[str], winner: Category, team_win: bool, survived: bool):
@@ -74,14 +74,14 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
                 target = random.choice(list(targets))
                 protected = try_protection(var, target, player, "dullahan", "dullahan_die")
                 if protected is not None:
-                    channels.Main.send(*protected)
+                    await channels.Main.send(*protected)
                     return
 
                 if var.role_reveal in ("on", "team"):
                     role = await get_reveal_role(var, target)
-                    channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
+                    await channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
-                    channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
+                    await channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
                 add_dying(var, target, "dullahan", "dullahan_die", killer=player)
 
 @event_listener("night_kills")

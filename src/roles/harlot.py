@@ -25,11 +25,11 @@ FORCE_PASSED = UserSet()
 async def hvisit(wrapper: MessageDispatcher, message: str):
     """Visit a player. You will die if you visit a wolf or a target of the wolves."""
     if VISITED.get(wrapper.source):
-        wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
+        await wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
         return
 
     if wrapper.source in FORCE_PASSED:
-        wrapper.pm(messages["already_being_visited"])
+        await wrapper.pm(messages["already_being_visited"])
         return
 
     var = wrapper.game_state
@@ -39,13 +39,13 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
     move_player(var, wrapper.source, get_home(var, target))
-    wrapper.pm(messages["harlot_success"].format(target))
+    await wrapper.pm(messages["harlot_success"].format(target))
     if target is not wrapper.source:
         target.send(messages["harlot_success"].format(wrapper.source))
         revt = Event("visit", {})
@@ -55,11 +55,11 @@ async def hvisit(wrapper: MessageDispatcher, message: str):
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Do not visit someone tonight."""
     if VISITED.get(wrapper.source):
-        wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
+        await wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
         return
 
     PASSED.add(wrapper.source)
-    wrapper.pm(messages["no_visit"])
+    await wrapper.pm(messages["no_visit"])
 
 @event_listener("visit")
 async def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visited: User):

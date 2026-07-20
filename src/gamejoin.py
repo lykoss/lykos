@@ -90,7 +90,7 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
 
     # don't check unacked warnings on fjoin
     if wrapper.source is who and db.has_unacknowledged_warnings(temp.account):
-        wrapper.pm(messages["warn_unacked"])
+        await wrapper.pm(messages["warn_unacked"])
         return False
 
     cmodes = []
@@ -111,7 +111,7 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
             with locks.wait:
                 pregame.WAIT_TOKENS = config.Main.get("timers.wait.command.tokenbucket.initial")
                 pregame.WAIT_LAST   = time.time()
-        wrapper.send(messages["new_game"].format(wrapper.source))
+        await wrapper.send(messages["new_game"].format(wrapper.source))
 
         # Set join timer
         if config.Main.get("timers.enabled") and config.Main.get("timers.join.enabled"):
@@ -146,7 +146,7 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
             for mode in set(toggle_modes) & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 channels.Main.old_modes[wrapper.source].add(mode)
-            wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
+            await wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
 
         # ORIGINAL_ACCOUNTS is only cleared on reset(), so can be used to determine if a player has previously joined
         # The logic in this if statement should only run once per account

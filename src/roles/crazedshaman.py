@@ -42,7 +42,7 @@ async def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
     orig_target = target
     target = RETARGET[wrapper.source].get(target, target)
     if target in itertools.chain.from_iterable(SHAMANS[wrapper.source].values()):
-        wrapper.send(messages["shaman_no_stacking"].format(orig_target))
+        await wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
     given = give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_unknown", role="crazed shaman")
