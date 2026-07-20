@@ -36,7 +36,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
 
         var = wrapper.game_state
 
-        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
+        target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
         if not target:
             return
 
@@ -47,7 +47,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
         GUNNERS[wrapper.source] -= 1
 
         gun_evt = Event("gun_chances", {"hit": 0, "explode": 0, "headshot": 0})
-        gun_evt.dispatch(var, wrapper.source, rolename)
+        await gun_evt.dispatch(var, wrapper.source, rolename)
 
         hit_dict = {
             "hit": random.random() <= gun_evt.data["hit"],
@@ -56,28 +56,28 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
         }
 
         shoot_evt = Event("gun_shoot", hit_dict)
-        shoot_evt.dispatch(var, wrapper.source, target, rolename)
+        await shoot_evt.dispatch(var, wrapper.source, target, rolename)
 
-        realrole = get_main_role(var, target)
-        targrole = get_reveal_role(var, target)
+        realrole = await get_main_role(var, target)
+        targrole = await get_reveal_role(var, target)
 
         if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
             if realrole in Wolf and shoot_evt.data["kill"]:
-                protected = try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
+                protected = await try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
                 if protected is not None:
-                    channels.Main.send(*protected)
+                    await channels.Main.send(*protected)
                 else:
                     to_send = "gunner_victim_wolf_death_no_reveal"
                     if var.role_reveal == "on":
                         to_send = "gunner_victim_wolf_death"
                     wrapper.send(messages[to_send].format(target, targrole))
-                    add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
-                    kill_players(var)
+                    add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
+                    await kill_players(var)
             elif shoot_evt.data["kill"]:
                 protected = try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
                 if protected is not None:
-                    channels.Main.send(*protected)
+                    await channels.Main.send(*protected)
                 else:
                     to_send = "gunner_victim_villager_death_accident"
                     if gun_evt.data["headshot"] == 1: # would always headshot
@@ -85,22 +85,22 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                     wrapper.send(messages[to_send].format(target))
                     if var.role_reveal in ("on", "team"):
                         wrapper.send(messages["gunner_victim_role"].format(targrole))
-                    add_dying(var, target, killer_role=get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
-                    kill_players(var)
+                    add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
+                    await kill_players(var)
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
                 add_absent(var, target, "wounded")
                 move_player_home(var, target)
                 from src.votes import chk_decision
-                if not chk_win(var):
+                if not await chk_win(var):
                     # game didn't immediately end due to injury, see if we should force through a vote
-                    chk_decision(var)
+                    await chk_decision(var)
 
         elif shoot_evt.data["explode"]: # BOOM! your gun explodes, you're dead
             to_send = "gunner_suicide_no_reveal"
             if var.role_reveal in ("on", "team"):
                 to_send = "gunner_suicide"
-            wrapper.send(messages[to_send].format(wrapper.source, get_reveal_role(var, wrapper.source)))
+            wrapper.send(messages[to_send].format(wrapper.source, await get_reveal_role(var, wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
         else:
@@ -136,7 +136,7 @@ async def setup_variables(rolename: str, *, hit: float, headshot: float, explode
                             to_send = "gunner_killed_wolf_overnight_no_reveal"
                             if var.role_reveal in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
-                            channels.Main.send(messages[to_send].format(victim, shot, get_reveal_role(var, shot)))
+                            channels.Main.send(messages[to_send].format(victim, shot, await get_reveal_role(var, shot)))
                             add_dying(var, shot, killer_role=evt.params.main_role, reason="assassin", killer=victim)
                     elif event.data["hit"]:
                         # shot hit, but didn't kill

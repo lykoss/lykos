@@ -137,16 +137,18 @@ class Channel(IRCContext):
     def key(self):
         return self._key
 
-    def queue(self, name, params, args):
+    async def queue(self, name, params, args):
         if self._pending is None:
-            Event(name, params).dispatch(*args)
+            evt = Event(name, params)
+            await evt.dispatch(*args)
         else:
             self._pending.append((name, params, args))
 
-    def dispatch_queue(self):
+    async def dispatch_queue(self):
         if self._pending is not None:
             for name, params, args in self._pending:
-                Event(name, params).dispatch(*args)
+                evt = Event(name, params)
+                await evt.dispatch(*args)
             self._pending = None
 
     async def join(self, key=""):
@@ -307,7 +309,7 @@ class Channel(IRCContext):
         if "k" in mode:
             self._key = self.modes.get("k", "")
 
-    def remove_user(self, user):
+    async def remove_user(self, user):
         self.users.remove(user)
         for mode in Features["PREFIX"].values():
             if mode in self.modes:
@@ -317,7 +319,7 @@ class Channel(IRCContext):
         del user.channels[self]
         if not user.channels: # Only fire if the user left all channels
             event = Event("cleanup_user", {})
-            event.dispatch(self.game_state, user)
+            await event.dispatch(self.game_state, user)
 
     def clear(self):
         for user in self.users:

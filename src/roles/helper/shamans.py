@@ -321,7 +321,7 @@ async def get_totem_target(var: GameState, wrapper: MessageDispatcher, message, 
     else:
         target_str = pieces[0]
 
-    target = get_target(wrapper, target_str, allow_self=True)
+    target = await get_target(wrapper, target_str, allow_self=True)
     if not target:
         return None, None
 
@@ -399,11 +399,11 @@ async def on_see(evt: Event, var: GameState, seer, target):
 @event_listener("day_vote_immunity")
 async def on_day_vote_immunity(evt: Event, var: GameState, user, reason):
     if reason == "totem":
-        role = get_main_role(var, user)
+        role = await get_main_role(var, user)
         rev_evt = Event("role_revealed", {})
-        rev_evt.dispatch(var, user, role)
+        await rev_evt.dispatch(var, user, role)
 
-        channels.Main.send(messages["totem_reveal"].format(user, role))
+        await channels.Main.send(messages["totem_reveal"].format(user, role))
         evt.data["immune"] = True
 
 @event_listener("day_vote")
@@ -411,17 +411,17 @@ async def on_day_vote(evt: Event, var: GameState, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
-        main_role = get_main_role(var, votee)
+        main_role = await get_main_role(var, votee)
         if target is not votee:
-            protected = try_protection(var, target, attacker=votee, attacker_role=main_role, reason="totem_desperation")
+            protected = await try_protection(var, target, attacker=votee, attacker_role=main_role, reason="totem_desperation")
             if protected is not None:
-                channels.Main.send(*protected)
+                await channels.Main.send(*protected)
                 return
 
             to_send = "totem_desperation_no_reveal"
             if var.role_reveal in ("on", "team"):
                 to_send = "totem_desperation"
-            channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(var, target)))
+            await channels.Main.send(messages[to_send].format(votee, target, await get_reveal_role(var, target)))
             status.add_dying(var, target, killer_role=main_role, reason="totem_desperation", killer=votee)
             # no kill_players() call here; let our caller do that for us
 
@@ -499,7 +499,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         to_send = f"retribution_totem_{var.current_phase}_death_no_reveal"
         if var.role_reveal in ("on", "team"):
             to_send = f"retribution_totem_{var.current_phase}_death"
-        channels.Main.send(messages[to_send].format(player, loser, get_reveal_role(var, loser)))
+        channels.Main.send(messages[to_send].format(player, loser, await get_reveal_role(var, loser)))
         add_dying(var, loser, evt.params.main_role, "retribution_totem", killer=player)
 
 @event_listener("transition_day_end")

@@ -63,7 +63,7 @@ async def reaper(var: GameState, gameid: int):
                 reveal = ""
 
             for dcedplayer, (timeofdc, what) in list(DISCONNECTED.items()):
-                revealrole = get_reveal_role(var, dcedplayer)
+                revealrole = await get_reveal_role(var, dcedplayer)
                 if not config.Main.get(f"reaper.{what}.enabled"):
                     continue
                 if datetime.now() - timeofdc <= timedelta(seconds=config.Main.get(f"reaper.{what}.grace")):
@@ -117,7 +117,7 @@ async def reaper(var: GameState, gameid: int):
                         IDLE_WARNED_PM.discard(user)
                 for user in to_kill:
                     # keys used: idle_death, idle_death_no_reveal
-                    await channels.Main.send(messages[f"idle_death{reveal}"].format(user, get_reveal_role(var, user)))
+                    await channels.Main.send(messages[f"idle_death{reveal}"].format(user, await get_reveal_role(var, user)))
                     if var.in_game:
                         DCED_LOSERS.add(user)
                     if config.Main.get("reaper.autowarn") and config.Main.get("reaper.idle.enabled"):

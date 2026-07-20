@@ -387,7 +387,7 @@ async def leave_game(wrapper: MessageDispatcher, message: str):
         return
 
     if var.in_game and var.role_reveal in ("on", "team"):
-        role = get_reveal_role(var, wrapper.source)
+        role = await get_reveal_role(var, wrapper.source)
         await channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
         await channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
@@ -429,7 +429,7 @@ async def fleave(wrapper: MessageDispatcher, message: str):
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
             if var.in_game and var.role_reveal in ("on", "team"):
-                msg.append(messages["fquit_goodbye"].format(get_reveal_role(var, target)))
+                msg.append(messages["fquit_goodbye"].format(await get_reveal_role(var, target)))
             if var.current_phase == "join":
                 player_count = len(get_players(var)) - 1
                 to_say = "new_player_count"

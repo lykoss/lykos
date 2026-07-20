@@ -26,7 +26,7 @@ async def hunter_kill(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["hunter_already_killed"])
         return
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
 

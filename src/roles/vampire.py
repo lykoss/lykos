@@ -29,11 +29,11 @@ class GameState(gamestate.GameState):
 async def vampire_bite(wrapper: MessageDispatcher, message: str):
     """Bite someone at night, draining their blood. Kills them if they were already drained."""
     var = wrapper.game_state # type: GameState
-    target = get_target(wrapper, re.split(" +", message)[0])
+    target = await get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 
-    if is_known_vampire_ally(var, wrapper.source, target):
+    if await is_known_vampire_ally(var, wrapper.source, target):
         await wrapper.send(messages["no_target_vampire"])
         return
 
@@ -42,7 +42,7 @@ async def vampire_bite(wrapper: MessageDispatcher, message: str):
             # let the vampire target the same person multiple times in succession
             # doesn't really do anything but giving an error is even weirder
             continue
-        if target is victim and is_known_vampire_ally(var, wrapper.source, vampire):
+        if target is victim and await is_known_vampire_ally(var, wrapper.source, vampire):
             await wrapper.send(messages["already_bitten_tonight"].format(target))
             return
 
@@ -99,7 +99,7 @@ async def on_send_role(evt: Event, var: GameState):
     for vampire in get_all_players(var, ("vampire",)):
         vampire.send(messages["vampire_notify"])
         if var.next_phase == "night":
-            await vampire.send(messages["players_list"].format(get_vampire_list(var, vampire)))
+            await vampire.send(messages["players_list"].format(await get_vampire_list(var, vampire)))
 
     # only main role vampires get access to vampire chat
     vampires = get_players(var, ("vampire",))
@@ -135,8 +135,9 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
         # defer resolution of get_vampire_list() until the time the message is actually being sent to the player
         # this way in a role swap we aren't working on an inaccurate view of who should have which role and potentially
         # leak information or give inaccurate information to the new vampire
-        evt.data["messages"].append(
-            lambda: messages["players_list"].format(get_vampire_list(var, player, role=evt.data["role"])))
+        async def _msg():
+            return messages["players_list"].format(await get_vampire_list(var, player, role=evt.data["role"]))
+        evt.data["messages"].append(_msg)
 
 @event_listener("night_kills")
 async def on_night_kills(evt: Event, var: GameState):
@@ -195,9 +196,9 @@ async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
 
 _bite_cmds = ("bite", "retract")
 
-def is_known_vampire_ally(var, actor, target):
-    actor_role = get_main_role(var, actor)
-    target_role = get_main_role(var, target)
+async def is_known_vampire_ally(var, actor, target):
+    actor_role = await get_main_role(var, actor)
+    target_role = await get_main_role(var, target)
     return actor_role in Vampire and target_role in Vampire
 
 async def send_vampire_chat_message(var: GameState,
@@ -211,7 +212,7 @@ async def send_vampire_chat_message(var: GameState,
             return
         if var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             return
-    if not is_known_vampire_ally(var, player, player):
+    if not await is_known_vampire_ally(var, player, player):
         return
 
     send_to_roles = Vampire
@@ -232,7 +233,7 @@ async def send_vampire_chat_message(var: GameState,
     if player is not None:
         await player.send_messages()
 
-def get_vampire_list(var,
+async def get_vampire_list(var,
                      player: User,
                      *,
                      shuffle: bool = True,
@@ -255,13 +256,13 @@ def get_vampire_list(var,
         random.shuffle(pl)
 
     if role is None and player in get_players(var):
-        role = get_main_role(var, player)
+        role = await get_main_role(var, player)
 
     if role in Vampire:
         entries = []
         for p in pl:
-            prole = get_main_role(var, p)
-            if prole in Vampire and is_known_vampire_ally(var, player, p):
+            prole = await get_main_role(var, p)
+            if prole in Vampire and await is_known_vampire_ally(var, player, p):
                 entries.append(messages["players_list_entry"].format(p, "bold", [prole]))
             elif p in var.vampire_drained:
                 entries.append(messages["players_list_entry"].format(p, "", ["drained"]))

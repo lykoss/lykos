@@ -29,7 +29,7 @@ async def pray(wrapper: MessageDispatcher, message: str):
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    matches = match_role(message, allow_special=False)
+    matches = await match_role(message, allow_special=False)
     if len(matches) == 0:
         wrapper.pm(messages["no_such_role"].format(message))
         return

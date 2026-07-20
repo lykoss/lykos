@@ -33,7 +33,7 @@ async def see(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(var, target)
+    targrole = await get_main_role(var, target)
 
     if targrole in Cursed:
         targrole = "wolf"

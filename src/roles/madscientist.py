@@ -48,8 +48,8 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     kill1 = prots1 is None and add_dying(var, target1, killer_role="mad scientist", reason="mad_scientist", killer=player)
     kill2 = prots2 is None and target1 is not target2 and add_dying(var, target2, killer_role="mad scientist", reason="mad_scientist", killer=player)
 
-    role1 = kill1 and get_reveal_role(var, target1)
-    role2 = kill2 and get_reveal_role(var, target2)
+    role1 = kill1 and await get_reveal_role(var, target1)
+    role2 = kill2 and await get_reveal_role(var, target2)
     if kill1 and kill2:
         to_send = "mad_scientist_kill"
     elif kill1:

@@ -31,7 +31,7 @@ async def vg_kill(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0])
+    target = await get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 

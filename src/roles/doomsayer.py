@@ -35,11 +35,11 @@ async def see(wrapper: MessageDispatcher, message: str):
         return
 
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if not target:
         return
 
-    if is_known_wolf_ally(var, wrapper.source, target):
+    if await is_known_wolf_ally(var, wrapper.source, target):
         wrapper.send(messages["no_see_wolf"])
         return
 
@@ -56,7 +56,7 @@ async def see(wrapper: MessageDispatcher, message: str):
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
     mapping[wrapper.source] = target
 
-    send_wolfchat_message(var, wrapper.source, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), role="doomsayer", command="see")
+    await send_wolfchat_message(var, wrapper.source, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), role="doomsayer", command="see")
 
     SEEN.add(wrapper.source)
     LASTSEEN[wrapper.source] = target

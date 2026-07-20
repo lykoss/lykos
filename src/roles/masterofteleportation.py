@@ -23,8 +23,8 @@ async def choose(wrapper: MessageDispatcher, message: str):
     if len(pieces) < 2:
         return
     var = wrapper.game_state
-    target1 = get_target(wrapper, pieces[0], allow_self=True)
-    target2 = get_target(wrapper, pieces[1], allow_self=True)
+    target1 = await get_target(wrapper, pieces[0], allow_self=True)
+    target2 = await get_target(wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:
         return
 

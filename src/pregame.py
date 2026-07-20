@@ -528,7 +528,7 @@ async def frole(wrapper: MessageDispatcher, message: str):
             await wrapper.send(messages["frole_incorrect"].format(part))
             return
         umatch = users.complete_match(name.strip(), pl)
-        rmatch = match_role(role.strip(), allow_special=False)
+        rmatch = await match_role(role.strip(), allow_special=False)
         role = None
         if rmatch:
             role = rmatch.get().key

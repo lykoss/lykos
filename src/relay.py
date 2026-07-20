@@ -107,7 +107,7 @@ async def try_restricted_cmd(wrapper: MessageDispatcher, key: str) -> bool:
     if config.Main.get("debug.enabled"):
         return True
 
-    pl = get_participants(wrapper.game_state)
+    pl = await get_participants(wrapper.game_state)
 
     if wrapper.source in pl:
         await wrapper.pm(messages[key])
@@ -154,14 +154,14 @@ async def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectat
                 players = list(get_players(var, Wolfchat))
                 if "src.roles.helper.wolves" in sys.modules:
                     from src.roles.helper.wolves import is_known_wolf_ally
-                    players = [p for p in players if is_known_wolf_ally(var, p, p)]
+                    players = [p for p in players if await is_known_wolf_ally(var, p, p)]
             else:
                 already_spectating = wrapper.source in VAMPCHAT_SPECTATE
                 VAMPCHAT_SPECTATE.add(wrapper.source)
                 players = list(get_players(var, Vampire))
                 if "src.roles.vampire" in sys.modules:
                     from src.roles.vampire import is_known_vampire_ally
-                    players = [p for p in players if is_known_vampire_ally(var, p, p)]
+                    players = [p for p in players if await is_known_vampire_ally(var, p, p)]
 
             if not is_fspectate and not already_spectating and config.Main.get("gameplay.spectate.notice"):
                 if config.Main.get("gameplay.spectate.include_user"):
@@ -243,7 +243,7 @@ async def join_deadchat(var: GameState, *all_users: User):
         return
 
     to_join: list[User] = []
-    pl = get_participants(var)
+    pl = await get_participants(var)
 
     for user in all_users:
         if user.stasis_count() or user in pl or user in DEADCHAT_PLAYERS or user not in channels.Main.users:

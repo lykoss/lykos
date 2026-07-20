@@ -112,7 +112,7 @@ class SleepyMode(GameMode):
         time_limit = config.Main.get("gameplay.modes.sleepy.nightmare.time")
         timers_enabled = config.Main.get("timers.enabled")
         for dulla, target in self.having_nightmare.items():
-            if get_main_role(var, target) == "dullahan":
+            if await get_main_role(var, target) == "dullahan":
                 continue
             # ensure regular dullahan kill logic doesn't fire since we do it specially
             # (except for dullahans targeting themselves or other dullahans)
@@ -274,9 +274,9 @@ class SleepyMode(GameMode):
                             continue
                         # otherwise turn only one wolfteam into monster for each seer that turns to doomsayer
                         random.shuffle(can_turn)
-                        change_role(var, can_turn[0], turn_role, "monster", message="sleepy_monster_turn")
+                        await change_role(var, can_turn[0], turn_role, "monster", message="sleepy_monster_turn")
                     # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn, sleepy_jester_turn
-                    change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
+                    await change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
                     if new == "jester":
                         # VGs turned into jesters remain spicy
                         var.roles["vengeful ghost"].add(t)

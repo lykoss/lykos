@@ -54,28 +54,28 @@ async def hurry_up(timer_type: str, var: GameState, phase_id: float, *, admin_fo
 
     if timer_type == "warn":
         event = Event("daylight_warning", {"message": "daylight_warning"})
-        event.dispatch(var)
-        channels.Main.send(messages[event.data["message"]])
+        await event.dispatch(var)
+        await channels.Main.send(messages[event.data["message"]])
         return
 
     DAY_ID = 0
-    chk_decision(var, timeout=True, admin_forced=admin_forced)
+    await chk_decision(var, timeout=True, admin_forced=admin_forced)
 
 @command("fnight", flag="N")
 async def fnight(wrapper: MessageDispatcher, message: str):
     """Force the day to end and night to begin."""
     if wrapper.game_state.current_phase != "day":
-        wrapper.pm(messages["not_daytime"])
+        await wrapper.pm(messages["not_daytime"])
     else:
-        hurry_up("limit", wrapper.game_state, 0, admin_forced=True)
+        await hurry_up("limit", wrapper.game_state, 0, admin_forced=True)
 
 @command("fday", flag="N")
 async def fday(wrapper: MessageDispatcher, message: str):
     """Force the night to end and the next day to begin."""
     if wrapper.game_state.current_phase != "night":
-        wrapper.pm(messages["not_nighttime"])
+        await wrapper.pm(messages["not_nighttime"])
     else:
-        transition_day(wrapper.game_state)
+        await transition_day(wrapper.game_state)
 
 async def begin_day(var: GameState):
     global DAY_ID
@@ -99,7 +99,7 @@ async def begin_day(var: GameState):
         for player in pl:
             if not player.is_fake:
                 modes.append(("+v", player.nick))
-        channels.Main.mode(*modes)
+        await channels.Main.mode(*modes)
 
     # move everyone to the village square (or home if they're absent)
     if var.auto_move_players:
@@ -111,25 +111,25 @@ async def begin_day(var: GameState):
                 move_player(var, p, VillageSquare)
 
     event = Event("begin_day", {})
-    event.dispatch(var)
+    await event.dispatch(var)
     # game might've ended due to begin_day listeners?
-    if chk_win(var):
+    if await chk_win(var):
         return
 
     # re-fetch number of players just in case anyone died during the begin_day event...
     available = len(get_players(var)) - len(get_absent(var))
     msg = messages["villagers_vote"].format(available // 2 + 1)
-    channels.Main.send(msg)
+    await channels.Main.send(msg)
 
     # induce a vote if we need to (due to lots of pacifism/impatience totems or whatever)
-    chk_decision(var)
+    await chk_decision(var)
 
 async def _night_warn(var: GameState):
     channels.Main.send(messages["twilight_warning"])
 
     # determine who hasn't acted yet and remind them to act
     event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
-    event.dispatch(var)
+    await event.dispatch(var)
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
     nightroles: list[User] = [p for p in event.data["nightroles"] if not is_silent(var, p)]
@@ -140,9 +140,9 @@ async def _night_warn(var: GameState):
         if player.is_fake or count == 0:
             continue
         idle_event = Event("night_idled", {})
-        if idle_event.dispatch(var, player):
+        if await idle_event.dispatch(var, player):
             player.queue_message(messages["night_idle_notice"])
-    users.User.send_messages()
+    await users.User.send_messages()
 
 @handle_error
 async def night_timeout(timer_type: str, var: GameState, phase_id: int):
@@ -150,16 +150,16 @@ async def night_timeout(timer_type: str, var: GameState, phase_id: int):
         return
 
     if timer_type == "warn":
-        _night_warn(var)
+        await _night_warn(var)
         return
 
     # determine which roles idled out night and give them warnings
     event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
-    event.dispatch(var)
+    await event.dispatch(var)
 
     # if night idle warnings are disabled, head straight to day
     if not config.Main.get("reaper.night_idle.enabled"):
-        event.data["transition_day"](var)
+        await event.data["transition_day"](var)
         return
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
@@ -172,13 +172,13 @@ async def night_timeout(timer_type: str, var: GameState, phase_id: int):
         # for example, if time lord is active or they have a nightmare in sleepy
         # these can block the player from getting a warning by setting prevent_default
         idle_event = Event("night_idled", {})
-        if idle_event.dispatch(var, player):
+        if await idle_event.dispatch(var, player):
             # don't give the warning right away:
             # 1. they may idle out entirely, in which case that replaces this warning
             # 2. warning is deferred to end of game so admins can't !fwarn list to cheat and determine who idled
             reaper.NIGHT_IDLED.add(player)
 
-    event.data["transition_day"](var)
+    await event.data["transition_day"](var)
 
 @event_listener("night_idled")
 async def on_night_idled(evt: Event, var: GameState, player):
@@ -201,10 +201,10 @@ async def transition_day(var: GameState, game_id: int = 0):
     DAY_START_TIME = datetime.now()
 
     event_begin = Event("transition_day_begin", {})
-    event_begin.dispatch(var)
+    await event_begin.dispatch(var)
 
     if var.start_with_day and var.day_count == 1:
-        begin_day(var)
+        await begin_day(var)
         return
 
     assert isinstance(DAY_START_TIME, datetime) and isinstance(NIGHT_START_TIME, datetime)
@@ -235,7 +235,7 @@ async def transition_day(var: GameState, game_id: int = 0):
         "killers": killers,
         "kill_priorities": kill_priorities
         })
-    evt.dispatch(var)
+    await evt.dispatch(var)
 
     # expand locations to encompass everyone at that location
     for v in set(victims):
@@ -276,21 +276,21 @@ async def transition_day(var: GameState, game_id: int = 0):
                     kdata["try_lycanthropy"] = True
                 elif isinstance(killer, str):
                     kevt = Event("resolve_killer_tag", kdata)
-                    kevt.dispatch(var, victim, killer)
+                    await kevt.dispatch(var, victim, killer)
                     assert kdata["role"] is not None
                 else:
                     kdata["attacker"] = killer
-                    kdata["role"] = get_main_role(var, killer, mainroles=mainroles)
+                    kdata["role"] = await get_main_role(var, killer, mainroles=mainroles)
                 protected = None
                 if kdata["try_protection"]:
-                    protected = try_protection(var, victim, kdata["attacker"], kdata["role"], reason=kdata["protection_reason"])
+                    protected = await try_protection(var, victim, kdata["attacker"], kdata["role"], reason=kdata["protection_reason"])
                 if protected is not None:
                     message[victim].extend(protected)
                     killers[victim].remove(killer)
                     # if there's no particular protection message (e.g. blessed), then we still want no victims message to play
                     if protected:
                         novictmsg = False
-                elif kdata["try_lycanthropy"] and try_lycanthropy(var, victim):
+                elif kdata["try_lycanthropy"] and await try_lycanthropy(var, victim):
                     howl_count += 1
                     novictmsg = False
                     killers[victim].remove(killer)
@@ -304,9 +304,9 @@ async def transition_day(var: GameState, game_id: int = 0):
     for victim in dead:
         mevt = Event("night_death_message", {
             "key": "death" if var.role_reveal in ("on", "team") else "death_no_reveal",
-            "args": [victim, get_reveal_role(var, victim)]
+            "args": [victim, await get_reveal_role(var, victim)]
         }, rolemap=rolemap, mainroles=mainroles)
-        if mevt.dispatch(var, victim, killers[victim][0]):
+        if await mevt.dispatch(var, victim, killers[victim][0]):
             message[victim].append(messages[mevt.data["key"]].format(*mevt.data["args"]))
 
     # Offer a chance for game modes and roles to inspect the fully-resolved state and act upon it.
@@ -318,7 +318,7 @@ async def transition_day(var: GameState, game_id: int = 0):
         "novictmsg": novictmsg,
         "howl": howl_count,
         }, victims=victims, rolemap=rolemap, mainroles=mainroles)
-    evt.dispatch(var, dead, {v: k[0] for v, k in killers.items() if v in dead})
+    await evt.dispatch(var, dead, {v: k[0] for v, k in killers.items() if v in dead})
 
     # handle howls and novictmsg
     if evt.data["novictmsg"] and len(dead) == 0:
@@ -332,7 +332,7 @@ async def transition_day(var: GameState, game_id: int = 0):
     for msg in message.values():
         to_send.extend(msg)
 
-    channels.Main.send(*to_send, sep="\n")
+    await channels.Main.send(*to_send, sep="\n")
 
     # chilling howl message was played, give roles the opportunity to update !stats
     # to account for this
@@ -342,7 +342,7 @@ async def transition_day(var: GameState, game_id: int = 0):
         for rs in var.get_role_stats():
             d = Counter(dict(rs))
             revt.data["new"] = [d]
-            revt.dispatch(var, d, "howl")
+            await revt.dispatch(var, d, "howl")
             for new_set in revt.data["new"]: ## type: Counter[str]
                 if min(new_set.values()) >= 0:
                     newstats.add(frozenset(new_set.items()))
@@ -365,7 +365,7 @@ async def transition_day(var: GameState, game_id: int = 0):
                 "protection_reason": "night_death",
                 "try_lycanthropy": False
             })
-            kevt.dispatch(var, deadperson, killer)
+            await kevt.dispatch(var, deadperson, killer)
             assert kevt.data["role"] is not None
             killer = kevt.data["attacker"]
             killer_role[deadperson] = kevt.data["role"]
@@ -374,16 +374,16 @@ async def transition_day(var: GameState, game_id: int = 0):
 
         add_dying(var, deadperson, killer_role[deadperson], "night_kill", killer=killer)
 
-    kill_players(var, end_game=False) # temporary hack; end_game=False also prevents kill_players from attempting phase transitions
+    await kill_players(var, end_game=False) # temporary hack; end_game=False also prevents kill_players from attempting phase transitions
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
-    event_end.dispatch(var)
+    await event_end.dispatch(var)
 
     # make sure that we process ALL of the transition_day events before checking for game end
-    if chk_win(var): # game ending
+    if await chk_win(var): # game ending
         return
 
-    event_end.data["begin_day"](var)
+    await event_end.data["begin_day"](var)
 
 @handle_error
 async def transition_night(var: GameState):

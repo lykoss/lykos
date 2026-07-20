@@ -23,7 +23,7 @@ PASSED: UserSet = UserSet()
 @command("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 async def curse(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0])
+    target = await get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 
@@ -35,7 +35,7 @@ async def curse(wrapper: MessageDispatcher, message: str):
     # but for now it is not allowed. If someone seems suspicious and shows as
     # villager across multiple nights, safes can use that as a tell that the
     # person is likely wolf-aligned.
-    if is_known_wolf_ally(var, wrapper.source, target):
+    if await is_known_wolf_ally(var, wrapper.source, target):
         wrapper.pm(messages["no_curse_wolf"])
         return
 
@@ -87,14 +87,14 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
 
     if not evt.data["in_wolfchat"] and evt.data["role"] == "warlock":
         # this means warlock isn't in wolfchat, so only give cursed list
-        player.send(messages["players_list"].format(get_wolflist(var, player)))
+        await player.send(messages["players_list"].format(await get_wolflist(var, player)))
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):
     pl = get_players(var)
     wroles = get_wolfchat_roles()
     for warlock, target in CURSED.items():
-        if target in pl and get_main_role(var, target) not in wroles:
+        if target in pl and await get_main_role(var, target) not in wroles:
             var.roles["cursed villager"].add(target)
 
     CURSED.clear()

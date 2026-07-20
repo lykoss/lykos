@@ -30,8 +30,8 @@ async def investigate(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
     target1 = pieces[0]
     target2 = pieces[1]
-    target1 = get_target(wrapper, target1, not_self_message="no_investigate_self")
-    target2 = get_target(wrapper, target2, not_self_message="no_investigate_self")
+    target1 = await get_target(wrapper, target1, not_self_message="no_investigate_self")
+    target2 = await get_target(wrapper, target2, not_self_message="no_investigate_self")
     if not target1 or not target2:
         return
     elif target1 is target2:
@@ -41,23 +41,23 @@ async def investigate(wrapper: MessageDispatcher, message: str):
     target1 = try_misdirection(var, wrapper.source, target1)
     target2 = try_misdirection(var, wrapper.source, target2)
 
-    if try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
+    if await try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
         return
 
-    t1role = get_main_role(var, target1)
-    t2role = get_main_role(var, target2)
+    t1role = await get_main_role(var, target1)
+    t2role = await get_main_role(var, target2)
 
     evt = Event("spy", {"role": t1role})
-    evt.dispatch(var, wrapper.source, target1, "investigator")
+    await evt.dispatch(var, wrapper.source, target1, "investigator")
     t1role = evt.data["role"]
 
     evt = Event("spy", {"role": t2role})
-    evt.dispatch(var, wrapper.source, target2, "investigator")
+    await evt.dispatch(var, wrapper.source, target2, "investigator")
     t2role = evt.data["role"]
 
     same = get_team(var, t1role) is get_team(var, t2role)
     evt = Event("get_team_affiliation", {"same": same})
-    evt.dispatch(var, target1, target2)
+    await evt.dispatch(var, target1, target2)
 
     if evt.data["same"]:
         wrapper.pm(messages["investigator_results_same"].format(target1, target2))

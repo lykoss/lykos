@@ -24,14 +24,14 @@ async def try_exchange(var: GameState, actor: User, target: User):
 
     EXCHANGE.remove(target)
 
-    role = get_main_role(var, actor)
-    target_role = get_main_role(var, target)
+    role = await get_main_role(var, actor)
+    target_role = await get_main_role(var, target)
 
-    actor_role, actor_messages = change_role(var, actor, role, target_role, inherit_from=target, send_messages=False)
-    target_role, _ = change_role(var, target, target_role, role, inherit_from=actor)
+    actor_role, actor_messages = await change_role(var, actor, role, target_role, inherit_from=target, send_messages=False)
+    target_role, _ = await change_role(var, target, target_role, role, inherit_from=actor)
     # defer actor's messages so that things dependent on all roles to be resolved can run after we finish setting
     # the target's role
-    actor.send(*actor_messages)
+    await actor.send(*actor_messages)
 
     if actor_role == target_role: # swap state of two players with the same role
         evt = Event("swap_role_state", {"actor_messages": [], "target_messages": []})

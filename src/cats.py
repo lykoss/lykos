@@ -133,14 +133,14 @@ async def _register_roles(evt: Event):
     team_evt = Event("get_role_metadata", {
         "teams": {"Wolfteam", "Vampire Team", "Village", "Neutral", "Hidden"}
     })
-    team_evt.dispatch(None, "team_categories")
+    await team_evt.dispatch(None, "team_categories")
     teams = set(team_evt.data["teams"])
     for cat in teams:
         if cat not in ROLE_CATS or ROLE_CATS[cat] is All or ROLE_CATS[cat] is Nobody:
             raise ValueError("{0!r} is not a valid role category".format(cat))
 
     evt = Event("get_role_metadata", {})
-    evt.dispatch(None, "role_categories")
+    await evt.dispatch(None, "role_categories")
     for role, cats in evt.data.items():
         if len(cats & teams) != 1:
             raise RuntimeError("Invalid categories for {0}: Must have exactly one team defined".format(role))

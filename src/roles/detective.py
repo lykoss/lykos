@@ -28,18 +28,18 @@ async def investigate(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
     if target is None:
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(var, target)
+    targrole = await get_main_role(var, target)
 
     evt = Event("spy", {"role": targrole})
-    evt.dispatch(var, wrapper.source, target, "detective")
+    await evt.dispatch(var, wrapper.source, target, "detective")
     targrole = evt.data["role"]
 
     INVESTIGATED.add(wrapper.source)
@@ -47,7 +47,7 @@ async def investigate(wrapper: MessageDispatcher, message: str):
 
     if random.randrange(0, 100) < config.Main.get("gameplay.safes.detective_reveal"):  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised! Let the wolves know
-        if get_main_role(var, wrapper.source) in Wolfteam:
+        if await get_main_role(var, wrapper.source) in Wolfteam:
             to_notify = get_players(var, Safe)
         else:
             to_notify = get_players(var, get_wolfchat_roles())
@@ -55,7 +55,7 @@ async def investigate(wrapper: MessageDispatcher, message: str):
         if to_notify:
             for player in to_notify:
                 player.queue_message(messages["detective_reveal"].format(wrapper.source))
-            User.send_messages()
+            await User.send_messages()
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):

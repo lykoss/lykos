@@ -34,7 +34,7 @@ async def change_sides(wrapper: MessageDispatcher, message: str, sendmsg=True): 
         teams.append("vampire")
 
     team = re.split(" +", message)[0]
-    team = match_role(team, scope=teams)
+    team = await match_role(team, scope=teams)
     if not team:
         wrapper.pm(messages["turncoat_error"])
         return

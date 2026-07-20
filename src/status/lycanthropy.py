@@ -59,12 +59,12 @@ async def try_lycanthropy(var: GameState, target: User) -> bool:
     if target not in LYCANTHROPES:
         return False
 
-    role = get_main_role(var, target)
+    role = await get_main_role(var, target)
     if role in Wolf:
         return False
 
     evt = Event("get_role_metadata", {})
-    evt.dispatch(var, "lycanthropy_role")
+    await evt.dispatch(var, "lycanthropy_role")
     new_role = "wolf"
     prefix = LYCANTHROPES[target]
     if role in evt.data:
@@ -72,7 +72,7 @@ async def try_lycanthropy(var: GameState, target: User) -> bool:
             new_role = evt.data[role]["role"]
             if not isinstance(evt.data[role]["role"], str):
                 evt2 = Event("get_lycanthrope_role", {"role": None})
-                evt2.dispatch(var, target, role, evt.data[role]["role"])
+                await evt2.dispatch(var, target, role, evt.data[role]["role"])
                 assert evt2.data["role"] in evt.data[role]["role"]
                 new_role = evt2.data["role"]
         if "prefix" in evt.data[role]:
@@ -80,9 +80,9 @@ async def try_lycanthropy(var: GameState, target: User) -> bool:
         for sec_role in evt.data[role].get("secondary_roles", ()):
             var.roles[sec_role].add(target)
             to_send = "{0}_notify".format(sec_role.replace(" ", "_"))
-            target.send(messages[to_send])
+            await target.send(messages[to_send])
 
-    change_role(var, target, role, new_role, message=prefix + "_turn")
+    await change_role(var, target, role, new_role, message=prefix + "_turn")
     return True
 
 @event_listener("reconfigure_stats")

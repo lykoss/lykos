@@ -29,7 +29,7 @@ async def guard(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="cannot_guard_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="cannot_guard_self")
     if not target:
         return
 
@@ -80,7 +80,7 @@ async def on_resolve_killer_tag(evt: Event, var: GameState, victim: User, tag: s
     if tag == "@bodyguard":
         # bodyguard is attacked by the wolf they (mistakenly?) guarded
         evt.data["attacker"] = GUARDED[victim]
-        evt.data["role"] = get_main_role(var, GUARDED[victim])
+        evt.data["role"] = await get_main_role(var, GUARDED[victim])
         evt.data["try_lycanthropy"] = True
 
 @event_listener("night_kills")

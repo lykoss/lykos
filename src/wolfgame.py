@@ -290,7 +290,7 @@ async def restart_program(wrapper: MessageDispatcher, message: str):
     async def restart_buffer(evt, user, reason):
         # restart the bot once our quit message goes though to ensure entire IRC queue is sent
         if user is users.Bot:
-            await _restart_program(mode)
+            _restart_program(mode)
 
     EventListener(restart_buffer).install("server_quit")
 
@@ -350,7 +350,7 @@ async def replace(wrapper: MessageDispatcher, message: str):
         await wrapper.pm(messages["not_logged_in"])
         return
 
-    participants = get_participants(var)
+    participants = await get_participants(var)
     target: Optional[User] = None
 
     for user in var.players:
@@ -503,7 +503,7 @@ async def account_change(evt, user: User, old_account): # FIXME: This uses var
 
     var = channels.Main.game_state
 
-    pl = get_participants(var)
+    pl = await get_participants(var)
     if user in pl and user.account not in trans.ORIGINAL_ACCOUNTS.values() and user not in reaper.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.current_phase != "join":
@@ -590,7 +590,7 @@ async def leave(var: Optional[GameState | PregameState], what: str, user: User, 
 
     role = ""
     if var.in_game:
-        role = get_reveal_role(var, user)
+        role = await get_reveal_role(var, user)
 
     await channels.Main.send(msg.format(user, role) + population)
     relay.WOLFCHAT_SPECTATE.discard(user)
@@ -599,7 +599,7 @@ async def leave(var: Optional[GameState | PregameState], what: str, user: User, 
 
     if killplayer:
         add_dying(var, user, "bot", what, death_triggers=False)
-        kill_players(var)
+        await kill_players(var)
     else:
         reaper.DISCONNECTED[user] = (datetime.now(), what)
 
@@ -1084,18 +1084,18 @@ async def myrole(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    ps = get_participants(var)
+    ps = await get_participants(var)
     if wrapper.source not in ps:
         return
 
-    role = get_main_role(var, wrapper.source)
+    role = await get_main_role(var, wrapper.source)
     # we want secondary to be a set, not a Category, so any sets need a .roles accessor to get at the underlying roles
     secondary = get_all_roles(var, wrapper.source) - {role} - Hidden.roles
     if role in Hidden:
         role = var.hidden_role
 
     evt = Event("myrole", {"role": role, "secondary": secondary, "messages": []})
-    if not evt.dispatch(var, wrapper.source):
+    if not await evt.dispatch(var, wrapper.source):
         return
     role = evt.data["role"]
 
@@ -1460,7 +1460,7 @@ async def force(wrapper: MessageDispatcher, message: str):
         return
 
     target = msg.pop(0).strip()
-    match = users.complete_match(target, get_participants(wrapper.game_state))
+    match = users.complete_match(target, await get_participants(wrapper.game_state))
     if target == "*":
         players = get_players(wrapper.game_state)
     elif not match:
@@ -1482,7 +1482,7 @@ async def rforce(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     target = msg.pop(0).strip().lower()
-    possible = match_role(target, allow_special=False, remove_spaces=True)
+    possible = await match_role(target, allow_special=False, remove_spaces=True)
     if target == "*":
         players = get_players(var)
     elif possible:

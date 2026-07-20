@@ -187,14 +187,14 @@ class PactBreakerMode(GameMode):
         for player in pl:
             # wolf, vigilante, and vampire already got a player list from their send_role event,
             # so only give this to villagers
-            if get_main_role(var, player) == "villager":
+            if await get_main_role(var, player) == "villager":
                 ps = pl[:]
                 random.shuffle(ps)
                 ps.remove(player)
                 await player.send(messages["players_list"].format(ps))
 
     async def on_myrole(self, evt: Event, var: GameState, player: User):
-        player.send(messages["pactbreaker_info_clues"].format(self.clue_tokens[player]))
+        await player.send(messages["pactbreaker_info_clues"].format(self.clue_tokens[player]))
         evidence: dict[User, str] = {}
         # roles earlier in the order can be fake evidence for later roles
         # iterate such that real evidence is always displayed if available by putting those roles last
@@ -232,9 +232,9 @@ class PactBreakerMode(GameMode):
         for player in stocks_players:
             move_player(var, player, VillageSquare)
 
-    def build_deck(self, var: GameState, location: Location, visitors: set[User]) -> tuple[list[str], int]:
+    async def build_deck(self, var: GameState, location: Location, visitors: set[User]) -> tuple[list[str], int]:
         num_visitors = len(visitors)
-        num_wolves = sum(1 for v in visitors if get_main_role(var, v) == "wolf")
+        num_wolves = sum(1 for v in visitors if await get_main_role(var, v) == "wolf")
         num_other = num_visitors - num_wolves
 
         if location is Forest:
@@ -288,12 +288,12 @@ class PactBreakerMode(GameMode):
 
         # resolve kill command usages
         for killer, victim in self.killing.items():
-            killer_role = get_main_role(var, killer)
-            victim_role = get_main_role(var, victim)
+            killer_role = await get_main_role(var, killer)
+            victim_role = await get_main_role(var, victim)
             have_evidence = victim in self.collected_evidence[killer][victim_role]
 
             if victim is not self.in_stocks and not have_evidence and victim_role == "vampire":
-                killer.send(messages["pactbreaker_kill_fail"].format(victim))
+                await killer.send(messages["pactbreaker_kill_fail"].format(victim))
             else:
                 evt.data["victims"].add(victim)
                 evt.data["killers"][victim].append(killer)
@@ -321,7 +321,7 @@ class PactBreakerMode(GameMode):
             if location is Limbo or not visitors:
                 continue
 
-            deck, num_draws = self.build_deck(var, location, visitors)
+            deck, num_draws = await self.build_deck(var, location, visitors)
             loc = location.name
             i = 0
             # for hunted card messaging and forest evidence
@@ -331,7 +331,7 @@ class PactBreakerMode(GameMode):
             vl = list(visitors)
             random.shuffle(vl)
             for visitor in vl:
-                visitor_role = get_main_role(var, visitor)
+                visitor_role = await get_main_role(var, visitor)
                 # vamps draw 2 cards at graveyard instead of 1
                 # wolves draw 3 cards at forest instead of 2
                 extra_draws = 1 if (visitor_role, location) in extra else 0
@@ -384,7 +384,7 @@ class PactBreakerMode(GameMode):
                     role_order = ("wolf", "villager", "vigilante")
                     for role in role_order:
                         for target in self.collected_evidence[visitor][role]:
-                            real_role = get_main_role(var, target)
+                            real_role = await get_main_role(var, target)
                             if real_role != role and target not in self.collected_evidence[visitor][real_role]:
                                 evidence_target = target
                                 break
@@ -409,10 +409,10 @@ class PactBreakerMode(GameMode):
                         # give fake evidence?
                         if num_evidence == 2 and evidence_target in all_cursed:
                             target_role = "wolf"
-                        elif num_evidence == 2 and get_main_role(var, evidence_target) == "vampire":
+                        elif num_evidence == 2 and await get_main_role(var, evidence_target) == "vampire":
                             target_role = "vigilante" if evidence_target in self.turned else "villager"
                         else:
-                            target_role = get_main_role(var, evidence_target)
+                            target_role = await get_main_role(var, evidence_target)
                         # also hide vigi evidence (or vigi fake evidence) from vills
                         if num_evidence == 2 and target_role == "vigilante" and visitor_role == "villager":
                             target_role = "villager"
@@ -473,7 +473,7 @@ class PactBreakerMode(GameMode):
             # if the vampire fully drains a vigilante, they might turn into a vampire instead of dying
             # this protection triggering means they should turn
             await attacker.send(messages["pactbreaker_drain_turn"].format(target))
-            change_role(var, target, get_main_role(var, target), "vampire", message="pactbreaker_drained_vigilante")
+            await change_role(var, target, await get_main_role(var, target), "vampire", message="pactbreaker_drained_vigilante")
             self.turned.add(target)
             self.drained.discard(target)
 
@@ -485,7 +485,7 @@ class PactBreakerMode(GameMode):
             # vigilante self-kill
             return
 
-        killer_role = get_main_role(var, killer, mainroles=evt.params.mainroles)
+        killer_role = await get_main_role(var, killer, mainroles=evt.params.mainroles)
 
         if killer_role == "vampire":
             await victim.send(messages["pactbreaker_drained_dead"])
@@ -609,7 +609,7 @@ class PactBreakerMode(GameMode):
 
         target_location = Location(match)
 
-        player_role = get_main_role(var, wrapper.source)
+        player_role = await get_main_role(var, wrapper.source)
         target_name = target_location.name
         del self.killing[:wrapper.source:]
         self.visiting[wrapper.source] = target_location
@@ -640,12 +640,12 @@ class PactBreakerMode(GameMode):
             await wrapper.pm(messages["pactbreaker_no_kill_stocks"])
             return
 
-        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+        target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
         if not target:
             return
 
-        player_role = get_main_role(var, wrapper.source)
-        if is_known_wolf_ally(var, wrapper.source, target):
+        player_role = await get_main_role(var, wrapper.source)
+        if await is_known_wolf_ally(var, wrapper.source, target):
             await wrapper.pm(messages["wolf_no_target_wolf"])
             return
 
@@ -675,11 +675,11 @@ class PactBreakerMode(GameMode):
             await wrapper.pm(messages["pactbreaker_no_kill_stocks"])
             return
 
-        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+        target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
         if not target:
             return
 
-        if is_known_vampire_ally(var, wrapper.source, target):
+        if await is_known_vampire_ally(var, wrapper.source, target):
             await wrapper.send(messages["no_target_vampire"])
             return
 
@@ -688,7 +688,7 @@ class PactBreakerMode(GameMode):
                 # let the vampire target the same person multiple times in succession
                 # doesn't really do anything but giving an error is even weirder
                 continue
-            if target is victim and is_known_vampire_ally(var, wrapper.source, killer):
+            if target is victim and await is_known_vampire_ally(var, wrapper.source, killer):
                 await wrapper.send(messages["already_bitten_tonight"].format(target))
                 return
 
@@ -704,7 +704,7 @@ class PactBreakerMode(GameMode):
     async def observe(self, wrapper: MessageDispatcher, message: str):
         """Spend clue tokens to learn about a player's role, however some roles may give inaccurate results."""
         var = wrapper.game_state
-        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
+        target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
         if not target:
             return
 
@@ -716,8 +716,8 @@ class PactBreakerMode(GameMode):
 
         self.clue_pool += min_tokens
         self.clue_tokens[wrapper.source] -= min_tokens
-        player_role = get_main_role(var, wrapper.source)
-        target_role = get_main_role(var, target)
+        player_role = await get_main_role(var, wrapper.source)
+        target_role = await get_main_role(var, target)
         if target in get_all_players(var, ("cursed villager",)):
             target_role = "wolf"
         elif target_role == "vampire":
@@ -733,7 +733,7 @@ class PactBreakerMode(GameMode):
     async def identify(self, wrapper: MessageDispatcher, message: str):
         """Spend clue tokens to accurately learn about a player's role."""
         var = wrapper.game_state
-        target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
+        target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_investigate_self")
         if not target:
             return
 
@@ -745,7 +745,7 @@ class PactBreakerMode(GameMode):
 
         self.clue_pool += min_tokens
         self.clue_tokens[wrapper.source] -= min_tokens
-        target_role = get_main_role(var, target)
+        target_role = await get_main_role(var, target)
         self.collected_evidence[wrapper.source][target_role].add(target)
         await wrapper.send(messages["investigate_success"].format(target, target_role))
 

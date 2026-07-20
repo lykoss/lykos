@@ -23,7 +23,7 @@ OBSERVED = UserSet()
 async def observe(wrapper: MessageDispatcher, message: str):
     """Observe a player to obtain various information."""
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_observe_self")
     if not target:
         return
 
@@ -31,7 +31,7 @@ async def observe(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["already_observed"])
         return
 
-    if is_known_wolf_ally(var, wrapper.source, target):
+    if await is_known_wolf_ally(var, wrapper.source, target):
         wrapper.pm(messages["no_observe_wolf"])
         return
 

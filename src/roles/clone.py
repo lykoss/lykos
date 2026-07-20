@@ -28,7 +28,7 @@ async def clone(wrapper: MessageDispatcher, message: str):
         return
 
     params = re.split(" +", message)
-    target = get_target(wrapper, params[0])
+    target = await get_target(wrapper, params[0])
     if target is None:
         return
 
@@ -63,14 +63,14 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
 
                 # clone is cloning target, so clone becomes target's main role
                 # clone does NOT get any of target's secondary roles (gunner/assassin/etc.)
-                mainrole, _ = change_role(var, clone, "clone", mainrole, inherit_from=target)
+                mainrole, _ = await change_role(var, clone, "clone", mainrole, inherit_from=target)
                 # if a clone is cloning a clone, clone who the old clone cloned
                 if mainrole == "clone" and player in CLONED:
                     if CLONED[player] is clone:
-                        clone.send(messages["forever_aclone"].format(player))
+                        await clone.send(messages["forever_aclone"].format(player))
                     else:
                         CLONED[clone] = CLONED[player]
-                        clone.send(messages["clone_success"].format(CLONED[clone]))
+                        await clone.send(messages["clone_success"].format(CLONED[clone]))
 
     del CLONED[:player:]
     CAN_ACT.discard(player)

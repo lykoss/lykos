@@ -27,7 +27,7 @@ async def target_cmd(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0])
+    target = await get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 
@@ -60,7 +60,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
             if ps:
                 target = random.choice(ps)
                 TARGETED[ass] = target
-                ass.send(messages["assassin_random"].format(target))
+                await ass.send(messages["assassin_random"].format(target))
     PREV_ACTED.update(TARGETED.keys())
 
 @event_listener("send_role")
@@ -74,15 +74,15 @@ async def on_send_role(evt: Event, var: GameState):
         pl.remove(ass)
 
         ass_evt = Event("assassin_target", {"target": None})
-        ass_evt.dispatch(var, ass, pl)
+        await ass_evt.dispatch(var, ass, pl)
 
         if ass_evt.data["target"] is not None:
             TARGETED[ass] = ass_evt.data["target"]
             PREV_ACTED.add(ass)
         else:
-            ass.send(messages["assassin_notify"])
+            await ass.send(messages["assassin_notify"])
             if var.next_phase == "night":
-                ass.send(messages["players_list"].format(pl))
+                await ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
@@ -97,14 +97,14 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         del TARGETED[player]
         PREV_ACTED.discard(player)
         if target in get_players(var):
-            protected = try_protection(var, target, player, "assassin", "assassin_fail")
+            protected = await try_protection(var, target, player, "assassin", "assassin_fail")
             if protected is not None:
-                channels.Main.send(*protected)
+                await channels.Main.send(*protected)
                 return
             to_send = "assassin_success_no_reveal"
             if var.role_reveal in ("on", "team"):
                 to_send = "assassin_success"
-            channels.Main.send(messages[to_send].format(player, target, get_reveal_role(var, target)))
+            await channels.Main.send(messages[to_send].format(player, target, await get_reveal_role(var, target)))
             add_dying(var, target, killer_role=evt.params.main_role, reason="assassin", killer=player)
 
 @event_listener("myrole")

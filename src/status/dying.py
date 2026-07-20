@@ -88,8 +88,8 @@ async def kill_players(var: Optional[GameState | PregameState], *, end_game: boo
         while DYING:
             player, (killer_role, reason, death_triggers, killer) = DYING.popitem()
             if var.in_game:
-                main_role = get_main_role(var, player)
-                reveal_role = get_reveal_role(var, player)
+                main_role = await get_main_role(var, player)
+                reveal_role = await get_reveal_role(var, player)
                 all_roles = get_all_roles(var, player)
             else:
                 main_role = "player"

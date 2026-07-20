@@ -27,14 +27,14 @@ def register_wolf(rolename):
         for wolf in wolves:
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
             wolf.send(messages[msg])
-            wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
+            wolf.send(messages["players_list"].format(await get_wolflist(var, wolf)))
             if var.next_phase == "night":
                 nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-                nevt.dispatch(var, wolf)
+                await nevt.dispatch(var, wolf)
                 if rolename in Killer and not nevt.data["numkills"] and nevt.data["message"]:
                     await wolf.send(messages[nevt.data["message"]])
         wevt = Event("wolf_notify", {})
-        wevt.dispatch(var, rolename)
+        await wevt.dispatch(var, rolename)
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=Wolf)
 async def wolf_kill(wrapper: MessageDispatcher, message: str):
@@ -62,11 +62,11 @@ async def wolf_kill(wrapper: MessageDispatcher, message: str):
         return
 
     for targ in pieces[:num_kills]:
-        target = get_target(wrapper, targ, not_self_message="no_suicide")
+        target = await get_target(wrapper, targ, not_self_message="no_suicide")
         if target is None:
             return
 
-        if is_known_wolf_ally(var, wrapper.source, target):
+        if await is_known_wolf_ally(var, wrapper.source, target):
             await wrapper.pm(messages["wolf_no_target_wolf"])
             return
 
@@ -125,7 +125,7 @@ async def on_night_kills(evt: Event, var: GameState):
         nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
         await nevt.dispatch(var, wolf)
         num_kills = nevt.data["numkills"]
-        if is_known_wolf_ally(var, wolf, wolf):
+        if await is_known_wolf_ally(var, wolf, wolf):
             total_kills = max(total_kills, num_kills)
             for victim in victims:
                 found[victim] += 1
@@ -197,7 +197,9 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
         # defer resolution of get_wolflist() until the time the message is actually being sent to the player
         # this way in a role swap we aren't working on an inaccurate view of who should have which role and potentially
         # leak information or give inaccurate information to the new wolf
-        evt.data["messages"].append(lambda: messages["players_list"].format(get_wolflist(var, player, role=evt.data["role"])))
+        async def _msg():
+            return messages["players_list"].format(await get_wolflist(var, player, role=evt.data["role"]))
+        evt.data["messages"].append(_msg)
 
         if var.current_phase == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
@@ -215,7 +217,7 @@ async def on_chk_nightdone(evt: Event, var: GameState):
         nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
         await nevt.dispatch(var, wolf)
         num_kills = nevt.data["numkills"]
-        if is_known_wolf_ally(var, wolf, wolf):
+        if await is_known_wolf_ally(var, wolf, wolf):
             total_kills = max(total_kills, num_kills)
         else:
             independent.add(wolf)
@@ -274,7 +276,7 @@ async def on_reset(evt: Event, var: GameState):
 
 @event_listener("gun_shoot", priority=3)
 async def on_gun_shoot(evt: Event, var: GameState, user, target, role):
-    if evt.data["hit"] and get_main_role(var, target) in Wolf:
+    if evt.data["hit"] and await get_main_role(var, target) in Wolf:
         # wolves (as a main role) always die when shot
         # don't auto-kill wolves if they're only secondary roles
         evt.data["kill"] = True
@@ -288,7 +290,7 @@ async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):
             nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
             nevt.dispatch(var, wolf)
             num_kills = nevt.data["numkills"]
-            if is_known_wolf_ally(var, wolf, wolf):
+            if await is_known_wolf_ally(var, wolf, wolf):
                 total_kills = max(total_kills, num_kills)
             else:
                 evt.data["wolf@" + wolf.name] = num_kills
@@ -325,9 +327,9 @@ def get_talking_roles():
             roles = Wolf | {"traitor"}
     return roles
 
-def is_known_wolf_ally(var, actor, target):
-    actor_role = get_main_role(var, actor)
-    target_role = get_main_role(var, target)
+async def is_known_wolf_ally(var, actor, target):
+    actor_role = await get_main_role(var, actor)
+    target_role = await get_main_role(var, target)
     wolves = get_wolfchat_roles()
     return actor_role in wolves and target_role in wolves
 
@@ -337,7 +339,7 @@ async def send_wolfchat_message(var: GameState, user: User, message: str, roles:
             return
         if var.current_phase == "day" and config.Main.get("gameplay.wolfchat.disable_day"):
             return
-    if not is_known_wolf_ally(var, user, user):
+    if not await is_known_wolf_ally(var, user, user):
         return
 
     wcroles = get_wolfchat_roles()
@@ -358,12 +360,12 @@ async def send_wolfchat_message(var: GameState, user: User, message: str, roles:
     if player is not None:
         await player.send_messages()
 
-def get_wolflist(var,
-                 player: users.User,
-                 *,
-                 shuffle: bool = True,
-                 remove_player: bool = True,
-                 role: Optional[str] = None) -> list[str]:
+async def get_wolflist(var,
+                       player: users.User,
+                       *,
+                       shuffle: bool = True,
+                       remove_player: bool = True,
+                       role: Optional[str] = None) -> list[str]:
     """ Retrieve the list of players annotated for displaying to wolfteam members.
 
     :param var: Game state
@@ -388,7 +390,7 @@ def get_wolflist(var,
             badguys = Wolf | {"traitor"}
 
     if role is None and player in get_players(var):
-        role = get_main_role(var, player)
+        role = await get_main_role(var, player)
 
     if "warlock" in All:
         badguys = badguys | {"warlock"}
@@ -401,7 +403,7 @@ def get_wolflist(var,
             cursed = set()
         if role in badguys:
             for p in pl:
-                prole = get_main_role(var, p)
+                prole = await get_main_role(var, p)
                 if prole in badguys:
                     if p in cursed:
                         entries.append(messages["players_list_entry"].format(

@@ -4,6 +4,7 @@ import logging
 import sys
 from collections import defaultdict, OrderedDict
 from typing import Any, Optional
+from inspect import iscoroutinefunction
 
 from oyoyo.client import IRCClient
 from src import config
@@ -24,7 +25,7 @@ class _NotLoggedIn:
 
 NotLoggedIn = _NotLoggedIn()
 
-def _who(cli, target, data=b""):
+async def _who(cli, target, data=b""):
     """Handle WHO requests."""
 
     if isinstance(data, str):
@@ -229,7 +230,7 @@ class IRCContext:
 
         return final
 
-    def who(self, data=b""):
+    async def who(self, data=b""):
         """Send a WHO request with respect to the server's capabilities.
 
         To get the WHO replies, add an event listener for "who_result",
@@ -241,7 +242,7 @@ class IRCContext:
 
         """
 
-        return _who(self.client, self.name, data)
+        return await _who(self.client, self.name, data)
 
     def use_cprivmsg(self, send_type):
         if not self.is_user or config.Main.get("transports[0].features.cprivmsg") is False:
@@ -273,6 +274,8 @@ class IRCContext:
         new = []
         for line in data:
             # support deferred messages
+            if iscoroutinefunction(line):
+                line = await line()
             if callable(line):
                 line = line()
             if isinstance(line, Message):

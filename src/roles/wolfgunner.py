@@ -31,7 +31,7 @@ async def on_wolf_notify(evt: Event, var: GameState, role: str):
 
 @event_listener("gun_shoot")
 async def on_gun_shoot(evt: Event, var: GameState, player: User, target: User, role: str):
-    if role == "wolf gunner" and is_known_wolf_ally(var, player, target):
+    if role == "wolf gunner" and await is_known_wolf_ally(var, player, target):
         evt.data["hit"] = False
 
 @event_listener("get_role_metadata")

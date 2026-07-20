@@ -38,7 +38,7 @@ async def on_transition_night_begin(evt: Event, var: GameState):
             STATS_FLAG = True
 
         for amn in amnesiacs:
-            change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
+            await change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
 
 @event_listener("spy")
 async def on_investigate(evt: Event, var: GameState, actor: User, target: User, spy_role: str):
@@ -63,8 +63,8 @@ async def on_revealing_totem(evt: Event, var: GameState, user: User, role: str):
         global STATS_FLAG
         STATS_FLAG = True
     if role == "amnesiac":
-        user.send(messages["amnesia_clear"].format(ROLES[user]))
-        change_role(var, user, "amnesiac", ROLES[user])
+        await user.send(messages["amnesia_clear"].format(ROLES[user]))
+        await change_role(var, user, "amnesiac", ROLES[user])
 
 @event_listener("get_reveal_role")
 async def on_reveal_role(evt: Event, var: GameState, user: User):

@@ -30,7 +30,7 @@ async def hex_cmd(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0])
+    target = await get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
 
@@ -42,7 +42,7 @@ async def hex_cmd(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    if is_known_wolf_ally(var, wrapper.source, target):
+    if await is_known_wolf_ally(var, wrapper.source, target):
         wrapper.pm(messages["no_hex_wolf"])
         return
 

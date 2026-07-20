@@ -22,11 +22,11 @@ async def on_send_role(evt: Event, var: GameState):
     cursed = get_all_players(var, ("cursed villager",))
     from src.roles.helper.wolves import is_known_wolf_ally
     for player in cursed:
-        if get_main_role(var, player) == "cursed villager" or is_known_wolf_ally(var, player, player):
-            player.send(messages["cursed_notify"])
+        if await get_main_role(var, player) == "cursed villager" or await is_known_wolf_ally(var, player, player):
+            await player.send(messages["cursed_notify"])
 
 @event_listener("myrole")
 async def on_myrole(evt: Event, var: GameState, player: User):
     from src.roles.helper.wolves import is_known_wolf_ally
-    if not is_known_wolf_ally(var, player, player):
+    if not await is_known_wolf_ally(var, player, player):
         evt.data["secondary"].discard("cursed villager")

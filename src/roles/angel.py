@@ -25,20 +25,20 @@ PASSED = UserSet()
 async def guard(wrapper: MessageDispatcher, message: str):
     """Guard a player, preventing them from being killed that night."""
     if wrapper.source in GUARDED:
-        wrapper.pm(messages["already_protecting"])
+        await wrapper.pm(messages["already_protecting"])
         return
 
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], allow_self=config.Main.get("gameplay.safes.guard_self"), not_self_message="cannot_guard_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], allow_self=config.Main.get("gameplay.safes.guard_self"), not_self_message="cannot_guard_self")
     if not target:
         return
 
     if LASTGUARDED.get(wrapper.source) is target:
-        wrapper.pm(messages["guardian_target_another"].format(target))
+        await wrapper.pm(messages["guardian_target_another"].format(target))
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     add_protection(var, target, wrapper.source, "guardian angel")
@@ -47,20 +47,20 @@ async def guard(wrapper: MessageDispatcher, message: str):
     LASTGUARDED[wrapper.source] = target
 
     if wrapper.source is target:
-        wrapper.pm(messages["guardian_guard_self"])
+        await wrapper.pm(messages["guardian_guard_self"])
     else:
-        wrapper.pm(messages["protecting_target"].format(target))
-        target.send(messages["target_protected"])
+        await wrapper.pm(messages["protecting_target"].format(target))
+        await target.send(messages["target_protected"])
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
     """Decline to use your special power for that night."""
     if wrapper.source in GUARDED:
-        wrapper.pm(messages["already_protecting"])
+        await wrapper.pm(messages["already_protecting"])
         return
 
     PASSED.add(wrapper.source)
-    wrapper.pm(messages["guardian_no_protect"])
+    await wrapper.pm(messages["guardian_no_protect"])
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
@@ -77,7 +77,7 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
     if old_role == "guardian angel" and evt.data["role"] != "guardian angel":
         if player in GUARDED:
             guarded = GUARDED.pop(player)
-            guarded.send(messages["protector_disappeared"])
+            await guarded.send(messages["protector_disappeared"])
         del LASTGUARDED[:player:]
 
 @event_listener("chk_nightdone")
@@ -91,7 +91,7 @@ async def on_resolve_killer_tag(evt: Event, var: GameState, victim: User, tag: s
     if tag == "@angel":
         # GA is attacked by the wolf they (mistakenly?) guarded
         evt.data["attacker"] = GUARDED[victim]
-        evt.data["role"] = get_main_role(var, GUARDED[victim])
+        evt.data["role"] = await get_main_role(var, GUARDED[victim])
         evt.data["try_lycanthropy"] = True
 
 @event_listener("night_kills")
@@ -129,16 +129,16 @@ async def on_send_role(evt: Event, var: GameState):
                 pl.remove(LASTGUARDED[gangel])
         chance = config.Main.get("gameplay.safes.angel_dies")
 
-        gangel.send(messages["guardian_angel_notify"])
+        await gangel.send(messages["guardian_angel_notify"])
         if var.next_phase != "night":
             return
         if chance > 0:
-            gangel.send(messages["bodyguard_death_chance"].format(chance))
+            await gangel.send(messages["bodyguard_death_chance"].format(chance))
         if config.Main.get("gameplay.safes.guard_self"):
-            gangel.send(messages["guardian_self_notification"])
+            await gangel.send(messages["guardian_self_notification"])
         else:
             pl.remove(gangel)
-        gangel.send(messages["players_list"].format(pl))
+        await gangel.send(messages["players_list"].format(pl))
 
 @event_listener("player_protected")
 async def on_player_protected(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):
@@ -150,8 +150,8 @@ async def on_remove_protection(evt: Event, var: GameState, target: User, attacke
     if attacker_role == "fallen angel" and protector_role == "guardian angel":
         evt.data["remove"] = True
         if protector is not target:
-            protector.send(messages[reason + "_success"].format(target))
-        target.send(messages[reason + "_deprotect"])
+            await protector.send(messages[reason + "_success"].format(target))
+        await target.send(messages[reason + "_deprotect"])
         if (random.random() * 100) < config.Main.get("gameplay.safes.fallen_kills"):
             add_dying(var, protector, killer_role="fallen angel", reason=reason)
 

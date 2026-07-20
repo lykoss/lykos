@@ -104,8 +104,8 @@ async def choose(wrapper: MessageDispatcher, message: str):
     if len(pieces) < 2:
         return
 
-    target1 = get_target(wrapper, pieces[0], allow_self=True)
-    target2 = get_target(wrapper, pieces[1], allow_self=True)
+    target1 = await get_target(wrapper, pieces[0], allow_self=True)
+    target2 = await get_target(wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:
         return
 
@@ -159,7 +159,7 @@ async def on_del_player(evt: Event, var: GameState, player, all_roles, death_tri
                 to_send = "lover_suicide_no_reveal"
                 if var.role_reveal in ("on", "team"):
                     to_send = "lover_suicide"
-                channels.Main.send(messages[to_send].format(lover, get_reveal_role(var, lover)))
+                channels.Main.send(messages[to_send].format(lover, await get_reveal_role(var, lover)))
                 add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide", killer=evt.params.killer)
 
         for lover in lovers:

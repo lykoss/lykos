@@ -24,19 +24,19 @@ async def see(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if target is None:
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(var, target)
+    targrole = await get_main_role(var, target)
     trole = targrole # keep a copy for logging
 
     evt = Event("spy", {"role": targrole})
-    evt.dispatch(var, wrapper.source, target, "augur")
+    await evt.dispatch(var, wrapper.source, target, "augur")
     targrole = evt.data["role"]
 
     aura = "blue"
@@ -46,7 +46,7 @@ async def see(wrapper: MessageDispatcher, message: str):
         aura = "grey"
 
     # used message keys (for grep): augur_success_blue, augur_success_red, augur_success_grey
-    wrapper.send(messages["augur_success_" + aura].format(target))
+    await wrapper.send(messages["augur_success_" + aura].format(target))
 
     SEEN.add(wrapper.source)
 

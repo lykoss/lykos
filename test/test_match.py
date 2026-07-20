@@ -60,6 +60,7 @@ class TestMatch(TestCase):
             self.assertEqual(match_one("FOO", corpus), "foo")
 
     def test_match_role(self):
+        raise RuntimeError("test needs updated to use async")
         with self.subTest("regular match"):
             self.assertEqual(match_role("det").get().key, "detective")
             self.assertEqual(match_role("lover").get().key, "lover")

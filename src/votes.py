@@ -28,7 +28,7 @@ VOTED: int = 0
 async def day_vote(wrapper: MessageDispatcher, message: str):
     """Use this to vote for a candidate to be killed."""
     if not message:
-        show_votes.func(wrapper, message)
+        await show_votes.func(wrapper, message)
         return
     if wrapper.private:
         return
@@ -38,11 +38,11 @@ async def day_vote(wrapper: MessageDispatcher, message: str):
 
     can_vote_bot = var.current_mode.can_vote_bot(var)
 
-    voted = get_target(wrapper, msg, allow_self=var.self_vote_allowed, allow_bot=can_vote_bot, not_self_message="no_vote_self")
+    voted = await get_target(wrapper, msg, allow_self=var.self_vote_allowed, allow_bot=can_vote_bot, not_self_message="no_vote_self")
     if not voted:
         return
 
-    if try_absent(var, wrapper.source):
+    if await try_absent(var, wrapper.source):
         return
 
     ABSTAINS.discard(wrapper.source)
@@ -284,18 +284,18 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
 
                 if not try_day_vote_immunity(var, votee):
                     vote_evt = Event("day_vote", {}, players=avail)
-                    if vote_evt.dispatch(var, votee, voters):
+                    if await vote_evt.dispatch(var, votee, voters):
                         to_send = "day_vote_no_reveal"
                         if var.role_reveal in ("on", "team"):
                             to_send = "day_vote_reveal"
-                        lmsg = messages[to_send].format(votee, get_reveal_role(var, votee))
+                        lmsg = messages[to_send].format(votee, await get_reveal_role(var, votee))
                         await channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "day_vote")
 
-            kill_players(var, end_game=False)
+            await kill_players(var, end_game=False)
 
         elif timeout:
-            channels.Main.send(messages["sunset"])
+            await channels.Main.send(messages["sunset"])
 
         if timeout or VOTED >= num_votes:
             if await chk_win(var, count_absent=False):

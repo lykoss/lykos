@@ -17,7 +17,7 @@ ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
 async def on_wolf_numkills(evt: Event, var: GameState, wolf: User):
-    if ANGRY_WOLVES and is_known_wolf_ally(var, wolf, wolf):
+    if ANGRY_WOLVES and await is_known_wolf_ally(var, wolf, wolf):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")

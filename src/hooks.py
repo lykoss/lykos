@@ -164,13 +164,14 @@ async def end_who(cli, bot_server, bot_nick, target, rest, *, tags):
         except KeyError:
             target = None
     else:
-        target.dispatch_queue()
+        await target.dispatch_queue()
 
     old = None
     if target is not None:
         old = _who_old.get(target.name, target)
     _who_old.clear()
-    Event("who_end", {}, old=old).dispatch(target)
+    evt = Event("who_end", {}, old=old)
+    await evt.dispatch(target)
 
 _whois_pending: dict[str, dict[str, Any]] = {}
 
@@ -462,7 +463,7 @@ async def mode_change(cli, rawnick, chan, mode, *targets, tags):
 
     actor = users.get(rawnick, allow_none=True)
     target = channels.add(chan, cli)
-    target.queue("mode_change", {"mode": mode, "targets": targets}, (actor, target))
+    await target.queue("mode_change", {"mode": mode, "targets": targets}, (actor, target))
 
 @event_listener("mode_change", 0) # This should fire before anything else!
 async def apply_mode_changes(evt, actor, target):
@@ -494,7 +495,7 @@ async def check_banlist(cli, server, bot_nick, chan, target, setter, timestamp, 
 
     """
 
-    handle_listmode(cli, chan, "b", target, setter, timestamp)
+    await handle_listmode(cli, chan, "b", target, setter, timestamp)
 
 @hook("quietlist")
 async def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, timestamp, *, tags):
@@ -513,7 +514,7 @@ async def check_quietlist(cli, server, bot_nick, chan, mode, target, setter, tim
 
     """
 
-    handle_listmode(cli, chan, mode, target, setter, timestamp)
+    await handle_listmode(cli, chan, mode, target, setter, timestamp)
 
 @hook("exceptlist")
 async def check_banexemptlist(cli, server, bot_nick, chan, target, setter, timestamp, *, tags):
@@ -531,7 +532,7 @@ async def check_banexemptlist(cli, server, bot_nick, chan, target, setter, times
 
     """
 
-    handle_listmode(cli, chan, "e", target, setter, timestamp)
+    await handle_listmode(cli, chan, "e", target, setter, timestamp)
 
 @hook("invitelist")
 async def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestamp, *, tags):
@@ -549,13 +550,13 @@ async def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, ti
 
     """
 
-    handle_listmode(cli, chan, "I", target, setter, timestamp)
+    await handle_listmode(cli, chan, "I", target, setter, timestamp)
 
-def handle_endlistmode(cli, chan, mode):
+async def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
     ch = channels.add(chan, cli)
-    ch.queue("end_listmode", {}, (ch, mode))
+    await ch.queue("end_listmode", {}, (ch, mode))
 
 @hook("endofbanlist")
 async def end_banlist(cli, server, bot_nick, chan, message, *, tags):
@@ -571,7 +572,7 @@ async def end_banlist(cli, server, bot_nick, chan, message, *, tags):
 
     """
 
-    handle_endlistmode(cli, chan, "b")
+    await handle_endlistmode(cli, chan, "b")
 
 @hook("quietlistend")
 async def end_quietlist(cli, server, bot_nick, chan, mode, message=None, *, tags):
@@ -593,7 +594,7 @@ async def end_quietlist(cli, server, bot_nick, chan, mode, message=None, *, tags
         # some IRCds (such as ircd-yeti) don't. This is a workaround to make it work.
         mode = "q"
 
-    handle_endlistmode(cli, chan, mode)
+    await handle_endlistmode(cli, chan, mode)
 
 @hook("endofexceptlist")
 async def end_banexemptlist(cli, server, bot_nick, chan, message, *, tags):
@@ -609,7 +610,7 @@ async def end_banexemptlist(cli, server, bot_nick, chan, message, *, tags):
 
     """
 
-    handle_endlistmode(cli, chan, "e")
+    await handle_endlistmode(cli, chan, "e")
 
 @hook("endofinvitelist")
 async def end_inviteexemptlist(cli, server, bot_nick, chan, message, *, tags):
@@ -625,7 +626,7 @@ async def end_inviteexemptlist(cli, server, bot_nick, chan, message, *, tags):
 
     """
 
-    handle_endlistmode(cli, chan, "I")
+    await handle_endlistmode(cli, chan, "I")
 
 @hook("nick")
 async def on_nick_change(cli, old_rawnick, nick, *, tags):
@@ -644,7 +645,8 @@ async def on_nick_change(cli, old_rawnick, nick, *, tags):
     user.nick = nick
     new_user = users.get(nick, user.ident, user.host, user.account, allow_bot=True)
 
-    Event("nick_change", {}, old=user).dispatch(new_user, old_nick)
+    evt = Event("nick_change", {}, old=user)
+    await evt.dispatch(new_user, old_nick)
 
 @hook("account")
 async def on_account_change(cli, rawnick, account, *, tags):
@@ -665,7 +667,8 @@ async def on_account_change(cli, rawnick, account, *, tags):
     user.account = account
     new_user = users.get(user.nick, user.ident, user.host, account, allow_bot=True)
 
-    Event("account_change", {}, old=user).dispatch(new_user, old_account)
+    evt = Event("account_change", {}, old=user)
+    await evt.dispatch(new_user, old_account)
 
 @hook("join")
 async def join_chan(cli, rawnick, chan, account=None, realname=None, *, tags):
@@ -706,14 +709,15 @@ async def join_chan(cli, rawnick, chan, account=None, realname=None, *, tags):
     # mark the user as here, in case they used to be connected before but left
     user.disconnected = False
 
-    Event("chan_join", {}).dispatch(ch, user)
+    evt = Event("chan_join", {})
+    await evt.dispatch(ch, user)
 
     # don't test for users.Bot specifically since chan_join may have caused a swap
     # (this only happens in exotic situations where custom code listens to update_account_data)
     if isinstance(user, users.BotUser):
-        ch.mode()
-        ch.mode(Features["CHANMODES"][0])
-        ch.who()
+        await ch.mode()
+        await ch.mode(Features["CHANMODES"][0])
+        await ch.who()
 
 @hook("part")
 async def part_chan(cli, rawnick, chan, reason="", *, tags):
@@ -733,12 +737,13 @@ async def part_chan(cli, rawnick, chan, reason="", *, tags):
 
     ch = channels.add(chan, cli)
     user = users.get(rawnick, allow_bot=True, update=True)
-    Event("chan_part", {}).dispatch(ch, user, reason)
+    evt = Event("chan_part", {})
+    await evt.dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
         ch.clear()
     else:
-        ch.remove_user(user)
+        await ch.remove_user(user)
 
 @hook("kick")
 async def kicked_from_chan(cli, rawnick, chan, target, reason, *, tags):
@@ -757,12 +762,13 @@ async def kicked_from_chan(cli, rawnick, chan, target, reason, *, tags):
     ch = channels.add(chan, cli)
     actor = users.get(rawnick, allow_none=True, update=True)
     user = users.get(target, allow_bot=True)
-    Event("chan_kick", {}).dispatch(ch, actor, user, reason)
+    evt = Event("chan_kick", {})
+    await evt.dispatch(ch, actor, user, reason)
 
     if user is users.Bot:
         ch.clear()
     else:
-        ch.remove_user(user)
+        await ch.remove_user(user)
 
 async def quit(context, message=""):
     """Quit the bot from IRC."""
@@ -791,7 +797,8 @@ async def on_quit(cli, rawnick, reason, *, tags):
     """
 
     user = users.get(rawnick, allow_bot=True, update=True)
-    await Event("server_quit", {}).dispatch(user, reason)
+    evt = Event("server_quit", {})
+    await evt.dispatch(user, reason)
 
     # removing the user from all channels marks them as a ghost if they're playing,
     # so doing that explicitly here is unnecessary
@@ -799,7 +806,7 @@ async def on_quit(cli, rawnick, reason, *, tags):
         if user is users.Bot:
             chan.clear()
         else:
-            chan.remove_user(user)
+            await chan.remove_user(user)
 
 @hook("chghost")
 async def on_chghost(cli, rawnick, ident, host, *, tags):
@@ -822,4 +829,5 @@ async def on_chghost(cli, rawnick, ident, host, *, tags):
     user.rawnick = new_rawnick
     new_user = users.get(new_rawnick, allow_bot=True)
 
-    Event("host_change", {}, old=user).dispatch(new_user, old_ident, old_host)
+    evt = Event("host_change", {}, old=user)
+    await evt.dispatch(new_user, old_ident, old_host)

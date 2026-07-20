@@ -26,35 +26,35 @@ BITTEN: UserDict[User, User] = UserDict()
 async def observe(wrapper: MessageDispatcher, message: str):
     """Turn a player into a wolf!"""
     if not ENABLED:
-        wrapper.pm(messages["alpha_no_bite"])
+        await wrapper.pm(messages["alpha_no_bite"])
         return
     if wrapper.source in ALPHAS:
-        wrapper.pm(messages["alpha_already_bit"])
+        await wrapper.pm(messages["alpha_already_bit"])
         return
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0])
+    target = await get_target(wrapper, re.split(" +", message)[0])
     if not target:
         return
-    if is_known_wolf_ally(var, wrapper.source, target):
-        wrapper.pm(messages["alpha_no_bite_wolf"])
+    if await is_known_wolf_ally(var, wrapper.source, target):
+        await wrapper.pm(messages["alpha_no_bite_wolf"])
         return
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     BITTEN[wrapper.source] = target
-    wrapper.pm(messages["alpha_bite_target"].format(orig))
-    send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
+    await wrapper.pm(messages["alpha_bite_target"].format(orig))
+    await send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
 
 @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("alpha wolf",))
 async def retract(wrapper: MessageDispatcher, message: str):
     """Retract your bite."""
     if wrapper.source in BITTEN:
         del BITTEN[wrapper.source]
-        wrapper.pm(messages["no_bite"])
-        send_wolfchat_message(wrapper.game_state, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
+        await wrapper.pm(messages["no_bite"])
+        await send_wolfchat_message(wrapper.game_state, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
@@ -69,7 +69,7 @@ async def on_night_kills(evt: Event, var: GameState):
         # bite is now separate but some people may try to double up still
         # The implementation of bite is merely lycanthropy + kill, which lets us
         # simplify a lot of the code by offloading it to relevant pieces
-        add_lycanthropy(var, target, "bitten")
+        await add_lycanthropy(var, target, "bitten")
         add_lycanthropy_scope(var, All)
         house = get_home(var, target)
         evt.data["victims"].add(house)
@@ -83,9 +83,9 @@ async def on_begin_day(evt: Event, var: GameState):
     # Refund failed bites
     for alpha, target in BITTEN.items():
         if alpha in get_players(var) and target not in get_players(var, Wolf):
-            alpha.send(messages["alpha_bite_failure"].format(target))
+            await alpha.send(messages["alpha_bite_failure"].format(target))
         else:
-            alpha.send(messages["alpha_bite_success"].format(target))
+            await alpha.send(messages["alpha_bite_success"].format(target))
             ALPHAS.add(alpha)
     BITTEN.clear()
 
@@ -120,7 +120,7 @@ async def on_wolf_notify(evt: Event, var: GameState, role):
     if can_bite:
         for alpha in can_bite:
             alpha.queue_message(messages["wolf_bite"])
-        User.send_messages()
+        await User.send_messages()
 
 @event_listener("get_role_metadata")
 async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):

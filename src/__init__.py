@@ -45,4 +45,5 @@ if not getattr(custom_gamemodes, "CUSTOM_MODES_DEFINED", False):
 import hooks as custom_hooks # type: ignore
 
 # Perform final initialization
+# ASYNC-CHECK
 events.Event("init", {}).dispatch()

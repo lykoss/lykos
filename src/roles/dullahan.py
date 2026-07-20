@@ -28,7 +28,7 @@ async def dullahan_kill(wrapper: MessageDispatcher, message: str):
         wrapper.pm(messages["dullahan_targets_dead"])
         return
 
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
 
@@ -78,7 +78,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
                     return
 
                 if var.role_reveal in ("on", "team"):
-                    role = get_reveal_role(var, target)
+                    role = await get_reveal_role(var, target)
                     channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
                     channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))

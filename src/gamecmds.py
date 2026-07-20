@@ -46,7 +46,7 @@ async def stats(wrapper: MessageDispatcher, message: str):
     player_role = None
     if var.in_game:
         try:
-            player_role = get_main_role(var, wrapper.source)
+            player_role = await get_main_role(var, wrapper.source)
         except ValueError:
             pass
     if wrapper.private and var.in_game and player_role in Wolfteam and "src.roles.helper.wolves" in sys.modules:
@@ -56,7 +56,7 @@ async def stats(wrapper: MessageDispatcher, message: str):
     elif wrapper.private and var.in_game and player_role in Vampire_Team and "src.roles.vampire" in sys.modules:
         from src.roles.vampire import get_vampire_list
         msg = messages["players_list_count"].format(
-            len(pl), get_vampire_list(var, wrapper.source, shuffle=False, remove_player=False))
+            len(pl), await get_vampire_list(var, wrapper.source, shuffle=False, remove_player=False))
     else:
         msg = messages["players_list_count"].format(len(pl), pl)
 

@@ -107,7 +107,7 @@ async def player_stats(wrapper: MessageDispatcher, message: str):
         await wrapper.pm(*totals, sep=", ")
     else:
         role = " ".join(params[1:])
-        matches = match_role(role, allow_extra=True)
+        matches = await match_role(role, allow_extra=True)
 
         if len(matches) == 0:
             await wrapper.send(messages["no_such_role"].format(role))
@@ -149,10 +149,10 @@ async def role_stats(wrapper: MessageDispatcher, message: str):
         await wrapper.pm(*totals, sep=", ", first=first)
         return
 
-    roles = match_role(message, allow_extra=True)
+    roles = await match_role(message, allow_extra=True)
     if params[-1] == "*" and not roles:
         role = " ".join(params[:-1])
-        roles = match_role(role, allow_extra=True)
+        roles = await match_role(role, allow_extra=True)
         if not roles:
             if len(roles) > 0:
                 await wrapper.pm(messages["ambiguous_role"].format(roles))
@@ -165,7 +165,7 @@ async def role_stats(wrapper: MessageDispatcher, message: str):
         return
 
     gamemode = params[-1]
-    roles = match_role(" ".join(params[:-1]), allow_extra=True)
+    roles = await match_role(" ".join(params[:-1]), allow_extra=True)
     matches = match_mode(gamemode, remove_spaces=True, allow_extra=True)
     if matches and roles:
         gamemode = matches.get().key

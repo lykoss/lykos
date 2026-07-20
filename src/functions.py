@@ -69,19 +69,19 @@ def get_all_players(var: Optional[GameState | PregameState], roles=None, *, role
 
     return {p for p in pl if not is_dying(var, p)}
 
-def get_participants(var: Optional[GameState | PregameState]) -> list[User]:
+async def get_participants(var: Optional[GameState | PregameState]) -> list[User]:
     """List all players who are still able to participate in the game."""
     evt = Event("get_participants", {"players": get_players(var)})
-    evt.dispatch(var)
+    await evt.dispatch(var)
     return evt.data["players"]
 
-def get_target(wrapper: MessageDispatcher,
-               message: str,
-               *,
-               allow_self: bool = False,
-               allow_bot: bool = False,
-               not_self_message: str = "no_target_self",
-               scope: Optional[Iterable[User]] = None) -> Optional[User]:
+async def get_target(wrapper: MessageDispatcher,
+                     message: str,
+                     *,
+                     allow_self: bool = False,
+                     allow_bot: bool = False,
+                     not_self_message: str = "no_target_self",
+                     scope: Optional[Iterable[User]] = None) -> Optional[User]:
     """Autocomplete a target for an in-game command.
 
     :param wrapper: Message context
@@ -95,7 +95,7 @@ def get_target(wrapper: MessageDispatcher,
     """
     from src import users # FIXME: we should move get_target elsewhere to avoid circular imports
     if not message:
-        wrapper.pm(messages["not_enough_parameters"])
+        await wrapper.pm(messages["not_enough_parameters"])
         return
 
     if scope is None:
@@ -112,10 +112,10 @@ def get_target(wrapper: MessageDispatcher,
     match = users.complete_match(message, players)
     if not match:
         if not len(match) and users.lower(wrapper.source.nick).startswith(users.lower(message)):
-            wrapper.pm(messages[not_self_message])
+            await wrapper.pm(messages[not_self_message])
             return
         if not len(match):
-            wrapper.pm(messages["not_playing"].format(message))
+            await wrapper.pm(messages["not_playing"].format(message))
         else:
             # display some helpful suggestions, including account disambiguation if needed
             nicks = Counter(users.lower(x.nick) for x in match)
@@ -129,19 +129,19 @@ def get_target(wrapper: MessageDispatcher,
                         if luser.nick == nick:
                             suggestions.append("{0}:{1}".format(luser.nick, luser.account))
             suggestions.sort()
-            wrapper.pm(messages["not_playing_suggestions"].format(message, suggestions))
+            await wrapper.pm(messages["not_playing_suggestions"].format(message, suggestions))
         return
 
     return match.get()
 
-def change_role(var: GameState,
-                player: User,
-                old_role: str,
-                new_role: str,
-                *,
-                inherit_from=None,
-                message="new_role",
-                send_messages=True) -> tuple[str, list[str | Callable[[], str]]]:
+async def change_role(var: GameState,
+                      player: User,
+                      old_role: str,
+                      new_role: str,
+                      *,
+                      inherit_from=None,
+                      message="new_role",
+                      send_messages=True) -> tuple[str, list[str | Callable[[], str]]]:
     """ Change the player's main role, updating relevant game state.
 
     :param var: Game state
@@ -161,7 +161,7 @@ def change_role(var: GameState,
     evt = Event("new_role",
                 {"role": new_role, "messages": [], "in_wolfchat": False},
                 inherit_from=inherit_from)
-    evt.dispatch(var, player, old_role)
+    await evt.dispatch(var, player, old_role)
     new_role = evt.data["role"]
 
     var.roles[old_role].remove(player)
@@ -182,20 +182,20 @@ def change_role(var: GameState,
     if message:
         evt.data["messages"].insert(0, messages[message].format(say_role))
     if send_messages:
-        player.send(*evt.data["messages"])
+        await player.send(*evt.data["messages"])
 
     return new_role, evt.data["messages"]
 
-def get_main_role(var: GameState, user, *, mainroles=None):
+async def get_main_role(var: GameState, user, *, mainroles=None):
     if mainroles is None:
         mainroles = var.main_roles
     role = mainroles.get(user)
     if role is not None:
         return role
     # not found in player list, see if they're a special participant
-    if user in get_participants(var):
+    if user in await get_participants(var):
         evt = Event("get_participant_role", {"role": None})
-        evt.dispatch(var, user)
+        await evt.dispatch(var, user)
         role = evt.data["role"]
     if role is None:
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
@@ -206,14 +206,14 @@ def get_all_roles(var: GameState, user: User, *, rolemap=None) -> set[str]:
         rolemap = var.roles
     return {role for role, users in rolemap.items() if user in users}
 
-def get_reveal_role(var: GameState, user, *, mainroles=None) -> str:
-    evt = Event("get_reveal_role", {"role": get_main_role(var, user, mainroles=mainroles)})
-    evt.dispatch(var, user)
+async def get_reveal_role(var: GameState, user, *, mainroles=None) -> str:
+    evt = Event("get_reveal_role", {"role": await get_main_role(var, user, mainroles=mainroles)})
+    await evt.dispatch(var, user)
     role = evt.data["role"]
 
     return role if var.role_reveal != "team" else get_team(var, role).name
 
-def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
+async def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
     """ Match a partial role or alias name into the internal role key.
 
     :param role: Partial role to match on
@@ -235,7 +235,7 @@ def match_role(role: str, remove_spaces: bool = False, allow_extra: bool = False
     special_keys: set[str] = set()
     if scope is None and allow_special:
         evt = Event("get_role_metadata", {})
-        evt.dispatch(None, "special_keys")
+        await evt.dispatch(None, "special_keys")
         special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
 
     matches = match_all(role, role_map.keys())

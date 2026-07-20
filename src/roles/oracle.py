@@ -25,7 +25,7 @@ async def see(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_see_self")
     if target is None:
         return
 
@@ -33,7 +33,7 @@ async def see(wrapper: MessageDispatcher, message: str):
     if try_exchange(var, wrapper.source, target):
         return
 
-    targrole = get_main_role(var, target)
+    targrole = await get_main_role(var, target)
 
     if targrole in Cursed:
         targrole = "wolf"

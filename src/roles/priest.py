@@ -26,12 +26,12 @@ async def bless(wrapper: MessageDispatcher, message: str):
 
     var = wrapper.game_state
 
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_bless_self")
     if not target:
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source, target):
+    if await try_exchange(var, wrapper.source, target):
         return
 
     PRIESTS.add(wrapper.source)

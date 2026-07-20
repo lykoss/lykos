@@ -121,7 +121,7 @@ async def parse_and_dispatch(wrapper: MessageDispatcher,
 
     if role_prefix is not None:
         # match a role prefix to a role. Multi-word roles are supported by stripping the spaces
-        matches = match_role(role_prefix, remove_spaces=True)
+        matches = await match_role(role_prefix, remove_spaces=True)
         if len(matches) == 1:
             role_prefix = matches.get().key
         elif len(matches) > 1:
@@ -133,7 +133,7 @@ async def parse_and_dispatch(wrapper: MessageDispatcher,
 
     cmds: list[command] = []
     phase = dispatch.game_state.current_phase if dispatch.game_state else "none"
-    if phase not in ("none", "join") and dispatch.source in get_participants(dispatch.game_state):
+    if phase not in ("none", "join") and dispatch.source in await get_participants(dispatch.game_state):
         roles = get_all_roles(dispatch.game_state, dispatch.source)
         common_roles = set(roles)  # roles shared by every eligible role command
         # A user can be a participant but not have a role, for example, dead vengeful ghost

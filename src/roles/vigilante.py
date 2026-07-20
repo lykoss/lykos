@@ -23,7 +23,7 @@ PASSED = UserSet()
 async def vigilante_kill(wrapper: MessageDispatcher, message: str):
     """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
     var = wrapper.game_state
-    target = get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
+    target = await get_target(wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
         return
 
@@ -72,7 +72,7 @@ async def on_night_kills(evt: Event, var: GameState):
         # important, otherwise our del_player listener instructs vigilante to kill again
         del KILLS[vigilante]
 
-        if get_main_role(var, target) not in Wolf | Vampire | Win_Stealer:
+        if await get_main_role(var, target) not in Wolf | Vampire | Win_Stealer:
             evt.data["kill_priorities"]["@vigilante"] = 15
             evt.data["victims"].add(vigilante)
             evt.data["killers"][vigilante].append("@vigilante")
