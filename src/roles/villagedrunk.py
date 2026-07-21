@@ -17,13 +17,13 @@ SHOTS_MULTIPLIER = 3
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
     for drunk in get_all_players(var, ("village drunk",)):
-        drunk.send(messages["village_drunk_notify"])
+        await drunk.send(messages["village_drunk_notify"])
 
 @event_listener("assassin_target")
 async def on_assassin_target(evt: Event, var: GameState, assassin: User, players: list[User]):
     if evt.data["target"] is None and assassin in get_all_players(var, ("village drunk",)):
         evt.data["target"] = random.choice(players)
-        assassin.send(messages["drunken_assassin_notification"].format(evt.data["target"]))
+        await assassin.send(messages["drunken_assassin_notification"].format(evt.data["target"]))
 
 @event_listener("gun_chances")
 async def on_gun_chances(evt: Event, var: GameState, user: User, role: str):

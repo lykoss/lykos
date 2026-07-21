@@ -27,7 +27,7 @@ async def on_wolf_notify(evt: Event, var: GameState, role: str):
     gunners = get_all_players(var, ("wolf gunner",))
     for gunner in gunners:
         if GUNNERS[gunner] or var.always_pm_role:
-            gunner.send(messages["gunner_bullets"].format(GUNNERS[gunner]))
+            await gunner.send(messages["gunner_bullets"].format(GUNNERS[gunner]))
 
 @event_listener("gun_shoot")
 async def on_gun_shoot(evt: Event, var: GameState, player: User, target: User, role: str):

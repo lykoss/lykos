@@ -40,7 +40,7 @@ async def wait(wrapper: MessageDispatcher, message: str):
     if wrapper.target is not channels.Main:
         return
 
-    with locks.wait:
+    async with locks.wait:
         global WAIT_TOKENS, WAIT_LAST, CAN_START_TIME
         wait_check_time = time.time()
         WAIT_TOKENS += (wait_check_time - WAIT_LAST) / config.Main.get("timers.wait.command.tokenbucket.refill")
@@ -111,7 +111,7 @@ async def retract(wrapper: MessageDispatcher, message: str):
     if wrapper.source not in get_players(var) or wrapper.source in reaper.DISCONNECTED:
         return
 
-    with locks.reaper, locks.join_timer:
+    async with locks.reaper, locks.join_timer:
         if var.current_phase == "join":
             if wrapper.source not in START_VOTES:
                 await wrapper.pm(messages["start_novote"])
@@ -129,7 +129,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     if var.current_phase == "join":
         for role in FORCE_ROLES:
             FORCE_ROLES[role].discard(player)
-        with locks.join_timer:
+        async with locks.join_timer:
             START_VOTES.discard(player)
 
             # Cancel the start vote timer if there are no votes left
@@ -173,7 +173,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
     LAST_START[wrapper.source] = [datetime.now(), 1]
 
-    with locks.join_timer:
+    async with locks.join_timer:
         if not forced and wrapper.source in START_VOTES:
             await wrapper.pm(messages["start_already_voted"])
             return
@@ -191,7 +191,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
                 # If this was the first vote
                 if len(START_VOTES) == 1:
                     loop = asyncio.get_event_loop()
-                    t = loop.call_later(60, expire_start_votes, (pregame_state, wrapper.target))
+                    t = loop.call_later(60, expire_start_votes, pregame_state, wrapper.target)
                     TIMERS["start_votes"] = (t, time.time(), 60)
                 return
 
@@ -260,14 +260,14 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
                     del defroles[srole]
         if not defroles:
             await wrapper.send(messages["no_settings_defined"].format(wrapper.source, lv))
-            stop_game(ingame_state, abort=True, log=False)
+            await stop_game(ingame_state, abort=True, log=False)
             return
         for role, num in defroles.items():
             # if an event defined this role, use that number. Otherwise use the number from ROLE_GUIDE
             addroles[role] = addroles.get(role, num)
         if sum([addroles[r] for r in addroles if r not in ingame_state.current_mode.SECONDARY_ROLES]) > lv:
             await wrapper.send(messages["too_many_roles"])
-            stop_game(ingame_state, abort=True, log=False)
+            await stop_game(ingame_state, abort=True, log=False)
             return
         for role in All:
             addroles.setdefault(role, 0)
@@ -393,7 +393,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
             continue
         if len(possible) < count:
             await wrapper.send(messages["not_enough_targets"].format(role))
-            stop_game(ingame_state, abort=True, log=False)
+            await stop_game(ingame_state, abort=True, log=False)
             return
         ingame_state.roles[role].update(x for x in random.sample(possible, count))
 
@@ -438,7 +438,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
         await home_event.dispatch(ingame_state, p)
         set_home(ingame_state, p, home_event.data["home"])
 
-    with locks.join_timer: # cancel timers
+    async with locks.join_timer: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
             if name in TIMERS:
                 TIMERS[name][0].cancel()
@@ -497,9 +497,10 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     if config.Main.get("reaper.enabled"):
         # DEATH TO IDLERS!
         from src.reaper import reaper
-        reapertimer = threading.Thread(None, reaper, args=(ingame_state, ingame_state.game_id))
-        reapertimer.daemon = True
-        reapertimer.start()
+        async def _run_reaper():
+            await reaper(ingame_state, ingame_state.game_id)
+        loop = asyncio.get_event_loop()
+        loop.create_task(_run_reaper, name="reaper")
 
 async def _command_disabled(wrapper: MessageDispatcher, message: str):
     await wrapper.send(messages["command_disabled_admin"])
@@ -510,7 +511,7 @@ async def expire_start_votes(var: GameState, channel: Channel):
     if var.current_phase != "join":
         return
 
-    with locks.join_timer:
+    async with locks.join_timer:
         START_VOTES.clear()
         await channel.send(messages["start_expired"])
 

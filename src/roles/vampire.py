@@ -97,7 +97,7 @@ async def on_send_role(evt: Event, var: GameState):
         cond = 3
 
     for vampire in get_all_players(var, ("vampire",)):
-        vampire.send(messages["vampire_notify"])
+        await vampire.send(messages["vampire_notify"])
         if var.next_phase == "night":
             await vampire.send(messages["players_list"].format(await get_vampire_list(var, vampire)))
 
@@ -202,11 +202,11 @@ async def is_known_vampire_ally(var, actor, target):
     return actor_role in Vampire and target_role in Vampire
 
 async def send_vampire_chat_message(var: GameState,
-                              player: User,
-                              message: str,
-                              roles: Iterable[str],
-                              *,
-                              cmd: Optional[str] = None):
+                                    player: User,
+                                    message: str,
+                                    roles: Iterable[str],
+                                    *,
+                                    cmd: Optional[str] = None):
     if cmd not in _bite_cmds and config.Main.get("gameplay.wolfchat.only_kill_command"):
         if var.current_phase == "night" and config.Main.get("gameplay.wolfchat.disable_night"):
             return
@@ -234,11 +234,11 @@ async def send_vampire_chat_message(var: GameState,
         await player.send_messages()
 
 async def get_vampire_list(var,
-                     player: User,
-                     *,
-                     shuffle: bool = True,
-                     remove_player: bool = True,
-                     role: Optional[str] = None) -> list[str]:
+                           player: User,
+                           *,
+                           shuffle: bool = True,
+                           remove_player: bool = True,
+                           role: Optional[str] = None) -> list[str]:
     """ Retrieve the list of players annotated for displaying to vampire team members.
 
     :param var: Game state

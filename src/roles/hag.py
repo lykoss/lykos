@@ -50,7 +50,7 @@ async def hex_cmd(wrapper: MessageDispatcher, message: str):
 
     await wrapper.pm(messages["hex_success"].format(target))
 
-    send_wolfchat_message(var, wrapper.source, messages["hex_success_wolfchat"].format(wrapper.source, target), {"hag"}, role="hag", command="hex")
+    await send_wolfchat_message(var, wrapper.source, messages["hex_success_wolfchat"].format(wrapper.source, target), {"hag"}, role="hag", command="hex")
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, allroles: set[str], death_triggers: bool):

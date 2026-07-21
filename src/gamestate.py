@@ -174,11 +174,11 @@ class GameState:
         if config.Main.get("timers.enabled"):
             loop = asyncio.get_event_loop()
             if time_limit:
-                timer = loop.call_later(time_limit, timer_cb, ("limit",) + tuple(cb_args))
+                timer = loop.call_later(time_limit, timer_cb, "limit", *cb_args)
                 TIMERS[f"{self.current_phase}_limit"] = (timer, time.time(), time_limit)
 
             if time_warn:
-                timer = loop.call_later(time_warn, timer_cb, ("warn",) + tuple(cb_args))
+                timer = loop.call_later(time_warn, timer_cb, "warn", *cb_args)
                 TIMERS[f"{self.current_phase}_warn"] = (timer, time.time(), time_warn)
 
     async def extend_phase_limit(self, minimum: int = 0):
@@ -192,7 +192,7 @@ class GameState:
             if elapsed + minimum > limit:
                 timer.cancel()
                 loop = asyncio.get_event_loop()
-                extended = loop.call_later(minimum, timer.function, timer.args, timer.kwargs)
+                extended = loop.call_later(minimum, timer._callback, *timer._args)
                 TIMERS[f"{self.current_phase}_limit"] = (extended, started, elapsed + minimum)
 
     @property

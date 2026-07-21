@@ -75,10 +75,10 @@ async def on_send_role(evt: Event, var: GameState):
         pl.remove(dttv)
         chance = config.Main.get("gameplay.safes.detective_reveal")
 
-        dttv.send(messages["detective_notify"])
+        await dttv.send(messages["detective_notify"])
         if chance > 0:
-            dttv.send(messages["detective_chance"].format(chance))
-        dttv.send(messages["players_list"].format(pl))
+            await dttv.send(messages["detective_chance"].format(chance))
+        await dttv.send(messages["players_list"].format(pl))
 
 @event_listener("transition_night_begin")
 async def on_transition_night_begin(evt: Event, var: GameState):

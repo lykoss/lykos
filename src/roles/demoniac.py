@@ -14,7 +14,7 @@ Demoniacs = Category("Demoniacs")
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
     for demoniac in get_all_players(var, ("demoniac",)):
-        demoniac.send(messages["demoniac_notify"])
+        await demoniac.send(messages["demoniac_notify"])
 
 # monster is at priority 4, and we want demoniac to take precedence
 @event_listener("chk_win", priority=4.1) # FIXME: Kill the priorities

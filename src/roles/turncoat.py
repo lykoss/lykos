@@ -76,9 +76,9 @@ async def on_send_role(evt: Event, var: GameState):
 
         if TURNCOATS[turncoat][1] < var.night_count - 1 or var.night_count == 0:
             # they can act tonight
-            turncoat.send(messages["turncoat_notify"], message)
+            await turncoat.send(messages["turncoat_notify"], message)
         else:
-            turncoat.send(messages["turncoat_notify_no_act"], message)
+            await turncoat.send(messages["turncoat_notify_no_act"], message)
 
 @event_listener("chk_nightdone")
 async def on_chk_nightdone(evt: Event, var: GameState):

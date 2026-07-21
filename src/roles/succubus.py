@@ -81,12 +81,12 @@ async def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User,
         if visited not in VISITED:
             FORCE_PASSED.add(visited)
             PASSED.add(visited)
-            visited.send(messages["already_being_visited"])
+            await visited.send(messages["already_being_visited"])
 
         # if we're being visited by a non-succubus, entrance them
         if visitor_role != "succubus":
-            visitor.send(messages["notify_succubus_target"].format(visited))
-            visited.send(messages["succubus_harlot_success"].format(visitor))
+            await visitor.send(messages["notify_succubus_target"].format(visited))
+            await visited.send(messages["succubus_harlot_success"].format(visitor))
             ENTRANCED.add(visitor)
 
 # entranced logic should run after team wins have already been determined (aka run last)
@@ -122,7 +122,7 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
 
     if evt.data["role"] == "succubus" and player in ENTRANCED:
         ENTRANCED.remove(player)
-        player.send(messages["no_longer_entranced"])
+        await player.send(messages["no_longer_entranced"])
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
@@ -147,7 +147,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     if ALL_SUCC_IDLE and not get_all_players(var, ("succubus",)):
         while ENTRANCED:
             e = ENTRANCED.pop()
-            e.send(messages["entranced_revert_win"])
+            await e.send(messages["entranced_revert_win"])
 
 @event_listener("night_death_message")
 async def on_night_death_message(evt: Event, var: GameState, victim: User, killer: Union[User, str]):
@@ -174,7 +174,7 @@ async def on_send_role(evt: Event, var: GameState):
                 succ.append("{0} ({1})".format(p, role_map["succubus"]))
             else:
                 succ.append(p.nick)
-        succubus.send(messages["succubus_notify"], messages["players_list"].format(succ), sep="\n")
+        await succubus.send(messages["succubus_notify"], messages["players_list"].format(succ), sep="\n")
 
 @event_listener("gun_shoot")
 async def on_gun_shoot(evt: Event, var: GameState, user: User, target: User, role: str):

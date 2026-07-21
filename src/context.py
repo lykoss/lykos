@@ -134,7 +134,7 @@ class IRCContext:
     client: IRCClient
     ref: Optional[IRCContext]
 
-    _messages = defaultdict(list)
+    _messages: defaultdict[str, list[IRCContext]] = defaultdict(list)
     _initialized = False
     _prefix = ""
 
@@ -184,11 +184,7 @@ class IRCContext:
             return "NOTICE"
         return "PRIVMSG"
 
-    def queue_message(self, message):
-        if self.is_fake:
-            self.send(message) # Don't actually queue it
-            return
-
+    def queue_message(self, message: str):
         if isinstance(message, list):
             message = tuple(message)
 
@@ -205,6 +201,9 @@ class IRCContext:
                 message = (message,)
             send_types = defaultdict(list)
             for target in targets:
+                if target.is_fake:
+                    await target.send(message) # don't bundle it
+                    continue
                 send_type = target.get_send_type(is_notice=notice, is_privmsg=privmsg)
                 send_type, send_chan = target.use_cprivmsg(send_type)
                 send_types[(send_type, send_chan)].append(target)

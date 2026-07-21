@@ -139,7 +139,7 @@ class IRCClient:
           str they will be converted to bytes with the encoding specified by the
           'encoding' keyword argument (default 'utf8').
         """
-        with self.lock:
+        with self.lock: # TODO: Replace it with asyncio lock
             # Convert all args to bytes if not already
             encoding = kwargs.get('encoding') or 'utf_8'
             bargs = []

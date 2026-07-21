@@ -85,7 +85,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
         target.queue_message(messages["player_sick"])
         status.add_absent(var, target, "illness")
         status.add_silent(var, target)
-    User.send_messages()
+    await User.send_messages()
 
 @event_listener("night_kills")
 async def on_night_kills(evt: Event, var: GameState):

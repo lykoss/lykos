@@ -65,8 +65,8 @@ async def on_send_role(evt: Event, var: GameState):
         if DOCTORS[doctor]: # has immunizations remaining
             pl = ps[:]
             random.shuffle(pl)
-            doctor.send(messages["doctor_notify"])
-            doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
+            await doctor.send(messages["doctor_notify"])
+            await doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
 
 @event_listener("revealroles")
 async def on_revealroles(evt: Event, var: GameState):

@@ -51,7 +51,7 @@ async def charm(wrapper: MessageDispatcher, message: str):
     if target2 is not None:
         target2 = try_misdirection(var, wrapper.source, target2)
 
-    if await try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
+    if await try_exchange(var, wrapper.source, target1) or await try_exchange(var, wrapper.source, target2):
         return
 
     # Do these checks based on original targets, so piper doesn't know to change due to misdirection/luck totem
@@ -132,15 +132,15 @@ async def on_transition_day_begin(evt: Event, var: GameState):
         to_send = "charmed_players"
         if not charmedlist:
             to_send = "no_charmed_players"
-        target.send(messages["charmed"] + messages[to_send].format(charmedlist))
+        await target.send(messages["charmed"] + messages[to_send].format(charmedlist))
 
     if len(tocharm) > 0:
         for target in CHARMED:
             previouscharmed = CHARMED - {target}
             if previouscharmed:
-                target.send(messages["players_charmed"].format(tocharm) + messages["previously_charmed"].format(previouscharmed))
+                await target.send(messages["players_charmed"].format(tocharm) + messages["previously_charmed"].format(previouscharmed))
             else:
-                target.send(messages["players_charmed"].format(tocharm))
+                await target.send(messages["players_charmed"].format(tocharm))
 
     CHARMED.update(tocharm)
     TOBECHARMED.clear()
@@ -159,9 +159,9 @@ async def on_send_role(evt: Event, var: GameState):
         pl = list(ps)
         random.shuffle(pl)
         pl.remove(piper)
-        piper.send(messages["piper_notify"])
+        await piper.send(messages["piper_notify"])
         if var.next_phase == "night":
-            piper.send(messages["players_list"].format(pl))
+            await piper.send(messages["players_list"].format(pl))
 
 @event_listener("new_role")
 async def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str]):

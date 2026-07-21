@@ -48,9 +48,9 @@ async def on_transition_day_begin(evt: Event, var: GameState):
     for crow, target in OBSERVED.items():
         # if any of target's roles (primary or secondary) are Nocturnal, we see them as awake
         if is_awake(var, target):
-            crow.send(messages["werecrow_success"].format(target))
+            await crow.send(messages["werecrow_success"].format(target))
         else:
-            crow.send(messages["werecrow_failure"].format(target))
+            await crow.send(messages["werecrow_failure"].format(target))
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):

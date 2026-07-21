@@ -18,7 +18,7 @@ DyingEntry = Tuple[str, str, bool, Optional[User]]
 DYING: UserDict[User, DyingEntry] = UserDict()
 DEAD: UserSet = UserSet()
 
-def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True, killer: Optional[User] = None) -> bool:
+async def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, death_triggers: bool = True, killer: Optional[User] = None) -> bool:
     """
     Mark a player as dying.
 
@@ -34,7 +34,7 @@ def add_dying(var: GameState, player: User, killer_role: str, reason: str, *, de
 
     # ensure that the reaper thread doesn't smash things against the gameplay thread when running this
     # (eventually the reaper thread will just pass messages to the main thread via the asyncio event loop and these locks would therefore be unnecessary)
-    with locks.reaper: # FIXME
+    async with locks.reaper: # FIXME
         if not var or var.game_id > t:
             #  either game ended, or a new game has started
             return False
@@ -78,7 +78,7 @@ async def kill_players(var: Optional[GameState | PregameState], *, end_game: boo
     """
     t = time.time()
 
-    with locks.reaper: # FIXME
+    async with locks.reaper: # FIXME
         if not var or var.game_id > t:
             #  either game ended, or a new game has started
             return True

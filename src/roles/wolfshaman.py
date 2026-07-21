@@ -26,7 +26,7 @@ async def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     totem_types = list(TOTEMS[wrapper.source].keys())
-    totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)
+    totem, target = await get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)
     if not target:
         return
 
@@ -54,7 +54,7 @@ async def wolf_shaman_totem(wrapper: MessageDispatcher, message: str):
         if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
             SHAMANS[wrapper.source][totem].pop(0)
 
-    send_wolfchat_message(var, wrapper.source, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), role="wolf shaman", command="totem")
+    await send_wolfchat_message(var, wrapper.source, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), role="wolf shaman", command="totem")
 
 @event_listener("transition_day_begin", priority=4)
 async def on_transition_day_begin(evt: Event, var: GameState):
@@ -78,9 +78,9 @@ async def on_transition_day_begin(evt: Event, var: GameState):
                     target = random.choice(ps)
                     ps.remove(target)
                     dispatcher = MessageDispatcher(shaman, users.Bot)
-                    given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="wolf shaman")
+                    given = await give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="wolf shaman")
                     if given:
-                        send_wolfchat_message(var, shaman, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), role="wolf shaman", command="totem")
+                        await send_wolfchat_message(var, shaman, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), role="wolf shaman", command="totem")
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("send_role")

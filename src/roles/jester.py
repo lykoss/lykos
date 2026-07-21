@@ -25,7 +25,7 @@ async def on_player_win(evt: Event, var: GameState, player: User, main_role: str
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
     for jester in get_all_players(var, ("jester",)):
-        jester.send(messages["jester_notify"])
+        await jester.send(messages["jester_notify"])
 
 @event_listener("reset")
 async def on_reset(evt: Event, var: GameState):

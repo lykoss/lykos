@@ -12,7 +12,7 @@ from src.dispatcher import MessageDispatcher
 from src.random import random
 
 class GameState(gamestate.GameState):
-    async def __init__(self):
+    def __init__(self):
         self.prophet_prayed = UserSet()
 
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
@@ -63,7 +63,7 @@ async def pray(wrapper: MessageDispatcher, message: str):
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
     for pht in get_all_players(var, ("prophet",)):
-        pht.send(messages["prophet_notify"])
+        await pht.send(messages["prophet_notify"])
 
 @event_listener("chk_nightdone")
 async def on_chk_nightdone(evt: Event, var: GameState):

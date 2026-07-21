@@ -14,7 +14,7 @@ from src.random import random
 RECEIVED_INFO = UserSet()
 KNOWS_MINIONS = UserSet()
 
-async def wolf_list(var: GameState):
+def wolf_list(var: GameState):
     wolves = [wolf.nick for wolf in get_all_players(var, Wolf)]
     random.shuffle(wolves)
     return messages["wolves_list"].format(", ".join(wolves))
@@ -24,8 +24,8 @@ async def on_send_role(evt: Event, var: GameState):
     for minion in get_all_players(var, ("minion",)):
         if minion in RECEIVED_INFO and not var.always_pm_role:
             continue
-        minion.send(messages["minion_notify"])
-        minion.send(wolf_list(var))
+        await minion.send(messages["minion_notify"])
+        await minion.send(wolf_list(var))
         RECEIVED_INFO.add(minion)
 
 @event_listener("transition_night_end")
@@ -35,7 +35,7 @@ async def on_transition_night_end(evt: Event, var: GameState):
         return
     wolves = get_all_players(var, Wolf) - KNOWS_MINIONS
     for wolf in wolves:
-        wolf.send(messages["has_minions"].format(minions))
+        await wolf.send(messages["has_minions"].format(minions))
         KNOWS_MINIONS.add(wolf)
 
 @event_listener("new_role")

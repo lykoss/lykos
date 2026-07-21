@@ -6,7 +6,7 @@ from src.messages import messages
 from src.events import Event, event_listener
 from src.status import is_awake
 
-async def _get_targets(var: GameState, pl, user):
+def _get_targets(var: GameState, pl, user):
     index = var.players.index(user)
     num_players = len(var.players)
     # determine left player
@@ -30,7 +30,7 @@ async def _get_targets(var: GameState, pl, user):
 async def on_send_role(evt: Event, var: GameState):
     if not var.setup_completed or var.always_pm_role:
         for insomniac in get_all_players(var, ("insomniac",)):
-            insomniac.send(messages["insomniac_notify"])
+            await insomniac.send(messages["insomniac_notify"])
 
 @event_listener("transition_day_begin")
 async def on_transition_day_begin(evt: Event, var: GameState):
@@ -43,14 +43,14 @@ async def on_transition_day_begin(evt: Event, var: GameState):
         p2_awake = is_awake(var, p2)
         if p1_awake and p2_awake:
             # both of the players next to the insomniac were awake last night
-            insomniac.send(messages["insomniac_both_awake"].format(p1, p2))
+            await insomniac.send(messages["insomniac_both_awake"].format(p1, p2))
         elif p1_awake:
-            insomniac.send(messages["insomniac_awake"].format(p1))
+            await insomniac.send(messages["insomniac_awake"].format(p1))
         elif p2_awake:
-            insomniac.send(messages["insomniac_awake"].format(p2))
+            await insomniac.send(messages["insomniac_awake"].format(p2))
         else:
             # both players next to the insomniac were asleep all night
-            insomniac.send(messages["insomniac_asleep"].format(p1, p2))
+            await insomniac.send(messages["insomniac_asleep"].format(p1, p2))
 
 @event_listener("get_role_metadata")
 async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):

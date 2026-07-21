@@ -82,7 +82,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
                     await channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
                     await channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
-                add_dying(var, target, "dullahan", "dullahan_die", killer=player)
+                await add_dying(var, target, "dullahan", "dullahan_die", killer=player)
 
 @event_listener("night_kills")
 async def on_night_kills(evt: Event, var: GameState):
@@ -147,9 +147,9 @@ async def on_transition_night_end(evt: Event, var: GameState):
             continue
         random.shuffle(targets)
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
-        dullahan.send(messages["dullahan_notify"])
+        await dullahan.send(messages["dullahan_notify"])
         if var.next_phase == "night":
-            dullahan.send(t.format(targets))
+            await dullahan.send(t.format(targets))
 
 @event_listener("visit")
 async def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User, visited: User):
@@ -157,7 +157,7 @@ async def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User,
         succubi = get_all_players(var, ("succubus",))
         if visited in TARGETS and TARGETS[visited].intersection(succubi):
             TARGETS[visited].difference_update(succubi)
-            visited.send(messages["dullahan_no_kill_succubus"])
+            await visited.send(messages["dullahan_no_kill_succubus"])
 
 @event_listener("myrole")
 async def on_myrole(evt: Event, var: GameState, user):

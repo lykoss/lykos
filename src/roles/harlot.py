@@ -68,7 +68,7 @@ async def on_visit(evt: Event, var: GameState, visitor_role: str, visitor: User,
         if visited not in VISITED:
             FORCE_PASSED.add(visited)
             PASSED.add(visited)
-            visited.send(messages["already_being_visited"])
+            await visited.send(messages["already_being_visited"])
 
 @event_listener("night_kills")
 async def on_night_kills(evt: Event, var: GameState):
@@ -111,9 +111,9 @@ async def on_send_role(evt: Event, var: GameState):
         pl = get_players(var)
         random.shuffle(pl)
         pl.remove(harlot)
-        harlot.send(messages["harlot_notify"])
+        await harlot.send(messages["harlot_notify"])
         if var.next_phase == "night":
-            harlot.send(messages["players_list"].format(pl))
+            await harlot.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):

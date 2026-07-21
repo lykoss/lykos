@@ -61,7 +61,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     del KILLS[:player:]
     for vigilante, target in list(KILLS.items()):
         if target is player:
-            vigilante.send(messages["hunter_discard"])
+            await vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
 
 @event_listener("night_kills")
@@ -103,9 +103,9 @@ async def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(vigilante)
-        vigilante.send(messages["vigilante_notify"])
+        await vigilante.send(messages["vigilante_notify"])
         if var.next_phase == "night":
-            vigilante.send(messages["players_list"].format(pl))
+            await vigilante.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):

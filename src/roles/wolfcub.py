@@ -44,17 +44,17 @@ async def on_wolf_notify(evt: Event, var: GameState, role: str):
         if wolf_can_kill(var, wofl):
             wofl.queue_message(messages["angry_wolves"])
 
-    users.User.send_messages()
+    await users.User.send_messages()
 
 @event_listener("chk_win", priority=1)
 async def on_chk_win(evt: Event,
-               var: GameState,
-               rolemap: dict[str, set[User]],
-               mainroles: dict[User, str],
-               num_players: int,
-               num_wolves: int,
-               num_real_wolves: int,
-               num_vampires: int):
+                     var: GameState,
+                     rolemap: dict[str, set[User]],
+                     mainroles: dict[User, str],
+                     num_players: int,
+                     num_wolves: int,
+                     num_real_wolves: int,
+                     num_vampires: int):
     did_something = False
     if num_real_wolves - num_vampires == 0:
         for wc in list(rolemap["wolf cub"]):
@@ -67,7 +67,7 @@ async def on_chk_win(evt: Event,
             if var.in_game:
                 # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame
                 # stats as cub still.
-                wc.send(messages["cub_grow_up"])
+                await wc.send(messages["cub_grow_up"])
     if did_something:
         evt.prevent_default = True
         evt.stop_processing = True

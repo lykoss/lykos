@@ -173,7 +173,7 @@ async def spectate_chat(wrapper: MessageDispatcher, message: str, *, is_fspectat
                 for player in players:
                     player.queue_message(messages[key].format(wrapper.source))
                 if players:
-                    User.send_messages()
+                    await User.send_messages()
         elif config.Main.get("gameplay.deadchat"):
             if wrapper.source in DEADCHAT_PLAYERS:
                 await wrapper.pm(messages["spectate_in_deadchat"])

@@ -105,7 +105,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
             if var.role_reveal in ("on", "team"):
                 to_send = "assassin_success"
             await channels.Main.send(messages[to_send].format(player, target, await get_reveal_role(var, target)))
-            add_dying(var, target, killer_role=evt.params.main_role, reason="assassin", killer=player)
+            await add_dying(var, target, killer_role=evt.params.main_role, reason="assassin", killer=player)
 
 @event_listener("myrole")
 async def on_myrole(evt: Event, var: GameState, user):

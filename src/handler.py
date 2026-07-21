@@ -281,7 +281,7 @@ def connect_callback(cli: IRCClient):
                 ping_server(cli)
 
                 loop = asyncio.get_event_loop()
-                loop.call_later(config.Main.get("transports[0].server_ping"), ping_server_timer, args=(cli,))
+                loop.call_later(config.Main.get("transports[0].server_ping"), ping_server_timer, cli)
 
             await ping_server_timer(cli)
 

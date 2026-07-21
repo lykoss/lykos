@@ -111,7 +111,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
                 if players:
                     idol = random.choice(players)
                     IDOLS[child] = idol
-                    child.send(messages["wild_child_random_idol"].format(idol))
+                    await child.send(messages["wild_child_random_idol"].format(idol))
 
 @event_listener("send_role")
 async def on_transition_night_end(evt: Event, var: GameState):
@@ -121,9 +121,9 @@ async def on_transition_night_end(evt: Event, var: GameState):
             pl = list(get_players(var))
             pl.remove(child)
             random.shuffle(pl)
-            child.send(messages["wild_child_notify"])
+            await child.send(messages["wild_child_notify"])
             if var.next_phase == "night":
-                child.send(messages["players_list"].format(pl))
+                await child.send(messages["players_list"].format(pl))
 
 @event_listener("revealroles_role")
 async def on_revealroles_role(evt: Event, var: GameState, user: User, role: str):

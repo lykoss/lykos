@@ -61,7 +61,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
 
         if time_left > time_limit > 0:
             loop = asyncio.get_event_loop()
-            t = loop.call_later(time_limit, cb, limit_args)
+            t = loop.call_later(time_limit, cb, *limit_args)
             TIMERS[f"{var.current_phase}_limit"] = (t, time.time(), time_limit)
 
             # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
@@ -69,7 +69,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
                 timer = TIMERS[timer_name][0]
                 if not timer.finished.is_set():
                     timer.cancel()
-                    t = loop.call_later(time_warn, cb, warn_args)
+                    t = loop.call_later(time_warn, cb, *warn_args)
                     TIMERS[timer_name] = (t, time.time(), time_warn)
 
 @event_listener("night_idled")

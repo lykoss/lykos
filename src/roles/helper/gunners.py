@@ -72,7 +72,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                     if var.role_reveal == "on":
                         to_send = "gunner_victim_wolf_death"
                     await wrapper.send(messages[to_send].format(target, targrole))
-                    add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
+                    await add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                     await kill_players(var)
             elif shoot_evt.data["kill"]:
                 protected = await try_protection(var, target, wrapper.source, rolename, reason="gunner_victim")
@@ -85,7 +85,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                     await wrapper.send(messages[to_send].format(target))
                     if var.role_reveal in ("on", "team"):
                         await wrapper.send(messages["gunner_victim_role"].format(targrole))
-                    add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
+                    await add_dying(var, target, killer_role=await get_main_role(var, wrapper.source), reason="gunner_victim", killer=wrapper.source)
                     await kill_players(var)
             else:
                 await wrapper.send(messages["gunner_victim_injured"].format(target))
@@ -101,7 +101,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
             if var.role_reveal in ("on", "team"):
                 to_send = "gunner_suicide"
             await wrapper.send(messages[to_send].format(wrapper.source, await get_reveal_role(var, wrapper.source)))
-            add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
+            await add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             await kill_players(var)
         else:
             await wrapper.send(messages["gunner_miss"].format(wrapper.source))
@@ -137,7 +137,7 @@ def setup_variables(rolename: str, *, hit: float, headshot: float, explode: floa
                             if var.role_reveal in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
                             await channels.Main.send(messages[to_send].format(victim, shot, await get_reveal_role(var, shot)))
-                            add_dying(var, shot, killer_role=evt.params.main_role, reason="assassin", killer=victim)
+                            await add_dying(var, shot, killer_role=evt.params.main_role, reason="assassin", killer=victim)
                     elif event.data["hit"]:
                         # shot hit, but didn't kill
                         await channels.Main.send(messages["gunner_shoot_overnight_hit"].format(victim))

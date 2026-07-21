@@ -214,7 +214,7 @@ async def forced_exit(wrapper: MessageDispatcher, message: str):
 
     if var:
         if var.current_phase == "join" or force or wrapper.source.nick == "<console>":
-            stop_game(var, log=False)
+            await stop_game(var, log=False)
         elif var.in_game:
             await wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
             return
@@ -224,8 +224,8 @@ async def forced_exit(wrapper: MessageDispatcher, message: str):
     if message.strip():
         msg += " ({2})"
 
-    hooks.quit(wrapper, msg.format("Scheduled" if forced_exit.aftergame else "Forced",
-               wrapper.source, message.strip()))
+    await hooks.quit(wrapper, msg.format("Scheduled" if forced_exit.aftergame else "Forced",
+                     wrapper.source, message.strip()))
 
 def _restart_program(mode=None):
     logging.getLogger("general").info("RESTARTING")
@@ -256,7 +256,7 @@ async def restart_program(wrapper: MessageDispatcher, message: str):
     if var:
         if not var.in_game or force:
             db.set_pre_restart_state(p.nick for p in get_players(var))
-            stop_game(var, log=False)
+            await stop_game(var, log=False)
         else:
             await wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
             return
@@ -551,7 +551,7 @@ async def leave(var: Optional[GameState | PregameState], what: str, user: User, 
 
     if var.current_phase == "join":
         if num_remaining < config.Main.get("gameplay.player_limits.minimum"):
-            with locks.join_timer:
+            async with locks.join_timer:
                 from src.pregame import START_VOTES
                 START_VOTES.clear()
 
@@ -599,7 +599,7 @@ async def leave(var: Optional[GameState | PregameState], what: str, user: User, 
     await relay.leave_deadchat(var, user)
 
     if killplayer:
-        add_dying(var, user, "bot", what, death_triggers=False)
+        await add_dying(var, user, "bot", what, death_triggers=False)
         await kill_players(var)
     else:
         reaper.DISCONNECTED[user] = (datetime.now(), what)

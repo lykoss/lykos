@@ -178,7 +178,7 @@ class BorealMode(GameMode):
                 if num_wendigos < num_wolf_shamans:
                     num_wendigos += 1
                     await change_role(var, p, await get_main_role(var, p), "vengeful ghost", message=None)
-                add_dying(var, p, killer_role="villager", reason="boreal_starvation")
+                await add_dying(var, p, killer_role="villager", reason="boreal_starvation")
             elif self.hunger_levels[p] >= 3:
                 # if they are at 3 or 4, alert them that they are hungry
                 await p.send(messages["boreal_hungry"])

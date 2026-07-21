@@ -15,9 +15,9 @@ async def on_send_role(evt: Event, var: GameState):
     if lycans:
         add_lycanthropy_scope(var, {"lycan"})
     for lycan in lycans:
-        if not add_lycanthropy(var, lycan):
+        if not await add_lycanthropy(var, lycan):
             continue
-        lycan.send(messages["lycan_notify"])
+        await lycan.send(messages["lycan_notify"])
 
 @event_listener("doctor_immunize")
 async def on_doctor_immunize(evt: Event, var: GameState, doctor: User, target: User):

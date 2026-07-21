@@ -99,7 +99,7 @@ async def on_player_win(evt: Event, var: GameState, player: User, main_role: str
 async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set[str], death_triggers: bool):
     for ghost, victim in list(KILLS.items()):
         if player is victim:
-            ghost.send(messages["hunter_discard"])
+            await ghost.send(messages["hunter_discard"])
             del KILLS[ghost]
     del KILLS[:player:]
 
@@ -114,7 +114,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
             GHOSTS[player] = "vampire"
         else:
             GHOSTS[player] = "villager"
-        player.send(messages["vengeful_turn"].format(GHOSTS[player]))
+        await player.send(messages["vengeful_turn"].format(GHOSTS[player]))
 
 @event_listener("transition_day_begin")
 async def on_transition_day_begin(evt: Event, var: GameState):
@@ -183,9 +183,9 @@ async def on_transition_night_end(evt: Event, var: GameState):
         pl = targets[who][:]
         random.shuffle(pl)
         TARGETS[v_ghost] = UserSet(pl)
-        v_ghost.send(messages["vengeful_ghost_notify"].format(who),
-                     messages["vengeful_ghost_team"].format(who, pl),
-                     sep="\n")
+        await v_ghost.send(messages["vengeful_ghost_notify"].format(who),
+                           messages["vengeful_ghost_team"].format(who, pl),
+                           sep="\n")
 
 @event_listener("myrole")
 async def on_myrole(evt: Event, var: GameState, user: User):
@@ -198,7 +198,7 @@ async def on_myrole(evt: Event, var: GameState, user: User):
                 pl = list(TARGETS[user])
                 random.shuffle(pl)
                 m.append(messages["vengeful_ghost_team"].format(GHOSTS[user], pl))
-            user.send(*m, sep="\n")
+            await user.send(*m, sep="\n")
 
 @event_listener("revealroles")
 async def on_revealroles(evt: Event, var: GameState):

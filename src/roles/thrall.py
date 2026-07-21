@@ -19,17 +19,17 @@ async def on_send_role(evt: Event, var: GameState):
         thralls = get_players(var, send_roles)
         for thrall in thralls:
             thrall.queue_message(messages["thrall_notify"])
-        User.send_messages()
+        await User.send_messages()
 
 @event_listener("chk_win", priority=3)
 async def on_chk_win(evt: Event,
-               var: GameState,
-               role_map: dict[str, set[User]],
-               main_roles: dict[User, str],
-               num_players: int,
-               num_wolves: int,
-               num_real_wolves: int,
-               num_vampires: int):
+                     var: GameState,
+                     role_map: dict[str, set[User]],
+                     main_roles: dict[User, str],
+                     num_players: int,
+                     num_wolves: int,
+                     num_real_wolves: int,
+                     num_vampires: int):
     if evt.data["winner"] is not None or num_wolves > 0:
         return
     if num_vampires == num_players / 2:

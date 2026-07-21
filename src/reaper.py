@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+import asyncio
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -34,9 +34,9 @@ async def reaper(var: GameState, gameid: int):
 
     while var.in_game and gameid == var.game_id:
         skip = False
-        time.sleep(1 if short else 10)
+        await asyncio.sleep(1 if short else 10)
         short = False
-        with locks.reaper:
+        async with locks.reaper:
             # Terminate reaper when game ends
             if not var.in_game:
                 return
@@ -84,7 +84,7 @@ async def reaper(var: GameState, gameid: int):
                                 expires=config.Main.get(f"reaper.{what}.expiration"))
                 if var.in_game:
                     DCED_LOSERS.add(dcedplayer)
-                add_dying(var, dcedplayer, "bot", what, death_triggers=False)
+                await add_dying(var, dcedplayer, "bot", what, death_triggers=False)
 
             if not skip and config.Main.get("reaper.idle.enabled"):  # only if enabled
                 to_warn:    set[User] = set()
@@ -123,7 +123,7 @@ async def reaper(var: GameState, gameid: int):
                     if config.Main.get("reaper.autowarn") and config.Main.get("reaper.idle.enabled"):
                         NIGHT_IDLED.discard(user) # don't double-dip if they idled out night as well
                         add_warning(user, config.Main.get("reaper.idle.points"), users.Bot, messages["idle_warning"], expires=config.Main.get("reaper.idle.expiration"))
-                    add_dying(var, user, "bot", "idle", death_triggers=False)
+                    await add_dying(var, user, "bot", "idle", death_triggers=False)
                 pl = get_players(var)
                 x = [a for a in to_warn if a in pl]
                 if x:
@@ -152,7 +152,7 @@ async def update_last_said(wrapper: MessageDispatcher, message: str):
 
 @handle_error
 async def return_to_village(var: GameState, target: User, *, show_message: bool, new_user: Optional[User] = None):
-    with locks.reaper:
+    async with locks.reaper:
         from src.trans import ORIGINAL_ACCOUNTS
         if channels.Main not in target.channels:
             # managed to leave the channel in between the time return_to_village was scheduled and called

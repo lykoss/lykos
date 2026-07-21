@@ -88,7 +88,7 @@ async def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], 
             did_something = True
             if var.in_game:
                 var.final_roles[traitor] = "wolf"
-                traitor.send(messages["traitor_turn"])
+                await traitor.send(messages["traitor_turn"])
     if did_something:
         if var.in_game:
             await channels.Main.send(messages["traitor_turn_channel"])

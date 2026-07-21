@@ -1,7 +1,7 @@
-import threading
+import asyncio
 
 __all__ = ["join_timer", "reaper"]
 
-join_timer = threading.RLock()
-reaper = threading.RLock()
-wait = threading.RLock()
+join_timer = asyncio.Lock()
+reaper = asyncio.Lock()
+wait = asyncio.Lock()

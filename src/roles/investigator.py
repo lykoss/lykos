@@ -82,7 +82,7 @@ async def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(inv)
-        inv.send(messages["investigator_notify"], messages["players_list"].format(pl), sep="\n")
+        await inv.send(messages["investigator_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("transition_night_begin")
 async def on_transition_night_begin(evt: Event, var: GameState):

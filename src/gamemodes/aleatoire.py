@@ -9,7 +9,6 @@ class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.set_default_totem_chances()
 
         self.ROLE_GUIDE = {
             8:  ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
@@ -27,6 +26,7 @@ class AleatoireMode(GameMode):
 
     async def setup_totems(self):
         await super().setup_totems()
+        self.set_default_totem_chances()
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 4},
             "protection"    : {"shaman": 8},

@@ -31,13 +31,13 @@ async def on_day_vte(evt: Event, var: GameState, votee, voters):
 
 @event_listener("chk_win", priority=0)
 async def on_chk_win(evt: Event,
-               var: GameState,
-               role_map: dict[str, set[User]],
-               main_roles: dict[User, str],
-               num_players: int,
-               num_wolves: int,
-               num_real_wolves: int,
-               num_vampires: int):
+                     var: GameState,
+                     role_map: dict[str, set[User]],
+                     main_roles: dict[User, str],
+                     num_players: int,
+                     num_wolves: int,
+                     num_real_wolves: int,
+                     num_vampires: int):
     if evt.data["winner"] is Fools and VOTED is not None:
         evt.data["message"] = messages["fool_win"]
 
@@ -55,7 +55,7 @@ async def on_player_win(evt: Event, var: GameState, player: User, main_role: str
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
     for fool in get_all_players(var, ("fool",)):
-        fool.send(messages["fool_notify"])
+        await fool.send(messages["fool_notify"])
 
 @event_listener("reset")
 async def on_reset(evt: Event, var: GameState):

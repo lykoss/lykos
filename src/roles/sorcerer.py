@@ -54,7 +54,7 @@ async def observe(wrapper: MessageDispatcher, message: str):
         args.append(targrole)
 
     await wrapper.pm(messages[key].format(*args))
-    send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")
+    await send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")
 
 @event_listener("chk_nightdone")
 async def on_chk_nightdone(evt: Event, var: GameState):

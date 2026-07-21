@@ -37,7 +37,7 @@ async def bless(wrapper: MessageDispatcher, message: str):
     PRIESTS.add(wrapper.source)
     var.roles["blessed villager"].add(target)
     await wrapper.pm(messages["blessed_success"].format(target))
-    target.send(messages["blessed_notify_target"])
+    await target.send(messages["blessed_notify_target"])
 
 @command("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 async def consecrate(wrapper: MessageDispatcher, message: str):
@@ -75,7 +75,7 @@ async def consecrate(wrapper: MessageDispatcher, message: str):
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
     for priest in get_all_players(var, ("priest",)):
-        priest.send(messages["priest_notify"])
+        await priest.send(messages["priest_notify"])
 
 @event_listener("reset")
 async def on_reset(evt: Event, var: GameState):

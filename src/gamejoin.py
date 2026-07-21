@@ -108,7 +108,7 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
             trans.ORIGINAL_ACCOUNTS[wrapper.source] = wrapper.source.account
         if config.Main.get("timers.wait.enabled"):
             pregame.CAN_START_TIME = datetime.now() + timedelta(seconds=config.Main.get("timers.wait.initial"))
-            with locks.wait:
+            async with locks.wait:
                 pregame.WAIT_TOKENS = config.Main.get("timers.wait.command.tokenbucket.initial")
                 pregame.WAIT_LAST   = time.time()
         await wrapper.send(messages["new_game"].format(wrapper.source))
@@ -116,27 +116,27 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
         # Set join timer
         if config.Main.get("timers.enabled") and config.Main.get("timers.join.enabled"):
             loop = asyncio.get_event_loop()
-            handle = loop.call_later(config.Main.get("timers.join.limit"), kill_join, [var, wrapper])
+            handle = loop.call_later(config.Main.get("timers.join.limit"), kill_join, var, wrapper)
             trans.TIMERS["join"] = (handle, time.time(), config.Main.get("timers.join.limit"))
 
     elif wrapper.source in pl:
         key = "you_already_playing" if who is wrapper.source else "other_already_playing"
-        who.send(messages[key], notice=True)
+        await who.send(messages[key], notice=True)
         return True # returning True lets them use !j mode to vote for a gamemode while already joined
     elif len(pl) >= config.Main.get("gameplay.player_limits.maximum"):
-        who.send(messages["too_many_players"], notice=True)
+        await who.send(messages["too_many_players"], notice=True)
         return False
     elif var.in_game:
-        who.send(messages["game_already_running"], notice=True)
+        await who.send(messages["game_already_running"], notice=True)
         return False
     else:
         if not config.Main.get("debug.enabled"):
             for player in pl:
                 if context.equals(player.account, temp.account):
                     if who is wrapper.source:
-                        who.send(messages["account_already_joined_self"].format(player), notice=True)
+                        await who.send(messages["account_already_joined_self"].format(player), notice=True)
                     else:
-                        who.send(messages["account_already_joined_other"].format(who), notice=True)
+                        await who.send(messages["account_already_joined_other"].format(who), notice=True)
                     return
 
         var.players.append(wrapper.source)
@@ -159,12 +159,12 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
                 if now + timedelta(seconds=config.Main.get("timers.wait.join")) > pregame.CAN_START_TIME:
                     pregame.CAN_START_TIME = now + timedelta(seconds=config.Main.get("timers.wait.join"))
 
-    with locks.join_timer:
+    async with locks.join_timer:
         if "join_pinger" in trans.TIMERS:
             trans.TIMERS["join_pinger"][0].cancel()
 
         loop = asyncio.get_event_loop()
-        handle = loop.call_later(10, join_timer_handler, (var,))
+        handle = loop.call_later(10, join_timer_handler, var)
         trans.TIMERS["join_pinger"] = (handle, time.time(), 10)
 
     if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
@@ -177,7 +177,7 @@ async def kill_join(var: GameState, wrapper: MessageDispatcher):
     from src import trans
     pl = [x.nick for x in get_players(var)]
     pl.sort(key=lambda x: x.lower())
-    trans.reset(var)
+    await trans.reset(var)
     await wrapper.send(*pl, first="PING! ")
     await wrapper.send(messages["game_idle_cancel"])
     # use this opportunity to expire pending stasis
@@ -295,7 +295,7 @@ async def altpinger(wrapper: MessageDispatcher, message: str):
 @handle_error
 async def join_timer_handler(var):
     global PINGING_PLAYERS
-    with locks.join_timer:
+    async with locks.join_timer:
         PINGING_PLAYERS = True
         to_ping: list[User] = []
         pl = get_players(var)
@@ -395,7 +395,7 @@ async def leave_game(wrapper: MessageDispatcher, message: str):
             reaper.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
             add_warning(wrapper.source, config.Main.get("reaper.leave.points"), users.Bot, messages["leave_warning"], expires=config.Main.get("reaper.leave.expiration"))
 
-    add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
+    await add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
     kill_players(var)
     if not var.in_game and len(get_players(var)) == 0:
         # chk_win handles ending game at 0 players if a game is running, don't need to do so here
@@ -440,7 +440,7 @@ async def fleave(wrapper: MessageDispatcher, message: str):
             if var.current_phase != "join":
                 reaper.DCED_LOSERS.add(target)
 
-            add_dying(var, target, "bot", "fquit", death_triggers=False)
+            await add_dying(var, target, "bot", "fquit", death_triggers=False)
             kill_players(var)
             if not var.in_game and len(get_players(var)) == 0:
                 # chk_win handles ending game at 0 players if a game is running, don't need to do so here

@@ -149,7 +149,7 @@ async def show_votes(wrapper: MessageDispatcher, message: str):
         if len(pl) >= config.Main.get("gameplay.player_limits.minimum"):
             msg += messages["majority_votes"].format("; " if votelist else "", math.ceil(len(pl) / 2))
 
-        with locks.join_timer:
+        async with locks.join_timer:
             if pregame.START_VOTES:
                 msg += messages["start_votes"].format(len(pregame.START_VOTES), pregame.START_VOTES)
 
@@ -204,7 +204,7 @@ async def vote(wrapper: MessageDispatcher, message: str):
 # admin_forced=True will make it not count towards villages' abstain limit if nobody is voted
 async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
     from src.trans import chk_win
-    with locks.reaper:
+    async with locks.reaper:
         players = set(get_players(var)) - get_absent(var)
         avail = len(players)
         needed = avail // 2 + 1
@@ -290,7 +290,7 @@ async def chk_decision(var: GameState, *, timeout=False, admin_forced=False):
                             to_send = "day_vote_reveal"
                         lmsg = messages[to_send].format(votee, await get_reveal_role(var, votee))
                         await channels.Main.send(lmsg)
-                        add_dying(var, votee, "villager", "day_vote")
+                        await add_dying(var, votee, "villager", "day_vote")
 
             await kill_players(var, end_game=False)
 

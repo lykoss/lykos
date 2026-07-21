@@ -86,9 +86,9 @@ async def on_send_role(evt: Event, var: GameState):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(clone)
-        clone.send(messages["clone_notify"])
+        await clone.send(messages["clone_notify"])
         if var.next_phase == "night":
-            clone.send(messages["players_list"].format(pl))
+            await clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")
 async def on_chk_nightdone(evt: Event, var: GameState):
@@ -106,7 +106,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
             if ps:
                 target = random.choice(ps)
                 CLONED[clone] = target
-                clone.send(messages["random_clone"].format(target))
+                await clone.send(messages["random_clone"].format(target))
 
 @event_listener("swap_role_state")
 async def on_swap_role_state(evt: Event, var: GameState, actor, target, role):

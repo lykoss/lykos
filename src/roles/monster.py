@@ -34,7 +34,7 @@ async def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], 
 async def on_send_role(evt: Event, var: GameState):
     for monster in get_all_players(var, ("monster",)):
         add_protection(var, monster, protector=None, protector_role="monster", scope=Wolf | Vampire, priority=10)
-        monster.send(messages["monster_notify"])
+        await monster.send(messages["monster_notify"])
 
 @event_listener("remove_protection")
 async def on_remove_protection(evt: Event, var: GameState, target: User, attacker: User, attacker_role: str, protector: User, protector_role: str, reason: str):

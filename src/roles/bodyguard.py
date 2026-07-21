@@ -42,7 +42,7 @@ async def guard(wrapper: MessageDispatcher, message: str):
     GUARDED[wrapper.source] = target
 
     await wrapper.pm(messages["protecting_target"].format(target))
-    target.send(messages["target_protected"])
+    await target.send(messages["target_protected"])
 
 @command("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
@@ -67,7 +67,7 @@ async def on_new_role(evt: Event, var: GameState, player: User, old_role: Option
     if old_role == "bodyguard" and evt.data["role"] != "bodyguard":
         if player in GUARDED:
             guarded = GUARDED.pop(player)
-            guarded.send(messages["protector_disappeared"])
+            await guarded.send(messages["protector_disappeared"])
 
 @event_listener("chk_nightdone")
 async def on_chk_nightdone(evt: Event, var: GameState):
@@ -119,18 +119,18 @@ async def on_send_role(evt: Event, var: GameState):
         pl.remove(bg)
         chance = config.Main.get("gameplay.safes.bodyguard_dies")
 
-        bg.send(messages["bodyguard_notify"])
+        await bg.send(messages["bodyguard_notify"])
         if var.next_phase != "night":
             return
         if chance > 0:
-            bg.send(messages["bodyguard_death_chance"].format(chance))
-        bg.send(messages["players_list"].format(pl))
+            await bg.send(messages["bodyguard_death_chance"].format(chance))
+        await bg.send(messages["players_list"].format(pl))
 
 @event_listener("player_protected")
 async def on_player_protected(evt: Event, var: GameState, target: User, attacker: Optional[User], attacker_role: str, protector: User, protector_role: str, reason: str):
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
-        add_dying(var, protector, killer_role=attacker_role, reason="bodyguard", killer=attacker)
+        await add_dying(var, protector, killer_role=attacker_role, reason="bodyguard", killer=attacker)
         if var.current_phase == "night" and var.in_phase_transition: # currently transitioning
             DYING.add(protector)
 
@@ -138,9 +138,9 @@ async def on_player_protected(evt: Event, var: GameState, target: User, attacker
 async def on_remove_protection(evt: Event, var: GameState, target: User, attacker: Optional[User], attacker_role: str, protector: User, protector_role: str, reason: str):
     if attacker_role == "fallen angel" and protector_role == "bodyguard":
         evt.data["remove"] = True
-        add_dying(var, protector, killer_role="fallen angel", reason=reason)
-        protector.send(messages[reason + "_success"].format(target))
-        target.send(messages[reason + "_deprotect"])
+        await add_dying(var, protector, killer_role="fallen angel", reason=reason)
+        await protector.send(messages[reason + "_success"].format(target))
+        await target.send(messages[reason + "_deprotect"])
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):

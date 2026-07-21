@@ -23,7 +23,7 @@ async def shaman_totem(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     totem_types = list(TOTEMS[wrapper.source].keys())
-    totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)
+    totem, target = await get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)
     if not target:
         return
 
@@ -41,7 +41,7 @@ async def shaman_totem(wrapper: MessageDispatcher, message: str):
         await wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_known", role="shaman")
+    given = await give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_known", role="shaman")
     if given:
         victim, target = given
         if victim is not target:
@@ -73,7 +73,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
                     target = random.choice(ps)
                     ps.remove(target)
                     dispatcher = MessageDispatcher(shaman, users.Bot)
-                    given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="shaman")
+                    given = await give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])
 
@@ -91,7 +91,7 @@ async def on_transition_night_end(evt: Event, var: GameState):
     random.shuffle(shamans)
     for shaman in shamans:
         if var.next_phase != "night":
-            shaman.send(messages["shaman_notify"].format("shaman"))
+            await shaman.send(messages["shaman_notify"].format("shaman"))
             continue
         pl = ps[:]
         random.shuffle(pl)

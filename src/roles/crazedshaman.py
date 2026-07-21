@@ -25,7 +25,7 @@ async def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
     var = wrapper.game_state
 
     totem_types = list(TOTEMS[wrapper.source].keys())
-    totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, []) # don't pass totem_types so they can't autocomplete what random totems they have
+    totem, target = await get_totem_target(var, wrapper, message, LASTGIVEN, []) # don't pass totem_types so they can't autocomplete what random totems they have
     if not target:
         return
 
@@ -45,7 +45,7 @@ async def crazed_shaman_totem(wrapper: MessageDispatcher, message: str):
         await wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_unknown", role="crazed shaman")
+    given = await give_totem(var, wrapper, orig_target, totem, key="shaman_success_night_unknown", role="crazed shaman")
     if given:
         victim, target = given
         if victim is not target:
@@ -82,7 +82,7 @@ async def on_transition_day_begin(evt: Event, var: GameState):
                     target = random.choice(ps)
                     ps.remove(target)
                     dispatcher = MessageDispatcher(shaman, users.Bot)
-                    given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_unknown", role="crazed shaman")
+                    given = await give_totem(var, dispatcher, target, totem, key="shaman_success_random_unknown", role="crazed shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])
 
@@ -100,7 +100,7 @@ async def on_send_role(evt: Event, var: GameState):
     random.shuffle(shamans)
     for shaman in shamans:
         if var.next_phase != "night":
-            shaman.send(messages["shaman_notify"].format("crazed shaman"))
+            await shaman.send(messages["shaman_notify"].format("crazed shaman"))
             continue
 
         pl = ps[:]
@@ -131,11 +131,11 @@ async def on_send_role(evt: Event, var: GameState):
 
         num_totems = sum(TOTEMS[shaman].values())
         if num_totems > 1:
-            shaman.send(messages["shaman_notify_multiple_random"].format("crazed shaman"))
+            await shaman.send(messages["shaman_notify_multiple_random"].format("crazed shaman"))
         else:
-            shaman.send(messages["shaman_notify"].format("crazed shaman"))
-        shaman.send(totem_message(TOTEMS[shaman], count_only=True))
-        shaman.send(messages["players_list"].format(pl))
+            await shaman.send(messages["shaman_notify"].format("crazed shaman"))
+        await shaman.send(totem_message(TOTEMS[shaman], count_only=True))
+        await shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
 async def on_get_role_metadata(evt: Event, var: Optional[GameState], kind: str):

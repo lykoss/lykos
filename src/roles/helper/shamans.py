@@ -422,7 +422,7 @@ async def on_day_vote(evt: Event, var: GameState, votee, voters):
             if var.role_reveal in ("on", "team"):
                 to_send = "totem_desperation"
             await channels.Main.send(messages[to_send].format(votee, target, await get_reveal_role(var, target)))
-            status.add_dying(var, target, killer_role=main_role, reason="totem_desperation", killer=votee)
+            await status.add_dying(var, target, killer_role=main_role, reason="totem_desperation", killer=votee)
             # no kill_players() call here; let our caller do that for us
 
 @event_listener("night_kills")
@@ -500,7 +500,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         if var.role_reveal in ("on", "team"):
             to_send = f"retribution_totem_{var.current_phase}_death"
         await channels.Main.send(messages[to_send].format(player, loser, await get_reveal_role(var, loser)))
-        add_dying(var, loser, evt.params.main_role, "retribution_totem", killer=player)
+        await add_dying(var, loser, evt.params.main_role, "retribution_totem", killer=player)
 
 @event_listener("transition_day_end")
 async def on_transition_day_end(evt: Event, var: GameState):

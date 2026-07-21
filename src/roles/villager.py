@@ -20,7 +20,7 @@ async def on_send_role(evt: Event, var: GameState):
         if villagers:
             for villager in villagers:
                 villager.queue_message(messages["villager_notify"])
-            User.send_messages()
+            await User.send_messages()
 
 @event_listener("chk_win", priority=3)
 async def on_chk_win(evt: Event, var: GameState, rolemap: dict[str, set[User]], mainroles: dict[User, str], lpl: int, lwolves: int, lrealwolves: int, lvampires: int):

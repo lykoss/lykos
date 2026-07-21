@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Optional, Callable, Union
-import threading
+import asyncio
 import time
 
 from src.transport.irc import get_ircd
@@ -29,7 +29,7 @@ UserOrLocation = Union[User, Location]
 UserOrSpecialTag = Union[User, str]
 
 NIGHT_IDLE_EXEMPT = UserSet()
-TIMERS: dict[str, tuple[threading.Timer, float | int, int]] = {}
+TIMERS: dict[str, tuple[asyncio.TimerHandle, float | int, int]] = {}
 
 DAY_ID: float | int = 0
 DAY_TIMEDELTA: timedelta = timedelta(0)
@@ -372,7 +372,7 @@ async def transition_day(var: GameState, game_id: int = 0):
         else:
             killer_role[deadperson] = get_main_role(var, killer)
 
-        add_dying(var, deadperson, killer_role[deadperson], "night_kill", killer=killer)
+        await add_dying(var, deadperson, killer_role[deadperson], "night_kill", killer=killer)
 
     await kill_players(var, end_game=False) # temporary hack; end_game=False also prevents kill_players from attempting phase transitions
 
@@ -690,7 +690,7 @@ async def chk_win_conditions(var: GameState,
                        winner=None,
                        count_absent=True):
     """Internal handler for the chk_win function."""
-    with locks.reaper:
+    async with locks.reaper:
         if var.current_phase == "day" and count_absent:
             pl = set(get_players(var)) - get_absent(var)
             lpl = len(pl)
@@ -756,7 +756,7 @@ async def reset_game(wrapper: MessageDispatcher, message: str):
 async def reset(var: Optional[GameState | PregameState]):
     # Reset game timers
     if var is not None:
-        with locks.join_timer: # make sure it isn't being used by the ping join handler
+        async with locks.join_timer: # make sure it isn't being used by the ping join handler
             for timers in TIMERS.values():
                 timers[0].cancel()
             TIMERS.clear()

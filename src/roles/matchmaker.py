@@ -17,7 +17,7 @@ from src.users import User
 from src.random import random
 
 class GameState(gamestate.GameState):
-    async def __init__(self):
+    def __init__(self):
         self.matchmaker_acted: UserSet = UserSet()
         self.matchmaker_acted_tonight: UserSet = UserSet()
         # active lover pairings (no dead players), contains forward and reverse mappings
@@ -47,10 +47,10 @@ async def _set_lovers(var: GameState, target1: User, target2: User):
     else:
         var.matchmaker_lovers[target2] = UserSet({target1})
 
-    target1.send(messages["matchmaker_target_notify"].format(target2))
-    target2.send(messages["matchmaker_target_notify"].format(target1))
+    await target1.send(messages["matchmaker_target_notify"].format(target2))
+    await target2.send(messages["matchmaker_target_notify"].format(target1))
 
-async def get_all_lovers(var: GameState) -> list[set[User]]:
+def get_all_lovers(var: GameState) -> list[set[User]]:
     """ Get all sets of currently alive lovers.
 
     This method fully resolves lover chains and returns a list of every polycule.
@@ -69,7 +69,7 @@ async def get_all_lovers(var: GameState) -> list[set[User]]:
 
     return lovers
 
-async def get_lovers(var: GameState, player: User, *, include_player: bool = False) -> set[User]:
+def get_lovers(var: GameState, player: User, *, include_player: bool = False) -> set[User]:
     """ Get all alive players this player is currently in love with.
 
     :param var: Game state
@@ -116,7 +116,7 @@ async def choose(wrapper: MessageDispatcher, message: str):
     var.matchmaker_acted.add(wrapper.source)
     var.matchmaker_acted_tonight.add(wrapper.source)
 
-    _set_lovers(var, target1, target2)
+    await _set_lovers(var, target1, target2)
 
     await wrapper.send(messages["matchmaker_success"].format(target1, target2))
 
@@ -128,8 +128,8 @@ async def on_transition_day_begin(evt: Event, var: GameState):
         if mm not in var.matchmaker_acted:
             lovers = random.sample(pl, 2)
             var.matchmaker_acted.add(mm)
-            _set_lovers(var, *lovers)
-            mm.send(messages["random_matchmaker"])
+            await _set_lovers(var, *lovers)
+            await mm.send(messages["random_matchmaker"])
 
 @event_listener("send_role")
 async def on_send_role(evt: Event, var: GameState):
@@ -139,9 +139,9 @@ async def on_send_role(evt: Event, var: GameState):
             continue
         pl = ps[:]
         random.shuffle(pl)
-        mm.send(messages["matchmaker_notify"])
+        await mm.send(messages["matchmaker_notify"])
         if var.next_phase == "night":
-            mm.send(messages["players_list"].format(pl))
+            await mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 async def on_del_player(evt: Event, var: GameState, player, all_roles, death_triggers):
@@ -160,7 +160,7 @@ async def on_del_player(evt: Event, var: GameState, player, all_roles, death_tri
                 if var.role_reveal in ("on", "team"):
                     to_send = "lover_suicide"
                 await channels.Main.send(messages[to_send].format(lover, await get_reveal_role(var, lover)))
-                add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide", killer=evt.params.killer)
+                await add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide", killer=evt.params.killer)
 
         for lover in lovers:
             var.matchmaker_lovers[lover].discard(player)

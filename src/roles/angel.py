@@ -153,7 +153,7 @@ async def on_remove_protection(evt: Event, var: GameState, target: User, attacke
             await protector.send(messages[reason + "_success"].format(target))
         await target.send(messages[reason + "_deprotect"])
         if (random.random() * 100) < config.Main.get("gameplay.safes.fallen_kills"):
-            add_dying(var, protector, killer_role="fallen angel", reason=reason)
+            await add_dying(var, protector, killer_role="fallen angel", reason=reason)
 
 @event_listener("begin_day")
 async def on_begin_day(evt: Event, var: GameState):

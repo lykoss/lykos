@@ -48,7 +48,7 @@ async def curse(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     await wrapper.pm(messages["curse_success"].format(orig))
-    send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, orig), {"warlock"}, role="warlock", command="curse")
+    await send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, orig), {"warlock"}, role="warlock", command="curse")
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 async def pass_cmd(wrapper: MessageDispatcher, message: str):
@@ -57,7 +57,7 @@ async def pass_cmd(wrapper: MessageDispatcher, message: str):
     PASSED.add(wrapper.source)
 
     await wrapper.pm(messages["warlock_pass"])
-    send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
+    await send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
 
 @command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 async def retract(wrapper: MessageDispatcher, message: str):
@@ -66,7 +66,7 @@ async def retract(wrapper: MessageDispatcher, message: str):
     PASSED.discard(wrapper.source)
 
     await wrapper.pm(messages["warlock_retract"])
-    send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
+    await send_wolfchat_message(wrapper.game_state, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
 
 @event_listener("chk_nightdone")
 async def on_chk_nightdone(evt: Event, var: GameState):
