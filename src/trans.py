@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Optional, Callable, Union
+from typing import Optional, Callable, Union, Coroutine
 import asyncio
 import time
 
@@ -29,7 +29,7 @@ UserOrLocation = Union[User, Location]
 UserOrSpecialTag = Union[User, str]
 
 NIGHT_IDLE_EXEMPT = UserSet()
-TIMERS: dict[str, tuple[asyncio.TimerHandle, float | int, int]] = {}
+TIMERS: dict[str, tuple[asyncio.Task, float | int, int]] = {}
 
 DAY_ID: float | int = 0
 DAY_TIMEDELTA: timedelta = timedelta(0)
@@ -43,6 +43,14 @@ ENDGAME_COMMAND: Optional[Callable] = None
 ADMIN_STOPPED = UserList() # this shouldn't hold more than one user at any point, but we need to keep track of it
 
 ORIGINAL_ACCOUNTS: UserDict[User, str] = UserDict()
+
+def timer_factory(coro: Coroutine, delay: int):
+    """Start a coro on a timer. Coroutine is not awaited until time is elapsed."""
+    async def timer():
+        await asyncio.sleep(delay)
+        await coro
+    task = asyncio.create_task(timer())
+    return (task, time.time(), delay, coro)
 
 @handle_error
 async def hurry_up(timer_type: str, var: GameState, phase_id: float, *, admin_forced: bool = False):
@@ -92,7 +100,7 @@ async def begin_day(var: GameState):
         warn = 0
         limit = 0
 
-    var.end_phase_transition(limit, warn, hurry_up, (var, DAY_ID))
+    await var.end_phase_transition(limit, warn, hurry_up, (var, DAY_ID))
 
     if not config.Main.get("gameplay.nightchat"):
         modes = []
@@ -370,7 +378,7 @@ async def transition_day(var: GameState, game_id: int = 0):
             killer = kevt.data["attacker"]
             killer_role[deadperson] = kevt.data["role"]
         else:
-            killer_role[deadperson] = get_main_role(var, killer)
+            killer_role[deadperson] = await get_main_role(var, killer)
 
         await add_dying(var, deadperson, killer_role[deadperson], "night_kill", killer=killer)
 
@@ -446,7 +454,7 @@ async def transition_night(var: GameState):
         warn = 0
         limit = 0
 
-    var.end_phase_transition(limit, warn, night_timeout, (var, NIGHT_ID))
+    await var.end_phase_transition(limit, warn, night_timeout, (var, NIGHT_ID))
 
     event_night = Event("begin_night", {"messages": []})
     await event_night.dispatch(var)

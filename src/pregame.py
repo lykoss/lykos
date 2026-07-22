@@ -138,7 +138,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
                 del TIMERS["start_votes"]
 
 async def start(wrapper: MessageDispatcher, *, forced: bool = False):
-    from src.trans import stop_game, ADMIN_STOPPED, TIMERS
+    from src.trans import stop_game, ADMIN_STOPPED, TIMERS, timer_factory
 
     pregame_state: PregameState = wrapper.game_state
 
@@ -190,9 +190,7 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
 
                 # If this was the first vote
                 if len(START_VOTES) == 1:
-                    loop = asyncio.get_event_loop()
-                    t = loop.call_later(60, expire_start_votes, pregame_state, wrapper.target)
-                    TIMERS["start_votes"] = (t, time.time(), 60)
+                    TIMERS["start_votes"] = timer_factory(expire_start_votes(pregame_state, wrapper.target), 60)
                 return
 
     if pregame_state.current_mode is None:
@@ -497,10 +495,8 @@ async def start(wrapper: MessageDispatcher, *, forced: bool = False):
     if config.Main.get("reaper.enabled"):
         # DEATH TO IDLERS!
         from src.reaper import reaper
-        async def _run_reaper():
-            await reaper(ingame_state, ingame_state.game_id)
         loop = asyncio.get_event_loop()
-        loop.create_task(_run_reaper, name="reaper")
+        loop.create_task(reaper(ingame_state, ingame_state.game_id), name="reaper")
 
 async def _command_disabled(wrapper: MessageDispatcher, message: str):
     await wrapper.send(messages["command_disabled_admin"])

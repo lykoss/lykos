@@ -201,7 +201,7 @@ class SleepyMode(GameMode):
             # need another round of nightmares
             var.begin_phase_transition("nightmare")
             time_limit = config.Main.get("gameplay.modes.sleepy.nightmare.time")
-            var.end_phase_transition(time_limit, timer_cb=self.nightmare_timer, cb_args=(var,))
+            await var.end_phase_transition(time_limit, timer_cb=self.nightmare_timer, cb_args=(var,))
         else:
             # all nightmares resolved, can finally make it daytime
             from src.trans import transition_day

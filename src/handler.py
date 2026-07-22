@@ -209,12 +209,12 @@ async def unhandled(cli, prefix, cmd, *args, tags):
     for fn in decorators.HOOKS.get(cmd, []):
         await fn.caller(cli, prefix, *args, tags=tags)
 
-def ping_server(cli: IRCClient):
+async def ping_server(cli: IRCClient):
     cli.send("PING :{0}".format(time.time()))
 
 @command("latency", pm=True)
 async def latency(wrapper: MessageDispatcher, message):
-    ping_server(wrapper.client)
+    await ping_server(wrapper.client)
 
     @hook("pong", hookid=300)
     async def latency_pong(cli, server, target, ts, *, tags):
@@ -277,13 +277,13 @@ def connect_callback(cli: IRCClient):
         users.Bot.change_nick(nick)
 
         if config.Main.get("transports[0].server_ping"):
-            async def ping_server_timer(cli: IRCClient):
-                ping_server(cli)
+            async def ping_server_timer(cli):
+                while True:
+                    await ping_server(cli)
+                    await asyncio.sleep(config.Main.get("transports[0].server_ping"))
 
-                loop = asyncio.get_event_loop()
-                loop.call_later(config.Main.get("transports[0].server_ping"), ping_server_timer, cli)
-
-            await ping_server_timer(cli)
+            loop = asyncio.get_event_loop()
+            loop.create_task(ping_server_timer(cli))
 
         hook.unhook(294)
 

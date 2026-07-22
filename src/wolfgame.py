@@ -370,7 +370,7 @@ async def replace(wrapper: MessageDispatcher, message: str):
     elif target is not wrapper.source:
         target.swap(wrapper.source)
         if var.in_game:
-            reaper.return_to_village(var, wrapper.source, show_message=False)
+            await reaper.return_to_village(var, wrapper.source, show_message=False)
 
         cmodes = []
 
@@ -385,11 +385,11 @@ async def replace(wrapper: MessageDispatcher, message: str):
         for mode in channels.Main.old_modes[target]:
             cmodes.append(("+" + mode, target))
 
-        channels.Main.mode(*cmodes)
+        await channels.Main.mode(*cmodes)
 
         await channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         if var.in_game:
-            myrole.func(wrapper, "")
+            await myrole.func(wrapper, "")
 
 @event_listener("chan_kick")
 async def kicked_modes(evt, chan: Channel, actor, target, reason):
@@ -464,10 +464,10 @@ async def on_kill_players(evt: Event, var: GameState, players: set[User]):
 
     # attempt to devoice all dead players
     if cmode:
-        channels.Main.mode(*cmode)
+        await channels.Main.mode(*cmode)
 
     if not evt.params.end_game:
-        relay.join_deadchat(var, *deadchat)
+        await relay.join_deadchat(var, *deadchat)
         return
 
     # see if we need to end the game or transition phases

@@ -202,7 +202,8 @@ class IRCContext:
             send_types = defaultdict(list)
             for target in targets:
                 if target.is_fake:
-                    await target.send(message) # don't bundle it
+                    for line in message:
+                        await target.send(line) # don't bundle it
                     continue
                 send_type = target.get_send_type(is_notice=notice, is_privmsg=privmsg)
                 send_type, send_chan = target.use_cprivmsg(send_type)

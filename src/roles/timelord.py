@@ -38,7 +38,7 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
     values = dict(TIME_ATTRIBUTES)
     await channels.Main.send(messages["time_lord_dead"].format(values["day_time_limit"], values["night_time_limit"]))
 
-    from src.trans import hurry_up, night_timeout, DAY_ID, NIGHT_ID, TIMERS
+    from src.trans import hurry_up, night_timeout, DAY_ID, NIGHT_ID, TIMERS, timer_factory
     if var.current_phase == "day":
         time_limit = var.day_time_limit
         cb = hurry_up
@@ -60,17 +60,14 @@ async def on_del_player(evt: Event, var: GameState, player: User, all_roles: set
         time_left = int((TIMERS[f"{var.current_phase}_limit"][1] + TIMERS[f"{var.current_phase}_limit"][2]) - time.time())
 
         if time_left > time_limit > 0:
-            loop = asyncio.get_event_loop()
-            t = loop.call_later(time_limit, cb, *limit_args)
-            TIMERS[f"{var.current_phase}_limit"] = (t, time.time(), time_limit)
+            TIMERS[f"{var.current_phase}_limit"] = timer_factory(cb(*limit_args), time_limit)
 
             # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
             if timer_name in TIMERS and time_warn > 0:
-                timer = TIMERS[timer_name][0]
-                if not timer.finished.is_set():
-                    timer.cancel()
-                    t = loop.call_later(time_warn, cb, *warn_args)
-                    TIMERS[timer_name] = (t, time.time(), time_warn)
+                task = TIMERS[timer_name][0]
+                if not task.done():
+                    task.cancel()
+                    TIMERS[timer_name] = timer_factory(cb(*warn_args), time_warn)
 
 @event_listener("night_idled")
 async def on_night_idled(evt: Event, var: GameState, player: User):

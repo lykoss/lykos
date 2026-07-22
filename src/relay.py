@@ -201,7 +201,7 @@ async def fspectate(wrapper: MessageDispatcher, message: str):
 async def revealroles(wrapper: MessageDispatcher, message: str):
     """Reveal role information."""
 
-    if not try_restricted_cmd(wrapper, "temp_invalid_perms"):
+    if not await try_restricted_cmd(wrapper, "temp_invalid_perms"):
         return
 
     var = wrapper.game_state

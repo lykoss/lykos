@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import math
 import asyncio
-from typing import Any, Optional, Callable, ClassVar, TYPE_CHECKING
+from typing import Any, Optional, Callable, Coroutine, ClassVar, TYPE_CHECKING
 import time
 
 from src.containers import UserSet, UserDict, UserList
@@ -163,8 +163,8 @@ class GameState:
             TIMERS[f"{self.current_phase}_warn"][0].cancel()
             del TIMERS[f"{self.current_phase}_warn"]
 
-    def end_phase_transition(self, time_limit: int = 0, time_warn: int = 0, timer_cb=None, cb_args=()):
-        from src.trans import TIMERS
+    async def end_phase_transition(self, time_limit: int = 0, time_warn: int = 0, timer_cb: Coroutine=None, cb_args=()):
+        from src.trans import TIMERS, timer_factory
         if self.next_phase is None:
             raise RuntimeError("not in phase transition")
 
@@ -172,28 +172,25 @@ class GameState:
         self.current_phase = self.next_phase
         self.next_phase = None
         if config.Main.get("timers.enabled"):
-            loop = asyncio.get_event_loop()
             if time_limit:
-                timer = loop.call_later(time_limit, timer_cb, "limit", *cb_args)
-                TIMERS[f"{self.current_phase}_limit"] = (timer, time.time(), time_limit)
+                TIMERS[f"{self.current_phase}_limit"] = timer_factory(timer_cb("limit", *cb_args), time_limit)
 
             if time_warn:
-                timer = loop.call_later(time_warn, timer_cb, "warn", *cb_args)
-                TIMERS[f"{self.current_phase}_warn"] = (timer, time.time(), time_warn)
+                TIMERS[f"{self.current_phase}_warn"] = timer_factory(timer_cb("warn", *cb_args), time_warn)
 
     async def extend_phase_limit(self, minimum: int = 0):
         """Ensure that the phase limit timer has a minimum amount of seconds remaining."""
-        from src.trans import TIMERS
+        from src.trans import TIMERS, timer_factory
         if minimum <= 0:
             return
         if config.Main.get("timers.enabled"):
-            (timer, started, limit) = TIMERS[f"{self.current_phase}_limit"]
+            (task, started, limit, coro) = TIMERS[f"{self.current_phase}_limit"]
             elapsed = math.ceil(time.time() - started)
             if elapsed + minimum > limit:
-                timer.cancel()
-                loop = asyncio.get_event_loop()
-                extended = loop.call_later(minimum, timer._callback, *timer._args)
-                TIMERS[f"{self.current_phase}_limit"] = (extended, started, elapsed + minimum)
+                task.cancel()
+                # we only care about the new Task
+                extended = timer_factory(coro, minimum)[0]
+                TIMERS[f"{self.current_phase}_limit"] = (extended, started, elapsed + minimum, coro)
 
     @property
     def in_phase_transition(self):

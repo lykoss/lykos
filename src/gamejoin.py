@@ -115,9 +115,7 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
 
         # Set join timer
         if config.Main.get("timers.enabled") and config.Main.get("timers.join.enabled"):
-            loop = asyncio.get_event_loop()
-            handle = loop.call_later(config.Main.get("timers.join.limit"), kill_join, var, wrapper)
-            trans.TIMERS["join"] = (handle, time.time(), config.Main.get("timers.join.limit"))
+            trans.TIMERS["join"] = trans.timer_factory(kill_join(var, wrapper), config.Main.get("timers.join.limit"))
 
     elif wrapper.source in pl:
         key = "you_already_playing" if who is wrapper.source else "other_already_playing"
@@ -163,9 +161,7 @@ async def _join_player(wrapper: MessageDispatcher, who: Optional[User] = None, f
         if "join_pinger" in trans.TIMERS:
             trans.TIMERS["join_pinger"][0].cancel()
 
-        loop = asyncio.get_event_loop()
-        handle = loop.call_later(10, join_timer_handler, var)
-        trans.TIMERS["join_pinger"] = (handle, time.time(), 10)
+        trans.TIMERS["join_pinger"] = trans.timer_factory(join_timer_handler(var), 10)
 
     if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
         await channels.Main.mode(*cmodes)
@@ -293,7 +289,7 @@ async def altpinger(wrapper: MessageDispatcher, message: str):
     await wrapper.pm(*msg, sep="\n")
 
 @handle_error
-async def join_timer_handler(var):
+async def join_timer_handler(var: GameState):
     global PINGING_PLAYERS
     async with locks.join_timer:
         PINGING_PLAYERS = True
