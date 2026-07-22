@@ -52,7 +52,8 @@ async def on_privmsg(cli, rawnick, chan, msg, *, notice=False, tags=None):
         old_user = user
         user.account = account_tag
         user = users.get(user.nick, user.ident, user.host, account_tag)
-        Event("account_change", {}, old=old_user).dispatch(user, old_account)
+        evt = Event("account_change", {}, old=old_user)
+        await evt.dispatch(user, old_account)
 
     wrapper = MessageDispatcher(user, target)
 
