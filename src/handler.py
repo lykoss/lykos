@@ -264,6 +264,10 @@ def connect_callback(cli: IRCClient):
         if services.supports_auth() and password and not use_sasl:
             cli.ns_identify(username, password, services.nickserv, services.command)
 
+        # turn on bot mode if supported
+        if Features.BOT:
+            cli.mode(cli.nickname, f"+{Features.BOT}")
+
         # give bot operators an opportunity to do some custom stuff here if they wish
         event = Event("irc_connected", {})
         event.dispatch(cli)

@@ -103,13 +103,14 @@ def parse_raw_irc_command(element):
     if isinstance(command, bytes):
         command = command.decode("utf_8")
 
-    if args[0].startswith(bytes(':', 'utf_8')):
-        args = [bytes(" ", "utf_8").join(args)[1:]]
-    else:
-        for idx, arg in enumerate(args):
-            if arg.startswith(bytes(':', 'utf_8')):
-                args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
-                break
+    if args:
+        if args[0].startswith(bytes(':', 'utf_8')):
+            args = [bytes(" ", "utf_8").join(args)[1:]]
+        else:
+            for idx, arg in enumerate(args):
+                if arg.startswith(bytes(':', 'utf_8')):
+                    args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
+                    break
 
     return tags, prefix, command, args
 

@@ -24,6 +24,7 @@ import traceback
 import os
 import hashlib
 import hmac
+from typing import Optional
 
 from oyoyo.parse import parse_raw_irc_command
 
@@ -125,7 +126,7 @@ class IRCClient:
     def __exit__(self, exc, value, tb):
         return False # TODO: make this into a proper context manager
 
-    def send(self, *args, **kwargs):
+    def send(self, *args, log: Optional[str] = None, encoding="utf-8", tags: Optional[dict] = None):
         """ send a message to the connected server. all arguments are joined
         with a space for convenience, for example the following are identical
 
@@ -141,27 +142,39 @@ class IRCClient:
         """
         with self.lock:
             # Convert all args to bytes if not already
-            encoding = kwargs.get('encoding') or 'utf_8'
             bargs = []
-            for i,arg in enumerate(args):
-                if isinstance(arg, str):
-                    bargs.append(bytes(arg, encoding))
+            if tags:
+                btags = []
+                for key, val in tags.items():
+                    bkey = key if isinstance(key, bytes) else str(key).encode(encoding)
+                    if val is None:
+                        btags.append(bkey)
+                        continue
+                    bval = val if isinstance(val, bytes) else str(val).encode(encoding)
+                    bval = (bval.replace(b"\\", b"\\\\")
+                                .replace(b";", b"\\;")
+                                .replace(b" ", b"\\s")
+                                .replace(b"\r", b"\\r")
+                                .replace(b"\n", b"\\n"))
+                    btags.append(bkey + b"=" + bval)
+
+                if btags:
+                    bargs.append(b"@" + b";".join(btags))
+            for arg in args:
+                if arg is None:
+                    continue
                 elif isinstance(arg, bytes):
                     bargs.append(arg)
-                elif arg is None:
-                    continue
                 else:
-                    raise Exception(('Refusing to send arg at index {1} of the args from '+
-                                     'provided: {0}').format(repr([(type(arg), arg)
-                                                                   for arg in args]), i))
+                    bargs.append(str(arg).encode(encoding))
 
-            msg = bytes(" ", "utf_8").join(bargs)
-            logmsg = kwargs.get("log") or str(msg)[1:]
-            self.stream_handler('---> send {0}'.format(logmsg), level="debug")
+            msg = b" ".join(bargs)
+            logmsg = log or msg.decode(encoding)
+            self.stream_handler('---> {0}'.format(logmsg), level="debug")
 
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
-            self.socket.send(msg + bytes("\r\n", "utf_8"))
+            self.socket.send(msg + b"\r\n")
 
     def connect(self):
         """ initiates the connection to the server set in self.host:self.port
@@ -218,9 +231,13 @@ class IRCClient:
 
                     if not self.cert_fp:
                         ctx.check_hostname = True
+                    else:
+                        ctx.check_hostname = False
 
                     ctx.load_default_certs()
                 elif not self.cert_verify and not self.cert_fp:
+                    ctx.verify_flags = ssl.VERIFY_DEFAULT
+                    ctx.check_hostname = False
                     self.stream_handler("**NOT** validating the server's TLS certificate! Check SSL settings in botconfig.yml!", level="warning")
 
                 if self.client_certfile:
@@ -278,7 +295,7 @@ class IRCClient:
                 try:
                     self.connect_cb(self)
                 except Exception as e:
-                    sys.stderr.write(traceback.format_exc())
+                    print(traceback.format_exc(), file=sys.stderr)
                     raise e
 
             buffer = bytes()
@@ -289,37 +306,31 @@ class IRCClient:
                     if False and not self.blocking and e.errno == 11:
                         pass
                     else:
-                        sys.stderr.write(traceback.format_exc())
+                        print(traceback.format_exc(), file=sys.stderr)
                         raise e
                 else:
-                    data = buffer.split(bytes("\n", "utf_8"))
+                    data = buffer.split(b"\n")
                     buffer = data.pop()
 
                     for el in data:
-                        tags, prefix, command, args = parse_raw_irc_command(el)
-
+                        self.stream_handler("<--- {0}".format(el.decode("utf-8", errors="replace"), level="debug"))
                         try:
-                            enc = "utf8"
-                            fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
-                        except UnicodeDecodeError:
-                            enc = "latin1"
-                            fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
+                            tags, prefix, command, args = parse_raw_irc_command(el)
+                        except Exception as e:
+                            print(traceback.format_exc(), file=sys.stderr)
+                            raise e
+
+                        fargs = [arg.decode("utf-8", errors="replace") for arg in args if isinstance(arg, bytes)]
 
                         try:
                             if prefix is not None:
-                                prefix = prefix.decode(enc)
-                            self.stream_handler("<--- receive {0} {1} ({2})".format(prefix, command, ", ".join(fargs)), level="debug")
-                            if tags:
-                                # TODO: this sucks for two reasons: 1) value is unescaped and may contain semicolons/newlines,
-                                # 2) we're doing str.format unconditionally here (and above) when it should be passed the logging layer as args
-                                # so that we don't waste CPU cycles doing string formatting when the message is never going to be displayed
-                                self.stream_handler("     @{0}".format(";".join("{0}={1}".format(k, v) if v else k for k, v in tags.items())), level="debug")
+                                prefix = prefix.decode("utf-8", errors="replace")
                             if command in self.command_handler:
                                 self.command_handler[command](self, prefix, *fargs, tags=tags)
                             elif "" in self.command_handler:
                                 self.command_handler[""](self, prefix, command, *fargs, tags=tags)
                         except Exception as e:
-                            sys.stderr.write(traceback.format_exc())
+                            print(traceback.format_exc(), file=sys.stderr)
                             raise e  # ?
                 yield True
         finally:

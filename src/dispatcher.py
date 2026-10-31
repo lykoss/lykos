@@ -27,6 +27,7 @@ class MessageDispatcher:
     def pm(self, *messages, **kwargs):
         """Send a private message or notice to the sender."""
         kwargs.setdefault("notice", self.public)
+        kwargs.setdefault("context", self.target if self.public else None)
         self.source.send(*messages, **kwargs)
 
     def send(self, *messages, **kwargs):

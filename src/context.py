@@ -45,7 +45,7 @@ def _who(cli, target, data=b""):
 
     return int.from_bytes(data, "little")
 
-def _send(data, first, sep, client, send_type, name, chan=None):
+def _send(data, first, sep, client, send_type, name, chan=None, context=None):
     full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
 
     # Maximum length of sent data is 512 bytes. However, we have to
@@ -76,6 +76,10 @@ def _send(data, first, sep, client, send_type, name, chan=None):
     else:
         chan = ""
 
+    tags = ""
+    if context is not None:
+        tags = f"@+channel-context={context} "
+
     messages = []
     count = 0
     for line in data:
@@ -95,7 +99,7 @@ def _send(data, first, sep, client, send_type, name, chan=None):
     for line in "".join(messages).split("\n"):
         while line:
             extra, line = line[:length], line[length:]
-            client.send("{0} {1} {4}:{2}{3}".format(send_type, name, first, extra, chan))
+            client.send(f"{tags}{send_type} {name} {chan}:{first}{extra}")
 
 def lower(nick: Optional[str | IRCContext], *, casemapping: Optional[str] = None):
     if nick is None or nick is NotLoggedIn:
@@ -249,7 +253,7 @@ class IRCContext:
 
         # because type checker is dumb
         from src import users
-        assert(isinstance(self, users.User))
+        assert isinstance(self, users.User)
 
         # check if bot is opped in any channels shared with this user
         cprivmsg_eligible: Optional[IRCContext] = None
@@ -269,7 +273,7 @@ class IRCContext:
                 return "CNOTICE", cprivmsg_eligible.name
         return send_type, None
 
-    def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
+    def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None, context=None):
         new = []
         for line in data:
             # support deferred messages
@@ -302,7 +306,7 @@ class IRCContext:
             first = ""
         if sep is None:
             sep = " "
-        _send(new, first, sep, self.client, send_type, name, send_chan)
+        _send(new, first, sep, self.client, send_type, name, send_chan, context)
 
     @property
     def prefix(self):
@@ -317,6 +321,14 @@ class IRCFeatures:
     _features: dict[str, Any] = {}
 
     # RPL_ISUPPORT tokens
+
+    @property
+    def BOT(self) -> Optional[str]:
+        return self._features.get("BOT", None)
+
+    @BOT.setter
+    def BOT(self, value: str):
+        self._features["BOT"] = value
 
     @property
     def CASEMAPPING(self) -> str:

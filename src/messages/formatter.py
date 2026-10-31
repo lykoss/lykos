@@ -1,3 +1,4 @@
+import inspect
 import string
 import random
 import fnmatch
@@ -47,7 +48,13 @@ class Formatter(string.Formatter):
         except TypeError:
             pass
 
-        return super().get_value(key, args, kwargs)
+        value = super().get_value(key, args, kwargs)
+        # late-bound resolution of any lambdas passed as values
+        # inspect.isfunction() used instead of callable() because for objects with __call__ we still want
+        # to prefer __str__ / __repr__ over __call__ to resolve them to a formatted string
+        if inspect.isfunction(value):
+            value = value()
+        return value
 
     def format_field(self, value, format_spec, *, flatten_lists=True):
         if not format_spec:

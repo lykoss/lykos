@@ -5,7 +5,7 @@ from collections import defaultdict
 from typing import Optional, Iterable
 
 from src import users, config, relay
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
+from src.cats import Wolf, Wolfchat, Killer, Hidden, All
 from src.containers import UserList, UserDict
 from src.decorators import command
 from src.events import Event, event_listener
@@ -40,8 +40,11 @@ def register_wolf(rolename):
 def wolf_kill(wrapper: MessageDispatcher, message: str):
     """Kill one or more players as a wolf."""
     var = wrapper.game_state
-    # verify this user can actually kill
-    if not get_all_roles(var, wrapper.source) & Wolf & Killer:
+    # verify this user can actually kill as a wolf
+    for role in get_all_roles(var, wrapper.source):
+        if role in Wolf & Killer:
+            break
+    else:
         return
 
     pieces = re.split(" +", message)
@@ -183,13 +186,14 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         # a new wofl has joined the party, give them tummy rubs and the wolf list
         # and let the other wolves know to break out the confetti and villager steaks
         wofls = get_players(var, wcroles)
-        evt.data["in_wolfchat"] = True
+        evt.data["in_wolfchat"] = is_known_wolf_ally(var, player, player)
         if wofls:
             for wofl in wofls:
                 # if a wolf is leaving us, don't tell them about the new wolf
                 if wofl is evt.params.inherit_from:
                     continue
-                wofl.queue_message(messages["wolfchat_new_member"].format(player, sayrole))
+                if is_known_wolf_ally(var, wofl, player):
+                    wofl.queue_message(messages["wolfchat_new_member"].format(player, sayrole))
             User.send_messages()
         else:
             return # no other wolves, nothing else to do
@@ -197,7 +201,7 @@ def on_new_role(evt: Event, var: GameState, player: User, old_role: Optional[str
         # defer resolution of get_wolflist() until the time the message is actually being sent to the player
         # this way in a role swap we aren't working on an inaccurate view of who should have which role and potentially
         # leak information or give inaccurate information to the new wolf
-        evt.data["messages"].append(lambda: messages["players_list"].format(get_wolflist(var, player, role=evt.data["role"])))
+        evt.data["messages"].append(lambda: messages["players_list"].format(get_wolflist(var, player)))
 
         if var.current_phase == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
@@ -362,15 +366,13 @@ def get_wolflist(var,
                  player: users.User,
                  *,
                  shuffle: bool = True,
-                 remove_player: bool = True,
-                 role: Optional[str] = None) -> list[str]:
+                 remove_player: bool = True) -> list[str]:
     """ Retrieve the list of players annotated for displaying to wolfteam members.
 
     :param var: Game state
     :param player: Player the wolf list will be displayed to
     :param shuffle: Whether or not to randomize the player list being displayed
     :param remove_player: Whether or not to exclude ``player`` from the returned list
-    :param role: Treat ``player`` as if they had this role as their main role, to customize list display
     :returns: List of localized message strings to pass into either players_list or players_list_count
     """
 
@@ -380,46 +382,34 @@ def get_wolflist(var,
     if shuffle:
         random.shuffle(pl)
 
-    badguys = Wolfchat
-    if config.Main.get("gameplay.wolfchat.remove_non_wolves"):
-        if config.Main.get("gameplay.wolfchat.traitor_non_wolf") or "traitor" not in All:
-            badguys = Wolf
-        else:
-            badguys = Wolf | {"traitor"}
-
-    if role is None and player in get_players(var):
-        role = get_main_role(var, player)
-
-    if "warlock" in All:
-        badguys = badguys | {"warlock"}
-
-    if role in badguys:
-        entries = []
-        if "cursed villager" in All:
-            cursed = get_all_players(var, ("cursed villager",))
-        else:
-            cursed = set()
-        if role in badguys:
-            for p in pl:
-                prole = get_main_role(var, p)
-                if prole in badguys:
-                    if p in cursed:
-                        entries.append(messages["players_list_entry"].format(
-                            p, "bold", ["cursed villager", prole]))
-                    else:
-                        entries.append(messages["players_list_entry"].format(p, "bold", [prole]))
-                elif p in cursed:
-                    entries.append(messages["players_list_entry"].format(p, "", ["cursed villager"]))
-                else:
-                    entries.append(messages["players_list_entry"].format(p, "", []))
-        elif role == "warlock":
-            # warlock not in wolfchat explicitly only sees cursed
-            for p in pl:
-                if p in cursed:
-                    entries.append(messages["players_list_entry"].format(p, "", ["cursed villager"]))
-                else:
-                    entries.append(messages["players_list_entry"].format(p, "", []))
+    entries = []
+    if "cursed villager" in All:
+        cursed = get_all_players(var, ("cursed villager",))
     else:
+        cursed = set()
+    if is_known_wolf_ally(var, player, player):
+        # only main role wolves get the full wolflist
+        for p in pl:
+            prole = get_main_role(var, p)
+            if prole in get_wolfchat_roles():
+                if p in cursed:
+                    entries.append(messages["players_list_entry"].format(
+                        p, "bold", ["cursed villager", prole]))
+                else:
+                    entries.append(messages["players_list_entry"].format(p, "bold", [prole]))
+            elif p in cursed:
+                entries.append(messages["players_list_entry"].format(p, "", ["cursed villager"]))
+            else:
+                entries.append(messages["players_list_entry"].format(p, "", []))
+    elif get_all_roles(var, player) & (Wolf | {"warlock"}):
+        # not in wolfchat but knows who the cursed villagers are
+        for p in pl:
+            if p in cursed:
+                entries.append(messages["players_list_entry"].format(p, "", ["cursed villager"]))
+            else:
+                entries.append(messages["players_list_entry"].format(p, "", []))
+    else:
+        # not in wolfchat, just a plain player list with no extra info
         entries = [messages["players_list_entry"].format(p, "", []) for p in pl]
 
     return entries
