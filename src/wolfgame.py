@@ -594,6 +594,7 @@ def leave(var: Optional[GameState | PregameState], what: str, user: User, why=No
 
     channels.Main.send(msg.format(user, role) + population)
     relay.WOLFCHAT_SPECTATE.discard(user)
+    relay.VAMPCHAT_SPECTATE.discard(user)
     relay.DEADCHAT_SPECTATE.discard(user)
     relay.leave_deadchat(var, user)
 

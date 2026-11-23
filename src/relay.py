@@ -316,3 +316,4 @@ def on_reset(evt, var):
     DEADCHAT_PLAYERS.clear()
     DEADCHAT_SPECTATE.clear()
     WOLFCHAT_SPECTATE.clear()
+    VAMPCHAT_SPECTATE.clear()
